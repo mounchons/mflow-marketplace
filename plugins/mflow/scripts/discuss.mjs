@@ -13,7 +13,11 @@
 //   placeholder       Thai text in angle brackets left from the template, e.g. <คำถาม>
 // HTML comments and fenced code blocks are ignored, so examples of the markers there do not count.
 // A doc is ready to approve when it is a draft with no open decision, pending note or placeholder,
-// and no unprocessed report from another AI tool.
+// no unclosed code fence (it would hide everything below it), and no unprocessed report from another AI tool.
+//
+// Pictures (skills/discuss/references/visuals.md) are counted and linted but never gate approval:
+//   visuals            mermaid blocks, text-fence wireframes, linked screenshots, mermaid diagram types
+//   mermaidWarnings    flowchart node labels left unquoted around ( ) [ ] { } ; or #, which break the parser
 //
 // Reports from other tools (/mflow:discuss NN consult) land in <inboxDir> and are matched to a doc by
 // the id `discuss-<NN>-r<revision>` in their `brief` frontmatter or their file name. A report counts as
@@ -33,22 +37,52 @@ const HEADING_RE = /^###\s+(D\d+\b.*)$/;
 // Template placeholders open with Thai text right after "<", e.g. <คำถาม>. Comparisons in validation
 // text ("PickupDate < วันนี้ และ Status > 0") have a space after "<" and are not placeholders;
 // inline code is never a placeholder.
-const PLACEHOLDER_RE = /<[฀-๿][^<>\n]*>/;
+const PLACEHOLDER_RE = /<[\u0E00-\u0E7F][^<>\n]*>/;
 
 const REPORT_ID_RE = /(?:^|[^a-z0-9])discuss-(\d{2,})(?:-r(\d+))?(?![0-9])/i;
 
 const toPosix = (p) => p.split(path.sep).join("/");
 const discussDir = (root) => path.join(root, loadConfig(root).discussDir || "docs/discuss");
 
-/** Blank out HTML comments and fenced code blocks, keeping line numbers intact. */
-function visibleLines(text) {
+/**
+ * Blank out HTML comments and fenced code blocks, keeping line numbers intact, and collect the fenced
+ * blocks on the way (one pass, so the markers check and the picture count never disagree).
+ */
+function scanLines(text) {
   const blanked = text.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, ""));
-  const lines = blanked.split(/\r?\n/);
-  let fenced = false;
-  return lines.map((line) => {
-    if (/^\s*(```|~~~)/.test(line)) { fenced = !fenced; return ""; }
-    return fenced ? "" : line;
+  const visible = [];
+  const blocks = [];
+  let block = null;
+  blanked.split(/\r?\n/).forEach((line, i) => {
+    const fence = /^\s*(?:```|~~~)\s*([\w-]*)/.exec(line);
+    if (fence) {
+      if (block) { blocks.push(block); block = null; }
+      else block = { lang: fence[1].toLowerCase(), line: i + 1, body: [] };
+      visible.push("");
+      return;
+    }
+    if (block) block.body.push(line);
+    visible.push(block ? "" : line);
   });
+  return { visible, blocks, unclosedFenceLine: block ? block.line : null };
+}
+
+const IMAGE_RE = /!\[[^\]]*\]\([^)\s]+\.(?:png|jpe?g|gif|svg|webp)\)/i;
+// A flowchart node: ASCII id, an opening shape, then an unquoted label up to the first closing bracket.
+const NODE_RE = /(?:^|[^\w-])[A-Za-z_][\w-]*\s*(\[\[|\[\(|\(\(|\(\[|\{\{|\[|\(|\{)(?!["\[({])([^\n]*?)[\])}]/g;
+
+function lintMermaid(block) {
+  const type = (block.body.find((l) => l.trim()) || "").trim().split(/\s+/)[0];
+  if (!/^(flowchart|graph)$/.test(type)) return [];
+  const warnings = [];
+  block.body.forEach((raw, i) => {
+    // Quoted text and edge labels (|...|) are safe; only unquoted node labels are checked.
+    const line = raw.replace(/"[^"]*"/g, '""').replace(/\|[^|]*\|/g, "||");
+    for (const m of line.matchAll(NODE_RE)) {
+      if (/[()[\]{};#]/.test(m[2])) warnings.push({ line: block.line + i + 1, text: raw.trim() });
+    }
+  });
+  return warnings;
 }
 
 /** Which discussion doc (and revision) a report answers, from its brief id or file name; null if none. */
@@ -78,7 +112,8 @@ function inspect(root, full, allReports = reports(root)) {
   const pendingNotes = [];
   const placeholders = [];
   let heading = null;
-  visibleLines(text).forEach((line, i) => {
+  const { visible, blocks, unclosedFenceLine } = scanLines(text);
+  visible.forEach((line, i) => {
     const h = HEADING_RE.exec(line);
     if (h) heading = h[1].trim();
     const d = DECISION_RE.exec(line);
@@ -87,6 +122,13 @@ function inspect(root, full, allReports = reports(root)) {
     if (n) pendingNotes.push({ line: i + 1, text: n[1].trim() });
     if (PLACEHOLDER_RE.test(line.replace(/`[^`]*`/g, ""))) placeholders.push(i + 1);
   });
+  const mermaid = blocks.filter((b) => b.lang === "mermaid");
+  const visuals = {
+    mermaid: mermaid.length,
+    wireframes: blocks.filter((b) => b.lang === "text" || b.lang === "wireframe").length,
+    screenshots: visible.filter((l) => IMAGE_RE.test(l)).length,
+    types: [...new Set(mermaid.map((b) => (b.body.find((l) => l.trim()) || "").trim().split(/\s+/)[0]))],
+  };
   const status = fm.status || "draft";
   const id = fm.id || FILE_RE.exec(path.basename(full))?.[1] || "";
   const pendingReports = allReports
@@ -105,9 +147,12 @@ function inspect(root, full, allReports = reports(root)) {
     pendingNotes,
     placeholderLines: placeholders,
     pendingReports,
+    unclosedFenceLine,
+    visuals,
+    mermaidWarnings: mermaid.flatMap(lintMermaid),
     readyToApprove:
       status === "draft" && openDecisions.length === 0 && pendingNotes.length === 0 &&
-      placeholders.length === 0 && pendingReports.length === 0,
+      placeholders.length === 0 && pendingReports.length === 0 && unclosedFenceLine === null,
   };
 }
 

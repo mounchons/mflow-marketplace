@@ -16,6 +16,7 @@ superseded-by:
 
 <!-- Written by /mflow:discuss. Thai, for พี่ปู. Keep it under ~200 lines, not counting data-dictionary rows; split the topic into two docs if it grows past that.
      Replace every <...> placeholder (each fits on one line, so discuss.mjs check can find leftovers).
+     Pictures follow references/visuals.md; fenced blocks do not count toward the ~200 lines. The text stays authoritative.
      Formats that need angle brackets in real content go in backticks, e.g. `INV-<ปี พ.ศ.>-<เลขรัน>`; otherwise check reports them as placeholders.
      A section with nothing to say gets "ไม่มี", never an empty body. -->
 
@@ -26,6 +27,7 @@ superseded-by:
 - หรือพิมพ์สิ่งที่อยากแก้ในแชตเลย: `/mflow:discuss {{ID}} <สิ่งที่อยากให้แก้>`
 - อยากให้ AI ตัวอื่น (Codex, OpenCode, Gemini …) ช่วยคิด: สั่ง `/mflow:discuss {{ID}} consult` แล้วรันคำสั่งที่ได้เอง ผลกลับมาแล้วสั่ง `/mflow:discuss {{ID}}` ความเห็นของทุกตัวจะอยู่ในหัวข้อ 8 และในแต่ละข้อตัดสินใจ พี่ปูเป็นคนเลือกเอง
 - ตรงกับที่คิดครบแล้ว: `/mflow:discuss {{ID}} approve` (อนุมัติได้เมื่อทุกข้อตัดสินใจมีคำตอบ ไม่มีบรรทัด `> พี่ปู:` ค้าง และรวมความเห็นของ AI ที่ส่งกลับมาครบแล้ว)
+- ภาพประกอบ: ส่วนที่มีคำว่า (อนุมาน) หรือ (เสนอ) และเส้นประ คือส่วนที่ยังไม่มีในเอกสารลูกค้า ถ้าภาพไม่ตรงกับที่คิด เขียน `> พี่ปู:` ใต้ภาพได้เลย ภาพ mermaid แสดงเป็นรูปบน GitHub ถ้า preview ในเครื่องแสดงเป็นโค้ด ให้ติดตั้ง extension สำหรับแสดง Mermaid
 - ป้ายท้ายข้อความบอกว่ามาจากไหน: **[ที่มา: ไฟล์ §หัวข้อ]** มาจากเอกสารลูกค้า, **[พี่ปู]** พี่ปูบอกไว้, **[อนุมาน]** Claude ตีความเอง, **[เสนอ]** Claude เสนอ, **[เสนอ: codex]** AI ตัวนั้นเสนอ และ Claude ตรวจหลักฐานแล้ว ควรตรวจ [อนุมาน] กับ [เสนอ] ทุกแบบให้ละเอียดที่สุด
 
 ## 1. เรื่องที่ต้องการยืนยัน
@@ -38,7 +40,13 @@ superseded-by:
 
 ## 3. แบบที่เสนอ
 
-<ตาราง แผนภาพ หรือโครงสร้างตามหัวข้อ (ดูโครงแนะนำใน references/topics.md) ทุกแถวที่ไม่ได้มาจากเอกสารลูกค้าติดป้าย [อนุมาน] หรือ [เสนอ]>
+### ภาพรวม
+
+<แผนภาพ mermaid, wireframe หรือภาพหน้าจอจริงอย่างน้อยหนึ่งภาพที่ตอบคำถามหลักของเรื่องนี้ พร้อมบรรทัดใต้ภาพว่าภาพนี้ตอบอะไร และส่วนไหนเป็น (อนุมาน) หรือ (เสนอ) ถ้าไม่มีภาพที่ช่วยได้ ให้เขียนหนึ่งบรรทัดว่าทำไม>
+
+### รายละเอียด
+
+<ตาราง หรือโครงสร้างตามหัวข้อ (ดูโครงแนะนำใน references/topics.md) ทุกแถวที่ไม่ได้มาจากเอกสารลูกค้าติดป้าย [อนุมาน] หรือ [เสนอ]>
 
 ### ตัวอย่างสถานการณ์
 
@@ -48,6 +56,7 @@ superseded-by:
 ## 4. ให้พี่ปูตัดสินใจ
 
 <ทางเลือกที่ Claude ตัดสินใจเองไม่ได้ แต่พี่ปูตอบได้โดยไม่ต้องถามลูกค้า ถ้าไม่มี ให้เขียน "ไม่มี" และลบ D1 ออก>
+<!-- When the options differ in how they look or flow, give each option a small picture of the same type. -->
 
 ### D1: <คำถาม>
 - ก) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>

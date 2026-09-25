@@ -19,7 +19,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.8)
+## คำสั่ง (v0.9)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -27,7 +27,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 |---|---|---|
 | ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded |
-| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน |
+| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่พี่ปูรันเอง |
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่พี่ปูตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout, components, หน้า style guide, กฎ UI สำหรับ agent |

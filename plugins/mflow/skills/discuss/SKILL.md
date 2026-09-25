@@ -18,7 +18,7 @@ Other AI tools can join the discussion (`consult`). Each one analyzes the doc in
 
 Registry commands (run from the repo root):
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" list`: every doc with its status, revision, open decisions, pending notes and unprocessed tool reports, plus the next free number.
-- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" check <NN>`: the open decisions, pending notes, unfilled template placeholders and unprocessed tool reports (`pendingReports`, matched by `discuss-<NN>` in the report's brief id or file name) of one doc, and whether it is ready to approve.
+- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" check <NN>`: the open decisions, pending notes, unfilled template placeholders, an unclosed code fence, and unprocessed tool reports (`pendingReports`, matched by `discuss-<NN>` in the report's brief id or file name) of one doc, and whether it is ready to approve. It also counts the pictures (`visuals`) and warns about mermaid labels that will not parse (`mermaidWarnings`); neither blocks approval.
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" new <slug> --title "<Thai title>" --sources "<file>, <file>"`: creates `docs/discuss/NN-<slug>.md` from [assets/discussion.md](assets/discussion.md). The slug is ASCII kebab-case. The script never overwrites, and refuses a slug that still has an open draft. A frozen doc's slug can be reused for the doc that follows it.
 
 Reply markers, explained to พี่ปู at the top of every doc:
@@ -35,7 +35,7 @@ Run `list` and show one table: number, title, status, revision, open decisions, 
 
 ## Mode: new topic (`<topic>` matches no existing doc)
 
-1. **Scope it.** Choose the slug and a Thai title, and confirm both with พี่ปู. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs customer examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split. Data-dictionary rows do not count toward that cap; a data-model doc covers one aggregate and lists every column.
+1. **Scope it.** Choose the slug and a Thai title, and confirm both with พี่ปู. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs customer examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split. Data-dictionary rows and fenced blocks (diagrams, wireframes) do not count toward that cap; a data-model doc covers one aggregate and lists every column.
 2. **Gather evidence.** Named `@files` first. Then the active files in `docs/source/INDEX.md`; never use superseded ones. Then `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/ui/screens.md` if it exists, relevant hotspot `rules.md`, and `docs/reviews/`. Read only the sections the topic touches. A named file that `source-index.mjs scan` reports as `new` or `changed` has not been triaged yet. Follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 3. **Create and write.** Run `new`, then fill every section of the template, using the topic's checklist in [references/topics.md](references/topics.md):
    - Tag every statement: `[ที่มา: <file> §<section>]`, `[พี่ปู]`, `[อนุมาน]`, `[เสนอ]`, or `[เสนอ: <tool>]` for a suggestion from another AI tool that Claude has checked. An untagged statement looks like fact; tag it or cut it.
@@ -43,12 +43,13 @@ Run `list` and show one table: number, title, status, revision, open decisions, 
    - Answer each checklist item in the doc, or turn it into a decision, a customer question, or a line under "ไม่รวมในเรื่องนี้". Skip none silently.
    - **Decisions (section 4)** are only for choices พี่ปู can make without the customer. Give 2 to 4 options with trade-offs and Claude's recommendation, and leave `**พี่ปูเลือก:**` empty. Choices only the customer can make go in section 5.
    - **Scenarios** use named example people and include at least one edge case. They are how พี่ปู spots a wrong assumption fastest.
+   - **Pictures**, following [references/visuals.md](references/visuals.md) and the topic's Visuals line in topics.md. "ภาพรวม" in section 3 opens with at least one: a mermaid diagram, a wireframe, or a real screenshot from `docs/ui/screens/` once the screen exists. A decision whose options look or flow differently gets one small picture per option. Mark inferred or proposed parts in the label, and add the legend line under the picture. A picture never holds a fact the text lacks. Fix every `mermaidWarnings` entry, and render with mermaid-cli if it is installed.
    - **Section 7** previews the destinations from the merge table below, so พี่ปู sees what approval will change.
    - A format or pattern with Thai text in angle brackets (`INV-<ปี พ.ศ.>-<เลขรัน>`) goes in backticks; bare, `check` counts it as an unfilled placeholder.
 4. **Register use.** Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" mark <file> --used-by discuss-<NN>` for each source file used.
 5. **Hand it over.** Give พี่ปู the path, the three `[อนุมาน]` or `[เสนอ]` items that are most costly if wrong, and the open decisions. Remind them how to reply, and that `/mflow:discuss <NN> consult` brings other AI tools in. Set STATUS.md `## Now` to "waiting for พี่ปู to review docs/discuss/NN-<slug>.md". Stop. Nothing is merged before approval.
 
-Done when: `check <NN>` reports no `placeholderLines`, every checklist item is placed, and พี่ปู has the path.
+Done when: `check <NN>` reports no `placeholderLines` and no `mermaidWarnings`, `visuals` shows at least one picture (or "ภาพรวม" says in one line why none helps), every checklist item is placed, and พี่ปู has the path.
 
 ## Mode: consult (`<NN> consult [--to <tool>[,<tool>…]]`)
 
@@ -86,7 +87,7 @@ Done when: the brief exists, every tool has a command with its own output path, 
 3. Apply พี่ปู's feedback (notes, answers, `$ARGUMENTS`). It outranks any tool's suggestion:
    - Rewrite the affected statements, tables and scenarios. A statement พี่ปู confirmed or supplied gets the `[พี่ปู]` tag.
    - **Never trade a source for agreement.** If feedback contradicts a cited customer source, keep the cited statement. Write the conflict in the revision log with the citation, and add it to section 5 as a customer question. Tell พี่ปู plainly. The same goes for feedback that contradicts an approved doc or an archived spec in `openspec/specs/`.
-   - If an answer or note changes something else (another decision, a scenario, section 7), update it too and say so.
+   - If an answer or note changes something else (another decision, a scenario, a picture, section 7), update it too and say so. A changed fact updates every picture that shows it in the same revision.
    - An answered decision keeps its answer line as the record. Reflect the chosen option in sections 2, 3 and 7.
    - A new question that only พี่ปู can answer becomes a new `### D<n>` with an empty answer.
 4. Delete the processed `> พี่ปู:` lines. Increase `revision`, set `updated`, and add one line to `บันทึกการแก้ไข`: `rev N (<date>): <what changed, and which note, decision or tool finding caused it>`.
@@ -115,7 +116,7 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
    | Work to do | a Backlog task with `--ref docs/discuss/NN-<slug>.md` |
    | Changes something the customer already approved or that is already built | a candidate for `/mflow:change-request`; never a plain task |
 
-   Point to the doc instead of copying it: a destination gets the short fact plus `(docs/discuss/NN-<slug>.md)`.
+   Point to the doc instead of copying it: a destination gets the short fact plus `(docs/discuss/NN-<slug>.md)`. A picture travels with the facts it shows: the `erDiagram` goes into the aggregate's section of `PrototypeData/README.md` beside the dictionary, and a status `stateDiagram-v2` goes into the hotspot's `rules.md` when one is created. Every other picture stays in the frozen doc.
 3. **Write** after พี่ปู says yes. Create Backlog items through the CLI only.
 4. **Freeze.** Set the frontmatter: `status: approved`, `approved: <date>`, `merged-into: <comma-separated destinations>`. Add this line under the title: `> อนุมัติแล้ว <date> และนำไปรวมกับ flow หลักแล้ว เอกสารนี้เป็นบันทึกเหตุผล ความจริงปัจจุบันอยู่ที่ปลายทางในหัวข้อ 7`. Update STATUS.md with a log entry.
 5. **Later changes of mind** never edit a frozen doc:

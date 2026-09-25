@@ -2,6 +2,8 @@
 
 Cross-cutting topics that customer documents usually leave open to interpretation. Each one touches many screens. If Claude guesses it wrong, it has to be fixed in every screen. Use the checklist to find what the sources do not say, and use the suggested shapes for section 3 of the document.
 
+Each topic ends with a Visuals line: the pictures that usually explain it best (rules in visuals.md).
+
 Every checklist item is either answered with a tag in the doc, turned into a decision (D), turned into a customer question, or listed under "ไม่รวมในเรื่องนี้". None is silently skipped.
 
 ## access-control: roles, menus, actions, data visibility
@@ -45,6 +47,8 @@ Implementation direction to propose as `[เสนอ]` and confirm through a de
 Once approved, these tables become the prototype's `PrototypeData/roles.json` and `users.json`, which drive the role switcher the customer uses in the review. So the scenarios name example users with their title, role and unit, one to three per role.
 
 Conditions that depend on amounts, states or approval limits are business rules. Chart them with `/mflow:hotspot`, not here.
+
+Visuals: the same screen drawn once per role, saying what disappears (screenshots once the screens exist); a `flowchart TB` of the data-scope hierarchy (who sees which units).
 
 ## data-model: tables, columns, data dictionary
 
@@ -92,6 +96,8 @@ What approval changes (the merge table in SKILL.md routes it):
 - After approval, `PrototypeData/README.md` is the living data dictionary and the doc is the reasoning record. Field-level changes while prototyping (add, rename or drop a column; change its length or whether it is required) follow the schema-change rule there, without a new discussion doc. Structural changes (a new aggregate, a changed key or relationship, reversing a storage decision) need a new doc, or `/mflow:change-request` once built.
 - When the OpenSpec change that builds the aggregate is archived, the entity and its migration own the columns, and that README section shrinks to a one-line pointer to them.
 
+Visuals: an `erDiagram` of the aggregate; a `stateDiagram-v2` of its status when it has one.
+
 ## org-structure: company, branch, department
 
 - One company or several? Is master data shared between companies or separate?
@@ -99,11 +105,15 @@ What approval changes (the merge table in SKILL.md routes it):
 - Does a user belong to one unit or several, and does the unit decide their data scope?
 - Head-office roles that see across units.
 
+Visuals: a `flowchart TB` of the hierarchy.
+
 ## navigation: menu structure
 
 - Menu groups and order, following the story map.
 - The landing page or dashboard per role.
 - Quick actions, favourites, and global search. What can search find, and for whom?
+
+Visuals: a menu tree (`flowchart LR`, or `mindmap`); a sidebar wireframe per role.
 
 ## numbering: document and record numbers
 
@@ -111,9 +121,13 @@ What approval changes (the merge table in SKILL.md routes it):
 - Is the number per branch or global? Is it issued at draft or at approval?
 - Can cancelled numbers leave gaps, or must they be reused? Is this a legal requirement (tax invoices)?
 
+Visuals: sample numbers in backticks; a small `flowchart LR` of when the number is issued, if that is in question.
+
 ## approval-overview: who approves what
 
 Only the overall shape here: which documents need approval, how many levels, and who is at each level. Amount limits, delegation and escalation rules become a hotspot.
+
+Visuals: a `flowchart LR` with one lane per approver, or a `sequenceDiagram`.
 
 ## notifications
 
@@ -121,11 +135,15 @@ Only the overall shape here: which documents need approval, how many levels, and
 - Who can only see the record, and must therefore not receive its details in a message?
 - Reminders and escalation after a deadline.
 
+Visuals: a `sequenceDiagram` from the event to each recipient.
+
 ## audit-history
 
 - Which entities and fields keep a change history. Who can see it?
 - Login and permission-change logs. How long must they be kept (retention)?
 - Soft delete vs hard delete. Who can restore?
+
+Visuals: usually a table is enough; a `stateDiagram-v2` if records move through deleted and restored states.
 
 ## import-export-print
 
@@ -133,18 +151,26 @@ Only the overall shape here: which documents need approval, how many levels, and
 - Exports: which lists, which columns, and whether the data scope applies (it should).
 - Printed or legal documents: request a real sample from the customer, and ask about sizes and signatures.
 
+Visuals: a `flowchart LR` of import validation and partial failure; a wireframe of the printed layout.
+
 ## integration
 
 - External systems: the direction, frequency, triggering event, and data owner.
 - Failure handling: retry, manual resend, and who is alerted.
 - Is there a test environment on the other side?
 
+Visuals: a `sequenceDiagram` with an `alt` block for the failure path.
+
 ## master-data
 
 - Who maintains each master list, and whether changes need approval.
 - What happens to old documents when master data changes: do they keep the old value or show the new one?
 
+Visuals: a `flowchart LR` of who changes what and who approves it.
+
 ## data-migration
 
 - What comes from the old system, how many years of history, and who checks the migrated data.
 - Records that do not fit the new rules. Are they cleaned before import or flagged afterwards?
+
+Visuals: a `flowchart LR` from the old system through cleaning and checking to the new one; `gantt` for the cut-over if dates matter.

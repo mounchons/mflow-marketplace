@@ -1,0 +1,19 @@
+{
+  "description": "mflow: inject project state at session start; ask for a STATUS.md update before stopping when code changed.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start.mjs\"", "timeout": 30 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/stop-guard.mjs\"", "timeout": 20 }
+        ]
+      }
+    ]
+  }
+}

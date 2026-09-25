@@ -1,0 +1,14 @@
+{
+  "name": "mflow-marketplace",
+  "description": "Mounchon's own development workflow plugins.",
+  "owner": {
+    "name": "Mounchon"
+  },
+  "plugins": [
+    {
+      "name": "mflow",
+      "source": "./plugins/mflow",
+      "description": "Screen-first, spec-driven workflow: AGENTS.md + OpenSpec + Backlog.md + tests, with session memory hooks and hotspot charting for big business logic."
+    }
+  ]
+}

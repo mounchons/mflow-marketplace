@@ -1,0 +1,17 @@
+# Session memory (local only)
+.remember/
+
+# Dependencies
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# Logs / temp
+*.log
+tmp/

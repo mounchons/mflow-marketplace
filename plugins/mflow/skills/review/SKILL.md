@@ -1,0 +1,33 @@
+---
+name: review
+description: Review code (from Claude, Codex, or พี่ปู) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, run the tests, and give a verdict with findings.
+disable-model-invocation: true
+argument-hint: "[<branch> | --uncommitted | <change-name> | <TASK-ID>]"
+---
+
+A review answers one question: does this diff do what the spec says, the way this project does things, with proof? It reports; it fixes nothing unless asked afterwards.
+
+## 1. Scope the diff
+
+- Branch: `git diff main...<branch>`; `--uncommitted`: working tree; change name: the commits and files for `openspec/changes/<name>/`; TASK-ID: the task's `modifiedFiles` and linked commits.
+- Load what the diff must satisfy: the change's `proposal.md`, `tasks.md` and delta specs; the Backlog task's acceptance criteria; AGENTS.md; `docs/ui/design-system.md` for view changes; the hotspot `rules.md` if it implements one.
+
+## 2. Check
+
+1. **Spec coverage:** each Scenario in the delta specs and each acceptance criterion has a test that exercises it. List any without one.
+2. **Tests:** run the test command from AGENTS.md; report the actual output summary.
+3. **Domain placement:** business rules live in the domain layer (aggregates, value objects, domain services); controllers, views and repositories do not re-implement them. Invariants from rules.md are enforced where their owning aggregate is.
+4. **UI kit:** views use kit components and tokens only; lists use DataTable with server-side paging and both filter locations.
+5. **Data access:** queries page and filter in the database, no N+1 in lists, migrations reversible.
+6. **Security basics:** authorization on every endpoint that changes data, no raw SQL built from input, no secrets in code or config.
+7. **Leftovers:** `// PROTOTYPE:` markers still in code that this change was meant to replace; TODOs without a task.
+
+Done when: every check has a result, with file:line for each problem.
+
+## 3. Report
+
+Write `docs/reviews/code/<date>-<target>.md`: verdict (`approve` / `changes-requested`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization.
+
+For a second opinion, offer `/mflow:delegate <target> --to <tool> --mode review`; when it returns, `/mflow:assess` checks its findings against this report.
+
+Done when: the report exists and STATUS.md records the verdict. Merge only on `approve` and พี่ปู's yes.

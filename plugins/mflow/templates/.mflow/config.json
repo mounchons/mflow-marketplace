@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hotspotsDir": "docs/hotspots",
+  "sourceDir": "docs/source",
+  "inboxDir": "docs/ai-inbox",
+  "statusLogEntriesInContext": 2,
+  "stopGuard": {
+    "enabled": true,
+    "graceMinutes": 10,
+    "repeatMinutes": 30
+  },
+  "tools": {}
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mflow",
+  "version": "0.3.1",
+  "description": "Screen-first, spec-driven workflow: AGENTS.md + OpenSpec + Backlog.md + tests, with session memory hooks and hotspot charting for big business logic.",
+  "author": { "name": "Mounchon" },
+  "license": "MIT",
+  "keywords": ["openspec", "backlog.md", "spec-driven", "ddd", "workflow"]
+}

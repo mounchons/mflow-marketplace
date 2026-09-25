@@ -13,6 +13,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:source @file` |
 | Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |
 | Replied inside a discussion doc, or want it changed | `/mflow:discuss <NN> [what to change]` |
+| Have other AI tools analyze a discussion doc too, then choose yourself | `/mflow:discuss <NN> consult [--to <tool>,…]` → run the commands → `/mflow:discuss <NN>` |
 | A discussion doc matches what you think | `/mflow:discuss <NN> approve` |
 | Before building any screen | `/mflow:theme` |
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |

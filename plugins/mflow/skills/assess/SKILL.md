@@ -7,6 +7,8 @@ argument-hint: "@docs/ai-inbox/<file>.md"
 
 Another model's findings are claims, not facts. First check whether it understood the system and read what it cites; then check each claim yourself. This skill changes no code.
 
+A report whose brief or file name carries `discuss-<NN>` answers a discussion doc. `/mflow:discuss <NN>` handles it, using steps 1 to 3 below and writing the result into the doc itself; do not assess it here as well.
+
 ## 1. Normalize
 
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/inbox-normalize.mjs" <file> [--from <tool>] [--mode <mode>] [--brief <id>]` (values from the brief if the file lacks them). It unwraps a fenced answer, ensures frontmatter, and reports whether `Understanding` and `Files read` exist. Load the brief named in the frontmatter.

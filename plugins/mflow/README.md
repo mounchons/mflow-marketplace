@@ -19,7 +19,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.5)
+## คำสั่ง (v0.6)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -28,7 +28,8 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:source [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded |
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน |
-| | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | ปรับตามที่พี่ปูตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
+| | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่พี่ปูรันเอง |
+| | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่พี่ปูตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout, components, หน้า style guide, กฎ UI สำหรับ agent |
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
 | | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง |
@@ -55,7 +56,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 ## Flow ประจำวัน
 
 1. เอกสารลูกค้าเข้า `docs/source/` → `/mflow:source`
-2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → พี่ปูตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
+2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → (ถ้าอยากให้ AI หลายตัวช่วยคิด `/mflow:discuss <NN> consult` แล้วรันคำสั่งเอง) → พี่ปูตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
 3. ครั้งแรกของโปรเจกต์: `/mflow:theme` → `/mflow:screen inventory`
 4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 5. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
@@ -124,7 +125,7 @@ brief ถูกส่งทาง stdin หรือแนบเป็นไฟ�
 }
 ```
 
-`{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ใส่เครื่องหมายคำพูดแล้ว ถ้าเรียก tool ที่ยังไม่มีในทะเบียน `/mflow:delegate` จะถามคำสั่งแล้วบันทึกให้
+`{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ใส่เครื่องหมายคำพูดแล้ว และ `{tool}` ใน path ผลลัพธ์ถูกแทนด้วยชื่อ tool เพื่อให้หลาย tool ตอบ brief เดียวกันได้โดยไม่ทับไฟล์กัน ถ้าเรียก tool ที่ยังไม่มีในทะเบียน `/mflow:delegate` จะถามคำสั่งแล้วบันทึกให้
 
 PowerShell: คำสั่งที่สร้างให้ตั้ง UTF-8 ทั้งขาเข้า (`$OutputEncoding` สำหรับ brief ที่ pipe เข้า tool) และขาออก (`[Console]::OutputEncoding` สำหรับคำตอบที่ tool พิมพ์ออกมา) ถ้าตั้งแค่ขาเข้า คำตอบภาษาไทยจะเพี้ยนทั้งใน PowerShell 5.1 และ 7 เมื่อ console ใช้ code page อื่นที่ไม่ใช่ UTF-8
 

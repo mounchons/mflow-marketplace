@@ -9,7 +9,7 @@ import {
   sessionStateFile, frontmatter, truncate,
 } from "./lib.mjs";
 import { scan as scanSources } from "./source-index.mjs";
-import { list as listDiscussions } from "./discuss.mjs";
+import { list as listDiscussions, reportDiscussId } from "./discuss.mjs";
 
 const input = readStdinJson();
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
@@ -102,7 +102,11 @@ try {
 try {
   const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");
   const open = fs.readdirSync(inboxDir).filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
-    .filter((f) => (frontmatter(readText(path.join(inboxDir, f))).status || "new") === "new");
+    .filter((f) => {
+      const fm = frontmatter(readText(path.join(inboxDir, f)));
+      // Reports answering a discussion doc are listed with that doc below, since /mflow:discuss handles them.
+      return (fm.status || "new") === "new" && !reportDiscussId(f, fm);
+    });
   if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
 } catch { /* no inbox yet */ }
 try {
@@ -110,7 +114,8 @@ try {
   if (drafts.length) {
     const describe = (d) => {
       const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length;
-      return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`})`;
+      const ai = d.pendingReports.length ? `, ${d.pendingReports.length} AI report(s) to fold in` : "";
+      return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`}${ai})`;
     };
     pending.push(`- ${drafts.length} discussion doc(s) waiting for พี่ปู: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
   }

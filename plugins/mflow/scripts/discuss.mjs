@@ -12,7 +12,12 @@
 //   note              a line starting with `> พี่ปู:`; every such line is pending until Claude processes it
 //   placeholder       Thai text in angle brackets left from the template, e.g. <คำถาม>
 // HTML comments and fenced code blocks are ignored, so examples of the markers there do not count.
-// A doc is ready to approve when it is a draft with no open decision, pending note or placeholder.
+// A doc is ready to approve when it is a draft with no open decision, pending note or placeholder,
+// and no unprocessed report from another AI tool.
+//
+// Reports from other tools (/mflow:discuss NN consult) land in <inboxDir> and are matched to a doc by
+// the id `discuss-<NN>-r<revision>` in their `brief` frontmatter or their file name. A report counts as
+// pending while its status is `new`.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +33,8 @@ const HEADING_RE = /^###\s+(D\d+\b.*)$/;
 // Template placeholders are Thai text in angle brackets, e.g. <คำถาม>; inline code is not a placeholder.
 const PLACEHOLDER_RE = /<[^<>\n]*[฀-๿][^<>\n]*>/;
 
+const REPORT_ID_RE = /(?:^|[^a-z0-9])discuss-(\d{2,})(?:-r(\d+))?(?![0-9])/i;
+
 const toPosix = (p) => p.split(path.sep).join("/");
 const discussDir = (root) => path.join(root, loadConfig(root).discussDir || "docs/discuss");
 
@@ -42,7 +49,26 @@ function visibleLines(text) {
   });
 }
 
-function inspect(root, full) {
+/** Which discussion doc (and revision) a report answers, from its brief id or file name; null if none. */
+export function reportDiscussId(fileName, fm = {}) {
+  const m = REPORT_ID_RE.exec(fm.brief || "") || REPORT_ID_RE.exec(path.basename(fileName));
+  return m ? { id: String(Number(m[1])).padStart(2, "0"), revision: m[2] ? Number(m[2]) : null } : null;
+}
+
+function reports(root) {
+  const dir = path.join(root, loadConfig(root).inboxDir || "docs/ai-inbox");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
+    .map((f) => {
+      const fm = frontmatter(readText(path.join(dir, f)));
+      const of = reportDiscussId(f, fm);
+      return of && { file: toPosix(path.relative(root, path.join(dir, f))), ...of, from: fm.from || "", status: fm.status || "new" };
+    })
+    .filter(Boolean);
+}
+
+function inspect(root, full, allReports = reports(root)) {
   const text = readText(full) || "";
   const fm = frontmatter(text);
   const openDecisions = [];
@@ -60,9 +86,13 @@ function inspect(root, full) {
     if (PLACEHOLDER_RE.test(line.replace(/`[^`]*`/g, ""))) placeholders.push(i + 1);
   });
   const status = fm.status || "draft";
+  const id = fm.id || FILE_RE.exec(path.basename(full))?.[1] || "";
+  const pendingReports = allReports
+    .filter((r) => r.status === "new" && Number(r.id) === Number(id))
+    .map(({ file, from, revision }) => ({ file, from, revision }));
   return {
     file: toPosix(path.relative(root, full)),
-    id: fm.id || FILE_RE.exec(path.basename(full))?.[1] || "",
+    id,
     slug: fm.slug || FILE_RE.exec(path.basename(full))?.[2] || "",
     title: fm.title || "",
     status,
@@ -72,8 +102,10 @@ function inspect(root, full) {
     answeredDecisions: answeredDecisions.length,
     pendingNotes,
     placeholderLines: placeholders,
+    pendingReports,
     readyToApprove:
-      status === "draft" && openDecisions.length === 0 && pendingNotes.length === 0 && placeholders.length === 0,
+      status === "draft" && openDecisions.length === 0 && pendingNotes.length === 0 &&
+      placeholders.length === 0 && pendingReports.length === 0,
   };
 }
 
@@ -92,7 +124,7 @@ export function list(root) {
   return {
     dir: toPosix(path.relative(root, discussDir(root))),
     next: nextId(root),
-    docs: docFiles(root).map((f) => inspect(root, f)),
+    docs: (() => { const all = reports(root); return docFiles(root).map((f) => inspect(root, f, all)); })(),
   };
 }
 

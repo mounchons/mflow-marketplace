@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Render the command(s) to run a brief with another AI tool, from the tool registry.
 //
-//   node delegate-cmd.mjs --mode analyze|review|code --brief <path> --out <path>
+//   node delegate-cmd.mjs --mode analyze|review|code --brief <path> --out <path, may contain {tool}>
 //        [--tool <name>|any] [--worktree <dir>]
 //
 // --tool omitted or "any": commands for every registered tool that supports the mode.
+// {tool} in --out is replaced by each tool's name, so several tools answering one brief
+// write separate reports instead of overwriting one file.
 // Unknown tool: known=false, so the caller asks the user for the command and saves it
 // under "tools" in .mflow/config.json.
 import path from "node:path";
@@ -25,17 +27,23 @@ const root = findRoot(process.env.CLAUDE_PROJECT_DIR || process.cwd()) || proces
 const abs = (v, ph) => (v ? `"${path.resolve(root, v)}"` : ph);
 const vars = {
   brief: abs(opt("--brief"), "<brief>"),
-  out: abs(opt("--out"), "<out>"),
   worktree: abs(opt("--worktree"), "<worktree>"),
 };
+const outFor = (name) => abs(opt("--out")?.replaceAll("{tool}", name), "<out>");
 const tools = loadConfig(root).tools;
-const fill = (t) => t.replace(/\{(brief|out|worktree)\}/g, (_, k) => vars[k]);
+const fill = (t, name) =>
+  t.replace(/\{(brief|out|worktree)\}/g, (_, k) => (k === "out" ? outFor(name) : vars[k]));
 
 function render(name, def) {
-  if (def.manual) return { tool: name, verified: !!def.verified, manual: fill(def.manual), notes: def.notes };
+  if (def.manual) {
+    return { tool: name, verified: !!def.verified, out: outFor(name), manual: fill(def.manual, name), notes: def.notes };
+  }
   const m = def[mode];
   if (!m) return { tool: name, supported: false, notes: `${name} has no '${mode}' template` };
-  return { tool: name, verified: !!def.verified, bash: m.bash && fill(m.bash), pwsh: m.pwsh && fill(m.pwsh), notes: def.notes };
+  return {
+    tool: name, verified: !!def.verified, out: outFor(name),
+    bash: m.bash && fill(m.bash, name), pwsh: m.pwsh && fill(m.pwsh, name), notes: def.notes,
+  };
 }
 
 let result;

@@ -10,7 +10,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Situation | Command |
 |---|---|
 | New repo, or first time using mflow here | `/mflow:init` |
-| Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:source @file` |
+| Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
 | Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |
 | Replied inside a discussion doc, or want it changed | `/mflow:discuss <NN> [what to change]` |
 | Design the tables, columns and data dictionary of one aggregate (after the screen inventory) | `/mflow:discuss <aggregate> data model [@files]` |

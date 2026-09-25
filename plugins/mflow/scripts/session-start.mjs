@@ -96,8 +96,8 @@ if (hotspotLines.length) parts.push("## Active hotspots (/mflow:hotspot <slug>)\
 const pending = [];
 try {
   const src = scanSources();
-  if (src.new.length) pending.push(`- ${src.new.length} new source doc(s) not processed: ${src.new.slice(0, 5).join(", ")} → /mflow:source`);
-  if (src.changed.length) pending.push(`- ${src.changed.length} source doc(s) changed since processed: ${src.changed.slice(0, 5).map((c) => c.file).join(", ")} → /mflow:source`);
+  if (src.new.length) pending.push(`- ${src.new.length} new source doc(s) not processed: ${src.new.slice(0, 5).join(", ")} → /mflow:capture`);
+  if (src.changed.length) pending.push(`- ${src.changed.length} source doc(s) changed since processed: ${src.changed.slice(0, 5).map((c) => c.file).join(", ")} → /mflow:capture`);
 } catch { /* no sources yet */ }
 try {
   const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");

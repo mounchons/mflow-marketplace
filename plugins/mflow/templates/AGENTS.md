@@ -33,7 +33,7 @@ One line on what this system does and for whom. Detail: `docs/vision.md`.
 | What to do next, who is on it | Backlog.md tasks | `backlog` CLI only |
 | Why an architecture choice was made | Backlog.md decisions (`backlog decision`) | `backlog` CLI only |
 | Big business logic being worked out | `docs/hotspots/<slug>/` | `/mflow:hotspot` |
-| Customer documents (originals, never edited) | `docs/source/` + `docs/source/INDEX.md` | `/mflow:source` (registry script) |
+| Customer documents (originals, never edited) | `docs/source/` + `docs/source/INDEX.md` | `/mflow:capture` (registry script) |
 | Understanding or design agreed with พี่ปู before building (roles, menus, data visibility…) | `docs/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet | `/mflow:discuss` |
 | UI kit: tokens, components, which to use | `docs/ui/design-system.md` | `/mflow:theme` |
 | Screen list and prototype data | `docs/ui/screens.md`, `PrototypeData/*.json` | `/mflow:screen` |

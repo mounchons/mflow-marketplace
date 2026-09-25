@@ -9,7 +9,7 @@ Unpriced changes are how fixed-price projects lose money. Every request that tou
 
 ## 1. Understand the request
 
-Restate it in one or two sentences and list the screens, rules, data and documents it touches. If the request came as a file, register it by following `${CLAUDE_PLUGIN_ROOT}/skills/source/SKILL.md`. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+Restate it in one or two sentences and list the screens, rules, data and documents it touches. If the request came as a file, register it by following `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md`. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 
 ## 2. Check against the agreed baseline
 

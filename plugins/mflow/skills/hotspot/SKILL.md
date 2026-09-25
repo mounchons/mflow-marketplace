@@ -16,13 +16,13 @@ Every hotspot has the same **destination**: a `rules.md` that passes the readine
 - `docs/hotspots/<slug>/questions-for-customer.md`: questions only the customer can answer, written in Thai.
 - **Tickets** are Backlog.md tasks with labels `decision`, `hs-<slug>`, and one type label; milestone `HS: <slug>`. The answer lives in the task's final summary and nowhere else.
 - The **frontier** is `backlog task list --labels hs-<slug> --json` filtered to status `To Do` and `isReady: true`.
-- **Sources** (customer documents) are tracked by `/mflow:source`'s registry, `docs/source/INDEX.md`, and listed in the map's `Sources` section.
+- **Sources** (customer documents) are tracked by `/mflow:capture`'s registry, `docs/source/INDEX.md`, and listed in the map's `Sources` section.
 
 ## Reading source documents
 
 Read only the files named in `$ARGUMENTS` (`@file`), never a whole folder. Before reading:
 1. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" scan`.
-2. A named file that is `new` or `changed` has not been triaged: follow `${CLAUDE_PLUGIN_ROOT}/skills/source/SKILL.md` for that file first, then continue. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+2. A named file that is `new` or `changed` has not been triaged: follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for that file first, then continue. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 3. A named file that is `superseded`: tell พี่ปู and use its replacement instead.
 4. A file already listed in this map's `Sources` and `unchanged`: use the map and rules.md; reopen the file only for the specific section a ticket needs.
 

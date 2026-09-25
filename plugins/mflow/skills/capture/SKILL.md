@@ -1,5 +1,5 @@
 ---
-name: source
+name: capture
 description: Register and triage customer documents (TOR, Word, Excel, PDF, notes) in docs/source; only new or changed files are read, older versions are marked superseded.
 disable-model-invocation: true
 argument-hint: "[@file ...] [--replaces @old-file]"
@@ -58,4 +58,4 @@ Done when: `scan` reports nothing in `new` or `changed`, and STATUS.md records w
 
 ## 6. Next
 
-Only when this ran as `/mflow:source` itself, not as a step of another skill: list the `/mflow:discuss` candidates from the triage, most costly to misread first, with the statement that makes each one ambiguous. Suggest `/mflow:discuss <topic>` for the first one before `/mflow:screen inventory`. If there are none, say so.
+Only when this ran as `/mflow:capture` itself, not as a step of another skill: list the `/mflow:discuss` candidates from the triage, most costly to misread first, with the statement that makes each one ambiguous. Suggest `/mflow:discuss <topic>` for the first one before `/mflow:screen inventory`. If there are none, say so.

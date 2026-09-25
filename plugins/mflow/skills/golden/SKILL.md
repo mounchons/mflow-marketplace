@@ -9,7 +9,7 @@ Golden data is the customer's own past results, calculated by hand, used as the 
 
 ## 1. Read and map
 
-- If the file is not registered yet, follow `${CLAUDE_PLUGIN_ROOT}/skills/source/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+- If the file is not registered yet, follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 - Read it with python (pandas/openpyxl): list sheets, header rows, merged cells, formula cells. Pick the sheet and range with พี่ปู.
 - Map columns to the inputs and expected outcome of the rule table in `docs/hotspots/<slug>/rules.md`. Show the mapping and 5 sample rows before writing anything.
 

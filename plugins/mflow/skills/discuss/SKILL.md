@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "[<topic> [@files] | <NN> [feedback] | <NN> consult [--to <tool>,…] | <NN> approve | <NN> drop <reason>]"
 ---
 
-A discussion doc checks one thing: does Claude's reading of the sources, or its proposed design for a topic, match what พี่ปู has in mind? The doc lays out every statement, marks the ones Claude inferred or proposed, and shows concrete scenarios. พี่ปู replies until nothing is open, then approves. Only then do its items flow into vision, AGENTS.md, hotspots, decisions and tasks. The best time is right after `/mflow:source` and before `/mflow:screen inventory`, while a misunderstanding costs one paragraph instead of ten screens.
+A discussion doc checks one thing: does Claude's reading of the sources, or its proposed design for a topic, match what พี่ปู has in mind? The doc lays out every statement, marks the ones Claude inferred or proposed, and shows concrete scenarios. พี่ปู replies until nothing is open, then approves. Only then do its items flow into vision, AGENTS.md, hotspots, decisions and tasks. The best time is right after `/mflow:capture` and before `/mflow:screen inventory`, while a misunderstanding costs one paragraph instead of ten screens.
 
 How it differs from its neighbours:
 - **`/mflow:hotspot`** works out a business rule that needs customer answers or worked examples, one ticket per session. A discussion doc may spawn hotspot rows; it never replaces them.
@@ -36,7 +36,7 @@ Run `list` and show one table: number, title, status, revision, open decisions, 
 ## Mode: new topic (`<topic>` matches no existing doc)
 
 1. **Scope it.** Choose the slug and a Thai title, and confirm both with พี่ปู. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs customer examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split. Data-dictionary rows do not count toward that cap; a data-model doc covers one aggregate and lists every column.
-2. **Gather evidence.** Named `@files` first. Then the active files in `docs/source/INDEX.md`; never use superseded ones. Then `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/ui/screens.md` if it exists, relevant hotspot `rules.md`, and `docs/reviews/`. Read only the sections the topic touches. A named file that `source-index.mjs scan` reports as `new` or `changed` has not been triaged yet. Follow `${CLAUDE_PLUGIN_ROOT}/skills/source/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+2. **Gather evidence.** Named `@files` first. Then the active files in `docs/source/INDEX.md`; never use superseded ones. Then `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/ui/screens.md` if it exists, relevant hotspot `rules.md`, and `docs/reviews/`. Read only the sections the topic touches. A named file that `source-index.mjs scan` reports as `new` or `changed` has not been triaged yet. Follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 3. **Create and write.** Run `new`, then fill every section of the template, using the topic's checklist in [references/topics.md](references/topics.md):
    - Tag every statement: `[ที่มา: <file> §<section>]`, `[พี่ปู]`, `[อนุมาน]`, `[เสนอ]`, or `[เสนอ: <tool>]` for a suggestion from another AI tool that Claude has checked. An untagged statement looks like fact; tag it or cut it.
    - Section 8 says "ยังไม่ได้ขอ" until a consult.
@@ -57,7 +57,7 @@ Other AI tools think through the same doc independently, like a panel. พี่
 1. **Gate.** The doc is a `draft`, and `check` reports no `placeholderLines`, because a half-written doc wastes every tool's time. Process pending `> พี่ปู:` notes first (revise mode), so the tools read the current understanding.
 2. **Readable sources.** Other tools must check the doc against the customer's documents, not against the doc itself. For every file in the doc's `sources`, make sure a text version exists:
    - `.md`, `.txt`, `.csv`, `.json`: readable as they are.
-   - `.docx`: `.mflow/cache/<name>.md`, converted as `/mflow:source` does (pandoc, or python-docx).
+   - `.docx`: `.mflow/cache/<name>.md`, converted as `/mflow:capture` does (pandoc, or python-docx).
    - `.xlsx`: `.mflow/cache/<name>.md` with one Markdown table per sheet the doc relies on, via python (pandas/openpyxl). Note merged cells and formulas.
    - `.pdf`: `.mflow/cache/<name>.md` with its text (pdftotext, or python pypdf). Scanned pages get a note that their text could not be extracted.
    Create only the missing ones, and list the text versions in the brief's Read first and in any context pack. A source with no text version is named in the brief as unreadable, so a tool does not guess at it.

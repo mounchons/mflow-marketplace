@@ -7,7 +7,7 @@ argument-hint: "[brand notes | @logo | @CI-guide] | update <what to change>"
 
 A theme is the shared kit every screen is built from, the way a housing project picks one set of doors, tiles and switches for every house. Screens stay consistent because they can only be assembled from the kit: colors come from tokens, inputs and tables come from components, and nothing is styled inline.
 
-Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles.
+Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen.
 
 Stack: detect it. ASP.NET Core MVC/Razor + Bootstrap 5 + HTMX is the default below. For a React + Vite project, apply the same contracts as React components in `src/components/ui/` and tokens in `src/styles/tokens.css`.
 
@@ -29,7 +29,7 @@ Done when: every color, radius and font used anywhere in the app resolves to a t
 
 The shell needs to know who is logged in, so build the access seams here, exactly as "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` describes them. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`. Take the roles, users and scopes from the approved access-control discussion doc. With none approved, use the single all-permission user it describes.
 
-Done when: switching the user in the banner changes who the top bar shows, and the style guide's `SidebarMenu` sample (two items behind different permissions) shows a different item for each of two fake users.
+Done when: the style guide renders the `SidebarMenu` sample twice, each with an explicit permission-set stub, and the two show different items. When `users.json` holds more than one user, switching in the banner also changes who the top bar shows.
 
 ## 4. Components
 
@@ -39,7 +39,7 @@ Done when: each contract has an implementation and the style guide shows it.
 
 ## 5. Style guide page
 
-`/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a `SidebarMenu` sample with two items behind different permissions, a full sample list page and a sample form page assembled only from components. This page is what the customer approves once, instead of approving colors screen by screen.
+`/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a `SidebarMenu` sample with two items behind different permissions, rendered for two stub permission sets, a full sample list page and a sample form page assembled only from components. This page is what the customer approves once, instead of approving colors screen by screen.
 
 ## 6. Rules for agents
 

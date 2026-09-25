@@ -133,10 +133,10 @@ flowchart TD
   - `wwwroot/css/tokens.css` เป็นที่เดียวที่เก็บสี ฟอนต์ radius และระยะห่าง
   - `_Layout.cshtml` ที่มี sidebar (เมนูกรองตามสิทธิ์), top bar, toast และ prototype banner ที่มี **ปุ่มสลับ role**
   - ชั้นสิทธิ์ที่ใช้ต่อได้ถึงของจริง: permission key, `ICurrentUser`, `MenuDefinition`, การตรวจสิทธิ์ที่ endpoint และผู้ใช้จำลองใน `PrototypeData/users.json` กับ `roles.json` ที่สร้างจากเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติแล้ว (ถ้ายังไม่มีจะได้ผู้ใช้ "ผู้ดูแลระบบ" คนเดียวที่เห็นทุกอย่าง)
-  - component ชุดกลาง: DataTable, FilterPanel, FormField, PageHeader, StatusBadge, EmptyState, ConfirmDialog, Toast
+  - component ชุดกลาง: DataTable, FilterPanel, FormField, PageHeader, StatusBadge, EmptyState, ConfirmDialog, Toast, SidebarMenu
   - หน้า `/_styleguide` ให้ลูกค้าอนุมัติหน้าตาครั้งเดียว แทนการอนุมัติทีละหน้าจอ
   - `docs/ui/design-system.md` และ `.claude/rules/ui.md` ที่บังคับให้ทุกหน้าจอใช้ kit
-- **ภายหลัง:** `/mflow:theme update <สิ่งที่จะเปลี่ยน>` แก้ kit ครั้งเดียวแล้วทุกหน้าจอเปลี่ยนตาม
+- **ภายหลัง:** `/mflow:theme update <สิ่งที่จะเปลี่ยน>` แก้ kit ครั้งเดียวแล้วทุกหน้าจอเปลี่ยนตาม และ `/mflow:theme update access` สร้างหรือปรับชั้นสิทธิ์และผู้ใช้จำลองหลังอนุมัติเอกสาร discuss เรื่องสิทธิ์ (โปรเจกต์ที่ทำ theme ไว้ก่อน 0.5 ต้องรันคำสั่งนี้ก่อนสร้างหน้าจอถัดไป)
 
 ### ขั้น 3: `/mflow:screen inventory [@เอกสาร]`
 
@@ -152,7 +152,7 @@ flowchart TD
   - `/mflow:screen job-list เพิ่มช่องค้นหาเลขงานและชื่อลูกค้า`
 - หน้าจอสร้างใน stack จริง ใช้ข้อมูลจาก `PrototypeData/*.json` ที่ใช้ร่วมกันทุกหน้าจอ และตัวเลขที่ต้องคำนวณจะใส่เป็นค่าคงที่พร้อมคอมเมนต์ `// PROTOTYPE:`
 - ถ้าต้องเพิ่ม field หรือ entity ในไฟล์ JSON Claude จะหยุดถามก่อน เพราะหน้าจออื่นใช้ไฟล์เดียวกัน
-- ทุกหน้าจอมี permission ของตัวเอง ข้อมูลถูกกรองตาม data scope ของผู้ใช้ และ field ที่ห้ามเห็นถูกซ่อน Claude ตรวจโดยสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ต้องไม่เห็นเมนู และเปิด URL ตรงได้ 403)
+- ทุกหน้าจอมี permission ของตัวเอง ข้อมูลถูกกรองตาม data scope ของผู้ใช้ และ field ที่ห้ามเห็นถูกซ่อน Claude ตรวจโดยสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ต้องไม่เห็นเมนู และเปิด URL ตรงได้ 403) ถ้ายังไม่มีเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติ หน้าจอจะถูกบันทึกว่า `access not confirmed` และ Claude จะแนะนำ `/mflow:discuss access-control`
 - ถ้าอยากเปลี่ยนว่าใครเห็นอะไร และต่างจากเอกสาร discuss ที่อนุมัติแล้ว Claude จะไม่แก้ `roles.json` ตรงๆ แต่เสนอเอกสาร discuss ใหม่ หรือ change request ถ้าสร้างแล้ว
 - ถ้าสิ่งที่ขอเกินกว่าที่ kit ทำได้ Claude จะเสนอ `/mflow:theme update` แทนการแต่งหน้าจอนั้นหน้าเดียว
 

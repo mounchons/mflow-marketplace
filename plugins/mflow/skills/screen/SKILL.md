@@ -26,7 +26,7 @@ Done when: every story-map step in the first release has at least one screen, an
 
 ## Mode: create a screen (`<screen-name>` not yet in the codebase)
 
-1. **Locate it** in `docs/ui/screens.md`; if absent, add the row first and confirm it. Take its roles, and the permission for viewing and for each action, from the approved access-control discussion doc. Add missing keys to `Permissions` and the grants to `roles.json` (a schema change, below).
+1. **Locate it** in `docs/ui/screens.md`; if absent, add the row first and confirm it. Take its roles, and the permission for viewing and for each action, from the approved access-control discussion doc. Add missing keys to `Permissions` and the grants to `roles.json` (a schema change, below). **No approved doc yet:** still declare the keys, endpoint checks and menu entry so the seams stay real; the single admin user holds every key. Write `access not confirmed` in the row's Role(s) cell, skip the per-role checks in step 6, and suggest `/mflow:discuss access-control`.
 2. **Data:** reuse the JSON files in `PrototypeData/`. Adding a new entity file or a field is a schema change: show the proposed schema change and wait for a yes, because other screens read the same files. Update `PrototypeData/README.md` with any change. A scoped entity carries its scope keys, with rows spread across units and owners, so each role visibly sees different rows.
 3. **Domain seam:** entity/record + repository interface in the domain or application project; `Fake<Entity>Repository` reads through `PrototypeDataStore` and does filtering, sorting and paging itself, returning `PagedResult<T>` the way EF Core will. It applies `ICurrentUser.ScopeFor(<entity>)` before paging.
 4. **Screen:** controller + ViewModel + views assembled only from the theme components. Lists use `DataTable` + `FilterPanel` (server-side paging, filter panel above, per-column search inside, state in the URL). Forms use `FormField`. Thai labels in the ViewModel. Every action carries its permission check; the menu item goes into `MenuDefinition` with the view permission; buttons appear through `Can(...)`; restricted fields are masked in the ViewModel mapping.
@@ -34,7 +34,7 @@ Done when: every story-map step in the first release has at least one screen, an
 6. **Verify:** `dotnet build`; run the app and open the route. Then use the role switcher: as a user of each role in `Role(s)`, check the rows that role's scope allows and only that role's buttons; as a user of one role outside `Role(s)`, check the menu item is gone and the URL returns 403. If Playwright is set up, add a smoke test that loads the page as each role and takes a screenshot into `docs/ui/screens/<screen>.<role>.png`.
 7. **Record:** tick the Backlog task, set the row's Status in `screens.md` to `prototype`, update STATUS.md.
 
-Done when: the page builds and loads with JSON data, uses only kit components and tokens, every faked rule is marked and registered, and each role in `Role(s)`, plus one role outside it, was checked through the switcher.
+Done when: the page builds and loads with JSON data, uses only kit components and tokens, every faked rule is marked and registered, and each role in `Role(s)`, plus one role outside it, was checked through the switcher (or the row says `access not confirmed`).
 
 ## Mode: adjust a screen (`<screen-name>` exists)
 

@@ -3,6 +3,7 @@
   "hotspotsDir": "docs/hotspots",
   "sourceDir": "docs/source",
   "inboxDir": "docs/ai-inbox",
+  "discussDir": "docs/discuss",
   "statusLogEntriesInContext": 2,
   "stopGuard": {
     "enabled": true,

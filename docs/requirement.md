@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.3.0 |
+| เวอร์ชันที่อธิบาย | 0.4.0 |
 | เจ้าของ | พี่ปู (Mounchon) |
 | วันที่ | 2026-09-25 |
 | สถานะ | ใช้งานได้ (pilot) |
@@ -60,7 +60,9 @@ mflow คือ plugin ของ Claude Code ที่ทำให้กระ�
 flowchart TD
     A[เอกสารลูกค้า docs/source] --> B[/mflow:init ครั้งเดียวต่อ repo/]
     B --> C[/mflow:source ลงทะเบียนและคัดแยก/]
-    C --> D[/mflow:theme UI kit/]
+    C --> DS[/mflow:discuss ยืนยันความเข้าใจกับพี่ปู/]
+    DS --> D[/mflow:theme UI kit/]
+    C -.-> D
     D --> E[/mflow:screen inventory แล้วสร้างหน้าจอ/]
     E --> F[รีวิวกับลูกค้า]
     F --> G[/mflow:review-notes/]
@@ -87,7 +89,7 @@ flowchart TD
 | รหัส | Requirement | สถานะ |
 |---|---|---|
 | FR-01 | สำรวจ repo ก่อนถามผู้ใช้: solution, test project, Playwright, agent file เดิม, เอกสาร requirement, CLI ที่ติดตั้ง | มีแล้ว |
-| FR-02 | สร้าง AGENTS.md, CLAUDE.md (`@AGENTS.md`), STATUS.md, docs/vision.md, docs/hotspots/INDEX.md, docs/source/README.md, docs/ai-inbox/README.md, .mflow/config.json | มีแล้ว |
+| FR-02 | สร้าง AGENTS.md, CLAUDE.md (`@AGENTS.md`), STATUS.md, docs/vision.md, docs/hotspots/INDEX.md, docs/source/README.md, docs/ai-inbox/README.md, docs/discuss/README.md, .mflow/config.json | มีแล้ว |
 | FR-03 | ไม่เขียนทับไฟล์เดิม เขียน template ไว้ที่ `.mflow/suggested/` ให้ merge พร้อมแสดง diff | มีแล้ว |
 | FR-04 | ต่อ OpenSpec (`openspec init --tools claude,codex` หรือ `openspec update`) และ Backlog.md (`backlog init … --agent-instructions agents`) หลังผู้ใช้ตอบ yes | มีแล้ว |
 | FR-05 | เติม `context` และ `rules` ใน openspec/config.yaml: proposal ต้องลิงก์ hotspot, requirement ต้องมี scenario, task ต้องจบด้วย test | มีแล้ว |
@@ -209,6 +211,23 @@ flowchart TD
 |---|---|---|
 | FR-110 | แนะนำคำสั่งที่เหมาะกับสถานการณ์ที่เล่า หรือแสดงตารางทั้งหมด | มีแล้ว |
 
+### 6.12 ยืนยันความเข้าใจกับพี่ปู (`/mflow:discuss`)
+
+ใช้หลัง `/mflow:source` และก่อน `/mflow:screen inventory` กับเรื่องที่ตัดผ่านหลายหน้าจอและตีความได้หลายแบบ เช่น สิทธิ์ การผูกเมนูกับ role และข้อมูลที่เฉพาะบาง role เห็น
+
+| รหัส | Requirement | สถานะ |
+|---|---|---|
+| FR-120 | เขียนความเข้าใจหรือแบบที่เสนอของหนึ่งหัวข้อเป็น `docs/discuss/NN-<slug>.md` ภาษาไทย เลขเอกสารและไฟล์สร้างด้วย script และไม่ทับไฟล์เดิม | มีแล้ว |
+| FR-121 | ทุกข้อความติดป้ายที่มา `[ที่มา: ไฟล์ §หัวข้อ]` `[พี่ปู]` `[อนุมาน]` `[เสนอ]` และมีตัวอย่างสถานการณ์ด้วยชื่อสมมติ อย่างน้อยหนึ่งเรื่องเป็นกรณีขอบ | มีแล้ว |
+| FR-122 | แยกข้อที่พี่ปูตัดสินใจได้ (ทางเลือก ข้อดีข้อเสีย และคำแนะนำของ Claude) ออกจากคำถามที่ต้องถามลูกค้า | มีแล้ว |
+| FR-123 | พี่ปูตอบได้ทั้งในไฟล์ (`**พี่ปูเลือก:**`, บรรทัด `> พี่ปู:`) และในแชต ทุกรอบเพิ่ม revision และบันทึกว่าแก้อะไรเพราะอะไร | มีแล้ว |
+| FR-124 | ถ้าคำตอบขัดกับเอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว หรือ spec ที่ archive แล้ว ต้องแจ้งพร้อมอ้างอิง และเปลี่ยนเป็นคำถามถึงลูกค้า ห้ามแก้เงียบ | มีแล้ว |
+| FR-125 | อนุมัติได้เมื่อไม่มีข้อตัดสินใจค้าง ไม่มี note ค้าง และไม่มีช่องว่างจาก template (ตรวจด้วย script) แล้วแสดงตารางปลายทางให้ yes ก่อนเขียน | มีแล้ว |
+| FR-126 | หลังอนุมัติ แต่ละข้อไปอยู่ปลายทางเดิมของ flow (vision, AGENTS.md, hotspot, Backlog decision/task, Open questions, change request) และเอกสารถูก freeze ถ้าเปลี่ยนใจภายหลัง ให้เปิดเอกสารใหม่ (ฉบับเก่าเป็น superseded) หรือใช้ change request | มีแล้ว |
+| FR-127 | การอนุมัติของพี่ปูไม่นับเป็นการยืนยันของลูกค้า คำถามถึงลูกค้าย้ายไป Open questions หรือตั๋ว `ask` | มีแล้ว |
+| FR-128 | Checklist ของหัวข้อที่มักตีความได้หลายแบบ (access control, org structure, numbering, notifications, audit …) พร้อมรูปตารางที่แนะนำ | มีแล้ว |
+| FR-129 | Briefing ตอนเริ่ม session แจ้งเอกสาร discuss ที่รอพี่ปูอ่าน, `/mflow:source` เสนอหัวข้อที่ควรคุย, `/mflow:screen inventory` ใช้ role และเมนูจากเอกสารที่อนุมัติแล้ว | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -241,6 +260,7 @@ repo/
 ├─ docs/
 │   ├─ vision.md             ← เป้าหมาย, story map, ขอบเขต, open questions
 │   ├─ source/               ← ต้นฉบับลูกค้า + INDEX.md (สร้างอัตโนมัติ)
+│   ├─ discuss/              ← NN-<slug>.md เอกสารยืนยันความเข้าใจกับพี่ปู
 │   ├─ ui/                   ← design-system.md, screens.md, ภาพหน้าจอ
 │   ├─ hotspots/             ← INDEX.md + <slug>/map.md, rules.md, questions-for-customer.md
 │   ├─ reviews/              ← สรุปรีวิวลูกค้า + code review
@@ -266,10 +286,11 @@ mflow-marketplace/
     │   ├─ session-start.mjs         ← briefing
     │   ├─ stop-guard.mjs            ← เตือน STATUS.md
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
+    │   ├─ discuss.mjs               ← เลขเอกสาร discuss + ตรวจข้อค้างก่อนอนุมัติ
     │   ├─ delegate-cmd.mjs          ← คำสั่งของแต่ละ tool
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
-    ├─ skills/<13 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ skills/<14 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -281,6 +302,7 @@ mflow-marketplace/
 | `/mflow:init [ชื่อ]` | ครั้งแรกของ repo หรือหลังอัปเกรด plugin |
 | `/mflow:help [สถานการณ์]` | ไม่แน่ใจว่าใช้คำสั่งไหน |
 | `/mflow:source [@ไฟล์] [--replaces @เก่า]` | ลูกค้าส่งเอกสารหรือฉบับใหม่ |
+| `/mflow:discuss [<หัวข้อ> [@ไฟล์] \| <NN> [สิ่งที่อยากแก้] \| <NN> approve \| <NN> drop]` | ยืนยันว่าความเข้าใจหรือแบบที่เสนอตรงกับที่พี่ปูคิด ก่อนสร้างหน้าจอ |
 | `/mflow:theme [แบรนด์]` / `update <อะไร>` | ก่อนหน้าจอแรก / เปลี่ยนหน้าตาทั้งระบบ |
 | `/mflow:screen inventory` | ทำรายการหน้าจอของ release |
 | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้างหรือปรับหน้าจอ |
@@ -303,6 +325,7 @@ mflow-marketplace/
   "hotspotsDir": "docs/hotspots",
   "sourceDir": "docs/source",
   "inboxDir": "docs/ai-inbox",
+  "discussDir": "docs/discuss",
   "statusLogEntriesInContext": 2,
   "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 },
   "tools": {
@@ -342,15 +365,15 @@ mflow-marketplace/
 |---|---|---|---|
 | R-01 | OpenSpec เคยมีกรณี archive แล้ว `openspec/specs/` ไม่ถูก merge | spec หลักเก่าโดยไม่มี error | เช็ก `git diff --stat openspec/specs` ทุกครั้ง |
 | R-02 | คำสั่งของ opencode และ gemini ยังไม่ได้รันกับตัวจริง | flag อาจเปลี่ยนตามเวอร์ชัน | ทะเบียนเป็น `verified: false` ให้เช็ก `--help` |
-| R-03 | Skill ทั้ง 13 ตัวยังไม่ได้รันใน Claude Code session จริง (ทดสอบแค่ script และ validate) | ขั้นตอนอาจต้องปรับ | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
+| R-03 | Skill ทั้ง 14 ตัวยังไม่ได้รันใน Claude Code session จริง (ทดสอบแค่ script และ validate) | ขั้นตอนอาจต้องปรับ | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
 | R-04 | Stop hook ทำงานทุกครั้งที่ AI ตอบจบ ไม่ใช่แค่ตอนจบ session | อาจเตือนระหว่างทำงาน | throttle ตาม config |
 | R-05 | ยังไม่รองรับการเปิดตั๋วที่ตอบแล้วหรือ map ที่ graduate แล้วขึ้นใหม่ (FR-69) | ต้องทำด้วยมือ | สร้างตั๋ว supersede หรือ hotspot ใหม่ |
 | R-06 | Windows PowerShell 5.1 เปลี่ยนภาษาไทยเป็น `?` ถ้าไม่ตั้ง encoding | brief เพี้ยน | คำสั่งที่สร้างให้ตั้ง UTF-8 ไว้แล้ว แนะนำ PowerShell 7 |
 | R-07 | รายงานจาก AI อื่นอาจอ้างไฟล์ที่ไม่ได้อ่าน | finding ผิดแต่ดูน่าเชื่อ | assess ตรวจ Files read และความเข้าใจก่อน |
 | R-08 | ลูกค้าเข้าใจว่า prototype คือระบบเกือบเสร็จ | ความคาดหวังผิด | PrototypeBanner ทุกหน้า + แจ้งก่อนส่งลิงก์ |
-| R-09 | จำนวนคำสั่ง (13) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
+| R-09 | จำนวนคำสั่ง (14) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.4)
 
 | รายการ | ผล |
 |---|---|
@@ -363,6 +386,7 @@ mflow-marketplace/
 | คำสั่งแบบ stdin กับข้อความภาษาไทย (Bash) | ผ่าน |
 | inbox-normalize: แกะ fence, เติม frontmatter, ตรวจสองหัวข้อบังคับ | ผ่าน |
 | context-pack: รวมไฟล์, ข้าม binary, เตือนขนาด | ผ่าน |
+| discuss.mjs: new (เลขถัดไป, slug ซ้ำ, slug ไม่ใช่ ASCII), check กับไฟล์ CRLF ภาษาไทย, ข้าม marker ใน comment และ code block, ตรวจ placeholder, briefing แสดงเฉพาะ draft | ผ่าน |
 | ต่อ OpenSpec + Backlog.md จริง (init, list --json, milestone, dependency, `isReady`) | ผ่าน |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 

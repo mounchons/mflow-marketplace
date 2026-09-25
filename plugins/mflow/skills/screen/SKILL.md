@@ -14,7 +14,7 @@ A prototype screen is a model-home room: real walls and switches (real views, ro
 
 ## Mode: `inventory`
 
-Read `docs/vision.md` (story map) and any active source files given (check `docs/source/INDEX.md`; skip `superseded`). Write `docs/ui/screens.md`: one row per screen, grouped by story-map step:
+Read `docs/vision.md` (story map), any active source files given (check `docs/source/INDEX.md`; skip `superseded`), and every approved discussion doc (`node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" list`, status `approved`). Approved docs settle roles, menus and data visibility: fill `Role(s)` from them and cite the doc; a draft doc settles nothing yet. Write `docs/ui/screens.md`: one row per screen, grouped by story-map step:
 
 | Screen | Route | Role(s) | Shows | Actions | Calculations / rules | Status |
 |---|---|---|---|---|---|---|

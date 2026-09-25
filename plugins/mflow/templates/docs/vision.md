@@ -17,5 +17,10 @@ Who uses it, doing what, and what is measurably better than today.
 ## Out of scope (this release)
 - TODO
 
+## Open questions
+<!-- Every question has an owner and a due date. When answered, move the answer to where it belongs and delete the row. -->
+| Question | Owner | Due | From |
+|---|---|---|---|
+
 ## Money
 How the customer pays (license / subscription / project), and what they would pay more for later.

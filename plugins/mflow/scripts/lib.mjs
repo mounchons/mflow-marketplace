@@ -100,6 +100,7 @@ export function loadConfig(root) {
     hotspotsDir: "docs/hotspots",
     sourceDir: "docs/source",
     inboxDir: "docs/ai-inbox",
+    discussDir: "docs/discuss",
     statusLogEntriesInContext: 2,
     stopGuard: { enabled: true, graceMinutes: 10, repeatMinutes: 30 },
   };

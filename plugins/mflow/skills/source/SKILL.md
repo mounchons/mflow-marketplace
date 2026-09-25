@@ -46,6 +46,7 @@ Sort every meaningful statement from the read files into one destination and sho
 | Change to something already built or archived in `openspec/specs/` | candidate for `/mflow:change-request` |
 | Customer term | Domain vocabulary in AGENTS.md |
 | Vague or contradictory | Open questions in `docs/vision.md` |
+| Open to interpretation on a cross-cutting topic (roles and permissions, menus, data visibility, org structure, numbering…; see `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md`) | candidate topic for `/mflow:discuss`, listed in the report; nothing written |
 
 After พี่ปู confirms, write the changes.
 
@@ -54,3 +55,7 @@ After พี่ปู confirms, write the changes.
 For each file read: `mark <file> --status active --title "<short title>"` plus `--used-by` for each hotspot or change it fed. Reference-only material (samples, screenshots) gets `--status reference`.
 
 Done when: `scan` reports nothing in `new` or `changed`, and STATUS.md records what was processed.
+
+## 6. Next
+
+Only when this ran as `/mflow:source` itself, not as a step of another skill: list the `/mflow:discuss` candidates from the triage, most costly to misread first, with the statement that makes each one ambiguous. Suggest `/mflow:discuss <topic>` for the first one before `/mflow:screen inventory`. If there are none, say so.

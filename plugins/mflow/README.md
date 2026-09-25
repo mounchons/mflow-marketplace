@@ -13,13 +13,13 @@ npm i -g @fission-ai/openspec@latest backlog.md
 claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 # หรือเพิ่มเป็น marketplace แล้วติดตั้ง (ใน Claude Code)
-/plugin marketplace add ./mflow-marketplace
+/plugin marketplace add mounchons/mflow-marketplace   # หรือ path ของโฟลเดอร์ในเครื่อง
 /plugin install mflow@mflow-marketplace
 ```
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.3)
+## คำสั่ง (v0.4)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -27,6 +27,8 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 |---|---|---|
 | ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:source [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded |
+| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน |
+| | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | ปรับตามที่พี่ปูตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout, components, หน้า style guide, กฎ UI สำหรับ agent |
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
 | | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง |
@@ -41,7 +43,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ## Hooks (ทำงานเฉพาะ repo ที่มี `.mflow/config.json`)
 
-- **SessionStart**: ฉีด briefing เข้า context ทุกครั้งที่เริ่ม/resume/clear/compact: ส่วน Now ของ STATUS.md, log ล่าสุด, OpenSpec change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active พร้อมจำนวน ticket ที่หยิบได้
+- **SessionStart**: ฉีด briefing เข้า context ทุกครั้งที่เริ่ม/resume/clear/compact: ส่วน Now ของ STATUS.md, log ล่าสุด, OpenSpec change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active พร้อมจำนวน ticket ที่หยิบได้, เอกสารลูกค้าที่ยังไม่ได้ประมวลผล, ผลจาก AI อื่นที่ยังไม่ได้ assess และเอกสาร discuss ที่รอพี่ปูอ่าน
 - **Stop**: ถ้ามีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด จะให้ Claude เขียน handoff ก่อนหยุด ไม่ถามใน 10 นาทีแรกของ session และถามซ้ำไม่เกินทุก 30 นาที ปรับได้ใน `.mflow/config.json`:
 
 ```json
@@ -53,12 +55,13 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 ## Flow ประจำวัน
 
 1. เอกสารลูกค้าเข้า `docs/source/` → `/mflow:source`
-2. ครั้งแรกของโปรเจกต์: `/mflow:theme` → `/mflow:screen inventory`
-3. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า → `/mflow:review-notes`
-4. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
-5. `/opsx:propose` → `/opsx:apply` (Claude หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`
-6. ลูกค้าขอเปลี่ยนหลังอนุมัติ → `/mflow:change-request`
-7. จบวัน → `/mflow:handoff`
+2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → พี่ปูตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
+3. ครั้งแรกของโปรเจกต์: `/mflow:theme` → `/mflow:screen inventory`
+4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า → `/mflow:review-notes`
+5. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
+6. `/opsx:propose` → `/opsx:apply` (Claude หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`
+7. ลูกค้าขอเปลี่ยนหลังอนุมัติ → `/mflow:change-request`
+8. จบวัน → `/mflow:handoff`
 
 หลังทุก `/opsx:archive` ให้เช็กว่า `openspec/specs/` เปลี่ยนจริง (`git diff --stat openspec/specs`)
 
@@ -74,6 +77,7 @@ mflow/
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
 │   ├─ stop-guard.mjs
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
+│   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI

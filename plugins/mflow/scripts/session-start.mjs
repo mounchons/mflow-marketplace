@@ -9,6 +9,7 @@ import {
   sessionStateFile, frontmatter, truncate,
 } from "./lib.mjs";
 import { scan as scanSources } from "./source-index.mjs";
+import { list as listDiscussions } from "./discuss.mjs";
 
 const input = readStdinJson();
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
@@ -104,6 +105,16 @@ try {
     .filter((f) => (frontmatter(readText(path.join(inboxDir, f))).status || "new") === "new");
   if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
 } catch { /* no inbox yet */ }
+try {
+  const drafts = listDiscussions(root).docs.filter((d) => d.status === "draft");
+  if (drafts.length) {
+    const describe = (d) => {
+      const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length;
+      return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`})`;
+    };
+    pending.push(`- ${drafts.length} discussion doc(s) waiting for พี่ปู: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
+  }
+} catch { /* no discussions yet */ }
 if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
 
 parts.push(

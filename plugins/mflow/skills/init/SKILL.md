@@ -25,7 +25,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.mjs" --root . --name "<project
 
 The script never overwrites. For every entry under `suggested`, a template copy sits in `.mflow/suggested/`: merge it into the existing file by hand (keep everything the user wrote, add the missing mflow sections), show the diff, then delete `.mflow/suggested/`.
 
-Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai-inbox/README.md` exist and `.mflow/suggested/` is gone.
+Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai-inbox/README.md`, `docs/discuss/README.md` exist and `.mflow/suggested/` is gone.
 
 ## 3. Wire OpenSpec and Backlog.md
 

@@ -11,6 +11,9 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 |---|---|
 | New repo, or first time using mflow here | `/mflow:init` |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:source @file` |
+| Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |
+| Replied inside a discussion doc, or want it changed | `/mflow:discuss <NN> [what to change]` |
+| A discussion doc matches what you think | `/mflow:discuss <NN> approve` |
 | Before building any screen | `/mflow:theme` |
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |
 | List the screens for a release | `/mflow:screen inventory` |

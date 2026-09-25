@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.6.0 |
+| เวอร์ชัน plugin | 0.7.0 |
 | วันที่ | 2026-09-25 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -26,7 +26,9 @@ flowchart TD
     D --> S2["2. /mflow:theme<br/>UI kit ครั้งเดียว"]
     S1 -.->|ไม่มีเรื่องต้องยืนยัน| S2
     S2 --> S3["3. /mflow:screen inventory<br/>รายการหน้าจอ"]
-    S3 --> S4["4. /mflow:screen ชื่อ สิ่งที่ต้องการ<br/>สร้าง prototype"]
+    S3 --> DM["3.5 /mflow:discuss กลุ่มข้อมูล data model<br/>ออกแบบตาราง column data dictionary"]
+    DM --> S4["4. /mflow:screen ชื่อ สิ่งที่ต้องการ<br/>สร้าง prototype"]
+    S3 -.->|ยังไม่ออกแบบข้อมูล| S4
     S4 --> R["รีวิวกับลูกค้า"]
     R --> RN["/mflow:review-notes"]
     RN -->|ปรับหน้าจอ| S4
@@ -47,6 +49,7 @@ flowchart TD
 | 1.5 | `/mflow:discuss` | เอกสารตีความได้หลายแบบ (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | ต่อหัวข้อ วนจนตรงกันแล้ว approve |
 | 2 | `/mflow:theme` | ก่อนสร้างหน้าจอแรก | ครั้งเดียว (`update` เมื่อจะเปลี่ยนหน้าตา) |
 | 3 | `/mflow:screen inventory` | เริ่ม release | ต่อ release |
+| 3.5 | `/mflow:discuss <กลุ่มข้อมูล> data model` | ก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน | ต่อกลุ่มข้อมูล (ไม่บังคับ) |
 | 4 | `/mflow:screen <ชื่อ> …` → `/mflow:review-notes` | สร้างหรือปรับหน้าจอ แล้วรีวิวกับลูกค้า | วนหลายรอบ |
 | 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session |
 | 6 | `/opsx:propose` → `/opsx:apply` → `/mflow:review` → `/opsx:archive` | สร้างของจริงทีละ slice | ต่อ slice |
@@ -63,7 +66,7 @@ flowchart TD
 | Node 20 ขึ้นไป, git | script ของ plugin | ติดตั้งตามปกติ |
 | OpenSpec 1.10 ขึ้นไป | spec และ change | `npm i -g @fission-ai/openspec@latest` |
 | Backlog.md 1.51 ขึ้นไป | task และตั๋ว hotspot (ต้องใช้ `isReady` ใน JSON) | `npm i -g backlog.md` |
-| Python + pandas, openpyxl, python-docx | อ่าน Excel/Word ของลูกค้า | `pip install pandas openpyxl python-docx` |
+| Python + pandas, openpyxl, python-docx, pypdf | อ่าน Excel/Word/PDF ของลูกค้า และแปลงเป็นข้อความก่อน `consult` | `pip install pandas openpyxl python-docx pypdf` |
 | .NET SDK | build/test โปรเจกต์ | ติดตั้งตามปกติ |
 
 ติดตั้ง plugin ใน Claude Code:
@@ -113,6 +116,7 @@ flowchart TD
   - `/mflow:discuss 01 approve` = อนุมัติ แล้วนำแต่ละข้อไปรวมกับ flow หลัก
   - `/mflow:discuss 01 drop <เหตุผล>` = ยกเลิกเอกสาร เช่น เมื่อเรื่องนั้นกลายเป็น hotspot
 - **สิ่งที่เกิดขึ้น:** Claude ตั้งชื่อหัวข้อให้พี่ปูยืนยัน แล้วเขียน `docs/discuss/01-access-control.md` เป็นภาษาไทย มีหัวข้อ: เรื่องที่ต้องการยืนยัน, สิ่งที่ Claude เข้าใจ, แบบที่เสนอ (เช่น ตาราง role × เมนู, role × ขอบเขตข้อมูล, field ที่บาง role ไม่เห็น) พร้อมตัวอย่างสถานการณ์ด้วยชื่อสมมติ, ข้อที่ให้พี่ปูตัดสินใจ, คำถามที่ต้องถามลูกค้า, เรื่องที่ไม่รวม และปลายทางเมื่ออนุมัติ
+- **หัวข้อที่ใช้บ่อย** (มี checklist ให้ Claude ใช้ตรวจว่าครอบคลุมครบหรือยัง): สิทธิ์ เมนู และข้อมูลที่แต่ละ role เห็น (access-control), ตาราง column และ data dictionary (data-model ดูขั้น 3.5), โครงสร้างบริษัท/สาขา, เมนู, เลขเอกสาร, ภาพรวมการอนุมัติ, การแจ้งเตือน, ประวัติการแก้ไข, นำเข้า/ส่งออก/พิมพ์, การเชื่อมต่อระบบอื่น, master data, การย้ายข้อมูลจากระบบเดิม
 - **ป้ายท้ายข้อความ:** `[ที่มา: ไฟล์ §หัวข้อ]` มาจากเอกสารลูกค้า, `[พี่ปู]` พี่ปูบอกไว้, `[อนุมาน]` Claude ตีความเอง, `[เสนอ]` Claude เสนอ ให้ตรวจ `[อนุมาน]` กับ `[เสนอ]` ละเอียดที่สุด
 - **วิธีตอบ:**
   - เขียนในไฟล์: พิมพ์คำตอบต่อท้าย `**พี่ปูเลือก:**` ของแต่ละข้อตัดสินใจ หรือเพิ่มบรรทัดที่ขึ้นต้นด้วย `> พี่ปู:` ใต้ข้อที่อยากแก้ แล้วสั่ง `/mflow:discuss 01`
@@ -151,6 +155,47 @@ flowchart TD
 - **ใช้เมื่อ:** เริ่ม release หลังจากมี story map ใน `docs/vision.md` แล้ว
 - **ได้อะไร:** `docs/ui/screens.md` ที่มีหน้าจอละหนึ่งแถว (route, role, สิ่งที่แสดง, action, การคำนวณ) และจุดที่มีการคำนวณจะถูกเพิ่มเป็นแถวใน `docs/hotspots/INDEX.md`
 - **สิ่งที่พี่ปูต้องทำ:** ตรวจตาราง หลังจากนั้น Claude จึงสร้าง Backlog task หน้าจอละหนึ่งตัว (label `prototype`)
+- **รายงานจะบอกด้วย** ว่ากลุ่มข้อมูลไหนที่หน้าจอใช้แต่ยังไม่มีเอกสาร data model ที่อนุมัติ เรียงจากกลุ่มที่หลายหน้าจอใช้ร่วมกันก่อน ให้เลือกทำขั้น 3.5
+
+### ขั้น 3.5: ออกแบบข้อมูลด้วย `/mflow:discuss <กลุ่มข้อมูล> data model`
+
+- **ใช้เมื่อ:** หลัง `/mflow:screen inventory` เมื่อรู้แล้วว่าหน้าจอไหนใช้ข้อมูลกลุ่มไหน และก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน ขั้นนี้ไม่บังคับ หน้าจอ prototype สร้างได้โดยไม่มีเอกสารนี้ แต่ inventory จะบอกว่ากลุ่มข้อมูลไหนยังไม่ได้ออกแบบ
+- **พิมพ์:**
+  - `/mflow:discuss งานขนส่ง data model @docs/source/2026-09-tor-v1.pdf` = ร่างเอกสาร เช่น `docs/discuss/02-job-data.md`
+  - ต่อจากนั้นใช้เหมือนเอกสาร discuss ทั่วไป: ตอบในไฟล์, `consult` ให้ AI หลายตัวช่วยดู, `approve`
+- **หนึ่งเอกสารต่อหนึ่งกลุ่มข้อมูล (aggregate):** ตารางหลักกับตารางลูกของมัน เช่น `Jobs` กับ `JobStops` แถวใน data dictionary ไม่นับในเพดาน ~200 บรรทัด เพราะต้องแสดงทุก column
+- **ในเอกสารมี:**
+  - รายการตาราง (หนึ่งแถวคืออะไร, ความสัมพันธ์, จำนวนแถวต่อเดือน) และ ER diagram
+  - data dictionary ทีละตาราง: column, ชื่อไทย, type ของ .NET และ type ของฐานข้อมูล (ตามที่ระบุใน AGENTS.md ถ้ายังไม่ได้เลือกฐานข้อมูล จะกลายเป็นข้อตัดสินใจ), required, key/default, ตัวอย่าง และป้ายที่มา
+  - หน้าจอไหนกรอง เรียง หรือค้นหาด้วย column ไหน และต้องมี index อะไร
+  - column มาตรฐาน: column สำหรับ data scope จากเอกสารเรื่องสิทธิ์ (`BranchId`, `CreatedBy`), audit column และ concurrency token
+  - ข้อตัดสินใจ: key แบบ Guid หรือ int, ลบจริงหรือ soft delete, enum ในโค้ดหรือตาราง lookup, ตารางลูกหรือเก็บเป็น JSON, เก็บค่า ณ วันที่ออกเอกสาร (snapshot) หรืออ้างอิง master
+  - คำถามถึงลูกค้า: รูปแบบเลขเอกสาร, ต้องเก็บประวัติการแก้ไขไหม, ข้อมูลต่อเดือนประมาณเท่าไร, ต้องเก็บกี่ปี
+- **ตัวอย่าง (ย่อ):**
+
+  | Column | ชื่อไทย | .NET type | DB type | Required | Key / default | ตัวอย่าง | ที่มา |
+  |---|---|---|---|---|---|---|---|
+  | Id | รหัสภายใน | Guid | uniqueidentifier | ใช่ | PK | … | [เสนอ] |
+  | JobNo | เลขงาน | string | nvarchar(20) | ใช่ | unique | `JOB-2569-00012` | [ที่มา: tor-v1 §3.2] |
+  | CustomerId | ลูกค้า | Guid | uniqueidentifier | ใช่ | FK → Customers | … | [ที่มา: tor-v1 §3.1] |
+  | BranchId | สาขา | Guid | uniqueidentifier | ใช่ | FK → Branches | … | [ที่มา: 01-access-control] |
+  | TotalAmount | ค่าขนส่งรวม | decimal | decimal(18,2) | ใช่ | 0 | 12,500.00 | [อนุมาน] |
+
+- **หลังอนุมัติ ข้อมูลของแต่ละ column อยู่ที่ไหน (มีที่เดียวเสมอ):**
+
+  | ช่วง | ความจริงของ column อยู่ที่ | เอกสาร discuss |
+  |---|---|---|
+  | ก่อนอนุมัติ | เอกสาร discuss (draft) | กำลังคุย |
+  | อนุมัติแล้ว ช่วง prototype | `PrototypeData/README.md` เป็น data dictionary ที่ยังแก้ได้ เขียนทันทีตอนอนุมัติแม้ยังไม่มีหน้าจอของกลุ่มนี้ แล้ว JSON ของ prototype ใช้ field ตามนี้ | เป็นบันทึกเหตุผล (freeze) |
+  | สร้างของจริงแล้ว (archive change แล้ว) | EF Core entity และ migration ส่วนของกลุ่มนี้ใน README จะเหลือบรรทัดเดียวที่ชี้ไปที่โค้ด | บันทึกเหตุผล |
+
+- **เปลี่ยนภายหลัง:**
+  - **ระดับ field** (เพิ่ม ลบ หรือเปลี่ยนชื่อ column, ความยาว, required) เช่นลูกค้าขอเพิ่มช่องตอนรีวิว ให้แก้ใน README ผ่านกฎ schema-change ของ `/mflow:screen` ไม่ต้องเปิดเอกสาร discuss ใหม่
+  - **ระดับโครงสร้าง** (กลุ่มข้อมูลใหม่, เปลี่ยน key หรือความสัมพันธ์, กลับการตัดสินใจเรื่องวิธีจัดเก็บ) ให้เปิดเอกสาร discuss ใหม่ ถ้าสร้างแล้วให้ใช้ `/mflow:change-request`
+- **กับ prototype:** JSON ใช้ชื่อ field เดียวกับ property ในอนาคต (camelCase) และเก็บตารางลูกซ้อนไว้ในข้อมูลหลักเสมอ (จุดรับส่งอยู่ในงาน) แม้เอกสารจะเลือกเก็บเป็นตารางแยก เพราะ README บอกตารางลูกและ FK ไว้แล้ว ตอนสลับเป็น EF Core จึงไม่ต้อง map ใหม่
+- **ตอนสร้างจริง:** `/opsx:propose` จะอ้างเอกสาร data model กับ README ให้เอง (ตั้งไว้ใน `openspec/config.yaml`) และ `/mflow:review` ตรวจว่า entity, column, type, precision และ nullable ตรงกับ dictionary และมี index ตามที่เอกสารระบุ
+- **Data dictionary สำหรับส่งลูกค้า:** สร้างจากโค้ดจริงภายหลัง เช่น ใช้ skill `fspec-export` ถ้าติดตั้งไว้ (ไม่ใช่ส่วนหนึ่งของ mflow) อย่าเขียนด้วยมือแยกไว้อีกชุด เพราะจะไม่ตรงกับโค้ดภายในไม่กี่สัปดาห์
+- **ต่อไป:** `/mflow:screen <ชื่อหน้าจอ> …`
 
 ### ขั้น 4: `/mflow:screen <ชื่อหน้าจอ> <สิ่งที่ต้องการ>` แล้ว `/mflow:review-notes`
 
@@ -160,6 +205,7 @@ flowchart TD
   - `/mflow:screen job-list เพิ่มช่องค้นหาเลขงานและชื่อลูกค้า`
 - หน้าจอสร้างใน stack จริง ใช้ข้อมูลจาก `PrototypeData/*.json` ที่ใช้ร่วมกันทุกหน้าจอ และตัวเลขที่ต้องคำนวณจะใส่เป็นค่าคงที่พร้อมคอมเมนต์ `// PROTOTYPE:`
 - ถ้าต้องเพิ่ม field หรือ entity ในไฟล์ JSON Claude จะหยุดถามก่อน เพราะหน้าจออื่นใช้ไฟล์เดียวกัน
+- entity ใหม่ใช้ field ตามเอกสาร data model ที่อนุมัติแล้ว (ถ้ามี) และ `PrototypeData/README.md` คือ data dictionary ของ prototype
 - ทุกหน้าจอมี permission ของตัวเอง ข้อมูลถูกกรองตาม data scope ของผู้ใช้ และ field ที่ห้ามเห็นถูกซ่อน Claude ตรวจโดยสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ต้องไม่เห็นเมนู และเปิด URL ตรงได้ 403) ถ้ายังไม่มีเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติ หน้าจอจะถูกบันทึกว่า `access not confirmed` และ Claude จะแนะนำ `/mflow:discuss access-control`
 - ถ้าอยากเปลี่ยนว่าใครเห็นอะไร และต่างจากเอกสาร discuss ที่อนุมัติแล้ว Claude จะไม่แก้ `roles.json` ตรงๆ แต่เสนอเอกสาร discuss ใหม่ หรือ change request ถ้าสร้างแล้ว
 - ถ้าสิ่งที่ขอเกินกว่าที่ kit ทำได้ Claude จะเสนอ `/mflow:theme update` แทนการแต่งหน้าจอนั้นหน้าเดียว
@@ -190,9 +236,9 @@ flowchart TD
 
 ### ขั้น 6: สร้างของจริงทีละ slice
 
-1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน)
+1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
 2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก
-3. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec แล้วรัน test จริง ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` **merge เมื่อได้ `approve` และพี่ปูตกลงแล้วเท่านั้น**
+3. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec แล้วรัน test จริง และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` **merge เมื่อได้ `approve` และพี่ปูตกลงแล้วเท่านั้น**
 4. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 5. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
@@ -241,6 +287,13 @@ git init
 /mflow:discuss 01 approve
 /mflow:theme @docs/source/ci-guide.pdf
 /mflow:screen inventory
+  → รายงานบอกว่ากลุ่มข้อมูล "งานขนส่ง" ใช้ใน 4 หน้าจอ แต่ยังไม่มีเอกสาร data model
+/mflow:discuss งานขนส่ง data model
+  → ได้ docs/discuss/02-job-data.md (Jobs, JobStops, data dictionary, index, ข้อตัดสินใจ)
+/mflow:discuss 02 consult
+/mflow:discuss 02
+/mflow:discuss 02 approve
+  → PrototypeData/README.md กลายเป็น data dictionary ของ prototype
 
 # สัปดาห์ที่ 2: prototype
 /mflow:screen job-list รายการงานขนส่ง ค้นหาด้วยเลขงานและชื่อลูกค้า
@@ -285,6 +338,7 @@ git diff --stat openspec/specs
 | อยากเช็กว่า Claude เข้าใจเรื่องหนึ่งตรงกับที่คิด (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | `/mflow:discuss <หัวข้อ> [@ไฟล์]` |
 | เขียนตอบในเอกสาร discuss แล้ว หรืออยากให้แก้ | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` |
 | อยากให้ AI หลายตัวช่วยคิดหัวข้อ discuss แล้วเลือกเอง | `/mflow:discuss <NN> consult` → รันคำสั่ง → `/mflow:discuss <NN>` |
+| ออกแบบตาราง column และ data dictionary ของกลุ่มข้อมูลหนึ่ง | `/mflow:discuss <กลุ่มข้อมูล> data model [@ไฟล์]` |
 | เอกสาร discuss ตรงกับที่คิดแล้ว | `/mflow:discuss <NN> approve` |
 | ยังไม่เคยสร้างหน้าจอเลย | `/mflow:theme` |
 | จะเปลี่ยนสี ฟอนต์ หรือ component กลาง | `/mflow:theme update <อะไร>` |
@@ -303,7 +357,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.6.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.7.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -316,3 +370,18 @@ git diff --stat openspec/specs
 | คำสั่ง gemini และ opencode ยังไม่ได้รันกับโมเดลจริง | เช็ก `--help` ก่อนใช้ครั้งแรก |
 | skill ทั้ง 14 ตัวยังไม่เคยรันใน session จริง | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
 | หลัง `resume` Stop hook นับเป็น session ใหม่ | งานจาก session ก่อนที่ยังไม่ได้ลง log ให้สั่ง `/mflow:handoff` เอง |
+| โปรเจกต์ที่ `init` ก่อน 0.7 ไม่มีบรรทัดเรื่องเอกสาร discuss และ data dictionary ใน `openspec/config.yaml` | เพิ่มเองตามตัวอย่างด้านล่าง |
+| คำสั่งแปลงเอกสารลูกค้าเป็นข้อความก่อน `consult` ต้องมี pandoc หรือ python (python-docx, openpyxl, pypdf) | ติดตั้งตามหัวข้อ 3 ถ้าแปลงไม่ได้ brief จะบอก AI ตัวอื่นว่าไฟล์นั้นอ่านไม่ได้ |
+
+โปรเจกต์ที่ init ก่อน 0.7: เพิ่มบรรทัดเหล่านี้ต่อท้ายใต้ key เดียวกันใน `openspec/config.yaml` โดยไม่ต้องลบบรรทัดเดิม:
+
+```yaml
+context: |
+  Designs agreed before building (roles, data models, ...) are in docs/discuss/NN-*.md with status approved.
+  The current data dictionary is PrototypeData/README.md until a change builds the entity.
+rules:
+  proposal:
+    - If the change adds or alters tables, link the approved data-model doc in docs/discuss/ and follow PrototypeData/README.md; state any difference.
+  tasks:
+    - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
+```

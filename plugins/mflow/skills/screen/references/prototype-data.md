@@ -6,7 +6,7 @@ All prototype screens read one shared set of JSON files, so the same customer, d
 
 ```
 src/<App>.Web/PrototypeData/
-├─ README.md          ← entity list, fields, relations, deliberate edge cases
+├─ README.md          ← data dictionary (per entity: field, Thai label, type, required, key/relation, example), deliberate edge cases
 ├─ customers.json     ← array of objects, camelCase fields, stable string/Guid ids
 ├─ drivers.json
 ├─ jobs.json          ← references customerId, driverId
@@ -16,6 +16,8 @@ src/<App>.Web/PrototypeData/
 
 - One file per aggregate root; child collections nested inside their root (a job's stops live inside the job).
 - Relations by id only; the fake repository joins what a screen needs.
+- JSON field names are the future entity property names in camelCase, so the swap to EF Core needs no mapping. The JSON stays nested per aggregate root even when the approved data-model doc stores the children in their own table; the README lists that child table and its foreign key.
+- `README.md` is the living data dictionary. Approving a data-model discussion doc writes that aggregate's section, even before any screen shows it, and the section cites the doc and its revision. After the OpenSpec change that builds an aggregate is archived, that aggregate's section becomes a one-line pointer to its entity and migration.
 - Ids are stable across regenerations so screenshots, links and test data do not break.
 - Mark the files as content copied to output (`<Content Include="PrototypeData/**" CopyToOutputDirectory="PreserveNewest" />`).
 

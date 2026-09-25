@@ -46,6 +46,52 @@ Once approved, these tables become the prototype's `PrototypeData/roles.json` an
 
 Conditions that depend on amounts, states or approval limits are business rules. Chart them with `/mflow:hotspot`, not here.
 
+## data-model: tables, columns, data dictionary
+
+One doc per aggregate: a root table and its children, such as Jobs and JobStops. The slug is `<aggregate>-data`. The best time is after `/mflow:screen inventory`, when it is known which screens show the aggregate. The ~200-line cap does not count data-dictionary rows, because every column is listed.
+
+Checklist:
+- Screens: which screens read or write this aggregate (from `docs/ui/screens.md`), and what each one filters, sorts and searches on.
+- Tables: root and child tables, and what one row means.
+- Columns: name, Thai label, type, length or precision, required, key, default, unique, validation, example, and a source tag.
+- Types: take the database engine from AGENTS.md. Give the .NET type and that engine's column type. With no engine decided, give .NET types only, and make the engine a decision.
+- Keys: the surrogate key type (Guid or int), the business number (see the numbering topic), and what must be unique.
+- Relations: foreign keys, cardinality, and what happens to children when the parent is cancelled or deleted.
+- Standard columns: the data-scope keys from the access-control doc (`BranchId`, `CreatedBy`, `AssignedTo`), audit columns (created and updated, by whom and when), and a concurrency token.
+- Deletion and history: soft or hard delete; change history (see audit-history).
+- Status: an enum in code or a lookup table. Transitions with conditions are a hotspot.
+- Money, quantities, dates: precision, currency, rounding (a hotspot if it matters), time zone. Store Gregorian dates and show the Buddhist year only in the UI, unless the customer requires otherwise.
+- Snapshot or reference: values copied onto the document at the time (the price or customer name on an invoice) versus values read from master data.
+- Text: maximum lengths taken from the customer's real data; Thai search and sorting.
+- Attachments: where they are stored (database or file storage), plus size and type limits.
+- Personal data (PDPA): which columns hold it, who sees them (field visibility), and how long they are kept.
+- Volume and retention: rows per month, years kept online, archiving.
+
+Suggested shapes for section 3:
+
+| Table | One row is | Parent / relation | Rows per month |
+|---|---|---|---|
+
+An ER diagram as a mermaid `erDiagram` in a code fence.
+
+One data dictionary per table:
+
+| Column | ชื่อไทย | .NET type | DB type | Required | Key / default | Example | Source |
+|---|---|---|---|---|---|---|---|
+
+| Screen | Reads | Filters / sorts / search | Index needed |
+|---|---|---|---|
+
+Implementation direction to propose as `[เสนอ]` (default .NET stack; adapt to AGENTS.md):
+- One EF Core entity per table, configured through `IEntityTypeConfiguration<T>`, with the precision of money set explicitly.
+- Soft delete and data scope as global query filters, and a concurrency token on aggregates that several people edit.
+- React + Vite: the same model lives in the API, and the UI receives DTOs.
+
+What approval changes (the merge table in SKILL.md routes it):
+- The prototype JSON stays nested per aggregate root (stops inside the job) whatever storage the doc chooses. The dictionary lists the child tables with their foreign keys. JSON field names are the future property names in camelCase, so the swap to EF Core needs no mapping.
+- After approval, `PrototypeData/README.md` is the living data dictionary and the doc is the reasoning record. Field-level changes while prototyping (add, rename or drop a column; change its length or whether it is required) follow the schema-change rule there, without a new discussion doc. Structural changes (a new aggregate, a changed key or relationship, reversing a storage decision) need a new doc, or `/mflow:change-request` once built.
+- When the OpenSpec change that builds the aggregate is archived, the entity and its migration own the columns, and that README section shrinks to a one-line pointer to them.
+
 ## org-structure: company, branch, department
 
 - One company or several? Is master data shared between companies or separate?

@@ -20,14 +20,14 @@ Read `docs/vision.md` (story map), any active source files given (check `docs/so
 | Screen | Route | Role(s) | Shows | Actions | Calculations / rules | Status |
 |---|---|---|---|---|---|---|
 
-Every value in "Calculations / rules" also gets a row in `docs/hotspots/INDEX.md` unless one already covers it. Create nothing else.
+Every value in "Calculations / rules" also gets a row in `docs/hotspots/INDEX.md` unless one already covers it. In the report, list each aggregate that the screens show and that has no approved data-model doc (`<aggregate>-data`) as a `/mflow:discuss` candidate, the most widely shared first. It is a suggestion; screens can be built without one. Create nothing else.
 
 Done when: every story-map step in the first release has at least one screen, and พี่ปู has reviewed the table. Create one Backlog task per screen with label `prototype` only after that review.
 
 ## Mode: create a screen (`<screen-name>` not yet in the codebase)
 
 1. **Locate it** in `docs/ui/screens.md`; if absent, add the row first and confirm it. Take its roles, and the permission for viewing and for each action, from the approved access-control discussion doc. Add missing keys to `Permissions` and the grants to `roles.json` (a schema change, below). **No approved doc yet:** still declare the keys, endpoint checks and menu entry so the seams stay real; the single admin user holds every key. Write `access not confirmed` in the row's Role(s) cell, skip the per-role checks in step 6, and suggest `/mflow:discuss access-control`.
-2. **Data:** reuse the JSON files in `PrototypeData/`. Adding a new entity file or a field is a schema change: show the proposed schema change and wait for a yes, because other screens read the same files. Update `PrototypeData/README.md` with any change. A scoped entity carries its scope keys, with rows spread across units and owners, so each role visibly sees different rows.
+2. **Data:** reuse the JSON files in `PrototypeData/`. Adding a new entity file or a field is a schema change: show the proposed schema change and wait for a yes, because other screens read the same files. Update `PrototypeData/README.md` with any change. A new entity takes its fields from its section in the README, which an approved data-model doc writes; with no section, propose the fields as usual and add the section. A scoped entity carries its scope keys, with rows spread across units and owners, so each role visibly sees different rows.
 3. **Domain seam:** entity/record + repository interface in the domain or application project; `Fake<Entity>Repository` reads through `PrototypeDataStore` and does filtering, sorting and paging itself, returning `PagedResult<T>` the way EF Core will. It applies `ICurrentUser.ScopeFor(<entity>)` before paging.
 4. **Screen:** controller + ViewModel + views assembled only from the theme components. Lists use `DataTable` + `FilterPanel` (server-side paging, filter panel above, per-column search inside, state in the URL). Forms use `FormField`. Thai labels in the ViewModel. Every action carries its permission check; the menu item goes into `MenuDefinition` with the view permission; buttons appear through `Can(...)`; restricted fields are masked in the ViewModel mapping.
 5. **Fake logic:** every calculation or rule returns a hard-coded plausible value and carries `// PROTOTYPE: <what is faked> — see docs/hotspots/INDEX.md <slug>`; add or update the INDEX row.
@@ -41,7 +41,7 @@ Done when: the page builds and loads with JSON data, uses only kit components an
 Apply the requested change (for example "add a search box for job number and customer name") within the same constraints:
 - A new filter goes in `FilterPanel` and/or the column search, implemented server-side in the fake repository.
 - A visual change that the kit cannot express is a kit change: stop, and propose `/mflow:theme update <what>` instead of styling this page.
-- A data change follows the schema-change rule above.
+- A data change follows the schema-change rule above. A field-level change to an entity with an approved data-model doc stays at that level: update the README dictionary, no new doc. A structural change (new aggregate, key, relationship, storage decision) needs `/mflow:discuss` first.
 - A change to who sees a screen, a row, a field or a button that differs from the approved access-control discussion doc does not go into `roles.json` directly. It needs a new discussion doc (`/mflow:discuss`) that supersedes the old one, or `/mflow:change-request` if it is already built or was confirmed by the customer.
 - A change requested by the customer after the prototype was approved goes to `/mflow:change-request` first.
 

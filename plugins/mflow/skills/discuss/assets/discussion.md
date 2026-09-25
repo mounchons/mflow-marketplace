@@ -14,7 +14,7 @@ superseded-by:
 
 # {{ID}} {{TITLE}}
 
-<!-- Written by /mflow:discuss. Thai, for พี่ปู. Keep it under ~200 lines; split the topic into two docs if it grows past that.
+<!-- Written by /mflow:discuss. Thai, for พี่ปู. Keep it under ~200 lines, not counting data-dictionary rows; split the topic into two docs if it grows past that.
      Replace every <...> placeholder (each fits on one line, so discuss.mjs check can find leftovers).
      Formats that need angle brackets in real content go in backticks, e.g. `INV-<ปี พ.ศ.>-<เลขรัน>`; otherwise check reports them as placeholders.
      A section with nothing to say gets "ไม่มี", never an empty body. -->

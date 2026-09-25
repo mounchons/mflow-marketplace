@@ -35,7 +35,7 @@ Run `list` and show one table: number, title, status, revision, open decisions, 
 
 ## Mode: new topic (`<topic>` matches no existing doc)
 
-1. **Scope it.** Choose the slug and a Thai title, and confirm both with พี่ปู. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs customer examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split.
+1. **Scope it.** Choose the slug and a Thai title, and confirm both with พี่ปู. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs customer examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split. Data-dictionary rows do not count toward that cap; a data-model doc covers one aggregate and lists every column.
 2. **Gather evidence.** Named `@files` first. Then the active files in `docs/source/INDEX.md`; never use superseded ones. Then `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/ui/screens.md` if it exists, relevant hotspot `rules.md`, and `docs/reviews/`. Read only the sections the topic touches. A named file that `source-index.mjs scan` reports as `new` or `changed` has not been triaged yet. Follow `${CLAUDE_PLUGIN_ROOT}/skills/source/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 3. **Create and write.** Run `new`, then fill every section of the template, using the topic's checklist in [references/topics.md](references/topics.md):
    - Tag every statement: `[ที่มา: <file> §<section>]`, `[พี่ปู]`, `[อนุมาน]`, `[เสนอ]`, or `[เสนอ: <tool>]` for a suggestion from another AI tool that Claude has checked. An untagged statement looks like fact; tag it or cut it.
@@ -106,7 +106,8 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
    | Which role sees which menu or screen | `docs/ui/screens.md` Role(s) column if the file exists; otherwise `/mflow:screen inventory` reads this doc later |
    | Per-role permissions, data scope, hidden fields, landing page | the prototype's `PrototypeData/roles.json` and `users.json`, with this doc and its revision in `PrototypeData/README.md`. If the prototype does not exist yet, `/mflow:theme` builds them from this doc; if it does, update them now under the schema-change rule in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` |
    | Rule with conditions that crosses screens (data scope, field masking, approval limits) | a row in `docs/hotspots/INDEX.md` if it still needs customer answers or examples; else a candidate `/opsx:propose` change |
-   | Architecture or enforcement choice (fixed vs configurable roles, where scope is enforced) | `backlog decision create`, plus one line in AGENTS.md Conventions if every agent must follow it |
+   | Tables, columns, relations, keys and indexes (data-model doc) | this aggregate's section in `PrototypeData/README.md` (create the file if it is missing), written now. It is the living data dictionary until the aggregate is built, and it cites this doc and its revision. If `PrototypeData/<entity>.json` already exists, align its fields under the schema-change rule; otherwise `/mflow:screen` creates the JSON rows from the README section with the first screen that shows the entity. At build time, the `/opsx:propose` change links this doc and the README |
+   | Architecture, enforcement or storage choice (fixed vs configurable roles, where scope is enforced, key type, soft delete, enum vs lookup table, child table vs JSON) | `backlog decision create`, plus one line in AGENTS.md Conventions if every agent must follow it |
    | Durable constraint | one line in AGENTS.md |
    | Scope or release line | `docs/vision.md` story map |
    | Out of scope | `docs/vision.md` Out of scope |
@@ -118,6 +119,7 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
 3. **Write** after พี่ปู says yes. Create Backlog items through the CLI only.
 4. **Freeze.** Set the frontmatter: `status: approved`, `approved: <date>`, `merged-into: <comma-separated destinations>`. Add this line under the title: `> อนุมัติแล้ว <date> และนำไปรวมกับ flow หลักแล้ว เอกสารนี้เป็นบันทึกเหตุผล ความจริงปัจจุบันอยู่ที่ปลายทางในหัวข้อ 7`. Update STATUS.md with a log entry.
 5. **Later changes of mind** never edit a frozen doc:
+   - Field-level changes after a data-model doc is approved (add, rename or drop a column; change its length or whether it is required) are not a change of mind. They follow the schema-change rule in `PrototypeData/README.md`.
    - Nothing is built yet: start a new doc on the same topic, and cite the old one in section 1. When the new doc is approved, set the old one to `status: superseded` and `superseded-by: <NN>`.
    - Already built, or already confirmed with the customer: use `/mflow:change-request`.
 

@@ -18,7 +18,7 @@ A review answers one question: does this diff do what the spec says, the way thi
 2. **Tests:** run the test command from AGENTS.md; report the actual output summary.
 3. **Domain placement:** business rules live in the domain layer (aggregates, value objects, domain services); controllers, views and repositories do not re-implement them. Invariants from rules.md are enforced where their owning aggregate is.
 4. **UI kit:** views use kit components and tokens only; lists use DataTable with server-side paging and both filter locations.
-5. **Data access:** queries page and filter in the database, no N+1 in lists, migrations reversible.
+5. **Data access:** queries page and filter in the database, no N+1 in lists, migrations reversible. Entities, columns, types, precision and nullability match `PrototypeData/README.md` and the approved data-model doc, or the change states the difference; the indexes the doc lists for screen filters exist.
 6. **Security basics:** a `Permissions` key checked on every endpoint that changes data, and on every read the access-control discussion doc restricts; data scope applied in the query, not the view; restricted fields masked in the ViewModel mapping that exports reuse; no role-name comparisons (contract: "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md`); `FakeCurrentUser` and `/_prototype/*` registered only under `Prototype:UseFakeData`; no raw SQL built from input, no secrets in code or config.
 7. **Leftovers:** `// PROTOTYPE:` markers still in code that this change was meant to replace; TODOs without a task.
 

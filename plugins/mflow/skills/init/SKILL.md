@@ -42,13 +42,17 @@ Then add to `openspec/config.yaml` (edit YAML, keep existing keys, show the diff
 context: |
   Read AGENTS.md for stack, commands, architecture and domain vocabulary.
   Business rules for fuzzy areas are worked out first in docs/hotspots/<slug>/rules.md.
+  Designs agreed before building (roles, data models, ...) are in docs/discuss/NN-*.md with status approved.
+  The current data dictionary is PrototypeData/README.md until a change builds the entity.
 rules:
   proposal:
     - If the change implements a hotspot, link docs/hotspots/<slug>/rules.md in the proposal.
+    - If the change adds or alters tables, link the approved data-model doc in docs/discuss/ and follow PrototypeData/README.md; state any difference.
   specs:
     - Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.
   tasks:
     - Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).
+    - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
 ```
 
 Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo.

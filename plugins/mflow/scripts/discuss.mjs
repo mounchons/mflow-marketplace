@@ -30,8 +30,10 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*พี่ปูเลือก:\*\*(.*)$/;
 const NOTE_RE = /^\s*>\s*พี่ปู\s*:(.*)$/;
 const HEADING_RE = /^###\s+(D\d+\b.*)$/;
-// Template placeholders are Thai text in angle brackets, e.g. <คำถาม>; inline code is not a placeholder.
-const PLACEHOLDER_RE = /<[^<>\n]*[฀-๿][^<>\n]*>/;
+// Template placeholders open with Thai text right after "<", e.g. <คำถาม>. Comparisons in validation
+// text ("PickupDate < วันนี้ และ Status > 0") have a space after "<" and are not placeholders;
+// inline code is never a placeholder.
+const PLACEHOLDER_RE = /<[฀-๿][^<>\n]*>/;
 
 const REPORT_ID_RE = /(?:^|[^a-z0-9])discuss-(\d{2,})(?:-r(\d+))?(?![0-9])/i;
 

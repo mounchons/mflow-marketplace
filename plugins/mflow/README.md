@@ -19,7 +19,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.6)
+## คำสั่ง (v0.7)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -27,7 +27,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 |---|---|---|
 | ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:source [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded |
-| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน |
+| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่พี่ปูรันเอง |
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่พี่ปูตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout, components, หน้า style guide, กฎ UI สำหรับ agent |
@@ -57,7 +57,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 
 1. เอกสารลูกค้าเข้า `docs/source/` → `/mflow:source`
 2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → (ถ้าอยากให้ AI หลายตัวช่วยคิด `/mflow:discuss <NN> consult` แล้วรันคำสั่งเอง) → พี่ปูตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
-3. ครั้งแรกของโปรเจกต์: `/mflow:theme` → `/mflow:screen inventory`
+3. ครั้งแรกของโปรเจกต์: `/mflow:theme` → `/mflow:screen inventory` → ออกแบบข้อมูลทีละกลุ่ม `/mflow:discuss <กลุ่มข้อมูล> data model` (ไม่บังคับ)
 4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 5. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
 6. `/opsx:propose` → `/opsx:apply` (Claude หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`

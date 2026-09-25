@@ -26,7 +26,7 @@ Types and destinations:
   - matches the approved doc → no new item; list it in the summary's confirmation section (step 4)
   - differs from it → a new discussion doc (`/mflow:discuss`) that supersedes the old one and cites this review. The customer is correcting พี่ปู's understanding, not adding scope. Use `/mflow:change-request` instead only when the item is already built (archived in `openspec/specs/`) or the customer confirmed it in an earlier review summary
   - no approved doc covers it → several items: a candidate topic for `/mflow:discuss`; one clear item: a Backlog task; conditions (amount limits, states, approval chains): a hotspot
-- Differs from an approved discussion doc on any other topic → the same routing as above
+- Differs from an approved discussion doc on any other topic → the same routing as above. Exception: a field-level change to an approved data-model doc (add, rename or drop a column; change its length or whether it is required) is a Backlog task for `/mflow:screen` under the schema-change rule, not a new doc. A structural change (a new aggregate, a changed key or relationship, reversing a storage decision) follows the routing above
 - Output document (print, export, legal form) → Backlog task + request a real sample
 - Customer term → Domain vocabulary in AGENTS.md
 - Priority (day one vs later) → story-map release line in `docs/vision.md`

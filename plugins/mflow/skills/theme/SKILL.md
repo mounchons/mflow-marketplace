@@ -25,7 +25,11 @@ Done when: every color, radius and font used anywhere in the app resolves to a t
 
 ## 3. App shell
 
-`Views/Shared/_Layout.cshtml`: sidebar navigation, top bar (user, notifications slot), content area with page header slot, toast container, and the prototype banner partial rendered when `Prototype:UseFakeData` is true. Load order: Bootstrap CSS → `tokens.css` → `app.css` (component styles only, token-based) → Bootstrap JS → HTMX.
+`Views/Shared/_Layout.cshtml`: `SidebarMenu`, top bar (current user's name and role, notifications slot), content area with page header slot, toast container, and the prototype banner partial with the role switcher, rendered when `Prototype:UseFakeData` is true. Load order: Bootstrap CSS → `tokens.css` → `app.css` (component styles only, token-based) → Bootstrap JS → HTMX.
+
+The shell needs to know who is logged in, so build the access seams here, exactly as "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` describes them. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`. Take the roles, users and scopes from the approved access-control discussion doc. With none approved, use the single all-permission user it describes.
+
+Done when: switching the user in the banner changes who the top bar shows, and the style guide's `SidebarMenu` sample (two items behind different permissions) shows a different item for each of two fake users.
 
 ## 4. Components
 
@@ -35,7 +39,7 @@ Done when: each contract has an implementation and the style guide shows it.
 
 ## 5. Style guide page
 
-`/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a full sample list page and a sample form page assembled only from components. This page is what the customer approves once, instead of approving colors screen by screen.
+`/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a `SidebarMenu` sample with two items behind different permissions, a full sample list page and a sample form page assembled only from components. This page is what the customer approves once, instead of approving colors screen by screen.
 
 ## 6. Rules for agents
 

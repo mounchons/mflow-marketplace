@@ -69,6 +69,7 @@ Done when: `check` shows no pending notes, every feedback item has a line in the
    | Roles and their main job | `docs/vision.md` Users and roles |
    | Customer term | Domain vocabulary in AGENTS.md |
    | Which role sees which menu or screen | `docs/ui/screens.md` Role(s) column if the file exists; otherwise `/mflow:screen inventory` reads this doc later |
+   | Per-role permissions, data scope, hidden fields, landing page | the prototype's `PrototypeData/roles.json` and `users.json`, with this doc and its revision in `PrototypeData/README.md`. If the prototype does not exist yet, `/mflow:theme` builds them from this doc; if it does, update them now under the schema-change rule in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` |
    | Rule with conditions that crosses screens (data scope, field masking, approval limits) | a row in `docs/hotspots/INDEX.md` if it still needs customer answers or examples; else a candidate `/opsx:propose` change |
    | Architecture or enforcement choice (fixed vs configurable roles, where scope is enforced) | `backlog decision create`, plus one line in AGENTS.md Conventions if every agent must follow it |
    | Durable constraint | one line in AGENTS.md |

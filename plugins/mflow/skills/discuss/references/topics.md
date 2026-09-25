@@ -42,6 +42,8 @@ Implementation direction to propose as `[เสนอ]` and confirm through a de
 - Data scope is enforced in the query layer (repository specification or EF Core global query filter), never in the view.
 - Field masking happens when the ViewModel is mapped, so exports and APIs reuse the same mapping.
 
+Once approved, these tables become the prototype's `PrototypeData/roles.json` and `users.json`, which drive the role switcher the customer uses in the review. So the scenarios name example users with their title, role and unit, one to three per role.
+
 Conditions that depend on amounts, states or approval limits are business rules. Chart them with `/mflow:hotspot`, not here.
 
 ## org-structure: company, branch, department

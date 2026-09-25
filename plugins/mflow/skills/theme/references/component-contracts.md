@@ -46,6 +46,14 @@ Title, a sentence stating exactly what will happen ("ยกเลิกงาน
 
 Success, error, info. Server sets it through an `HX-Trigger` response header (`showToast`), so any action can raise one without page-specific script.
 
+## SidebarMenu
+
+- **Input:** `MenuDefinition` and `ICurrentUser` (see "Current user, permissions and the role switcher" in `skills/screen/references/prototype-data.md`).
+- **Behaviour:** shows only the items whose permission the user `Can`; a group with no visible item is hidden; the active item follows the current route. Screens never add menu items in views. A new screen adds its item, with its permission, to `MenuDefinition`.
+- **States:** expanded, collapsed (icons only), mobile off-canvas.
+
 ## PrototypeBanner
 
-A slim warning-colored bar at the top: "PROTOTYPE – ข้อมูลจำลอง ยังไม่บันทึกข้อมูลจริง". Rendered by the layout whenever `Prototype:UseFakeData` is true.
+- A slim warning-colored bar at the top: "PROTOTYPE – ข้อมูลจำลอง ยังไม่บันทึกข้อมูลจริง".
+- On the right, the role switcher: a select that lists every fake user as "ชื่อ · ตำแหน่ง (role)", with the current user selected. Changing it posts to `/_prototype/switch-user` and reloads the page, so the menu, rows and buttons change to that role.
+- Rendered by the layout only when `Prototype:UseFakeData` is true, and never otherwise.

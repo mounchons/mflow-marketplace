@@ -19,7 +19,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.4)
+## คำสั่ง (v0.5)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -57,7 +57,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 1. เอกสารลูกค้าเข้า `docs/source/` → `/mflow:source`
 2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → พี่ปูตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
 3. ครั้งแรกของโปรเจกต์: `/mflow:theme` → `/mflow:screen inventory`
-4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า → `/mflow:review-notes`
+4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 5. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
 6. `/opsx:propose` → `/opsx:apply` (Claude หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`
 7. ลูกค้าขอเปลี่ยนหลังอนุมัติ → `/mflow:change-request`

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.4.0 |
+| เวอร์ชันที่อธิบาย | 0.5.0 |
 | เจ้าของ | พี่ปู (Mounchon) |
 | วันที่ | 2026-09-25 |
 | สถานะ | ใช้งานได้ (pilot) |
@@ -133,6 +133,8 @@ flowchart TD
 | FR-35 | หน้า `/_styleguide` แสดงทุก component ทุกสถานะ ให้ลูกค้าอนุมัติหน้าตาครั้งเดียว | มีแล้ว |
 | FR-36 | กฎสำหรับ AI: `docs/ui/design-system.md` และ `.claude/rules/ui.md` (โหลดเฉพาะตอนเปิดไฟล์ UI) ห้าม hex และ inline style | มีแล้ว |
 | FR-37 | `update <อะไร>` แก้ kit แล้วทุกหน้าจอเปลี่ยนตาม | มีแล้ว |
+| FR-38 | App shell มี `SidebarMenu` ที่สร้างจาก `MenuDefinition` และกรองตามสิทธิ์ของผู้ใช้ปัจจุบัน (`ICurrentUser.Can`) ใช้ permission key ชุดเดียวกับการตรวจที่ endpoint และปุ่ม | มีแล้ว |
+| FR-39 | ปุ่มสลับ role ใน PrototypeBanner: เลือกผู้ใช้จำลองจาก `users.json`/`roles.json` (สร้างจากเอกสาร access-control ที่อนุมัติแล้ว) เพื่อให้ลูกค้าเห็นเมนู แถวข้อมูล field และปุ่มของแต่ละ role มีเฉพาะตอน `Prototype:UseFakeData` เป็น true | มีแล้ว |
 
 ### 6.5 หน้าจอ prototype (`/mflow:screen`)
 
@@ -146,6 +148,8 @@ flowchart TD
 | FR-45 | จุดคำนวณใส่ค่าคงที่พร้อม `// PROTOTYPE:` และเพิ่มแถวใน hotspot INDEX | มีแล้ว |
 | FR-46 | ปรับหน้าจอได้ด้วยคำสั่งภาษาคน ถ้าสิ่งที่ขอเกิน kit ให้เสนอ `/mflow:theme update` แทน | มีแล้ว |
 | FR-47 | ข้อมูลตัวอย่างสมจริง (≥200 แถวต่อ entity ในรายการ, ครบทุกสถานะ, edge case) และไม่มีข้อมูลส่วนบุคคลจริง | มีแล้ว |
+| FR-48 | ทุกหน้าจอประกาศ permission ของการดูและแต่ละ action, fake repository ใช้ data scope ของผู้ใช้ก่อนแบ่งหน้า, ซ่อน field ใน ViewModel และข้อมูลกระจายหลายสาขา/เจ้าของจนแต่ละ role เห็นต่างกันจริง | มีแล้ว |
+| FR-49 | ตรวจหน้าจอด้วยการสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ไม่มีเมนู และเปิด URL ตรงได้ 403) | มีแล้ว |
 
 ### 6.6 รีวิวกับลูกค้า (`/mflow:review-notes`)
 
@@ -154,6 +158,8 @@ flowchart TD
 | FR-50 | คัดแยกโน้ตหรือ transcript ทุกบรรทัดไปยังปลายทาง (task, hotspot, คำศัพท์, ลำดับความสำคัญ, out of scope, open question, change request) | มีแล้ว |
 | FR-51 | ตรวจแต่ละรายการว่าอยู่ในขอบเขตที่ตกลงหรือไม่ | มีแล้ว |
 | FR-52 | ร่างอีเมลสรุปภาษาไทยให้ลูกค้ายืนยัน คำขอนอกขอบเขตเขียนเป็น "จะประเมินและเสนอแยก" | มีแล้ว |
+| FR-53 | เรื่องสิทธิ์ เมนู และการมองเห็นข้อมูล: ตรงกับเอกสาร discuss ที่อนุมัติแล้วให้ขอยืนยันในสรุป, ต่างจากเอกสารให้เปิดเอกสาร discuss ใหม่ (หรือ change request ถ้าสร้างแล้วหรือลูกค้าเคยยืนยันแล้ว), ยังไม่มีเอกสารให้เสนอหัวข้อ discuss เอกสาร discuss ไม่นับเป็นขอบเขตที่ตกลงกับลูกค้า | มีแล้ว |
+| FR-54 | อีเมลสรุปมีหัวข้อ "สิทธิ์และข้อมูลที่แต่ละ role เห็น" ให้ลูกค้ายืนยันเป็นลายลักษณ์อักษร และใช้เป็นหลักฐานของ change request | มีแล้ว |
 
 ### 6.7 โลจิกขนาดใหญ่ (`/mflow:hotspot`, `/mflow:golden`)
 
@@ -202,7 +208,7 @@ flowchart TD
 | FR-97 | Context pack รวมไฟล์เป็นไฟล์เดียวสำหรับ chat UI ข้าม binary เตือนเมื่อใหญ่เกิน | มีแล้ว |
 | FR-98 | โหมด code ทำใน worktree และ branch `agent/<tool>/<id>` แยกจาก Claude | มีแล้ว |
 | FR-99 | Assess: normalize ไฟล์ → ตรวจความเข้าใจและไฟล์ที่อ่าน → ตั้งระดับความน่าเชื่อถือ → ตรวจ finding ทีละข้อจากหลักฐานที่เปิดเอง → คำตัดสิน 5 แบบ → เสนอ action หลังได้ yes | มีแล้ว |
-| FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested | มีแล้ว |
+| FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -268,7 +274,7 @@ repo/
 │   └─ ai-inbox/             ← รายงานจาก AI อื่น + .assessment.md
 ├─ openspec/                 ← specs/ (ความจริงปัจจุบัน), changes/ (สิ่งที่จะเปลี่ยน)
 ├─ backlog/                  ← task, decision, milestone
-├─ src/<App>.Web/PrototypeData/*.json
+├─ src/<App>.Web/PrototypeData/*.json   ← รวม users.json, roles.json สำหรับปุ่มสลับ role
 └─ tests/<Context>.Domain.Tests/Golden/*.json
 ```
 
@@ -371,9 +377,10 @@ mflow-marketplace/
 | R-06 | Windows PowerShell 5.1 เปลี่ยนภาษาไทยเป็น `?` ถ้าไม่ตั้ง encoding | brief เพี้ยน | คำสั่งที่สร้างให้ตั้ง UTF-8 ไว้แล้ว แนะนำ PowerShell 7 |
 | R-07 | รายงานจาก AI อื่นอาจอ้างไฟล์ที่ไม่ได้อ่าน | finding ผิดแต่ดูน่าเชื่อ | assess ตรวจ Files read และความเข้าใจก่อน |
 | R-08 | ลูกค้าเข้าใจว่า prototype คือระบบเกือบเสร็จ | ความคาดหวังผิด | PrototypeBanner ทุกหน้า + แจ้งก่อนส่งลิงก์ |
+| R-10 | ปุ่มสลับผู้ใช้จำลองหลุดไปถึง production | ใครก็สวมสิทธิ์คนอื่นได้ | ลงทะเบียน `FakeCurrentUser` และ `/_prototype/*` เฉพาะใต้ `Prototype:UseFakeData` และ `/mflow:review` ตรวจเป็น blocker |
 | R-09 | จำนวนคำสั่ง (14) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.4)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.5)
 
 | รายการ | ผล |
 |---|---|

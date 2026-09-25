@@ -90,6 +90,7 @@ Instructions that go into the brief's Goal:
 - For every open decision (`### D<n>` with an empty `**พี่ปูเลือก:**`), give your own pick and reason, even when it matches Claude's recommendation. You may add an option.
 - Check the topic checklist pasted into the brief. Report every item the doc neither answers nor lists as out of scope.
 - Write the findings in Thai; keep paths and identifiers as they are. Edit no files.
+- Do not open `docs/ai-inbox/`. Other tools are answering the same brief, and your view must stay independent. Earlier rounds reach you through section 8 of the doc.
 
 ```markdown
 ## Picks

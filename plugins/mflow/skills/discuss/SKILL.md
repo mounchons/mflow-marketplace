@@ -55,8 +55,14 @@ Done when: `check <NN>` reports no `placeholderLines`, every checklist item is p
 Other AI tools think through the same doc independently, like a panel. พี่ปู runs them, reads every view side by side, and makes the choices.
 
 1. **Gate.** The doc is a `draft`, and `check` reports no `placeholderLines`, because a half-written doc wastes every tool's time. Process pending `> พี่ปู:` notes first (revise mode), so the tools read the current understanding.
-2. **Brief.** Follow steps 1, 2 and 4 of `${CLAUDE_PLUGIN_ROOT}/skills/delegate/SKILL.md` with subject `discuss-<NN>-r<revision>`, mode `analyze`, and the "discuss" output contract. One brief serves every tool: use `--to any` unless พี่ปู named tools. With several named tools, run `delegate-cmd.mjs` once per tool on the same brief. The output path is `docs/ai-inbox/<date>-{tool}-discuss-<NN>-r<revision>.md`. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
-3. **Hand over.** Show each tool's command (PowerShell and Bash), and the context pack for chat tools. พี่ปู runs whichever tools they want, then types `/mflow:discuss <NN>` when the reports are in. Record the awaited reports in STATUS.md `## Now`. Stop; the doc does not change in this mode.
+2. **Readable sources.** Other tools must check the doc against the customer's documents, not against the doc itself. For every file in the doc's `sources`, make sure a text version exists:
+   - `.md`, `.txt`, `.csv`, `.json`: readable as they are.
+   - `.docx`: `.mflow/cache/<name>.md`, converted as `/mflow:source` does (pandoc, or python-docx).
+   - `.xlsx`: `.mflow/cache/<name>.md` with one Markdown table per sheet the doc relies on, via python (pandas/openpyxl). Note merged cells and formulas.
+   - `.pdf`: `.mflow/cache/<name>.md` with its text (pdftotext, or python pypdf). Scanned pages get a note that their text could not be extracted.
+   Create only the missing ones, and list the text versions in the brief's Read first and in any context pack. A source with no text version is named in the brief as unreadable, so a tool does not guess at it.
+3. **Brief.** Follow steps 1, 2 and 4 of `${CLAUDE_PLUGIN_ROOT}/skills/delegate/SKILL.md` with subject `discuss-<NN>-r<revision>`, mode `analyze`, and the "discuss" output contract. One brief serves every tool: use `--to any` unless พี่ปู named tools. With several named tools, run `delegate-cmd.mjs` once per tool on the same brief. The output path is `docs/ai-inbox/<date>-{tool}-discuss-<NN>-r<revision>.md`. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+4. **Hand over.** Show each tool's command (PowerShell and Bash), and the context pack for chat tools. พี่ปู runs whichever tools they want, then types `/mflow:discuss <NN>` when the reports are in. Record the awaited reports in STATUS.md `## Now`. Stop; the doc does not change in this mode.
 
 A second round is a second consult after revising. The brief carries the new revision, and the tools see section 8, so they can answer each other's points.
 

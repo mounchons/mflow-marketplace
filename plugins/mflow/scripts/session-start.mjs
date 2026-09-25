@@ -119,7 +119,18 @@ try {
     };
     pending.push(`- ${drafts.length} discussion doc(s) waiting for พี่ปู: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
   }
-} catch { /* no discussions yet */ }
+  // Reports for a doc that is no longer a draft, or that does not exist, are listed too, so none is lost.
+  const draftIds = new Set(drafts.map((d) => Number(d.id)));
+  const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");
+  const stray = fs.readdirSync(inboxDir)
+    .filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
+    .map((f) => ({ f, fm: frontmatter(readText(path.join(inboxDir, f))) }))
+    .map(({ f, fm }) => ({ f, status: fm.status || "new", of: reportDiscussId(f, fm) }))
+    .filter((r) => r.of && r.status === "new" && !draftIds.has(Number(r.of.id)));
+  if (stray.length) {
+    pending.push(`- ${stray.length} AI report(s) for a discussion doc that is not a draft: ${stray.slice(0, 5).map((r) => `${r.f} → /mflow:discuss ${r.of.id}`).join(", ")}`);
+  }
+} catch { /* no discussions or inbox yet */ }
 if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
 
 parts.push(

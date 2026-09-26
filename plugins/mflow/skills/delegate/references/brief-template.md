@@ -95,7 +95,7 @@ Instructions that go into the brief's Goal:
 
 ```markdown
 ## Picks
-- D<n>: <option letter or new option> — <reason in one or two sentences>
+- D<n>: <option letter (a, b, c …) or a new option under the next letter> — <reason in one or two sentences>
 
 ## Findings
 ### C1 <title>

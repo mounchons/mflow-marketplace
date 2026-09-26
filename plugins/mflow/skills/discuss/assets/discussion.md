@@ -22,7 +22,7 @@ superseded-by:
 
 ## วิธีตอบเอกสารนี้
 
-- ตอบข้อตัดสินใจในหัวข้อ 4: พิมพ์คำตอบต่อท้ายบรรทัด `**พี่ปูเลือก:**` ของข้อนั้น เช่น `ข` หรือ `ข แต่ให้ผู้จัดการเขตเห็นด้วย`
+- ตอบข้อตัดสินใจในหัวข้อ 4: พิมพ์คำตอบต่อท้ายบรรทัด `**พี่ปูเลือก:**` ของข้อนั้น เช่น `b` หรือ `b แต่ให้ผู้จัดการเขตเห็นด้วย` ตอบในแชตหลายข้อพร้อมกันได้ เช่น `/mflow:discuss {{ID}} D1 a, D2 b`
 - แย้งหรือขอแก้ตรงไหนก็ได้: เพิ่มบรรทัดที่ขึ้นต้นด้วย `> พี่ปู:` ไว้ใต้ข้อนั้น แล้วสั่ง `/mflow:discuss {{ID}}`
 - หรือพิมพ์สิ่งที่อยากแก้ในแชตเลย: `/mflow:discuss {{ID}} <สิ่งที่อยากให้แก้>`
 - อยากให้ AI ตัวอื่น (Codex, OpenCode, Gemini …) ช่วยคิด: สั่ง `/mflow:discuss {{ID}} consult` แล้วรันคำสั่งที่ได้เอง ผลกลับมาแล้วสั่ง `/mflow:discuss {{ID}}` ความเห็นของทุกตัวจะอยู่ในหัวข้อ 8 และในแต่ละข้อตัดสินใจ พี่ปูเป็นคนเลือกเอง
@@ -59,10 +59,11 @@ superseded-by:
 <!-- When the options differ in how they look or flow, give each option a small picture of the same type. -->
 
 ### D1: <คำถาม>
-- ก) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
-- ข) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
+<!-- Options are labelled a) b) c) d), never ก ข ค, so พี่ปู answers without switching keyboard language. -->
+- a) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
+- b) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
 - **Claude แนะนำ:** <ข้อไหน และเหตุผลหนึ่งประโยค>
-<!-- After other tools answer (consult), one line per tool above พี่ปูเลือก: "- **codex เลือก:** ข — reason (C3)". Never fill พี่ปูเลือก from a tool's pick. -->
+<!-- After other tools answer (consult), one line per tool above พี่ปูเลือก: "- **codex เลือก:** b — reason (C3)". Never fill พี่ปูเลือก from a tool's pick. -->
 - **พี่ปูเลือก:**
 
 ## 5. คำถามที่ต้องถามลูกค้า

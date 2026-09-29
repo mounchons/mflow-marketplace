@@ -1,6 +1,6 @@
 {
   "name": "mflow-marketplace",
-  "description": "Mounchon's own development workflow plugins.",
+  "description": "Workflow plugins for anyone building a system with AI (an SA, a PM or the system owner): screen-first and spec-driven.",
   "owner": {
     "name": "Mounchon"
   },

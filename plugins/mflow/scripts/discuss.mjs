@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 // Discussion documents: one Markdown file per topic in <discussDir>/NN-<slug>.md, where Claude writes
-// its understanding or a proposed design and พี่ปู replies until they match, then approves.
+// its understanding or a proposed design and the user replies until they match, then approves.
 //
 //   node discuss.mjs list                              -> JSON: next id + every doc with its open items
 //   node discuss.mjs check <NN | file>                 -> JSON: open decisions and pending notes of one doc
 //   node discuss.mjs new <slug> [--title "..."] [--sources "a, b"]
 //                                                      -> create NN-<slug>.md from the template (never overwrites)
 //
-// Reply markers (the template explains them to พี่ปู):
-//   decision answer   a line `**พี่ปูเลือก:** <answer>` under a `### D<n>: ...` heading; empty = open
-//   note              a line starting with `> พี่ปู:`; every such line is pending until Claude processes it
+// Reply markers (the template explains them to the user):
+//   decision answer   a line `**เลือก:** <answer>` under a `### D<n>: ...` heading; empty = open
+//   note              a line starting with `> ความเห็น:`; every such line is pending until Claude processes it
 //   placeholder       Thai text in angle brackets left from the template, e.g. <คำถาม>
+// Docs written before 0.13 use `**พี่ปูเลือก:**` and `> พี่ปู:`; both are still read the same way.
+// Tool picks (`- **codex เลือก:** b`) are not answers: the marker must open the bold span.
 // HTML comments and fenced code blocks are ignored, so examples of the markers there do not count.
 // A doc is ready to approve when it is a draft with no open decision, pending note or placeholder,
 // no unclosed code fence (it would hide everything below it), and no unprocessed report from another AI tool.
@@ -31,8 +33,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(here, "..", "skills", "discuss", "assets", "discussion.md");
 const FILE_RE = /^(\d{2,})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*พี่ปูเลือก:\*\*(.*)$/;
-const NOTE_RE = /^\s*>\s*พี่ปู\s*:(.*)$/;
+const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*(?:พี่ปู)?เลือก:\*\*(.*)$/;
+const NOTE_RE = /^\s*>\s*(?:ความเห็น|พี่ปู)\s*:(.*)$/;
 const HEADING_RE = /^###\s+(D\d+\b.*)$/;
 // Template placeholders open with Thai text right after "<", e.g. <คำถาม>. Comparisons in validation
 // text ("PickupDate < วันนี้ และ Status > 0") have a space after "<" and are not placeholders;

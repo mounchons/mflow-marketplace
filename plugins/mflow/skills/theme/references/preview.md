@@ -1,6 +1,6 @@
 # Static preview of the kit
 
-A static preview is the kit built as plain HTML, CSS and JavaScript in `docs/ui/theme/`, before the app exists. It is a show house built before the estate's roads: the customer walks through the rooms and picks the finishes, then the builder repeats them in every real house. พี่ปู and the customer approve the look and the responsive behaviour on it. `/mflow:theme port` then builds the real kit in the stack from it, and the preview is frozen as the record of what was approved.
+A static preview is the kit built as plain HTML, CSS and JavaScript in `docs/ui/theme/`, before the app exists. It is a show house built before the estate's roads: the customer walks through the rooms and picks the finishes, then the builder repeats them in every real house. The user approves the look and the responsive behaviour on it, and that approval is the customer's. `/mflow:theme port` then builds the real kit in the stack from it, and the preview is frozen as the record of what was approved.
 
 Use it when the app is not scaffolded yet, when the stack is `custom`, or when the look must be agreed before any code is set up.
 
@@ -35,7 +35,7 @@ Use it when the app is not scaffolded yet, when the stack is `custom`, or when t
 
 ## Opening it
 
-The README gives the command, and theme shows it to พี่ปู:
+The README gives the command, and theme shows it to the user:
 
 ```
 python -m http.server 8810 --bind 127.0.0.1 --directory docs/ui/theme
@@ -52,7 +52,7 @@ Theme steps 1 to 6 run as usual, with these differences:
 - **Step 6:** `docs/ui/design-system.md` says the kit lives in `docs/ui/theme/` until port. `.claude/rules/ui.md` takes its paths from `## Stack` as usual.
 - **Verify** at the acceptance sizes as [responsive.md](responsive.md) §5 describes, on the served preview.
 
-Write the README with `Status: draft`. When พี่ปู approves the preview, set `Status: approved <date>` and record the approval in STATUS.md. Customer feedback on the preview goes through `/mflow:review-notes` like any prototype review.
+Write the README with `Status: draft`. When the user approves the preview, set `Status: approved <date>` and record the approval in STATUS.md. Feedback from others who try the preview goes through `/mflow:review-notes` like any prototype review.
 
 This Done-when replaces step 6's, because there is no app to build yet.
 
@@ -62,9 +62,9 @@ Done when: the preview opens from the README's command, the style guide passes �
 
 1. **Gate.** The README says `Status: approved`, AGENTS.md `## Stack` has a profile, and the app project exists at the paths `## Stack` names.
    - **No app yet:** porting does not scaffold the app. Suggest `/opsx:propose` for a change that scaffolds it, with a task "port the kit: `/mflow:theme port`", and stop. Production code goes through OpenSpec.
-   - **Status `draft`:** ask พี่ปู to approve the preview first.
+   - **Status `draft`:** ask the user to approve the preview first.
 2. **Build the kit in the stack** by running theme steps 2 to 6 with the preview as the source. Copy `tokens.css`, `app.css` and `assets/` unchanged into the stack's locations. Rebuild `AppShell` and every component to [component-contracts.md](component-contracts.md), taking behaviour from `shell.js` and `datatable.js`. Build the access seams of step 3. The stack's style guide gets the same sections and sample pages as `index.html`.
-3. **Compare** the stack's style guide with the preview at each acceptance size. Fix each difference, or list it for พี่ปู's yes. Report sizes that could not be checked as `(unverified)`, as §5 says.
+3. **Compare** the stack's style guide with the preview at each acceptance size. Fix each difference, or list it for the user's yes. Report sizes that could not be checked as `(unverified)`, as §5 says.
 4. **Freeze.**
    - Set the README status to `frozen <date>, kit in <path>`, and add under it: "ภาพรวมที่อนุมัติ ณ วันที่ <date> เก็บไว้เป็นหลักฐาน kit จริงอยู่ที่ <path> ถ้าจะเปลี่ยน kit ให้แก้ที่นั่น ไม่ใช่ที่นี่".
    - In design-system.md, change the kit's home to the stack paths, and keep one line pointing at the frozen preview.

@@ -13,7 +13,7 @@ Every hotspot has the same **destination**: a `rules.md` that passes the readine
 
 - `docs/hotspots/<slug>/map.md`: the **map**. An index, never a store: destination, notes, one line per resolved ticket pointing at its task, the fog, out of scope. Template: [assets/map.md](assets/map.md).
 - `docs/hotspots/<slug>/rules.md`: the growing rule spec. Template: [assets/rules.md](assets/rules.md).
-- `docs/hotspots/<slug>/questions-for-customer.md`: questions only the customer can answer, written in Thai.
+- `docs/hotspots/<slug>/questions-for-customer.md`: only for `ask` questions the user chooses to take to someone else first, written in Thai.
 - **Tickets** are Backlog.md tasks with labels `decision`, `hs-<slug>`, and one type label; milestone `HS: <slug>`. The answer lives in the task's final summary and nowhere else.
 - The **frontier** is `backlog task list --labels hs-<slug> --json` filtered to status `To Do` and `isReady: true`.
 - **Sources** (customer documents) are tracked by `/mflow:capture`'s registry, `docs/source/INDEX.md`, and listed in the map's `Sources` section.
@@ -23,7 +23,7 @@ Every hotspot has the same **destination**: a `rules.md` that passes the readine
 Read only the files named in `$ARGUMENTS` (`@file`), never a whole folder. Before reading:
 1. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" scan`.
 2. A named file that is `new` or `changed` has not been triaged: follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for that file first, then continue. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
-3. A named file that is `superseded`: tell พี่ปู and use its replacement instead.
+3. A named file that is `superseded`: tell the user and use its replacement instead.
 4. A file already listed in this map's `Sources` and `unchanged`: use the map and rules.md; reopen the file only for the specific section a ticket needs.
 
 After using a file: `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" mark <file> --used-by hs-<slug>` and add it to the map's `Sources` with the sections used. Customer spreadsheets meant as answer keys: suggest `/mflow:golden`.
@@ -32,8 +32,8 @@ Use `backlog <command> --help` for exact flags; edit Backlog files only through 
 
 ## Ticket types (type label)
 
-- `ask` (HITL): a question only the customer or พี่ปู can answer. Draft it into `questions-for-customer.md` as polite, direct Thai with 2 to 4 concrete options and an example for each; add label `waiting-customer`; resolve only from the answer พี่ปู brings back. Never answer on the customer's behalf.
-- `examples` (HITL): turn a rule into an example table (inputs → expected outcome), preferably from real past data the customer already calculates by hand. Resolved when the table's rows are confirmed.
+- `ask` (HITL): a choice the sources do not settle. Put it to the user in polite, direct Thai with 2 to 4 concrete options, an example for each and Claude's recommendation. The user's answer resolves it: the user speaks for the customer, so it needs no further confirmation, and "use the recommendation" is a full answer. Claude never picks on the user's behalf. Only if the user wants to ask someone else first: draft the question into `questions-for-customer.md`, add label `waiting-customer`, and resolve it from the answer the user brings back.
+- `examples` (HITL): turn a rule into an example table (inputs → expected outcome), preferably from real past data the customer already calculates by hand. Resolved when the user confirms the table's rows.
 - `research` (AFK): a fact outside the repo (law, tax rate, an API's behaviour). Resolve with sources cited in the summary. Several research tickets may run in one session, in parallel subagents.
 - `spike` (AFK or HITL): throwaway code to learn whether an approach is feasible. Lives on a `spike/<slug>-<task>` branch; the summary records what was learned, the code is not merged.
 
@@ -43,11 +43,11 @@ List each folder in `docs/hotspots/` with its map status and frontier count, plu
 
 ## Mode: chart a new hotspot (argument is an idea, no map exists)
 
-1. **Name it.** Choose a short kebab-case slug and confirm it with พี่ปู. Add or update its row in `docs/hotspots/INDEX.md`.
+1. **Name it.** Choose a short kebab-case slug and confirm it with the user. Add or update its row in `docs/hotspots/INDEX.md`.
 2. **Check it needs a map.** Grill breadth-first across the whole rule area: states, actors, inputs, outcomes, edge cases, what happens on failure or reversal. If every question can be settled in this one conversation, it is not a hotspot: say so and suggest `/opsx:explore` or `/opsx:propose` directly. Stop.
 3. **Create the map and rules files** from the templates. Fill Destination, Notes (bounded context, likely owning aggregate, related screens), Sources, and sketch the fog into `Not yet specified`.
 4. **Create the tickets you can phrase sharply now**, one question each, sized to one session. Create them all first, then wire dependencies with `--dep` in a second pass. The test for ticket vs fog: can the question be stated precisely now, even if it cannot be answered yet?
-5. **Draft `questions-for-customer.md`** for every `ask` ticket.
+5. **Write the options** into every `ask` ticket's description: 2 to 4 concrete options, an example for each and Claude's recommendation, so the user can answer as soon as the ticket comes up.
 6. **Fire research** tickets in parallel subagents if any exist.
 7. Update STATUS.md and stop. Charting is one session's work; resolve nothing else.
 
@@ -70,7 +70,7 @@ Resolve exactly one ticket per session (research tickets excepted). The pull to 
 
 ## Graduate
 
-1. Show พี่ปู the readiness checklist with evidence for each item.
+1. Show the user the readiness checklist with evidence for each item.
 2. After a yes, propose the OpenSpec change: run `/opsx:propose <change-name>` with `rules.md` as the input. Each distinct outcome row becomes a Scenario; each invariant becomes a requirement.
 3. Put the golden examples where tests can read them, in the Golden data folder of AGENTS.md `## Stack` (for example `tests/<Context>.Domain.Tests/Golden/<slug>.json` or `.csv`), and reference that path in the change's tasks.
 4. Set map.md frontmatter `status: graduated` and `change: <change-name>`; add at the top of `rules.md`: "Frozen. Source of truth after archive: `openspec/specs/<domain>/spec.md`." Update the INDEX.md row and STATUS.md.

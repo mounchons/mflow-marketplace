@@ -18,13 +18,13 @@ Look before asking. Find:
 - Existing requirement docs anywhere under `docs/`, `requirements/`, loose `.md`/`.docx`/`.pdf` at the root.
 - Tools: `openspec --version`, `backlog --version`, `git --version`; whether `openspec/` and `backlog/` already exist.
 
-Done when: you have reported one compact inventory to พี่ปู (stack detected or none, test projects, agent files, docs, tools present/missing/initialised).
+Done when: you have reported one compact inventory to the user (stack detected or none, test projects, agent files, docs, tools present/missing/initialised).
 
 ## 2. Choose the stack
 
 Ask which stack this project uses, as "Asking" in [references/stacks.md](references/stacks.md) describes: options `a)` `b)` `c)`, a recommendation with its evidence from step 1, and a letter as the answer. Ask it right after the inventory, before any file is written, and on its own; the domain questions come later in step 5. When AGENTS.md already has a filled `## Stack`, show it and ask only whether it still holds.
 
-Done when: พี่ปู has chosen a profile, and for c) has confirmed the filled rows.
+Done when: the user has chosen a profile, and for c) has confirmed the filled rows.
 
 ## 3. Scaffold
 
@@ -38,8 +38,8 @@ Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vi
 
 Both write into the repo and into agent files, so show each command and get a yes before running it. Run mflow's scaffold first (step 3) so both tools append to an AGENTS.md that already exists.
 
-- Missing CLI: give the install line and stop this step until พี่ปู installs it: `npm i -g @fission-ai/openspec@latest`, `npm i -g backlog.md`.
-- OpenSpec not initialised: `openspec init --tools claude,codex`. Add `--language th` only if พี่ปู wants spec artifacts in Thai.
+- Missing CLI: give the install line and stop this step until the user installs it: `npm i -g @fission-ai/openspec@latest`, `npm i -g backlog.md`.
+- OpenSpec not initialised: `openspec init --tools claude,codex`. Add `--language th` only if the user wants spec artifacts in Thai.
 - OpenSpec already initialised: `openspec update`.
 - Backlog.md not initialised: `backlog init "<project name>" --defaults --integration-mode cli --agent-instructions agents` (AGENTS.md only; CLAUDE.md already imports it). If the repo has no git remote, also `backlog config set remoteOperations false`.
 
@@ -48,6 +48,7 @@ Then add to `openspec/config.yaml` (edit YAML, keep existing keys, show the diff
 ```yaml
 context: |
   Read AGENTS.md for stack, commands, architecture and domain vocabulary.
+  The user's answers and instructions are the customer's: build first, test in use, then refine through follow-up changes.
   Business rules for fuzzy areas are worked out first in docs/hotspots/<slug>/rules.md.
   Designs agreed before building (roles, data models, ...) are in docs/discuss/NN-*.md with status approved.
   The current data dictionary is PrototypeData/README.md until a change builds the entity.
@@ -70,7 +71,7 @@ Replace TODOs only with things you verified:
 - Stack: write `## Stack` with the profile chosen in step 2 and its rows, as "Record" in [references/stacks.md](references/stacks.md) describes.
 - Commands: run the build and test commands of that profile (`dotnet build` and `dotnet test` for a); for b) also the front end's build and test) and the E2E command if one exists. Write the exact command that worked. Anything you could not run gets `(unverified)`.
 - Architecture: from the actual project layout.
-- Domain vocabulary, bounded contexts, purpose: ask พี่ปู in one batch of at most three questions; leave `TODO` for anything not answered. A TODO is honest, a guess looks authoritative.
+- Domain vocabulary, bounded contexts, purpose: ask the user in one batch of at most three questions; leave `TODO` for anything not answered. A TODO is honest, a guess looks authoritative.
 - Delete template sections that stay empty after this step, except `Domain vocabulary` and `Stack`.
 
 Done when: `## Stack` names a profile, every command line in AGENTS.md was either run successfully or carries `(unverified)`, and AGENTS.md is under 200 lines.
@@ -83,7 +84,7 @@ Done when: `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" scan` reports 
 
 ## 7. Hand off
 
-Update `STATUS.md` (`## Now` + one log entry). Tell พี่ปู, briefly:
+Update `STATUS.md` (`## Now` + one log entry). Tell the user, briefly:
 - what was created, merged, or left untouched;
 - the stack profile, and for c) that mflow has not been tested with it yet;
 - which commands are `(unverified)`;

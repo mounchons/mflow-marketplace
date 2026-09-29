@@ -117,7 +117,7 @@ try {
       const ai = d.pendingReports.length ? `, ${d.pendingReports.length} AI report(s) to fold in` : "";
       return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`}${ai})`;
     };
-    pending.push(`- ${drafts.length} discussion doc(s) waiting for พี่ปู: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
+    pending.push(`- ${drafts.length} discussion doc(s) waiting for the user's review: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
   }
   // Reports for a doc that is no longer a draft, or that does not exist, are listed too, so none is lost.
   const draftIds = new Set(drafts.map((d) => Number(d.id)));

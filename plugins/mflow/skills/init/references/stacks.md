@@ -8,7 +8,7 @@ The kit, the prototype seams and the tests in mflow are contracts: what a compon
 |---|---|---|---|
 | a) | `mvc-htmx` | ASP.NET Core MVC + Razor + Bootstrap 5.3 + HTMX, EF Core, xUnit, Playwright | Full: every skill's names and examples are written for it |
 | b) | `react-vite` | React + Vite (TypeScript) front end, ASP.NET Core Web API back end, EF Core, xUnit for domain and API, Vitest for UI, Playwright | The same contracts as React components; the API owns permissions, data scope and paging |
-| c) | `custom` | Any other stack พี่ปู names (Next.js, Laravel, Django, Vue…) | Claude fills the rows below for that stack and พี่ปู confirms them; not yet tested with mflow |
+| c) | `custom` | Any other stack the user names (Next.js, Laravel, Django, Vue…) | Claude fills the rows below for that stack and the user confirms them; not yet tested with mflow |
 
 ## Rows of `## Stack`
 
@@ -50,4 +50,4 @@ One invariant holds for every profile: fake users, the role switcher and fake re
 
 - **Before `/mflow:theme`:** edit `## Stack`, or ask the question again, and rerun the commands in `## Commands`.
 - **After a static preview but before `/mflow:theme port`:** still cheap. The preview is plain HTML, CSS and JavaScript; only its CSS base (Bootstrap or not) may need adjusting.
-- **After the kit or screens exist:** this is a rebuild of the kit and screens, not a setting. Record it with `backlog decision create` and plan it with พี่ปู. mflow does not move screens between stacks.
+- **After the kit or screens exist:** this is a rebuild of the kit and screens, not a setting. Record it with `backlog decision create` and plan it with the user. mflow does not move screens between stacks.

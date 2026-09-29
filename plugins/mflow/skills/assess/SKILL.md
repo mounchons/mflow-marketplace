@@ -38,7 +38,7 @@ Open the evidence yourself: code at file:line, spec scenario, source page. A cit
 - **accept:** true and worth doing now
 - **accept-later:** true, not worth doing now (why)
 - **reject:** not true, or conflicts with a spec or decision (cite it)
-- **needs-decision:** true but a trade-off only พี่ปู or the customer can settle
+- **needs-decision:** true but a trade-off for the user to settle; their call is the customer's
 - **already-done:** handled; cite where
 
 For a code-done report, also run `/mflow:review` on its branch, or say it is still needed.
@@ -57,7 +57,7 @@ Set the inbox file's frontmatter `status: assessed`.
 ## 5. Propose actions, apply after a yes
 
 - accept → Backlog task, or a suggested `/opsx:propose` if it changes behaviour in `openspec/specs/`
-- needs-decision → hotspot `ask` ticket or `backlog decision create`
+- needs-decision → put the trade-off to the user with the proposals; their answer makes it an accept or a reject. Left unanswered: a hotspot `ask` ticket or `backlog decision create`
 - accept-later → Backlog task, label `later`
 - A misunderstanding caused by a gap or ambiguity in AGENTS.md or the brief → a proposed fix to that file, so the next tool does not repeat it
 

@@ -19,7 +19,7 @@ Registry commands (run from the repo root):
 - No files given: run `scan` and take `new` + `changed`. Report `unchanged` files as skipped by name and do not open them.
 - A file already marked `superseded` is never used as a source of truth; follow its replacement instead.
 
-Done when: พี่ปู has seen the list of files that will be read and the list skipped.
+Done when: the user has seen the list of files that will be read and the list skipped.
 
 ## 2. Read by type
 
@@ -29,7 +29,7 @@ Done when: พี่ปู has seen the list of files that will be read and the 
 
 ## 3. Versions
 
-When a file replaces an older one (`--replaces`, or the name/content makes it obvious; confirm with พี่ปู), compare the two and list what was added, removed, and changed, section by section. Then `mark <old> --by <new>`.
+When a file replaces an older one (`--replaces`, or the name/content makes it obvious; confirm with the user), compare the two and list what was added, removed, and changed, section by section. Then `mark <old> --by <new>`.
 
 Done when: every changed statement between versions is listed or the files were confirmed unrelated.
 
@@ -45,10 +45,10 @@ Sort every meaningful statement from the read files into one destination and sho
 | Business rule crossing screens | row in `docs/hotspots/INDEX.md`; if the hotspot already exists, a new ticket or fog note on its map |
 | Change to something already built or archived in `openspec/specs/` | candidate for `/mflow:change-request` |
 | Customer term | Domain vocabulary in AGENTS.md |
-| Vague or contradictory | Open questions in `docs/vision.md` |
+| Vague or contradictory | a question to the user in this table; the answer goes to its destination as the user's. What the user cannot answer yet: Open questions in `docs/vision.md` |
 | Open to interpretation on a cross-cutting topic (roles and permissions, menus, data visibility, org structure, numbering…; see `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md`) | candidate topic for `/mflow:discuss`, listed in the report; nothing written |
 
-After พี่ปู confirms, write the changes.
+After the user confirms, write the changes.
 
 ## 5. Mark
 

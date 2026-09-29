@@ -12,7 +12,7 @@ A prototype screen is a model-home room: real walls and switches (real views, ro
 These apply to creating and adjusting a screen. `inventory` needs none of them: it only writes `docs/ui/screens.md` and hotspot rows, so it can run while the kit is still a static preview.
 
 - AGENTS.md has `## Stack` with a profile. If it is missing or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Names below (controller, ViewModel, `PrototypeDataStore`, `Prototype:UseFakeData`) are the `mvc-htmx` form; under another profile, build the equivalents at the paths `## Stack` gives.
-- `docs/ui/design-system.md` exists. If not, stop and ask พี่ปู to run `/mflow:theme` first; screens without the kit drift apart.
+- `docs/ui/design-system.md` exists. If not, stop and ask the user to run `/mflow:theme` first; screens without the kit drift apart.
 - The kit is in the stack, not only in a static preview. If `docs/ui/theme/README.md` says `Status: draft` or `Status: approved`, stop and suggest `/mflow:theme port`, or first an `/opsx:propose` change that scaffolds the app if it does not exist yet. A README with no status line predates mflow 0.12; the check above is enough.
 - Data follows [references/prototype-data.md](references/prototype-data.md).
 - The access seams exist (`Permissions`, `ICurrentUser`, `MenuDefinition`, `FakeCurrentUser`, `users.json`, `roles.json`; see "Current user, permissions and the role switcher" in that file). A kit built before them needs `/mflow:theme update access` first.
@@ -26,7 +26,7 @@ Read `docs/vision.md` (story map), any active source files given (check `docs/so
 
 Every value in "Calculations / rules" also gets a row in `docs/hotspots/INDEX.md` unless one already covers it. In the report, list each aggregate that the screens show and that has no approved data-model doc (`<aggregate>-data`) as a `/mflow:discuss` candidate, the most widely shared first. It is a suggestion; screens can be built without one. Create nothing else.
 
-Done when: every story-map step in the first release has at least one screen, and พี่ปู has reviewed the table. Create one Backlog task per screen with label `prototype` only after that review.
+Done when: every story-map step in the first release has at least one screen, and the user has reviewed the table. Create one Backlog task per screen with label `prototype` only after that review.
 
 ## Mode: create a screen (`<screen-name>` not yet in the codebase)
 
@@ -46,7 +46,7 @@ Apply the requested change (for example "add a search box for job number and cus
 - A new filter goes in `FilterPanel` and/or the column search, implemented server-side in the fake repository.
 - A visual change that the kit cannot express is a kit change: stop, and propose `/mflow:theme update <what>` instead of styling this page.
 - A data change follows the schema-change rule above. A field-level change to an entity with an approved data-model doc stays at that level: update the README dictionary, no new doc. A structural change (new aggregate, key, relationship, storage decision) needs `/mflow:discuss` first.
-- A change to who sees a screen, a row, a field or a button that differs from the approved access-control discussion doc does not go into `roles.json` directly. It needs a new discussion doc (`/mflow:discuss`) that supersedes the old one, or `/mflow:change-request` if it is already built or was confirmed by the customer.
-- A change requested by the customer after the prototype was approved goes to `/mflow:change-request` first.
+- A change to who sees a screen, a row, a field or a button that differs from the approved access-control discussion doc does not go into `roles.json` directly. It needs a new discussion doc (`/mflow:discuss`) that supersedes the old one, or `/mflow:change-request` if it is already built.
+- A change the user asks for is made: the user's word is the customer's, and the prototype exists to be refined. Only a change to a screen already built for real (archived in `openspec/specs/`) goes to `/mflow:change-request` first.
 
 Done when: the change builds, loads, and the screenshot/test (if any) is refreshed.

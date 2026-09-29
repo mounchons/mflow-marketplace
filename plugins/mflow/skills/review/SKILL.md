@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review code (from Claude, Codex, or พี่ปู) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, run the tests, and give a verdict with findings.
+description: Review code (from Claude, Codex, or the user) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, run the tests, and give a verdict with findings.
 disable-model-invocation: true
 argument-hint: "[<branch> | --uncommitted | <change-name> | <TASK-ID>]"
 ---
@@ -30,4 +30,4 @@ Write `docs/reviews/code/<date>-<target>.md`: verdict (`approve` / `changes-requ
 
 For a second opinion, offer `/mflow:delegate <target> --to <tool> --mode review`; when it returns, `/mflow:assess` checks its findings against this report.
 
-Done when: the report exists and STATUS.md records the verdict. Merge only on `approve` and พี่ปู's yes.
+Done when: the report exists and STATUS.md records the verdict. Merge only on `approve` and the user's yes.

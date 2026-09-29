@@ -13,7 +13,7 @@ change:
 - Bounded context / likely owning aggregate:
 - Related screens (prototype):
 - Golden data source:
-- Customer contact for `ask` tickets:
+- Who answers `ask` tickets: the user (their answer is the customer's). Contact, if a question is taken outside:
 
 ## Sources
 <!-- - docs/source/<file> (sections used). Status lives in docs/source/INDEX.md. -->

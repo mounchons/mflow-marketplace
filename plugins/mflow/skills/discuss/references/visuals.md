@@ -1,6 +1,6 @@
 # Visuals for discussion docs
 
-พี่ปู confirms a design fastest by looking at it. A discussion doc explains with pictures as well as sentences. Section 3 opens with at least one picture. A decision whose options look or flow differently gets one small picture per option, all of the same type.
+The user confirms a design fastest by looking at it. A discussion doc explains with pictures as well as sentences. Section 3 opens with at least one picture. A decision whose options look or flow differently gets one small picture per option, all of the same type.
 
 **The text is authoritative.** A picture illustrates the tagged statements and tables and never holds a fact the text lacks. The approve merge, the consult fold-in and chat tools all work from the text, and context packs skip image files. A revision that changes a fact updates every picture of it in the same revision.
 

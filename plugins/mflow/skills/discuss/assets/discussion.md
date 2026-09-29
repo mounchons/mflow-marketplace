@@ -14,7 +14,7 @@ superseded-by:
 
 # {{ID}} {{TITLE}}
 
-<!-- Written by /mflow:discuss. Thai, for พี่ปู. Keep it under ~200 lines, not counting data-dictionary rows; split the topic into two docs if it grows past that.
+<!-- Written by /mflow:discuss. Thai, for the user (the SA, PM or system owner driving the project). Keep it under ~200 lines, not counting data-dictionary rows; split the topic into two docs if it grows past that.
      Replace every <...> placeholder (each fits on one line, so discuss.mjs check can find leftovers).
      Pictures follow references/visuals.md; fenced blocks do not count toward the ~200 lines. The text stays authoritative.
      Formats that need angle brackets in real content go in backticks, e.g. `INV-<ปี พ.ศ.>-<เลขรัน>`; otherwise check reports them as placeholders.
@@ -22,13 +22,14 @@ superseded-by:
 
 ## วิธีตอบเอกสารนี้
 
-- ตอบข้อตัดสินใจในหัวข้อ 4: พิมพ์คำตอบต่อท้ายบรรทัด `**พี่ปูเลือก:**` ของข้อนั้น เช่น `b` หรือ `b แต่ให้ผู้จัดการเขตเห็นด้วย` ตอบในแชตหลายข้อพร้อมกันได้ เช่น `/mflow:discuss {{ID}} D1 a, D2 b`
-- แย้งหรือขอแก้ตรงไหนก็ได้: เพิ่มบรรทัดที่ขึ้นต้นด้วย `> พี่ปู:` ไว้ใต้ข้อนั้น แล้วสั่ง `/mflow:discuss {{ID}}`
+- คำตอบของคุณถือเป็นคำสั่งของลูกค้าโดยตรง ไม่ต้องรอถามลูกค้าอีก ทำก่อน ทดสอบใช้งาน แล้วค่อยปรับเพิ่ม ถ้ายังไม่แน่ใจ เลือกข้อที่แนะนำไปก่อนได้ แล้วใส่เรื่องที่จะดูไว้ในหัวข้อ 5
+- ตอบข้อตัดสินใจในหัวข้อ 4: พิมพ์คำตอบต่อท้ายบรรทัด `**เลือก:**` ของข้อนั้น เช่น `b` หรือ `b แต่ให้ผู้จัดการเขตเห็นด้วย` ตอบในแชตหลายข้อพร้อมกันได้ เช่น `/mflow:discuss {{ID}} D1 a, D2 b`
+- แย้งหรือขอแก้ตรงไหนก็ได้: เพิ่มบรรทัดที่ขึ้นต้นด้วย `> ความเห็น:` ไว้ใต้ข้อนั้น แล้วสั่ง `/mflow:discuss {{ID}}`
 - หรือพิมพ์สิ่งที่อยากแก้ในแชตเลย: `/mflow:discuss {{ID}} <สิ่งที่อยากให้แก้>`
-- อยากให้ AI ตัวอื่น (Codex, OpenCode, Gemini …) ช่วยคิด: สั่ง `/mflow:discuss {{ID}} consult` แล้วรันคำสั่งที่ได้เอง ผลกลับมาแล้วสั่ง `/mflow:discuss {{ID}}` ความเห็นของทุกตัวจะอยู่ในหัวข้อ 8 และในแต่ละข้อตัดสินใจ พี่ปูเป็นคนเลือกเอง
-- ตรงกับที่คิดครบแล้ว: `/mflow:discuss {{ID}} approve` (อนุมัติได้เมื่อทุกข้อตัดสินใจมีคำตอบ ไม่มีบรรทัด `> พี่ปู:` ค้าง และรวมความเห็นของ AI ที่ส่งกลับมาครบแล้ว)
-- ภาพประกอบ: ส่วนที่มีคำว่า (อนุมาน) หรือ (เสนอ) และเส้นประ คือส่วนที่ยังไม่มีในเอกสารลูกค้า ถ้าภาพไม่ตรงกับที่คิด เขียน `> พี่ปู:` ใต้ภาพได้เลย ภาพ mermaid แสดงเป็นรูปบน GitHub ถ้า preview ในเครื่องแสดงเป็นโค้ด ให้ติดตั้ง extension สำหรับแสดง Mermaid
-- ป้ายท้ายข้อความบอกว่ามาจากไหน: **[ที่มา: ไฟล์ §หัวข้อ]** มาจากเอกสารลูกค้า, **[พี่ปู]** พี่ปูบอกไว้, **[อนุมาน]** Claude ตีความเอง, **[เสนอ]** Claude เสนอ, **[เสนอ: codex]** AI ตัวนั้นเสนอ และ Claude ตรวจหลักฐานแล้ว ควรตรวจ [อนุมาน] กับ [เสนอ] ทุกแบบให้ละเอียดที่สุด
+- อยากให้ AI ตัวอื่น (Codex, OpenCode, Gemini …) ช่วยคิด: สั่ง `/mflow:discuss {{ID}} consult` แล้วรันคำสั่งที่ได้เอง ผลกลับมาแล้วสั่ง `/mflow:discuss {{ID}}` ความเห็นของทุกตัวจะอยู่ในหัวข้อ 8 และในแต่ละข้อตัดสินใจ คุณเป็นคนเลือกเอง
+- ตรงกับที่คิดครบแล้ว: `/mflow:discuss {{ID}} approve` (อนุมัติได้เมื่อทุกข้อตัดสินใจมีคำตอบ ไม่มีบรรทัด `> ความเห็น:` ค้าง และรวมความเห็นของ AI ที่ส่งกลับมาครบแล้ว)
+- ภาพประกอบ: ส่วนที่มีคำว่า (อนุมาน) หรือ (เสนอ) และเส้นประ คือส่วนที่ยังไม่มีในเอกสารลูกค้า ถ้าภาพไม่ตรงกับที่คิด เขียน `> ความเห็น:` ใต้ภาพได้เลย ภาพ mermaid แสดงเป็นรูปบน GitHub ถ้า preview ในเครื่องแสดงเป็นโค้ด ให้ติดตั้ง extension สำหรับแสดง Mermaid
+- ป้ายท้ายข้อความบอกว่ามาจากไหน: **[ที่มา: ไฟล์ §หัวข้อ]** มาจากเอกสารลูกค้า, **[ยืนยัน]** คุณบอกหรือยืนยันไว้ (มีผลเท่าคำสั่งของลูกค้า), **[อนุมาน]** Claude ตีความเอง, **[เสนอ]** Claude เสนอ, **[เสนอ: codex]** AI ตัวนั้นเสนอ และ Claude ตรวจหลักฐานแล้ว ควรตรวจ [อนุมาน] กับ [เสนอ] ทุกแบบให้ละเอียดที่สุด
 
 ## 1. เรื่องที่ต้องการยืนยัน
 
@@ -53,24 +54,24 @@ superseded-by:
 <สองถึงสี่เรื่องสั้นด้วยชื่อสมมติ เช่น "คุณสมชาย (หัวหน้าสาขาบางนา) เปิดเมนูรายการงาน จะเห็นเฉพาะงานของสาขาบางนา เห็นยอดขายแต่ไม่เห็นต้นทุน">
 <อย่างน้อยหนึ่งเรื่องเป็นกรณีขอบ เช่น ย้ายสาขา หรือทำงานแทนคนที่ลา>
 
-## 4. ให้พี่ปูตัดสินใจ
+## 4. ข้อที่ต้องตัดสินใจ
 
-<ทางเลือกที่ Claude ตัดสินใจเองไม่ได้ แต่พี่ปูตอบได้โดยไม่ต้องถามลูกค้า ถ้าไม่มี ให้เขียน "ไม่มี" และลบ D1 ออก>
+<ทุกเรื่องที่เอกสารลูกค้าไม่ได้บอกและ Claude ตัดสินใจเองไม่ได้ คุณตอบแทนลูกค้าได้ทุกข้อ ถ้าไม่มี ให้เขียน "ไม่มี" และลบ D1 ออก>
 <!-- When the options differ in how they look or flow, give each option a small picture of the same type. -->
 
 ### D1: <คำถาม>
-<!-- Options are labelled a) b) c) d), never ก ข ค, so พี่ปู answers without switching keyboard language. -->
+<!-- Options are labelled a) b) c) d), never ก ข ค, so the user answers without switching keyboard language. -->
 - a) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
 - b) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
 - **Claude แนะนำ:** <ข้อไหน และเหตุผลหนึ่งประโยค>
-<!-- After other tools answer (consult), one line per tool above พี่ปูเลือก: "- **codex เลือก:** b — reason (C3)". Never fill พี่ปูเลือก from a tool's pick. -->
-- **พี่ปูเลือก:**
+<!-- After other tools answer (consult), one line per tool above the answer line: "- **codex เลือก:** b — reason (C3)". Never fill the answer line from a tool's pick. -->
+- **เลือก:**
 
-## 5. คำถามที่ต้องถามลูกค้า
+## 5. สิ่งที่จะดูตอนทดสอบใช้งาน
 
-<เฉพาะเรื่องที่พี่ปูตอบแทนลูกค้าไม่ได้ ข้อละหนึ่งคำถาม พร้อมตัวเลือกและตัวอย่าง ไม่ต้องตอบในเอกสารนี้ ถ้าไม่มี ให้เขียน "ไม่มี">
+<ไม่เกินห้าข้อ ข้อละหนึ่งบรรทัด: ลองอะไร ในหน้าจอไหน ด้วยผู้ใช้คนไหน ควรเห็นอะไร เน้นข้อที่ตอบไปก่อนโดยยังไม่แน่ใจ และข้อ [อนุมาน] หรือ [เสนอ] ที่ผิดแล้วแพง ถ้าไม่มี ให้เขียน "ไม่มี">
 
-เมื่ออนุมัติ คำถามในหัวข้อนี้จะถูกย้ายไป Open questions ใน `docs/vision.md` หรือเป็นตั๋ว ask ของ hotspot
+เมื่ออนุมัติ แต่ละข้อจะเป็นเกณฑ์ตรวจรับ (acceptance criteria) ของ task ทดสอบใช้งานใน Backlog ถ้าทดสอบแล้วไม่ตรง ก็ปรับในรอบถัดไป
 
 ## 6. ไม่รวมในเรื่องนี้
 
@@ -89,8 +90,8 @@ superseded-by:
 <!-- Filled by /mflow:discuss after consult. One row per finding, from every tool, including the ones not used:
 | # | จาก (rev ที่อ่าน) | ประเภท | ข้อเสนอโดยย่อ | Claude ตรวจหลักฐาน | ผลในเอกสาร |
 |---|---|---|---|---|---|
-| codex C1 | codex (rev 2) | ช่องว่าง | ... | ถูกต้อง: TOR §4.2 | เพิ่มใน §3 [เสนอ: codex] / เป็น D3 / ถาม Q2 / ไม่ใช้ เพราะ ... |
-A row ending "ไม่ใช้" keeps its reason, so พี่ปู can bring it back with a "> พี่ปู:" line under the table. -->
+| codex C1 | codex (rev 2) | ช่องว่าง | ... | ถูกต้อง: TOR §4.2 | เพิ่มใน §3 [เสนอ: codex] / เป็น D3 / ดูตอนทดสอบ §5 / ไม่ใช้ เพราะ ... |
+A row ending "ไม่ใช้" keeps its reason, so the user can bring it back with a "> ความเห็น:" line under the table. -->
 
 ## บันทึกการแก้ไข
 

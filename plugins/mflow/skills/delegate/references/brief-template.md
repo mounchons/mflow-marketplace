@@ -1,6 +1,6 @@
 # Brief template
 
-The answer always comes back as the tool's **final message**, which the command saves to `docs/ai-inbox/` (`-o`, `> file`, or พี่ปู saving a chat answer). Tools run read-only for analyze and review, so they must not be asked to write files.
+The answer always comes back as the tool's **final message**, which the command saves to `docs/ai-inbox/` (`-o`, `> file`, or the user saving a chat answer). Tools run read-only for analyze and review, so they must not be asked to write files.
 
 ```markdown
 ---
@@ -83,11 +83,11 @@ approve | changes-requested
 
 ## Contract: discuss
 
-Used by `/mflow:discuss <NN> consult`. The brief's mode stays `analyze` (read-only), and the subject is `discuss-<NN>-r<revision>`. Several tools answer the same brief. พี่ปู reads all their views side by side and makes the choices, so the value of each report is an independent judgment, not agreement with the doc.
+Used by `/mflow:discuss <NN> consult`. The brief's mode stays `analyze` (read-only), and the subject is `discuss-<NN>-r<revision>`. Several tools answer the same brief. The user reads all their views side by side and makes the choices, so the value of each report is an independent judgment, not agreement with the doc.
 
 Instructions that go into the brief's Goal:
 - Read the sources first and the discussion doc second. Test every statement tagged `[อนุมาน]` or `[เสนอ]` against a source.
-- For every open decision (`### D<n>` with an empty `**พี่ปูเลือก:**`), give your own pick and reason, even when it matches Claude's recommendation. You may add an option.
+- For every open decision (`### D<n>` with an empty `**เลือก:**` line, or `**พี่ปูเลือก:**` in docs written before mflow 0.13), give your own pick and reason, even when it matches Claude's recommendation. You may add an option.
 - Check the topic checklist pasted into the brief. Report every item the doc neither answers nor lists as out of scope.
 - Write the findings in Thai; keep paths and identifiers as they are. Edit no files.
 - A diagram, wireframe or screenshot that contradicts the text or a source is a `challenge` targeting that picture's caption; the Suggestion may include a corrected mermaid block.
@@ -99,7 +99,7 @@ Instructions that go into the brief's Goal:
 
 ## Findings
 ### C1 <title>
-- Type: challenge | gap | alternative | customer-question | risk
+- Type: challenge | gap | alternative | question | risk
 - Target: <§ or D-number in the doc>, rev <revision read>
 - Claim: <one sentence>
 - Evidence: <source file + section, or doc § — must be in Files read; "reasoning" if none>

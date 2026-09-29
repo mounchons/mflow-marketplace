@@ -15,7 +15,7 @@ Ask in theme step 1's batch, unless AGENTS.md, `docs/vision.md` or an active sou
 Ask also for the **acceptance sizes**: the window sizes the customer will test on, for example 1366×768 and 1920×1080, plus 768×1024 for b) or 390×844 for c). Record both in `docs/ui/design-system.md` Decisions.
 
 - The shell gets all three sidebar states whatever the answer. They cost little, and a narrow window happens on a desktop too, through split screen or 200% zoom. The answer decides which sizes are verified and which sizes screens must look right at.
-- If AGENTS.md, `docs/vision.md` or an active source states a device range that differs from the answer, raise it with พี่ปู; never resolve it silently. An example is "desktop only" when one public page must work on a phone. A page-level exception goes in that page's row of `docs/ui/screens.md`.
+- If AGENTS.md, `docs/vision.md` or an active source states a device range that differs from the answer, raise it with the user; never resolve it silently. The user's answer settles it. An example is "desktop only" when one public page must work on a phone. A page-level exception goes in that page's row of `docs/ui/screens.md`.
 
 ## 2. Breakpoints
 

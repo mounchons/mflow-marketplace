@@ -7,7 +7,7 @@ argument-hint: "[brand notes | @logo | @CI-guide] | preview [brand notes] | port
 
 A theme is the shared kit every screen is built from, the way a housing project picks one set of doors, tiles and switches for every house. Screens stay consistent because they can only be assembled from the kit: colors come from tokens, inputs and tables come from components, and nothing is styled inline.
 
-Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen. `/mflow:theme update responsive` builds or refreshes only the responsive parts: the device question in step 1, the layout tokens in step 2, the `AppShell` in step 3, the "Narrow" lines of the components, and the style guide's layout section. Kits built before mflow 0.11 need it to get the ☰ menu and the reflowing pages. It first compares the existing shell and components with `AppShell` and the "Narrow" lines, lists only the gaps, and changes nothing before พี่ปู says yes. A kit that already complies only gets its Devices, acceptance-size and Breakpoints lines in design-system.md.
+Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen. `/mflow:theme update responsive` builds or refreshes only the responsive parts: the device question in step 1, the layout tokens in step 2, the `AppShell` in step 3, the "Narrow" lines of the components, and the style guide's layout section. Kits built before mflow 0.11 need it to get the ☰ menu and the reflowing pages. It first compares the existing shell and components with `AppShell` and the "Narrow" lines, lists only the gaps, and changes nothing before the user says yes. A kit that already complies only gets its Devices, acceptance-size and Breakpoints lines in design-system.md.
 
 Stack: read AGENTS.md `## Stack`. If it is missing (projects set up before mflow 0.10) or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Paths and names below are for the `mvc-htmx` profile. Under another profile, use the matching rows of `## Stack` (tokens file, app shell, components, style guide, prototype-mode flag) and keep every contract.
 
@@ -23,7 +23,7 @@ Plain `/mflow:theme` when the app does not exist yet (the App shell path in `## 
 
 ## 1. Brand input
 
-Collect in one batch: logo, primary color or the customer's CI guide (`$ARGUMENTS` may reference files), the app's feel (dense back-office vs. spacious), the Thai font preference, and the target devices with their acceptance sizes ([references/responsive.md](references/responsive.md) §1). If the customer has no CI, propose three palettes rendered on the style-guide page and let พี่ปู or the customer choose. A customer mockup (HTML or screenshots in `docs/source/`) is the starting point when one exists: take its colors, type and density, and list every place the kit departs from it, such as filling the window instead of a fixed canvas, or adding icons the rail needs.
+Collect in one batch: logo, primary color or the customer's CI guide (`$ARGUMENTS` may reference files), the app's feel (dense back-office vs. spacious), the Thai font preference, and the target devices with their acceptance sizes ([references/responsive.md](references/responsive.md) §1). If the customer has no CI, propose three palettes rendered on the style-guide page and let the user choose. A customer mockup (HTML or screenshots in `docs/source/`) is the starting point when one exists: take its colors, type and density, and list every place the kit departs from it, such as filling the window instead of a fixed canvas, or adding icons the rail needs.
 
 Done when: primary color, font, density, target devices and acceptance sizes are decided, or the palette is explicitly delegated to the three-palette choice.
 
@@ -50,10 +50,10 @@ Done when: each contract has an implementation and the style guide shows it.
 ## 5. Style guide page
 
 `/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a `SidebarMenu` sample with two items behind different permissions, rendered for two stub permission sets, a full sample list page and a sample form page assembled only from components (and a sample dashboard if the product has a home dashboard). Two sections open the page:
-- **การตัดสินใจของ theme:** each decision (palette, font, density, devices and acceptance sizes, breakpoints, date format, departures from the mockup) with its source tag, as in discussion docs: `[ที่มา: …]`, `[พี่ปู]`, `[เสนอ]`.
+- **การตัดสินใจของ theme:** each decision (palette, font, density, devices and acceptance sizes, breakpoints, date format, departures from the mockup) with its source tag, as in discussion docs: `[ที่มา: …]`, `[ยืนยัน]`, `[เสนอ]`.
 - **โครงหน้าและเมนู:** the page itself is the shell. Buttons force expanded, rail, auto-by-width and open-drawer, and a table gives window width → menu state → content layout, from design-system.md. A line next to them says "ลองย่อหรือขยายหน้าต่างดู".
 
-This page is what the customer approves once, instead of approving colors screen by screen.
+This page is what the user approves once, for the customer, instead of approving colors screen by screen.
 
 ## 6. Rules for agents
 

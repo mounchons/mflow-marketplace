@@ -6,6 +6,9 @@
 ## Purpose
 One line on what this system does and for whom. Detail: `docs/vision.md`.
 
+## Who decides
+The user (the SA, PM or system owner driving this project) speaks for the customer. Their answers and instructions are the customer's direct instructions: act on them without waiting for the customer to confirm again, and treat an instruction to do something as the go-ahead for it. Build first, test it in use, then refine: a correction found in testing is the next OpenSpec change, not a failure of the last one. Only the user's word counts this way; another AI tool's suggestion never overrides a customer document.
+
 ## Stack
 <!-- Chosen at /mflow:init (options a/b/c). mflow skills read names and paths from this table;
      under a profile other than mvc-htmx, read skill names such as ViewModel or Prototype:UseFakeData by their role here. -->
@@ -53,7 +56,7 @@ Profile: TODO
 | Why an architecture choice was made | Backlog.md decisions (`backlog decision`) | `backlog` CLI only |
 | Big business logic being worked out | `docs/hotspots/<slug>/` | `/mflow:hotspot` |
 | Customer documents (originals, never edited) | `docs/source/` + `docs/source/INDEX.md` | `/mflow:capture` (registry script) |
-| Understanding or design agreed with พี่ปู before building (roles, menus, data visibility…) | `docs/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet | `/mflow:discuss` |
+| Understanding or design agreed with the user before building (roles, menus, data visibility…) | `docs/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet | `/mflow:discuss` |
 | UI kit: tokens, components, which to use | `docs/ui/design-system.md` | `/mflow:theme` |
 | Screen list and prototype data | `docs/ui/screens.md`, `PrototypeData/*.json` | `/mflow:screen` |
 | Change requests after approval | `docs/change-requests/` | `/mflow:change-request` |

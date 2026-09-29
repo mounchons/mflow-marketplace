@@ -11,7 +11,7 @@ Golden data is the customer's own past results, calculated by hand, used as the 
 
 - If AGENTS.md has no `## Stack`, or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section. Step 3 takes the folder and test framework from it.
 - If the file is not registered yet, follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
-- Read it with python (pandas/openpyxl): list sheets, header rows, merged cells, formula cells. Pick the sheet and range with พี่ปู.
+- Read it with python (pandas/openpyxl): list sheets, header rows, merged cells, formula cells. Pick the sheet and range with the user.
 - Map columns to the inputs and expected outcome of the rule table in `docs/hotspots/<slug>/rules.md`. Show the mapping and 5 sample rows before writing anything.
 
 Done when: every rule input and the expected outcome has a mapped column, or a gap is listed as a question.

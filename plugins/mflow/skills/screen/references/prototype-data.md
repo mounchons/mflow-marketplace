@@ -30,7 +30,7 @@ src/<App>.Web/PrototypeData/
 - Every status of every lifecycle is present, including cancelled and reversed.
 - Deliberate edge cases, listed in README.md: very long names, zero amounts, missing optional fields, dates at month/year boundaries, records with many children.
 - No real customer personal data. If a real sample is needed for realism, mask names, IDs and phone numbers first (PDPA).
-- Visible differences between roles: every entity with a data scope carries its scope keys (`unitId`, `createdBy`, `assignedTo`, as the scope needs). Rows are spread across several units and owners, and include at least one edge case, such as a record created before its owner moved branch. Otherwise every role sees the same rows, and the customer cannot confirm anything in the review.
+- Visible differences between roles: every entity with a data scope carries its scope keys (`unitId`, `createdBy`, `assignedTo`, as the scope needs). Rows are spread across several units and owners, and include at least one edge case, such as a record created before its owner moved branch. Otherwise every role sees the same rows, and the review cannot confirm anything.
 
 ## Store
 

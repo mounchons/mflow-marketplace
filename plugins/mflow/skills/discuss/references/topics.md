@@ -4,7 +4,7 @@ Cross-cutting topics that customer documents usually leave open to interpretatio
 
 Each topic ends with a Visuals line: the pictures that usually explain it best (rules in visuals.md).
 
-Every checklist item is either answered with a tag in the doc, turned into a decision (D), turned into a customer question, or listed under "ไม่รวมในเรื่องนี้". None is silently skipped.
+Every checklist item is either answered with a tag in the doc, turned into a decision (D) for the user, or listed under "ไม่รวมในเรื่องนี้". None is silently skipped.
 
 ## access-control: roles, menus, actions, data visibility
 

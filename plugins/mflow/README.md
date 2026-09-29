@@ -1,6 +1,14 @@
 # mflow
 
-Workflow ของพี่ปูสำหรับงานที่ AI ช่วย dev: ทำหน้าจอก่อน → จับโลจิกใหญ่ (hotspot) ให้ชัด → แปลงเป็น OpenSpec change → สร้างทีละ slice โดยมี test เป็นหลักฐาน และมีชั้นความจำ (AGENTS.md + STATUS.md + OpenSpec + Backlog.md) ให้ Claude Code และ Codex อ่านเหมือนกันทุก session
+Workflow สำหรับทำระบบโดยให้ AI ช่วย dev: ทำหน้าจอก่อน → จับโลจิกใหญ่ (hotspot) ให้ชัด → แปลงเป็น OpenSpec change → สร้างทีละ slice โดยมี test เป็นหลักฐาน และมีชั้นความจำ (AGENTS.md + STATUS.md + OpenSpec + Backlog.md) ให้ Claude Code และ Codex อ่านเหมือนกันทุก session
+
+## ใครใช้ และใครตัดสินใจ
+
+ผู้ใช้ mflow คือคนที่ต้องการทำระบบ เช่น SA, PM หรือเจ้าของระบบ
+
+- **คำตอบหรือคำสั่งของคุณคือคำสั่งของลูกค้าโดยตรง** Claude ทำต่อได้ทันที ไม่ต้องรอถามลูกค้าอีก และคำสั่งให้ทำคือการอนุมัติเรื่องนั้นแล้ว
+- **ทำก่อน ทดสอบใช้งาน แล้วจึงปรับเพิ่ม** (หลักเดียวกับที่ใช้กับ OpenSpec) ข้อที่ยังไม่แน่ใจก็ตอบไปก่อนได้ แล้วดูตอนทดสอบ สิ่งที่ต้องแก้หลังทดสอบกลายเป็นเอกสาร discuss ฉบับใหม่ หรือ OpenSpec change ถัดไป
+- ข้อยกเว้นเดียว: ความเห็นของ AI ตัวอื่นไม่มีน้ำหนักแบบนี้ ถ้าขัดกับเอกสารลูกค้า Claude คงข้อความจากเอกสารไว้
 
 ## ติดตั้ง
 
@@ -19,7 +27,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.12)
+## คำสั่ง (v0.13)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -27,17 +35,17 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 |---|---|---|
 | ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack ก่อน, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded |
-| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
-| | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่พี่ปูรันเอง |
-| | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่พี่ปูตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
+| ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
+| | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
+| | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components, หน้า style guide, กฎ UI สำหรับ agent; `update responsive` สำหรับ kit ก่อน 0.11 |
 | | `/mflow:theme preview` / `port` | ทำ kit เป็น static preview (HTML/CSS/JS) ใน `docs/ui/theme/` ให้อนุมัติก่อนมีโค้ดแอป แล้ว `port` เข้า stack จริงและ freeze preview ไว้เป็นหลักฐาน |
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
 | | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง |
-| | `/mflow:review-notes @โน้ต` | คัดแยกผลรีวิวกับลูกค้า + ร่างอีเมลสรุปภาษาไทย |
+| | `/mflow:review-notes @โน้ต` | คัดแยกผลทดสอบหรือรีวิว + สรุปสิ่งที่ตกลง (+ ร่างอีเมลแจ้งผู้เกี่ยวข้องถ้าต้องการ) |
 | โลจิก | `/mflow:hotspot [...]` | chart และแก้กฎใหญ่ทีละตั๋ว → graduate เป็น OpenSpec change |
 | | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + unit test ตาม stack (xUnit สำหรับ .NET) |
-| ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมิน, ร่างตอบลูกค้า |
+| ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมินและบันทึกผลกระทบ แล้วทำต่อเมื่อคุณสั่ง (ร่างตอบลูกค้าเมื่อขอ) |
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + รัน test |
@@ -57,7 +65,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ## Hooks (ทำงานเฉพาะ repo ที่มี `.mflow/config.json`)
 
-- **SessionStart**: ฉีด briefing เข้า context ทุกครั้งที่เริ่ม/resume/clear/compact: ส่วน Now ของ STATUS.md, log ล่าสุด, OpenSpec change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active พร้อมจำนวน ticket ที่หยิบได้, เอกสารลูกค้าที่ยังไม่ได้ประมวลผล, ผลจาก AI อื่นที่ยังไม่ได้ assess และเอกสาร discuss ที่รอพี่ปูอ่าน
+- **SessionStart**: ฉีด briefing เข้า context ทุกครั้งที่เริ่ม/resume/clear/compact: ส่วน Now ของ STATUS.md, log ล่าสุด, OpenSpec change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active พร้อมจำนวน ticket ที่หยิบได้, เอกสารลูกค้าที่ยังไม่ได้ประมวลผล, ผลจาก AI อื่นที่ยังไม่ได้ assess และเอกสาร discuss ที่รอคุณอ่าน
 - **Stop**: ถ้ามีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด จะให้ Claude เขียน handoff ก่อนหยุด ไม่ถามใน 10 นาทีแรกของ session และถามซ้ำไม่เกินทุก 30 นาที ปรับได้ใน `.mflow/config.json`:
 
 ```json
@@ -69,12 +77,12 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 ## Flow ประจำวัน
 
 1. เอกสารลูกค้าเข้า `docs/source/` → `/mflow:capture`
-2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → (ถ้าอยากให้ AI หลายตัวช่วยคิด `/mflow:discuss <NN> consult` แล้วรันคำสั่งเอง) → พี่ปูตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
+2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → (ถ้าอยากให้ AI หลายตัวช่วยคิด `/mflow:discuss <NN> consult` แล้วรันคำสั่งเอง) → คุณตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
 3. ครั้งแรกของโปรเจกต์: `/mflow:theme` (หรือ `/mflow:theme preview` ถ้ายังไม่มีโค้ดแอป แล้ว `port` ใน change ที่ scaffold แอป) → `/mflow:screen inventory` → ออกแบบข้อมูลทีละกลุ่ม `/mflow:discuss <กลุ่มข้อมูล> data model` (ไม่บังคับ)
-4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → รีวิวกับลูกค้า (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
+4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → ทดสอบใช้งานหรือรีวิว (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 5. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
 6. `/opsx:propose` → `/opsx:apply` (Claude หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`
-7. ลูกค้าขอเปลี่ยนหลังอนุมัติ → `/mflow:change-request`
+7. ขอเปลี่ยนสิ่งที่สร้างแล้ว → `/mflow:change-request` (บันทึกผลกระทบ แล้วทำต่อตามที่คุณสั่ง)
 8. จบวัน → `/mflow:handoff`
 
 หลังทุก `/opsx:archive` ให้เช็กว่า `openspec/specs/` เปลี่ยนจริง (`git diff --stat openspec/specs`)
@@ -112,11 +120,11 @@ mflow/
 
 OpenSpec บอกว่า "สร้างอะไร" (change: proposal, specs, tasks) และ AI ทุกตัวอ่านได้ ส่วน mflow ดูแลว่า "ใครทำ, ส่งมอบยังไง, ตรวจยังไง":
 
-1. `/mflow:delegate <subject> --mode analyze|review|code [--to <tool>]` (ใน Claude Code) → brief ใน `.mflow/briefs/` + คำสั่งให้พี่ปูรันเอง
+1. `/mflow:delegate <subject> --mode analyze|review|code [--to <tool>]` (ใน Claude Code) → brief ใน `.mflow/briefs/` + คำสั่งให้คุณรันเอง
 2. ไม่ใส่ `--to` = brief กลาง ใช้กับ tool ไหนก็ได้ และได้คำสั่งของทุก tool ในทะเบียน
 3. ทุก tool ตอบรายงานเป็น "ข้อความสุดท้าย" ที่มี `Understanding` + `Files read` นำหน้า แล้วคำสั่งบันทึกลง `docs/ai-inbox/`
 4. `/mflow:assess` ตรวจความเข้าใจและไฟล์ที่อ่านก่อน แล้วค่อยตรวจ finding ทีละข้อ
-5. โหมด code ทำใน worktree/branch `agent/<tool>/<id>` → `/mflow:review` → merge เมื่อ approve และพี่ปูตกลง
+5. โหมด code ทำใน worktree/branch `agent/<tool>/<id>` → `/mflow:review` → merge เมื่อ approve และคุณตกลง
 
 ### ทะเบียน tool
 

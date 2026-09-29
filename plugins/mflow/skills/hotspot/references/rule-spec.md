@@ -35,7 +35,7 @@ Graduate only when every item holds, each with evidence:
 1. Every rule has an example table with at least one row per branch and at least one edge row.
 2. Every entity with a lifecycle has a complete state machine; no transition lacks a role or guard.
 3. Every invariant names its owning aggregate; no invariant needs two aggregates in one transaction without a recorded decision.
-4. Golden data is identified (source and mapping), or explicitly waived by พี่ปู with a reason.
+4. Golden data is identified (source and mapping), or explicitly waived by the user with a reason.
 5. No open `ask` tickets remain; anything still unknown is in Out of scope with a reason.
 6. The frontier is empty and `Not yet specified` is empty.
 

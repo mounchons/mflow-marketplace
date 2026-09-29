@@ -23,12 +23,14 @@
 
 ```mermaid
 flowchart TD
-    S0["0. /mflow:init<br/>ครั้งเดียวต่อ repo"] --> S1["1. /mflow:capture<br/>ลงทะเบียนเอกสารลูกค้า"]
-    S1 --> D["1.5 /mflow:discuss<br/>ยืนยันความเข้าใจกับคุณ<br/>วนจนตรงกัน แล้ว approve"]
+    S0["0. /mflow:init<br/>ครั้งเดียวต่อ repo<br/>ได้ AGENDA.md"] --> TS["0.5 /mflow:discuss tech-stack<br/>แล้ว code-structure"]
+    TS --> S1["1. /mflow:capture<br/>ลงทะเบียนเอกสารลูกค้า<br/>เพิ่มหัวข้อใน AGENDA.md"]
+    S0 -.->|ข้ามได้ ไม่บังคับ| S1
+    S1 --> D["1.5 /mflow:discuss หัวข้อจาก AGENDA.md<br/>ยืนยันความเข้าใจกับคุณ<br/>วนจนตรงกัน แล้ว approve"]
     D --> S2["2. /mflow:theme<br/>UI kit ครั้งเดียว"]
     S1 -.->|ไม่มีเรื่องต้องยืนยัน| S2
     S2 --> S3["3. /mflow:screen inventory<br/>รายการหน้าจอ"]
-    S3 --> DM["3.5 /mflow:discuss กลุ่มข้อมูล data model<br/>ออกแบบตาราง column data dictionary"]
+    S3 --> DM["3.5 /mflow:discuss กลุ่ม-data จาก AGENDA.md<br/>ออกแบบตาราง column data dictionary"]
     DM --> S4["4. /mflow:screen ชื่อ สิ่งที่ต้องการ<br/>สร้าง prototype"]
     S3 -.->|ยังไม่ออกแบบข้อมูล| S4
     S4 --> R["ทดสอบใช้งาน / รีวิว"]
@@ -44,11 +46,14 @@ flowchart TD
     AR -->|slice ถัดไป| S4
 ```
 
+ทุกคำสั่งจบด้วยสรุปสั้นๆ ว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (กติกาข้อ 7) จึงเดินตามแผนภาพนี้ได้โดยไม่ต้องจำลำดับเอง ส่วน `docs/discuss/AGENDA.md` บอกว่ายังมีหัวข้อไหนที่ควรคุยก่อนเดินต่อ
+
 | ขั้น | คำสั่ง | ใช้เมื่อ | ความถี่ |
 |---|---|---|---|
 | 0 | `/mflow:init` | repo ใหม่ หรือหลังอัปเกรด plugin | ครั้งเดียว |
+| 0.5 | `/mflow:discuss tech-stack` → `/mflow:discuss code-structure` | ก่อน `/mflow:theme` ตกลงแอป, library, ฐานข้อมูล, Docker และโครง solution | ครั้งเดียว (แนะนำ ไม่บังคับ) |
 | 1 | `/mflow:capture` | ลูกค้าส่งเอกสารหรือฉบับใหม่ | ทุกครั้งที่มีเอกสารเข้า |
-| 1.5 | `/mflow:discuss` | เอกสารตีความได้หลายแบบ (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | ต่อหัวข้อ วนจนตรงกันแล้ว approve |
+| 1.5 | `/mflow:discuss <slug>` | หัวข้อใน `docs/discuss/AGENDA.md` หรือเรื่องที่เอกสารตีความได้หลายแบบ (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | ต่อหัวข้อ วนจนตรงกันแล้ว approve |
 | 2 | `/mflow:theme` | ก่อนสร้างหน้าจอแรก | ครั้งเดียว (`update` เมื่อจะเปลี่ยนหน้าตา) |
 | 3 | `/mflow:screen inventory` | เริ่ม release | ต่อ release |
 | 3.5 | `/mflow:discuss <กลุ่มข้อมูล> data model` | ก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน | ต่อกลุ่มข้อมูล (ไม่บังคับ) |
@@ -59,7 +64,7 @@ flowchart TD
 | เหตุการณ์ | `/mflow:delegate` → `/mflow:assess` | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | เมื่อต้องการ |
 | ทุกวัน | `/mflow:handoff` | จบวัน หรือก่อนสลับไปใช้ tool อื่น | วันละครั้ง |
 
-**ช่วงแรกใช้แค่สี่คำสั่ง:** `init` → `capture` → `theme` → `screen` (เพิ่ม `discuss` เมื่อเอกสารตีความได้หลายแบบ) ส่วนที่เหลือค่อยเริ่มใช้เมื่อเจอสถานการณ์ของคำสั่งนั้น
+**ช่วงแรกใช้แค่ห้าคำสั่ง:** `init` → `discuss` (เริ่มจาก `tech-stack` และ `code-structure` แล้วหัวข้ออื่นใน AGENDA.md ตามต้องการ) → `capture` → `theme` → `screen` ส่วนที่เหลือค่อยเริ่มใช้เมื่อเจอสถานการณ์ของคำสั่งนั้น หรือเมื่อคำสั่งก่อนหน้าแนะนำ
 
 ## 3. ก่อนเริ่ม
 
@@ -71,6 +76,7 @@ flowchart TD
 | Python + pandas, openpyxl, python-docx, pypdf | อ่าน Excel/Word/PDF ของลูกค้า และแปลงเป็นข้อความก่อน `consult` | `pip install pandas openpyxl python-docx pypdf` |
 | SDK ของ stack ที่เลือก (.NET SDK สำหรับ a และ b, Node สำหรับหน้า React ของ b) | build/test โปรเจกต์ | ติดตั้งตามปกติ |
 | ตัวแสดงภาพ Mermaid (ไม่บังคับ) | ดูแผนภาพในเอกสาร discuss | GitHub แสดงเป็นรูปให้เอง ถ้า preview ของ VS Code แสดงเป็นโค้ด ให้ติดตั้ง extension สำหรับ Mermaid preview |
+| knowledge base ของทีมผ่าน MCP เช่น Graph Brain (ไม่บังคับ) | ให้ `tech-stack` และ `code-structure` ใช้มาตรฐานของทีม (.NET, ฐานข้อมูล, โครง solution) เป็นค่าแนะนำ | ตามคู่มือของ MCP นั้น ถ้าไม่มี Claude ใช้ค่าแนะนำใน checklist |
 | mermaid-cli (ไม่บังคับ) | ให้ Claude ตรวจ syntax ของแผนภาพโดยการ render | `npm i -g @mermaid-js/mermaid-cli` (ดาวน์โหลด browser มาด้วย ขนาดใหญ่) |
 
 ติดตั้ง plugin ใน Claude Code:
@@ -147,7 +153,7 @@ flowchart TD
 
 ### ขั้น 1.5: `/mflow:discuss` ยืนยันความเข้าใจก่อนเดินต่อ
 
-- **ใช้เมื่อ:** หลัง `/mflow:capture` เมื่อเอกสารลูกค้าตีความได้หลายแบบในเรื่องที่ตัดผ่านหลายหน้าจอ เช่น การกำหนดสิทธิ์, การผูกเมนูกับ role, ข้อมูลที่เฉพาะบาง role เห็น, โครงสร้างสาขา, เลขเอกสาร ควรทำก่อน `/mflow:screen inventory` เพราะถ้าเข้าใจผิดตอนนี้แก้แค่ย่อหน้าเดียว แต่ถ้าสร้างหน้าจอไปแล้วต้องตามแก้ทุกหน้าจอ
+- **ใช้เมื่อ:** มีหัวข้อที่ยังไม่เริ่มใน `docs/discuss/AGENDA.md` หรือหลัง `/mflow:capture` เมื่อเอกสารลูกค้าตีความได้หลายแบบในเรื่องที่ตัดผ่านหลายหน้าจอ เช่น การกำหนดสิทธิ์, การผูกเมนูกับ role, ข้อมูลที่เฉพาะบาง role เห็น, โครงสร้างสาขา, เลขเอกสาร ควรทำก่อน `/mflow:screen inventory` เพราะถ้าเข้าใจผิดตอนนี้แก้แค่ย่อหน้าเดียว แต่ถ้าสร้างหน้าจอไปแล้วต้องตามแก้ทุกหน้าจอ
 - **พิมพ์:**
   - `/mflow:discuss` = ดูเอกสาร discuss ทั้งหมดพร้อมสถานะ และหัวข้อแนะนำจาก `docs/discuss/AGENDA.md` ที่ยังไม่เริ่ม
   - `/mflow:discuss agenda` = สร้างหรือเรียงรายการหัวข้อแนะนำใหม่จากเอกสารทั้งหมด, `/mflow:discuss agenda skip <slug> <เหตุผล>` = ข้ามหัวข้อ
@@ -253,13 +259,14 @@ flowchart TD
 - **ใช้เมื่อ:** เริ่ม release หลังจากมี story map ใน `docs/vision.md` แล้ว
 - **ได้อะไร:** `docs/ui/screens.md` ที่มีหน้าจอละหนึ่งแถว (route, role, สิ่งที่แสดง, action, การคำนวณ) และจุดที่มีการคำนวณจะถูกเพิ่มเป็นแถวใน `docs/hotspots/INDEX.md`
 - **สิ่งที่คุณต้องทำ:** ตรวจตาราง หลังจากนั้น Claude จึงสร้าง Backlog task หน้าจอละหนึ่งตัว (label `prototype`)
-- **รายงานจะบอกด้วย** ว่ากลุ่มข้อมูลไหนที่หน้าจอใช้แต่ยังไม่มีเอกสาร data model ที่อนุมัติ เรียงจากกลุ่มที่หลายหน้าจอใช้ร่วมกันก่อน ให้เลือกทำขั้น 3.5
+- **เพิ่มหัวข้อใน AGENDA.md ด้วย:** กลุ่มข้อมูลที่หน้าจอใช้แต่ยังไม่มีเอกสาร data model ที่อนุมัติ จะกลายเป็นหัวข้อ `<กลุ่ม>-data` เรียงจากกลุ่มที่หลายหน้าจอใช้ร่วมกันก่อน ให้เลือกทำขั้น 3.5 (ไม่บังคับ)
 
 ### ขั้น 3.5: ออกแบบข้อมูลด้วย `/mflow:discuss <กลุ่มข้อมูล> data model`
 
 - **ใช้เมื่อ:** หลัง `/mflow:screen inventory` เมื่อรู้แล้วว่าหน้าจอไหนใช้ข้อมูลกลุ่มไหน และก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน ขั้นนี้ไม่บังคับ หน้าจอ prototype สร้างได้โดยไม่มีเอกสารนี้ แต่ inventory จะบอกว่ากลุ่มข้อมูลไหนยังไม่ได้ออกแบบ
 - **พิมพ์:**
-  - `/mflow:discuss งานขนส่ง data model @docs/source/2026-09-tor-v1.pdf` = ร่างเอกสาร เช่น `docs/discuss/02-job-data.md`
+  - `/mflow:discuss job-data` = เริ่มจากหัวข้อ `job-data` ที่ `/mflow:screen inventory` เพิ่มไว้ใน AGENDA.md
+  - `/mflow:discuss งานขนส่ง data model @docs/source/2026-09-tor-v1.pdf` = ร่างเอกสารโดยบอกหัวข้อเอง เช่น `docs/discuss/04-job-data.md`
   - ต่อจากนั้นใช้เหมือนเอกสาร discuss ทั่วไป: ตอบในไฟล์, `consult` ให้ AI หลายตัวช่วยดู, `approve`
 - **หนึ่งเอกสารต่อหนึ่งกลุ่มข้อมูล (aggregate):** ตารางหลักกับตารางลูกของมัน เช่น `Jobs` กับ `JobStops` แถวใน data dictionary ไม่นับในเพดาน ~200 บรรทัด เพราะต้องแสดงทุก column
 - **ในเอกสารมี:**
@@ -307,6 +314,8 @@ flowchart TD
 - ทุกหน้าจอมี permission ของตัวเอง ข้อมูลถูกกรองตาม data scope ของผู้ใช้ และ field ที่ห้ามเห็นถูกซ่อน Claude ตรวจโดยสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ต้องไม่เห็นเมนู และเปิด URL ตรงได้ 403) ถ้ายังไม่มีเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติ หน้าจอจะถูกบันทึกว่า `access not confirmed` และ Claude จะแนะนำ `/mflow:discuss access-control`
 - ถ้าอยากเปลี่ยนว่าใครเห็นอะไร และต่างจากเอกสาร discuss ที่อนุมัติแล้ว Claude จะไม่แก้ `roles.json` ตรงๆ แต่เสนอเอกสาร discuss ใหม่ หรือ change request ถ้าสร้างแล้ว
 - ถ้าสิ่งที่ขอเกินกว่าที่ kit ทำได้ Claude จะเสนอ `/mflow:theme update` แทนการแต่งหน้าจอนั้นหน้าเดียว
+- ช่องวันที่ใช้ `DatePicker` ของ kit ตารางใช้ `DataTable` ที่แบ่งหน้าที่ server และเปิด header search เฉพาะคอลัมน์ที่ขอ
+- จบแต่ละหน้าจอ Claude ให้ URL ไว้ลองสลับ role แล้วบอกหน้าจอถัดไปที่ยังไม่มี prototype หรือแนะนำให้ทดสอบกับผู้ใช้แล้ว `/mflow:review-notes`
 
 **ทดสอบใช้งานหรือรีวิว แล้วบันทึกผล**
 - ระหว่างทดสอบหรือรีวิว ใช้ปุ่มสลับ role บนแถบ PROTOTYPE ดูระบบในมุมของแต่ละ role: เมนู ข้อมูลที่เห็น field ที่ถูกซ่อน และปุ่มที่กดได้
@@ -365,7 +374,7 @@ flowchart TD
 
 | เวลา | เกิดอะไรขึ้น | คุณทำอะไร |
 |---|---|---|
-| เปิด session | hook ใส่ briefing ให้ Claude อัตโนมัติ: ส่วน Now ของ STATUS.md, log ล่าสุด, change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active, เอกสารที่ยังไม่ได้ประมวลผล, รายงานของ AI อื่นที่ยังไม่ได้ assess และเอกสาร discuss ที่รอคุณอ่าน | สั่งงานต่อจาก Now ได้เลย ไม่ต้องอธิบายซ้ำ |
+| เปิด session | hook ใส่ briefing ให้ Claude อัตโนมัติ: ส่วน Now ของ STATUS.md, log ล่าสุด, change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active, เอกสารที่ยังไม่ได้ประมวลผล, รายงานของ AI อื่นที่ยังไม่ได้ assess, เอกสาร discuss ที่รอคุณอ่าน และส่วนแยก "Discussion agenda (optional)" ที่บอกหัวข้อแนะนำที่ยังไม่เริ่ม (ไม่เกินสามชื่อ) กับหัวข้อที่อนุมัติแล้วแต่มีเอกสารใหม่มากระทบ | สั่งงานต่อจาก Now ได้เลย ไม่ต้องอธิบายซ้ำ ส่วน Now มีคำสั่งถัดไปที่คำสั่งก่อนหน้าเขียนไว้ |
 | ระหว่างทำงาน | หลัง 10 นาทีแรก ถ้ามีไฟล์เปลี่ยนแต่ STATUS.md ยังไม่ถูกอัปเดต Claude จะเขียนบันทึกสั้นก่อนหยุด เตือนซ้ำไม่เกินทุก 30 นาที และหลัง compact ก็ยังจำงานก่อนหน้าได้ | ไม่ต้องทำอะไร ปรับเวลาได้ใน `.mflow/config.json` (`stopGuard`) |
 | จบวัน | | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog และผล test) ให้คนที่ไม่เห็นแชตวันนี้ทำต่อได้ |
 | ก่อนสลับไปใช้ tool อื่น | | `/mflow:handoff --for codex` ได้ brief ของงานถัดไปด้วย |
@@ -379,22 +388,31 @@ Codex และ tool อื่นไม่มี hook ให้ทำตาม�
 git init
 /mflow:init TransportHub
   (ถาม stack: ตอบ a)
+  → ได้ docs/discuss/AGENDA.md ที่มี tech-stack และ code-structure เป็นสองหัวข้อแรก
+/mflow:discuss tech-stack
+  → ได้ docs/discuss/01-tech-stack.md: web back office + API .NET 10 + PostgreSQL 18 ใน Docker,
+    library ที่ตรวจ licence แล้ว, Redis เป็น "ภายหลัง" (เพิ่มเมื่อมีหลาย instance)
+/mflow:discuss 01 approve
+/mflow:discuss code-structure
+/mflow:discuss 02 approve
+  → AGENTS.md ส่วน ## Stack และ ## Architecture ถูกเติม
   (วาง TOR ลูกค้าไว้ที่ docs/source/2026-09-tor-v1.pdf)
 /mflow:capture
-/mflow:discuss สิทธิ์ เมนู และข้อมูลที่แต่ละ role เห็น
-  → ได้ docs/discuss/01-access-control.md (คุณอ่าน แล้วเขียนตอบในไฟล์)
-/mflow:discuss 01 consult
+  → AGENDA.md ได้หัวข้อเพิ่ม เช่น access-control, numbering
+/mflow:discuss access-control
+  → ได้ docs/discuss/03-access-control.md (คุณอ่าน แล้วเขียนตอบในไฟล์)
+/mflow:discuss 03 consult
   (คุณรันคำสั่งของ codex และ opencode ที่ได้)
-/mflow:discuss 01
-/mflow:discuss 01 approve
+/mflow:discuss 03
+/mflow:discuss 03 approve
 /mflow:theme @docs/source/ci-guide.pdf
 /mflow:screen inventory
-  → รายงานบอกว่ากลุ่มข้อมูล "งานขนส่ง" ใช้ใน 4 หน้าจอ แต่ยังไม่มีเอกสาร data model
-/mflow:discuss งานขนส่ง data model
-  → ได้ docs/discuss/02-job-data.md (Jobs, JobStops, data dictionary, index, ข้อตัดสินใจ)
-/mflow:discuss 02 consult
-/mflow:discuss 02
-/mflow:discuss 02 approve
+  → AGENDA.md ได้หัวข้อ job-data เพราะกลุ่มข้อมูล "งานขนส่ง" ใช้ใน 4 หน้าจอ แต่ยังไม่มีเอกสาร data model
+/mflow:discuss job-data
+  → ได้ docs/discuss/04-job-data.md (Jobs, JobStops, data dictionary, index, ข้อตัดสินใจ)
+/mflow:discuss 04 consult
+/mflow:discuss 04
+/mflow:discuss 04 approve
   → PrototypeData/README.md กลายเป็น data dictionary ของ prototype
 
 # สัปดาห์ที่ 2: prototype
@@ -408,9 +426,12 @@ git init
 /mflow:hotspot ค่าขนส่งคิดตามระยะทาง น้ำหนัก และลูกค้า VIP @docs/source/2026-09-tor-v1.pdf
   → slug: freight-rate, ได้ตั๋ว TASK-7 ถึง TASK-12
 /mflow:hotspot freight-rate
+  → จบตั๋ว Claude บอก readiness bar, ตั๋วถัดไป และคำสั่งถัดไป
+/clear
 /mflow:hotspot freight-rate
-  (ตั๋ว ask: Claude ถามทางเลือก คุณตอบได้ทันที)
-/mflow:hotspot freight-rate TASK-9
+  → ตั๋วถัดไปเป็น ask: Claude แสดงคำถาม ทางเลือก และคำแนะนำไว้ก่อน
+/clear
+/mflow:hotspot freight-rate TASK-9 b
 /mflow:golden @docs/source/ค่าขนส่ง-2026-08.xlsx freight-rate
 /mflow:hotspot freight-rate          → ผ่าน readiness bar → graduate
 
@@ -493,11 +514,11 @@ git diff --stat openspec/specs
 | เมนูสามสถานะ ปุ่ม ☰ และการตรวจตามขนาดจอยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้เป็นตัวอย่างมาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูหน้า style guide ที่ทุกขนาดจอตรวจรับ |
 | เอกสาร discuss ที่เขียนก่อน 0.13 ใช้ `**พี่ปูเลือก:**`, `> พี่ปู:` และป้าย `[พี่ปู]` | ยังใช้ได้ `check` อ่าน marker เดิมเหมือนเดิม รอบแก้ถัดไป Claude เปลี่ยนเฉพาะบรรทัดคำตอบที่ยังเปิดเป็น `**เลือก:**` ส่วนที่ตอบแล้วคงไว้ |
 | มีหลาย web app (เช่น back office กับ portal): `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ `/mflow:theme` กับ `/mflow:screen` ยังทำงานกับ UI แอปเดียว | ตัดสินใน `tech-stack` ว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยกต่อแอป และหน้าจอไหนอยู่แอปไหน การทำ kit แยกต่อแอปยังต้องทำด้วยมือ |
-| โปรเจกต์ที่ capture เอกสารไว้ก่อน 0.15 ยังไม่มี `docs/discuss/AGENDA.md` (capture อ่านเฉพาะไฟล์ใหม่หรือที่เปลี่ยน จึงไม่สร้างจากเอกสารเดิมให้) | สั่ง `/mflow:discuss agenda` ครั้งเดียว |
+| โปรเจกต์ที่ init ก่อน 0.15 ยังไม่มี `docs/discuss/AGENDA.md` (capture อ่านเฉพาะไฟล์ใหม่หรือที่เปลี่ยน จึงไม่สร้างจากเอกสารเดิมให้) และ AGENTS.md ยังไม่มีตาราง Apps, Libraries และบรรทัด Later ใน `## Stack` | สั่ง `/mflow:discuss agenda` ครั้งเดียว ได้รายการที่มี `tech-stack` และ `code-structure` นำหน้า ส่วน AGENTS.md รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือให้การอนุมัติ `tech-stack` เติมให้ |
 | โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
 | kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
 | DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
-| ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID>` แล้วตอบได้เลย |
+| ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` ได้เลย |
 | stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |
 
 โปรเจกต์ที่ init ก่อน 0.7: เพิ่มบรรทัดเหล่านี้ต่อท้ายใต้ key เดียวกันใน `openspec/config.yaml` โดยไม่ต้องลบบรรทัดเดิม:

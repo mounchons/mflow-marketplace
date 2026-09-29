@@ -7,29 +7,29 @@ argument-hint: "[brand notes | @logo | @CI-guide] | update <what to change>"
 
 A theme is the shared kit every screen is built from, the way a housing project picks one set of doors, tiles and switches for every house. Screens stay consistent because they can only be assembled from the kit: colors come from tokens, inputs and tables come from components, and nothing is styled inline.
 
-Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen.
+Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen. `/mflow:theme update responsive` builds or refreshes only the responsive parts: the device question in step 1, the layout tokens in step 2, the `AppShell` in step 3, the "Narrow" lines of the components, and the style guide's layout section. Kits built before mflow 0.11 need it to get the ☰ menu and the reflowing pages. It first compares the existing shell and components with `AppShell` and the "Narrow" lines, lists only the gaps, and changes nothing before พี่ปู says yes. A kit that already complies only gets its Devices, acceptance-size and Breakpoints lines in design-system.md.
 
 Stack: read AGENTS.md `## Stack`. If it is missing (projects set up before mflow 0.10) or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Paths and names below are for the `mvc-htmx` profile. Under another profile, use the matching rows of `## Stack` (tokens file, app shell, components, style guide, prototype-mode flag) and keep every contract.
 
 ## 1. Brand input
 
-Collect in one batch: logo, primary color or the customer's CI guide (`$ARGUMENTS` may reference files), the app's feel (dense back-office vs. spacious), and the Thai font preference. If the customer has no CI, propose three palettes rendered on the style-guide page and let พี่ปู or the customer choose.
+Collect in one batch: logo, primary color or the customer's CI guide (`$ARGUMENTS` may reference files), the app's feel (dense back-office vs. spacious), the Thai font preference, and the target devices with their acceptance sizes ([references/responsive.md](references/responsive.md) §1). If the customer has no CI, propose three palettes rendered on the style-guide page and let พี่ปู or the customer choose. A customer mockup (HTML or screenshots in `docs/source/`) is the starting point when one exists: take its colors, type and density, and list every place the kit departs from it, such as filling the window instead of a fixed canvas, or adding icons the rail needs.
 
-Done when: primary color, font, and density are decided or explicitly delegated to the three-palette choice.
+Done when: primary color, font, density, target devices and acceptance sizes are decided, or the palette is explicitly delegated to the three-palette choice.
 
 ## 2. Tokens
 
-Create `wwwroot/css/tokens.css` from [assets/tokens.css](assets/tokens.css): brand colors, semantic colors (success, warning, danger, info), surfaces, text, radius, spacing, font stack, plus the Bootstrap 5.3 variable overrides so native Bootstrap classes follow the brand. Include light values; add a dark block only if asked.
+Create `wwwroot/css/tokens.css` from [assets/tokens.css](assets/tokens.css): brand colors, semantic colors (success, warning, danger, info), surfaces, text, radius, spacing, font stack, layout (sidebar and rail width, top bar and banner height, main padding, content max width, backdrop, touch target), plus the Bootstrap 5.3 variable overrides so native Bootstrap classes follow the brand. Include light values; add a dark block only if asked.
 
 Done when: every color, radius and font used anywhere in the app resolves to a token.
 
 ## 3. App shell
 
-`Views/Shared/_Layout.cshtml`: `SidebarMenu`, top bar (current user's name and role, notifications slot), content area with page header slot, toast container, and the prototype banner partial with the role switcher, rendered when `Prototype:UseFakeData` is true. Load order: Bootstrap CSS → `tokens.css` → `app.css` (component styles only, token-based) → Bootstrap JS → HTMX.
+`Views/Shared/_Layout.cshtml`, built to the `AppShell` contract in [references/component-contracts.md](references/component-contracts.md): `SidebarMenu` with its expanded, rail and drawer states, top bar (☰ toggle, current user's name and role, notifications slot), main area with page header slot, toast container, and the prototype banner partial with the role switcher, rendered when `Prototype:UseFakeData` is true. Write the breakpoints from [references/responsive.md](references/responsive.md) §2 into design-system.md Decisions, adjusted so that each acceptance size lands in the intended state. Load order: Bootstrap CSS → `tokens.css` → `app.css` (component styles only, token-based) → Bootstrap JS → HTMX.
 
 The shell needs to know who is logged in, so build the access seams here, exactly as "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` describes them. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`. Take the roles, users and scopes from the approved access-control discussion doc. With none approved, use the single all-permission user it describes.
 
-Done when: the style guide renders the `SidebarMenu` sample twice, each with an explicit permission-set stub, and the two show different items. When `users.json` holds more than one user, switching in the banner also changes who the top bar shows.
+Done when: the style guide renders the `SidebarMenu` sample twice, each with an explicit permission-set stub, and the two show different items. When `users.json` holds more than one user, switching in the banner also changes who the top bar shows. At each acceptance size the sidebar is in the state the breakpoint table names, and ☰ and the drawer behave as `AppShell` describes.
 
 ## 4. Components
 
@@ -39,7 +39,11 @@ Done when: each contract has an implementation and the style guide shows it.
 
 ## 5. Style guide page
 
-`/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a `SidebarMenu` sample with two items behind different permissions, rendered for two stub permission sets, a full sample list page and a sample form page assembled only from components. This page is what the customer approves once, instead of approving colors screen by screen.
+`/_styleguide` (development and prototype only): every token swatch, typography scale, every component in every state (default, hover/focus, disabled, error, loading, empty), a `SidebarMenu` sample with two items behind different permissions, rendered for two stub permission sets, a full sample list page and a sample form page assembled only from components (and a sample dashboard if the product has a home dashboard). Two sections open the page:
+- **การตัดสินใจของ theme:** each decision (palette, font, density, devices and acceptance sizes, breakpoints, date format, departures from the mockup) with its source tag, as in discussion docs: `[ที่มา: …]`, `[พี่ปู]`, `[เสนอ]`.
+- **โครงหน้าและเมนู:** the page itself is the shell. Buttons force expanded, rail, auto-by-width and open-drawer, and a table gives window width → menu state → content layout, from design-system.md. A line next to them says "ลองย่อหรือขยายหน้าต่างดู".
+
+This page is what the customer approves once, instead of approving colors screen by screen.
 
 ## 6. Rules for agents
 
@@ -47,4 +51,4 @@ Done when: each contract has an implementation and the style guide shows it.
 - Write `.claude/rules/ui.md` from [assets/ui-rule.md](assets/ui-rule.md), setting `paths:` to the UI files row of AGENTS.md `## Stack`. It loads only when Claude opens a UI file.
 - Add one pointer line to AGENTS.md under Conventions: `UI: build screens only from the components in docs/ui/design-system.md; colors and spacing only from tokens.css.`
 
-Done when: the build command in AGENTS.md passes, the style guide renders, the three files above exist, and STATUS.md records the theme decisions (palette, font, density).
+Done when: the build command in AGENTS.md passes, the style guide renders and passes the checks in [references/responsive.md](references/responsive.md) §5 at the acceptance sizes in `docs/ui/design-system.md` (or reports them `(unverified)` as §5 allows), the three files above exist, and STATUS.md records the theme decisions (palette, font, density, devices, breakpoints).

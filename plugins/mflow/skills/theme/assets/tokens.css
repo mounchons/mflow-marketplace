@@ -27,6 +27,7 @@
   --app-text: #1d2330;
   --app-text-muted: #5f6b7a;
   --app-focus-ring: rgba(var(--app-primary-rgb), .25);
+  --app-backdrop: rgba(29, 35, 48, .42);   /* behind the drawer and dialogs */
 
   /* Type (Thai-first stack) */
   --app-font: "IBM Plex Sans Thai", "Sarabun", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -38,8 +39,18 @@
   --app-radius: 0.5rem;
   --app-radius-sm: 0.375rem;
   --app-space-1: 0.25rem; --app-space-2: 0.5rem; --app-space-3: 1rem; --app-space-4: 1.5rem; --app-space-5: 2rem;
-  --app-sidebar-width: 15.5rem;
   --app-table-row-height: 2.75rem;
+
+  /* Layout. Breakpoints cannot be variables in media queries: they are a decision in
+     docs/ui/design-system.md and appear only in the kit's stylesheet. */
+  --app-sidebar-width: 15.5rem;    /* expanded */
+  --app-rail-width: 4.75rem;       /* icon rail */
+  --app-topbar-height: 3rem;
+  --app-banner-height: 2.125rem;   /* PrototypeBanner */
+  --app-main-pad-x: 2.75rem;       /* the kit reduces both on narrower windows */
+  --app-main-pad-y: 2rem;
+  --app-content-max: none;         /* a length caps line length on very wide screens */
+  --app-touch-target: 2.5rem;      /* minimum tap height on tablet and phone sizes */
 
   /* Bootstrap 5.3 bridge: native classes follow the brand */
   --bs-primary: var(--app-primary);        --bs-primary-rgb: var(--app-primary-rgb);

@@ -19,6 +19,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | A discussion doc matches what you think | `/mflow:discuss <NN> approve` |
 | Before building any screen | `/mflow:theme` |
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |
+| The kit has no ☰ menu, or pages do not reflow on small windows (kits built before 0.11) | `/mflow:theme update responsive` |
 | List the screens for a release | `/mflow:screen inventory` |
 | Build or change a prototype screen | `/mflow:screen <name> <what>` |
 | Just met the customer about the prototype | `/mflow:review-notes @notes` |

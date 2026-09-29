@@ -21,32 +21,100 @@ The frame every page sits in. It is built once in the layout; screens only fill 
 
 The most important component; most back-office screens are a DataTable plus a FilterPanel.
 
-- **Input:** a `DataTableModel<TRow>` with `Columns` (key, Thai header, width, align, sortable, searchable, format: text/number/money/date/status), `Rows`, `Page`, `PageSize`, `TotalCount`, `Sort`, `ColumnFilters`, `RowUrl` (optional), `RowActions` (optional).
-- **Paging:** server-side only. The controller receives `page`, `pageSize` (10/25/50/100), `sort`, `dir`, and filters; the repository returns `PagedResult<T>` with `TotalCount`. Never load all rows to the browser.
-- **Search:** two places, both server-side. `FilterPanel` above the table for structured filters, and a search input under each searchable column header (debounced 400 ms, `hx-trigger="keyup changed delay:400ms"`).
+- **Input:** a `DataTableModel<TRow>` with `Columns` (key, Thai header, width, align, sortable, searchable (default off), format: text/number/money/date/status), `Rows`, `Page`, `PageSize`, `TotalCount`, `Sort`, `ColumnFilters`, `RowUrl` (optional), `RowActions` (optional).
+- **Paging:** server-side only, to keep database load and page weight low. The controller receives `page`, `pageSize` (10/25/50/100), `sort`, `dir`, and filters. The repository applies the filters and the sort, then skips and takes one page inside the database query (`IQueryable` in EF Core, `OFFSET … FETCH` in SQL), counts with the same filters, and returns `PagedResult<T>` with `TotalCount`. Never load all rows into memory or to the browser.
+- **Search:** both server-side. `FilterPanel` is a separate panel above the table, for structured filters; it is never inside the table. The header search is optional: a search input under the header of each column marked `searchable` (debounced 400 ms, `hx-trigger="keyup changed delay:400ms"`). A screen marks some columns, or none; with none, the search row is not rendered at all.
 - **State in the URL:** every filter, sort and page value is a query-string parameter (`hx-push-url="true"`), so a filtered view can be bookmarked, shared and reloaded.
 - **HTMX:** the table body + pager is a partial; filters, column search, sort and paging swap only that partial (`hx-target`, `hx-indicator`).
-- **Formats:** money right-aligned with 2 decimals and thousands separators; dates `dd/MM/yyyy` (Buddhist or Gregorian year decided once in design-system.md); status via `StatusBadge`.
+- **Formats:** money right-aligned with 2 decimals and thousands separators; dates in the project date format (see `DatePicker`), never formatted by a screen; status via `StatusBadge`.
 - **States:** loading (indicator on the table, not the page), empty (`EmptyState`), no results for filter (message + "clear filters"), error (inline alert with retry).
 - **Footer:** "แสดง 1–25 จาก 1,234 รายการ" + pager + page-size select.
-- **Narrow:** a table wider than its box scrolls sideways inside its own box, never the page. The footer wraps under the table.
+- **Pager:** ‹ and › around the page numbers. Up to 7 pages, every number shows. Beyond that it shows the first page, the last page, the current page and one page on each side of it; each gap becomes `…`, except that a gap of a single page shows that page's number instead.
+
+  | Pages | Current | Pager |
+  |---|---|---|
+  | 5 | 3 | ‹ 1 2 **3** 4 5 › |
+  | 20 | 1 | ‹ **1** 2 … 20 › |
+  | 20 | 4 | ‹ 1 2 3 **4** 5 … 20 › |
+  | 20 | 5 | ‹ 1 … 4 **5** 6 … 20 › |
+  | 20 | 20 | ‹ 1 … 19 **20** › |
+
+  ‹ is off on the first page and › on the last. The current page is not a link and carries `aria-current="page"`; ‹ and › carry the labels "หน้าก่อน" and "หน้าถัดไป". Each page is a link with its page in the query string, so it works without script; in `mvc-htmx` the links swap only the table partial. Paging keeps the filters, sort and page size. A change of filter, sort or page size returns to page 1, and a page past the end (after a filter) shows the last page. In `mvc-htmx`, build it on Bootstrap's `.pagination`, which tokens.css already colors.
+- **Narrow:** a table wider than its box scrolls sideways inside its own box, never the page. The footer wraps under the table, and at the narrowest content step the pager shrinks to ‹ 5 / 20 ›.
 
 ## FilterPanel
 
 - **Input:** list of filter fields (each rendered by `FormField`), a keyword box, "ค้นหา" and "ล้างตัวกรอง" buttons.
-- **Behaviour:** collapsible, remembers open/closed per page; submits to the same list endpoint the DataTable uses; shows active filters as removable chips above the table.
+- **Behaviour:** a panel of its own above the table, never inside it. Collapsible, remembers open/closed per page; submits to the same list endpoint the DataTable uses; shows active filters as removable chips above the table. Dates use `FormField` type `date` or `DateRangeField`. Search does not submit while a field inside is invalid (`aria-invalid="true"`, such as a wrong date or To before From); focus goes to the first such field, and the browser's own validation bubble is never used.
 - **Narrow:** fields sit in a grid of 4 columns that steps down to 3, 2 and 1 as the content narrows. On phones the panel starts collapsed, and the chips still show what is filtered.
 
 ## FormField
 
-- **Input:** `asp-for` model expression, label (Thai), type (text, number, money, date, select, multiselect, textarea, checkbox, switch, file), placeholder, help text, required, disabled, options (for selects).
+- **Input:** `asp-for` model expression, label (Thai), type (text, number, money, date (the kit `DatePicker`), select, multiselect, textarea, checkbox, switch, file), placeholder, help text, required, disabled, options (for selects).
 - **States:** default, focus, disabled, read-only, invalid with message (from model validation), required marker.
-- **Rules:** label always visible (no placeholder-as-label); money and number inputs right-aligned; date uses one date picker everywhere.
+- **Rules:** label always visible (no placeholder-as-label); money and number inputs right-aligned; type `date` is the kit `DatePicker` everywhere, never the browser's `<input type="date">`.
 - **Narrow:** a form lays its fields in the kit's form grid, which becomes one column at the narrowest content step. There, the form's action buttons stretch to full width.
+
+## DatePicker
+
+The one date input of the kit. Screens use it only through `FormField` type `date` or `DateRangeField`, which show its messages. It is a text field typed in the project's date format, plus a calendar that shows English and Thai. It never uses the browser's `<input type="date">`, whose look and format follow the browser's locale, and it never formats dates with `Intl` and a Thai locale, which can print the Buddhist year where the Gregorian one is meant.
+
+- **Date format: one setting for the whole kit.** design-system.md Decisions records it, and one config in the kit's format module holds it. The picker, its placeholder and messages, the DataTable `date` column and every date the kit displays read that config; screens never format dates themselves.
+  - Pattern, from a closed set: `DD/MM/YYYY` (default), `DD-MM-YYYY`, `DD.MM.YYYY`, `YYYY-MM-DD`.
+  - Year: ค.ศ. (default) or พ.ศ. (the Gregorian year + 543). Only what people see and type changes; the stored and exchanged value stays Gregorian.
+  - Today: in Asia/Bangkok unless the decision names another time zone, never the browser's.
+- **Value:** an ISO calendar date `YYYY-MM-DD` (Gregorian) in and out, or empty. A hidden input carries the field's `name` with the ISO value, so a submitted form or `FilterPanel` sends `2026-09-27` whatever the display pattern. The change callback (or event) gets the ISO date as soon as the text is a whole date, and empty while the text is empty or not a date.
+- **Input:** value or default value (ISO), name, label (it names the calendar button and the calendar), min and max (ISO), required, disabled, read-only.
+- **Typing:** the placeholder is the pattern (`DD/MM/YYYY`). The field accepts the configured order with `/`, `-` or `.` between the parts, one- or two-digit day and month, eight digits with no separator in the configured order, and a pasted ISO date (year first, when the pattern is not year first; always Gregorian). On blur or Enter it rewrites the text in the pattern. No `maxlength`, so a pasted date with spaces still fits. Gregorian years 1900 to 2399 only.
+  - Parse with integer year, month and day arithmetic only: never `new Date(text)` or `toISOString()`, which read the browser's time zone and can shift the day.
+  - The parser is checked against this table; each stack turns it into a unit test:
+
+    | Setting | Typed | Result |
+    |---|---|---|
+    | `DD/MM/YYYY`, ค.ศ. | `27/09/2026` | `2026-09-27` |
+    | `DD/MM/YYYY`, ค.ศ. | `1/9/2026` | `2026-09-01` |
+    | `DD/MM/YYYY`, ค.ศ. | `27-09-2026` or `27.09.2026` | `2026-09-27` |
+    | `DD/MM/YYYY`, ค.ศ. | `27092026` | `2026-09-27` |
+    | `DD/MM/YYYY`, ค.ศ. | `2026-09-27` (pasted ISO) | `2026-09-27` |
+    | `DD/MM/YYYY`, ค.ศ. | `29/02/2028` | `2028-02-29` |
+    | `DD/MM/YYYY`, ค.ศ. | `29/02/2027` or `31/02/2026` | format message |
+    | `DD/MM/YYYY`, ค.ศ. | `27/09/26` (two-digit year) | format message |
+    | `DD/MM/YYYY`, ค.ศ. | `27/09/2569` | wrong-year message (2400 or later is refused, never converted) |
+    | `DD/MM/YYYY`, พ.ศ. | `27/09/2569` | `2026-09-27` |
+    | `DD/MM/YYYY`, พ.ศ. | `27/09/2026` | wrong-year message (below 2400 is refused, never converted) |
+    | `DD/MM/YYYY`, พ.ศ. | `2026-09-27` (pasted ISO) | `2026-09-27` |
+    | `YYYY-MM-DD`, ค.ศ. | `2026-9-27` or `20260927` | `2026-09-27` |
+    | any | empty | empty, no message |
+
+- **Messages,** English · Thai, under the field. They appear on blur or Enter and clear as soon as the text is fixed; `FormField`'s own error takes precedence:
+  - format: "Enter a date as DD/MM/YYYY · กรอกวันที่เป็น วว/ดด/ปปปป", in the configured pattern;
+  - wrong year: "Use the Gregorian year, such as 2026 · ใช้ปี ค.ศ. เช่น 2026" under ค.ศ., or "Use the Buddhist year, such as 2569 · ใช้ปี พ.ศ. เช่น 2569" under พ.ศ.;
+  - outside min or max: "Must not be before <date> · ต้องไม่ก่อน <date>" or "Must not be after <date> · ต้องไม่หลัง <date>", the date in the pattern.
+- **Calendar:** the calendar button inside the field, or Alt+↓ in the text, opens a popover (`role="dialog"`) under the field, or above it or right-aligned when it would not fit. It opens on the field's month, or on today's.
+  - **Days:** the title shows the English month and year on one line and the Thai month under it ("October 2026" over "ตุลาคม"; under พ.ศ. the year reads 2569). « and » move a year, ‹ and › a month. The week starts on Sunday, and each weekday shows its short English name over the short Thai one: Su อา, Mo จ, Tu อ, We พ, Th พฤ, Fr ศ, Sa ส.
+  - **Months:** a click on the title shows the 12 months, English over Thai, three per row, with the year as the title and ‹ › for the year.
+  - **Years:** a click on the year shows a page of 12 years, with ‹ › for the page. Picking a year opens its months, and picking a month opens its days, on the same day number cut to the month's length (31 → 30).
+  - Month and weekday names are written out in the kit, not taken from `Intl`.
+  - The selected day, month or year is filled with `--app-primary`, its text in `--app-on-primary`; today's has a ring in `--app-primary`. Anything wholly outside min and max is struck through in `--app-text-muted` and cannot be picked.
+  - Footer, in every view: "Today · วันนี้" (off when today is outside min and max) and "Clear · ล้าง".
+  - Keyboard: the arrows move one cell or one row; Home and End go to the ends of the week; PageUp and PageDown move a month (with Shift, a year) in days, a year in months, and 12 years in years; Enter picks. Esc steps back years → months → days, then closes and returns focus to the calendar button.
+  - It closes on a pick of a day, Today, Clear, Esc in the days view, a click outside, or Tab out of it. After a pick, focus returns to the text.
+- **Reset:** the owning form's reset (FilterPanel "ล้างตัวกรอง") returns the field to its default value and clears its message.
+- **States:** empty, filled, focus, invalid, with min and max, disabled, read-only; disabled and read-only turn the calendar button off. The style guide shows each state and the three calendar views.
+- **Per profile:** in `mvc-htmx`, the `FormField` partial renders the text input and the hidden ISO input, a small kit script adds the calendar, on load and after every HTMX swap (`htmx.onLoad`), so a date field inside a `Dialog` or `SidePanel` gets it too; the action binds the ISO value (`DateOnly`), never the display text. In `react-vite`, a `DatePicker` and `Calendar` component, a calendar-dates module and the format module. In the static preview, `datepicker.js`.
+- **With jQuery and its unobtrusive validation** (`jquery.validate` and `jquery.validate.unobtrusive`, as in the ASP.NET Core MVC template): the calendar script needs no jQuery and runs beside it. Four rules keep the two from fighting:
+  - **Binding:** `asp-for` of the `DateOnly` property goes on the hidden ISO input, so only the ISO value binds. The visible text input gets a name no model property matches (`<Name>__text`), so the display text never reaches model binding, whatever the server's culture.
+  - **Validate the visible input:** jQuery Validate skips hidden inputs (`ignore: ":hidden"`), so the `data-val-*` attributes that `asp-for` writes on the hidden input would never run. Move them to the visible input, and add one kit rule there (a `$.validator.addMethod`) that reports the DatePicker's own problem (format, year, before min, after max) with its message. Required then fires only on empty text, and a wrong date shows the DatePicker's message instead of "required". Leave the global `ignore` setting alone.
+  - **One message per field:** the `FormField` partial renders a single message span, `data-valmsg-for="<Name>__text"`, and writes the server's `ModelState` error for `<Name>` into it on a returned page, so client and server messages land in the same place. The DatePicker adds no second message element.
+  - **The server checks again:** the ISO value is validated on the server (the `DateOnly` binding, required, min and max in the model); the browser's checks are a convenience, never the guard.
+
+## DateRangeField
+
+A From and To pair: two `FormField` date cells that the filter and form grids lay out as two fields. Input: an id (the inputs are `<id>-from` and `<id>-to`), the two names (default `from` and `to`), labels (default "วันที่เริ่มต้น" and "วันที่สิ้นสุด"), values, min and max, required, disabled, read-only. A To earlier than From shows "Date To must not be before Date From · วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น" under To; the same day is allowed. **Narrow:** the two cells follow the grid, side by side while there is room and stacked at the narrowest step.
 
 ## PageHeader
 
-Title, optional subtitle, breadcrumb, up to one primary action button and a secondary actions dropdown. **Narrow:** the actions move under the title; the secondary actions stay in the dropdown.
+Title, optional subtitle, breadcrumb, up to one primary `Button` and a secondary actions `Dropdown`. **Narrow:** the actions move under the title; the secondary actions stay in the dropdown.
 
 ## StatusBadge
 
@@ -58,11 +126,81 @@ Icon, short Thai message, optional primary action ("สร้างรายก�
 
 ## ConfirmDialog
 
-Title, a sentence stating exactly what will happen ("ยกเลิกงาน JOB-0012 และคืนรถให้ว่าง"), confirm button in danger style for destructive actions, cancel. Triggered via `hx-confirm` replacement or a small shared script. **Narrow:** never wider than the window minus 32 px.
+A `Dialog` with a title, a sentence stating exactly what will happen ("ยกเลิกงาน JOB-0012 และคืนรถให้ว่าง"), confirm button in danger style for destructive actions, cancel. Triggered via `hx-confirm` replacement or a small shared script. **Narrow:** never wider than the window minus 32 px.
 
 ## Toast
 
 Success, error, info. Server sets it through an `HX-Trigger` response header (`showToast`), so any action can raise one without page-specific script. Toasts stack in the bottom right, at most 380 px wide. **Narrow:** never wider than the window minus 32 px.
+
+## Button
+
+- **Input:** Thai text, variant, size (default, or `sm` in tables and toolbars), an optional icon on the left, icon-only (then an `aria-label` and a `Tooltip` are required), loading, disabled, type (`button` or `submit`).
+- **Variants:** `primary` for the one main action of a page, form or dialog; `secondary` and `outline` for the others; `danger` for destructive actions, always behind `ConfirmDialog`; `link` for a quiet action inside text. A `<button>` acts; an `<a>` only navigates.
+- **Behaviour:** while loading, the button shows a spinner in place of its icon, keeps its width, and is disabled, so a double click submits once. A button the user has no permission for is not rendered; it is never shown disabled as a hint.
+- **States:** default, hover, focus (ring from `--app-focus-ring`), active, disabled, loading.
+- **Narrow:** at least `--app-touch-target` high on tablet and phone sizes. In a form's action row at the narrowest step, buttons stretch to full width, as `FormField` says.
+- In `mvc-htmx`, Bootstrap's `.btn` classes, which the token bridge colors.
+
+## Card
+
+- **Input:** an optional header (title, optional subtitle, optional actions on the right), a body, an optional footer.
+- **Use:** groups related content on a detail page, a form section or a dashboard. A KPI card is a Card variant: a label, a value in the kit's number or money format, and an optional change against the previous period. A list of records is a `DataTable`, never a grid of cards.
+- **States:** default, loading (a `Loading` skeleton in the body), empty (`EmptyState` in the body).
+- **Narrow:** cards sit in the kit's grid and stack to one column at the narrowest step; header actions wrap under the title.
+- In `mvc-htmx`, Bootstrap's `.card`.
+
+## Dialog
+
+A modal with content: a short form, a detail view, a picker. `ConfirmDialog` is a Dialog that holds one sentence.
+- **Input:** title, body, footer buttons (the main action last, Cancel before it), size (`sm`, default, `lg`), busy.
+- **Behaviour:** on opening, focus goes to the first control inside, or to ×, and stays inside the dialog; on closing, it returns to the element that opened it. ×, Esc and Cancel close it. A click on the backdrop closes it only when it holds no form, so typed input is never lost by a stray click. While busy (its action runs), Esc and × do nothing and the main button shows loading. The page behind does not scroll.
+- **Use:** a form longer than about six fields, or anything holding a table, is a page or a `SidePanel` instead.
+- **Narrow:** never wider than the window minus 32 px. On phone sizes it fills the width; the header and footer stay and the body scrolls inside.
+- In `mvc-htmx`, Bootstrap's modal, with its body loaded through HTMX.
+
+## SidePanel
+
+A panel that slides in from the right over the page: a record's details, or a form that keeps the list in view. It is called SidePanel so that "drawer" keeps meaning the sidebar's state in `AppShell`.
+- **Input:** title, body, footer actions, width (`md` about 480 px, `lg` about 720 px).
+- **Behaviour:** a backdrop; ×, Esc and Cancel close it; focus goes in and back to the opener. A panel with unsaved changes asks before closing, through `ConfirmDialog`. It may put the open record in the URL (`?view=JOB-0012`) so a reload reopens it.
+- **Narrow:** full width below the drawer breakpoint.
+- In `mvc-htmx`, Bootstrap's offcanvas (`offcanvas-end`), with its content loaded through HTMX.
+
+## Alert
+
+An inline message in a page or a section.
+- **Input:** tone (`info`, `success`, `warning`, `danger`), optional title, text, an optional action (such as "ลองใหม่"), optional close button.
+- **Use:** something the user must see in place: a load error with retry, a warning about this record, a note at the top of a page. The result of an action is a `Toast`, not an Alert.
+- **Behaviour:** `danger` carries `role="alert"`; a waiting state carries `role="status"`; the others no role. Background from the tone's `--app-*-subtle` token, border and icon from its `--app-*` token. Every alert has an icon and text, never color alone.
+- **Narrow:** the full width of its container; the action wraps under the text.
+- In `mvc-htmx`, Bootstrap's `.alert`.
+
+## Tabs
+
+- **Input:** the tabs (Thai label, optional count badge, permission) and the active one, held in the URL (`?tab=history`) so a reload keeps it.
+- **Behaviour:** for the sections of one record (ข้อมูลทั่วไป, ประวัติ, เอกสารแนบ). A tab's content loads when it is first opened. The arrow keys move between tabs, as the ARIA tabs pattern says. A tab the user has no permission for is not rendered.
+- **Narrow:** the tab list scrolls sideways inside its own box; it never wraps into two rows.
+- In `mvc-htmx`, Bootstrap's `.nav-tabs`.
+
+## Dropdown
+
+- **Input:** a trigger button and items (Thai label, icon, permission, `danger`, divider).
+- **Use:** a row's "more actions", and `PageHeader`'s secondary actions. A `danger` item goes through `ConfirmDialog`.
+- **Behaviour:** Enter, Space or ↓ opens it; the arrows move; Esc closes it and returns focus to the trigger. Items the user has no permission for are not rendered, and a dropdown with no visible item is not rendered either.
+- **Narrow:** the menu stays inside the window, aligned to the trigger's end when it would overflow.
+- In `mvc-htmx`, Bootstrap's dropdown.
+
+## Tooltip
+
+A short label on hover and on keyboard focus: an icon-only button, the sidebar rail, a cut-off cell. It is never the only place important information lives, and never sits on a disabled element (wrap it). Screen readers get the same text through `aria-label` or `aria-describedby`. **Narrow:** touch has no hover, so the information must also be reachable another way (the full text on the detail page). In `mvc-htmx`, Bootstrap's tooltip, initialised by the kit script on load and after every HTMX swap.
+
+## Loading
+
+Three forms: a spinner inside a `Button` while its action runs; a thin bar at the top of a `DataTable` or `Card` while its content reloads, with the old content kept and dimmed; a skeleton for the first load of a `Card` or a detail page. Never a full-page overlay for a partial update. It appears only after about 300 ms, so quick responses do not flicker, and the loading region carries `aria-busy="true"`. **Narrow:** the same. In `mvc-htmx`, through `hx-indicator`.
+
+## DetailView
+
+The read-only view of one record: label and value pairs in the kit's grid, grouped into `Card`s by section. Values use the kit's formats (money, the project date format, `StatusBadge`); an empty value shows "—". A field the user may not see is left out, never blanked. **Narrow:** one column, each label above its value.
 
 ## SidebarMenu
 

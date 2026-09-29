@@ -10,6 +10,7 @@
 - Devices: TODO (desktop and laptop only / plus tablet / every size including phones); acceptance sizes: TODO (e.g. 1366×768, 1920×1080)
 - Breakpoints: TODO (default: ≥ 1280 px expanded menu · 768–1279 px icon rail · < 768 px drawer opened by ☰)
 - Layout: fills the window; sidebar and content scroll separately; the top bar stays on top
+- Date format: TODO (default `DD/MM/YYYY`, ค.ศ., today in Asia/Bangkok). One setting in the kit's format module drives the DatePicker, table columns and every displayed date; values sent to the server are ISO `YYYY-MM-DD`
 - Style guide: `/_styleguide` (dev/prototype only)
 - Kit lives in: TODO (the paths in AGENTS.md `## Stack`; `docs/ui/theme/` while the kit is a static preview, and a pointer to the frozen preview after port)
 
@@ -18,9 +19,21 @@
 |---|---|---|
 | Page frame, ☰ menu toggle, top bar | `AppShell` | in the layout only; screens fill the main area |
 | Page title, breadcrumb, main actions | `PageHeader` | one per page |
-| Filters above a list | `FilterPanel` | collapsible; refreshes only the list, no full page reload |
-| Any list of records | `DataTable` | server-side paging, column search, sort, page size; wide tables scroll inside their own box |
-| Any input with label + validation | `FormField` | wraps text, number, date, select, textarea, checkbox |
+| Filters above a list | `FilterPanel` | a panel of its own, never inside the table; collapsible; refreshes only the list, no full page reload |
+| Any list of records | `DataTable` | server-side paging in the database, pager ‹ 1 … 4 5 6 … 20 ›, sort, page size; header search only on columns marked searchable (none: no search row); wide tables scroll inside their own box |
+| Any input with label + validation | `FormField` | text, number, money, date, select, multiselect, textarea, checkbox, switch, file |
+| One date | `FormField` type `date` | the kit `DatePicker`: typed in the project date format or picked from an English and Thai calendar; value ISO |
+| A From and To pair of dates | `DateRangeField` | To earlier than From is refused under To |
+| Any action | `Button` | one primary per area; danger always behind `ConfirmDialog`; loading state |
+| Grouped content, KPI | `Card` | never a grid of cards for a list of records |
+| A short form or a detail in a modal | `Dialog` | focus kept inside; backdrop does not close a form |
+| A record's details or edit form beside the list | `SidePanel` | slides in from the right; full width when narrow |
+| A message in place (load error, warning, note) | `Alert` | the result of an action is a `Toast` instead |
+| Sections of one record | `Tabs` | active tab in the URL |
+| More actions | `Dropdown` | items filtered by permission |
+| Label for an icon-only button or a cut-off text | `Tooltip` | never the only place important information lives |
+| Waiting for content | `Loading` | spinner in a button, bar on a table or card, skeleton on first load |
+| A read-only record | `DetailView` | label and value pairs in the kit grid, grouped in cards |
 | Status of a record | `StatusBadge` | status → color mapping lives in one place |
 | Nothing to show | `EmptyState` | message + primary action |
 | Destructive or irreversible action | `ConfirmDialog` | always states what will happen |
@@ -33,6 +46,7 @@
 - Do keep Thai text in ViewModels/resources.
 - Don't put hex colors, inline styles or page-level CSS in views.
 - Don't build a table by hand, even a small one.
+- Don't use the browser's `<input type="date">`, and don't format a date in a screen; dates go through `FormField` type `date` and the kit's date format.
 - Don't write media or container queries, fixed pixel widths or page-level grids in screens. Forms, filters and dashboards reflow through the kit's grids.
 - Don't compare role names in views or controllers. Check a `Permissions` key with `ICurrentUser.Can(...)`; the endpoint carries the same key.
 

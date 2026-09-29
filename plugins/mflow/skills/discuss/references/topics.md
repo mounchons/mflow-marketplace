@@ -64,7 +64,7 @@ Checklist:
 - Standard columns: the data-scope keys from the access-control doc (`BranchId`, `CreatedBy`, `AssignedTo`), audit columns (created and updated, by whom and when), and a concurrency token.
 - Deletion and history: soft or hard delete; change history (see audit-history).
 - Status: an enum in code or a lookup table. Transitions with conditions are a hotspot.
-- Money, quantities, dates: precision, currency, rounding (a hotspot if it matters), time zone. Store Gregorian dates and show the Buddhist year only in the UI, unless the customer requires otherwise.
+- Money, quantities, dates: precision, currency, rounding (a hotspot if it matters), time zone. Store Gregorian dates and show the Buddhist year only in the UI, unless the customer requires otherwise; the kit's date format (pattern and year, `/mflow:theme`) is where that choice lives.
 - Snapshot or reference: values copied onto the document at the time (the price or customer name on an invoice) versus values read from master data.
 - Text: maximum lengths taken from the customer's real data; Thai search and sorting.
 - Attachments: where they are stored (database or file storage), plus size and type limits.

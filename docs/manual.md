@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.13.0 |
+| เวอร์ชัน plugin | 0.14.0 |
 | วันที่ | 2026-09-29 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -180,7 +180,7 @@ flowchart TD
 
 - **ใช้เมื่อ:** ก่อนสร้างหน้าจอแรก ทำครั้งเดียว
 - **ถ้ายังไม่มีโค้ดแอป:** Claude ถามก่อนว่า a) ทำ static preview ก่อน (แนะนำ) หรือ b) scaffold แอปก่อนผ่าน `/opsx:propose` แล้วค่อยทำ theme ใน stack (ดูหัวข้อ "static preview" ด้านล่าง)
-- **สิ่งที่คุณต้องตอบ (ในรอบเดียว):** โลโก้, สีหลักหรือ CI guide ของลูกค้า, ความรู้สึกของแอป (หน้าจอแน่นแบบ back-office หรือโปร่ง), ฟอนต์ไทย และ **อุปกรณ์ที่ต้องรองรับ** (a จอคอมและโน้ตบุ๊ก / b เพิ่มแท็บเล็ต / c ทุกขนาดรวมมือถือ) พร้อมขนาดจอที่ลูกค้าจะใช้ตรวจรับ เช่น 1366×768 ถ้าลูกค้าไม่มี CI Claude จะเสนอสามชุดสีไว้บนหน้า style guide ให้เลือก ถ้าลูกค้ามี mockup (HTML หรือภาพ) ใน `docs/source/` จะใช้เป็นจุดเริ่ม และบอกทุกจุดที่ kit ต่างจาก mockup
+- **สิ่งที่คุณต้องตอบ (ในรอบเดียว):** โลโก้, สีหลักหรือ CI guide ของลูกค้า, ความรู้สึกของแอป (หน้าจอแน่นแบบ back-office หรือโปร่ง), ฟอนต์ไทย และ **อุปกรณ์ที่ต้องรองรับ** (a จอคอมและโน้ตบุ๊ก / b เพิ่มแท็บเล็ต / c ทุกขนาดรวมมือถือ) พร้อมขนาดจอที่ลูกค้าจะใช้ตรวจรับ เช่น 1366×768 และ **รูปแบบวันที่** (a `DD/MM/YYYY` แนะนำ / b `DD-MM-YYYY` / c `DD.MM.YYYY` / d `YYYY-MM-DD` กับปี ค.ศ. แนะนำ หรือ พ.ศ.) ถ้าลูกค้าไม่มี CI Claude จะเสนอสามชุดสีไว้บนหน้า style guide ให้เลือก ถ้าลูกค้ามี mockup (HTML หรือภาพ) ใน `docs/source/` จะใช้เป็นจุดเริ่ม และบอกทุกจุดที่ kit ต่างจาก mockup
 - **ได้อะไร:**
   - `wwwroot/css/tokens.css` เป็นที่เดียวที่เก็บสี ฟอนต์ radius และระยะห่าง
   - `_Layout.cshtml` ที่มี sidebar (เมนูกรองตามสิทธิ์), top bar, toast และ prototype banner ที่มี **ปุ่มสลับ role**
@@ -194,15 +194,21 @@ flowchart TD
 
     ตัวเลขปรับได้ให้ขนาดจอที่ลูกค้าตรวจรับตกในสถานะที่ต้องการ และบันทึกไว้ใน `docs/ui/design-system.md` ปุ่ม ☰ จำค่าที่เลือกไว้ หน้าจอไม่มี media query ของตัวเอง เนื้อหาจัดตัวเองตามความกว้างของพื้นที่เนื้อหาผ่าน grid ของ kit
   - ชั้นสิทธิ์ที่ใช้ต่อได้ถึงของจริง: permission key, `ICurrentUser`, `MenuDefinition`, การตรวจสิทธิ์ที่ endpoint และผู้ใช้จำลองใน `PrototypeData/users.json` กับ `roles.json` ที่สร้างจากเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติแล้ว (ถ้ายังไม่มีจะได้ผู้ใช้ "ผู้ดูแลระบบ" คนเดียวที่เห็นทุกอย่าง)
-  - component ชุดกลาง: DataTable, FilterPanel, FormField, PageHeader, StatusBadge, EmptyState, ConfirmDialog, Toast, SidebarMenu
+  - component ชุดกลาง: DataTable, FilterPanel, FormField, DatePicker, DateRangeField, PageHeader, Button, Card, Dialog, SidePanel (panel เลื่อนออกจากด้านขวา), Alert, Tabs, Dropdown, Tooltip, Loading, DetailView, StatusBadge, EmptyState, ConfirmDialog, Toast, SidebarMenu
+  - **ตารางของ back-office (`DataTable`):**
+    - แบ่งหน้าที่ server เสมอ: กรอง เรียง แล้วตัดเอาเฉพาะหน้าที่ต้องการในคำสั่ง query ของ database และนับจำนวนด้วยเงื่อนไขเดียวกัน ไม่ดึงทุกแถวมาไว้ในหน่วยความจำหรือ browser
+    - pager แบบ `‹ 1 … 4 5 6 … 20 ›` (ไม่เกิน 7 หน้าแสดงทุกเลข) ปุ่ม ‹ › ปิดเมื่ออยู่หน้าแรกหรือหน้าสุดท้าย จอแคบย่อเป็น `‹ 5 / 20 ›` และมี "แสดง 1–25 จาก 1,234 รายการ" กับตัวเลือกจำนวนต่อหน้า
+    - `FilterPanel` เป็น panel แยกอยู่เหนือตาราง ไม่อยู่ในตาราง
+    - header search (ช่องค้นหาใต้หัวคอลัมน์) ออกแบบไว้แต่ไม่บังคับ เปิดเฉพาะคอลัมน์ที่หน้าจอกำหนด `searchable` ถ้าไม่มีคอลัมน์ไหนเปิด แถวค้นหาจะไม่แสดงเลย
+  - **ช่องวันที่ (`DatePicker`):** พิมพ์ตามรูปแบบวันที่ของโปรเจกต์ (เช่น `27/09/2026`, `1/9/2026`, `27092026` หรือวาง `2026-09-27`) หรือเลือกจากปฏิทินที่แสดงภาษาอังกฤษคู่ภาษาไทย (หัวเดือน "October 2026" ใต้ด้วย "ตุลาคม", วันในสัปดาห์ Su/อา …) คลิกหัวเดือนเพื่อเลือกเดือน คลิกปีเพื่อเลือกปี มีปุ่ม Today · วันนี้ และ Clear · ล้าง ค่าที่ส่งให้ API เป็น ISO `YYYY-MM-DD` (ค.ศ.) เสมอ ไม่ว่าจะแสดงแบบไหน ไม่ใช้ `<input type="date">` ของ browser รูปแบบวันที่ตั้งครั้งเดียวใน `docs/ui/design-system.md` แล้วช่องวันที่ ตาราง และทุกที่ที่แสดงวันที่ใช้ตามนั้น ถ้าเลือก พ.ศ. จะพิมพ์และแสดงเป็น 2569 แต่เก็บเป็น 2026 DatePicker เป็นสัญญา ไม่ใช่โค้ดตายตัว Claude เขียนใหม่ตาม stack ของโปรเจกต์ (React, ASP.NET Core MVC รวมถึงที่ใช้ jQuery unobtrusive validation) และ unit test ของตัวแปลงวันที่ทำให้ทุก stack ได้ผลเหมือนกัน
   - หน้า `/_styleguide` ให้คุณอนุมัติหน้าตาครั้งเดียว แทนการอนุมัติทีละหน้าจอ เปิดด้วยส่วน "การตัดสินใจของ theme" (พร้อมป้ายที่มา) และส่วน "โครงหน้าและเมนู" ที่มีปุ่มบังคับเมนูเต็ม/ไอคอน/ตามจอ/เปิด drawer กับตารางความกว้างจอ ให้ลองย่อหน้าต่างดูได้จริง
   - `docs/ui/design-system.md` และ `.claude/rules/ui.md` ที่บังคับให้ทุกหน้าจอใช้ kit
-- **ภายหลัง:** `/mflow:theme update <สิ่งที่จะเปลี่ยน>` แก้ kit ครั้งเดียวแล้วทุกหน้าจอเปลี่ยนตาม และ `/mflow:theme update access` สร้างหรือปรับชั้นสิทธิ์และผู้ใช้จำลองหลังอนุมัติเอกสาร discuss เรื่องสิทธิ์ (โปรเจกต์ที่ทำ theme ไว้ก่อน 0.5 ต้องรันคำสั่งนี้ก่อนสร้างหน้าจอถัดไป) ส่วน `/mflow:theme update responsive` เพิ่มเมนู ☰ และการจัดหน้าตามขนาดจอให้ kit ที่สร้างก่อน 0.11
+- **ภายหลัง:** `/mflow:theme update <สิ่งที่จะเปลี่ยน>` แก้ kit ครั้งเดียวแล้วทุกหน้าจอเปลี่ยนตาม และ `/mflow:theme update access` สร้างหรือปรับชั้นสิทธิ์และผู้ใช้จำลองหลังอนุมัติเอกสาร discuss เรื่องสิทธิ์ (โปรเจกต์ที่ทำ theme ไว้ก่อน 0.5 ต้องรันคำสั่งนี้ก่อนสร้างหน้าจอถัดไป) ส่วน `/mflow:theme update responsive` เพิ่มเมนู ☰ และการจัดหน้าตามขนาดจอให้ kit ที่สร้างก่อน 0.11 `/mflow:theme update components` เพิ่ม pager, header search แบบเลือกคอลัมน์, ช่องวันที่ และ component ใหม่ให้ kit ที่สร้างก่อน 0.14 และ `/mflow:theme update date-picker` เปลี่ยนรูปแบบวันที่หรือเปลี่ยนมาใช้ช่องวันที่แบบใหม่
 - **static preview (`/mflow:theme preview` แล้ว `/mflow:theme port`):** ใช้เมื่อยังไม่มีโค้ดแอป ใช้ stack แบบ `c)` หรืออยากอนุมัติหน้าตาก่อนตั้งโปรเจกต์
-  1. `/mflow:theme preview` สร้าง kit เป็น HTML/CSS/JS ล้วนใน `docs/ui/theme/`: `tokens.css`, `app.css`, `shell.js` (เมนูสามสถานะ ☰ drawer toast dialog และปุ่มสลับ role จากสำเนาของ `PrototypeData/users.json`), `datatable.js`, หน้า style guide `index.html` และหน้าตัวอย่าง `list.html` `form.html` (`dashboard.html` ถ้ามีหน้า dashboard) ไม่มี build และไม่ต้อง npm ถ้า stack ใช้ Bootstrap preview จะโหลด Bootstrap จาก CDN ให้หน้าตาตรงกับของจริง
+  1. `/mflow:theme preview` สร้าง kit เป็น HTML/CSS/JS ล้วนใน `docs/ui/theme/`: `tokens.css`, `app.css`, `shell.js` (เมนูสามสถานะ ☰ drawer toast dialog side panel และปุ่มสลับ role จากสำเนาของ `PrototypeData/users.json`), `datatable.js`, `datepicker.js`, หน้า style guide `index.html` และหน้าตัวอย่าง `list.html` `form.html` (`dashboard.html` ถ้ามีหน้า dashboard) ไม่มี build และไม่ต้อง npm ถ้า stack ใช้ Bootstrap preview จะโหลด Bootstrap จาก CDN ให้หน้าตาตรงกับของจริง
   2. เปิดดูด้วย `python -m http.server 8810 --bind 127.0.0.1 --directory docs/ui/theme` แล้วเข้า `http://127.0.0.1:8810/` (font และ Bootstrap จาก CDN ต้องใช้อินเทอร์เน็ต) ลองย่อหน้าต่างดูเมนูแต่ละสถานะ
   3. คุณอนุมัติ → README ของ preview เปลี่ยนสถานะจาก `draft` เป็น `approved <วันที่>` ระหว่างนี้ `/mflow:theme update <อะไร>` แก้ที่ preview
-  4. `/mflow:theme port` (ปกติเป็น task หนึ่งใน OpenSpec change ที่ scaffold แอป เพราะ port ไม่สร้างโปรเจกต์ให้) copy `tokens.css` `app.css` `assets/` ไปใช้ตรงๆ แล้วสร้าง shell, component และชั้นสิทธิ์ใน stack ตามสัญญา (`shell.js` กับ `datatable.js` เป็นแค่ตัวอย่างพฤติกรรม เพราะของจริงแบ่งหน้าที่ server) เทียบ style guide ของจริงกับ preview ทุกขนาดจอตรวจรับ
+  4. `/mflow:theme port` (ปกติเป็น task หนึ่งใน OpenSpec change ที่ scaffold แอป เพราะ port ไม่สร้างโปรเจกต์ให้) copy `tokens.css` `app.css` `assets/` ไปใช้ตรงๆ แล้วสร้าง shell, component และชั้นสิทธิ์ใน stack ตามสัญญา (`shell.js`, `datatable.js` และ `datepicker.js` เป็นแค่ตัวอย่างพฤติกรรม เพราะของจริงแบ่งหน้าที่ server และตารางตัวอย่างการแปลงวันที่กลายเป็น unit test) เทียบ style guide ของจริงกับ preview ทุกขนาดจอตรวจรับ
   5. preview ถูก freeze (`frozen <วันที่>, kit in <path>`) เป็นหลักฐานว่าอนุมัติอะไรไป หลังจากนี้แก้ kit ที่ stack เท่านั้น
   - `/mflow:screen` จะไม่สร้างหรือปรับหน้าจอจนกว่า kit จะ port เข้า stack แล้ว แต่ `/mflow:screen inventory` ทำได้ตั้งแต่ช่วง preview
   - ความเห็นจากการทดสอบเรื่องหน้าตา เมนู หรือการจัดหน้าบนจอเล็ก `/mflow:review-notes` จะส่งไปที่ `/mflow:theme update <อะไร>`
@@ -407,6 +413,8 @@ git diff --stat openspec/specs
 | อยากอนุมัติหน้าตาและเมนู ☰ ก่อนมีโค้ดแอป | `/mflow:theme preview` → อนุมัติ → `/mflow:theme port` |
 | จะเปลี่ยนสี ฟอนต์ หรือ component กลาง | `/mflow:theme update <อะไร>` |
 | kit ไม่มีเมนู ☰ หรือหน้าไม่จัดตัวเองเมื่อย่อจอ (kit ที่สร้างก่อน 0.11) | `/mflow:theme update responsive` |
+| kit ยังไม่มี pager แบบ ‹ 1 2 3 ›, header search แบบเลือกคอลัมน์, ช่องวันที่แบบใหม่ หรือ Button, Card, Dialog, SidePanel, Alert … (kit ที่สร้างก่อน 0.14) | `/mflow:theme update components` |
+| อยากเปลี่ยนรูปแบบวันที่ (เช่น เป็น พ.ศ.) | `/mflow:theme update date-picker` |
 | ทำรายการหน้าจอของ release | `/mflow:screen inventory` |
 | สร้างหรือปรับหน้าจอ | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` |
 | เพิ่งทดสอบใช้งานหรือประชุมรีวิว | `/mflow:review-notes @โน้ต` |
@@ -422,7 +430,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.13.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.14.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -447,6 +455,8 @@ git diff --stat openspec/specs
 | เมนูสามสถานะ ปุ่ม ☰ และการตรวจตามขนาดจอยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้เป็นตัวอย่างมาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูหน้า style guide ที่ทุกขนาดจอตรวจรับ |
 | เอกสาร discuss ที่เขียนก่อน 0.13 ใช้ `**พี่ปูเลือก:**`, `> พี่ปู:` และป้าย `[พี่ปู]` | ยังใช้ได้ `check` อ่าน marker เดิมเหมือนเดิม รอบแก้ถัดไป Claude เปลี่ยนเฉพาะบรรทัดคำตอบที่ยังเปิดเป็น `**เลือก:**` ส่วนที่ตอบแล้วคงไว้ |
 | โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
+| kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
+| DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
 | ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID>` แล้วตอบได้เลย |
 | stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |
 

@@ -10,6 +10,7 @@
   --app-primary-active: #16447d;
   --app-primary-subtle: #e6eef8;
   --app-primary-emphasis: #0f305a;
+  --app-on-primary: #ffffff;        /* text on a primary fill (buttons, the picked date) */
   --app-secondary: #5f6b7a;
   --app-secondary-rgb: 95, 107, 122;
 

@@ -2,7 +2,7 @@
 name: theme
 description: Build the project's design system before any screen — color and type tokens, app shell layout, shared UI components, a style-guide page, and the rules that make every screen use them.
 disable-model-invocation: true
-argument-hint: "[brand notes | @logo | @CI-guide] | update <what to change>"
+argument-hint: "[brand notes | @logo | @CI-guide] | preview [brand notes] | port | update <what to change>"
 ---
 
 A theme is the shared kit every screen is built from, the way a housing project picks one set of doors, tiles and switches for every house. Screens stay consistent because they can only be assembled from the kit: colors come from tokens, inputs and tables come from components, and nothing is styled inline.
@@ -10,6 +10,16 @@ A theme is the shared kit every screen is built from, the way a housing project 
 Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen. `/mflow:theme update responsive` builds or refreshes only the responsive parts: the device question in step 1, the layout tokens in step 2, the `AppShell` in step 3, the "Narrow" lines of the components, and the style guide's layout section. Kits built before mflow 0.11 need it to get the ☰ menu and the reflowing pages. It first compares the existing shell and components with `AppShell` and the "Narrow" lines, lists only the gaps, and changes nothing before พี่ปู says yes. A kit that already complies only gets its Devices, acceptance-size and Breakpoints lines in design-system.md.
 
 Stack: read AGENTS.md `## Stack`. If it is missing (projects set up before mflow 0.10) or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Paths and names below are for the `mvc-htmx` profile. Under another profile, use the matching rows of `## Stack` (tokens file, app shell, components, style guide, prototype-mode flag) and keep every contract.
+
+## Where the kit is built
+
+- **In the stack** (the default): steps 1 to 6 below.
+- **As a static preview** (`/mflow:theme preview`): plain HTML, CSS and JavaScript in `docs/ui/theme/`, approved before the app exists, as [references/preview.md](references/preview.md) describes. Steps 1 to 6 still apply, with the differences listed there.
+- **Port** (`/mflow:theme port`): builds the kit in the stack from the approved preview, then freezes the preview ([references/preview.md](references/preview.md), "Porting it").
+
+Plain `/mflow:theme` when the app does not exist yet (the App shell path in `## Stack` is missing): ask first. Offer a) a static preview now, recommended while the app is not scaffolded, and b) scaffold the app first through `/opsx:propose`, then run theme in the stack. A letter is a full answer.
+
+`/mflow:theme update <what>` follows the kit's current home. If `docs/ui/theme/README.md` says `draft` or `approved`, it edits the preview; `frozen` means the stack kit, and the frozen preview is never edited again.
 
 ## 1. Brand input
 

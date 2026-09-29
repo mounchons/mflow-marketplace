@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.11.0 |
+| เวอร์ชัน plugin | 0.12.0 |
 | วันที่ | 2026-09-29 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -177,6 +177,7 @@ flowchart TD
 ### ขั้น 2: `/mflow:theme [แบรนด์ | @โลโก้ | @CI guide]`
 
 - **ใช้เมื่อ:** ก่อนสร้างหน้าจอแรก ทำครั้งเดียว
+- **ถ้ายังไม่มีโค้ดแอป:** Claude ถามก่อนว่า a) ทำ static preview ก่อน (แนะนำ) หรือ b) scaffold แอปก่อนผ่าน `/opsx:propose` แล้วค่อยทำ theme ใน stack (ดูหัวข้อ "static preview" ด้านล่าง)
 - **สิ่งที่พี่ปูต้องตอบ (ในรอบเดียว):** โลโก้, สีหลักหรือ CI guide ของลูกค้า, ความรู้สึกของแอป (หน้าจอแน่นแบบ back-office หรือโปร่ง), ฟอนต์ไทย และ **อุปกรณ์ที่ต้องรองรับ** (a จอคอมและโน้ตบุ๊ก / b เพิ่มแท็บเล็ต / c ทุกขนาดรวมมือถือ) พร้อมขนาดจอที่ลูกค้าจะใช้ตรวจรับ เช่น 1366×768 ถ้าลูกค้าไม่มี CI Claude จะเสนอสามชุดสีไว้บนหน้า style guide ให้เลือก ถ้าลูกค้ามี mockup (HTML หรือภาพ) ใน `docs/source/` จะใช้เป็นจุดเริ่ม และบอกทุกจุดที่ kit ต่างจาก mockup
 - **ได้อะไร:**
   - `wwwroot/css/tokens.css` เป็นที่เดียวที่เก็บสี ฟอนต์ radius และระยะห่าง
@@ -195,6 +196,14 @@ flowchart TD
   - หน้า `/_styleguide` ให้ลูกค้าอนุมัติหน้าตาครั้งเดียว แทนการอนุมัติทีละหน้าจอ เปิดด้วยส่วน "การตัดสินใจของ theme" (พร้อมป้ายที่มา) และส่วน "โครงหน้าและเมนู" ที่มีปุ่มบังคับเมนูเต็ม/ไอคอน/ตามจอ/เปิด drawer กับตารางความกว้างจอ ให้ลองย่อหน้าต่างดูได้จริง
   - `docs/ui/design-system.md` และ `.claude/rules/ui.md` ที่บังคับให้ทุกหน้าจอใช้ kit
 - **ภายหลัง:** `/mflow:theme update <สิ่งที่จะเปลี่ยน>` แก้ kit ครั้งเดียวแล้วทุกหน้าจอเปลี่ยนตาม และ `/mflow:theme update access` สร้างหรือปรับชั้นสิทธิ์และผู้ใช้จำลองหลังอนุมัติเอกสาร discuss เรื่องสิทธิ์ (โปรเจกต์ที่ทำ theme ไว้ก่อน 0.5 ต้องรันคำสั่งนี้ก่อนสร้างหน้าจอถัดไป) ส่วน `/mflow:theme update responsive` เพิ่มเมนู ☰ และการจัดหน้าตามขนาดจอให้ kit ที่สร้างก่อน 0.11
+- **static preview (`/mflow:theme preview` แล้ว `/mflow:theme port`):** ใช้เมื่อยังไม่มีโค้ดแอป ใช้ stack แบบ `c)` หรืออยากให้ลูกค้าอนุมัติหน้าตาก่อนตั้งโปรเจกต์
+  1. `/mflow:theme preview` สร้าง kit เป็น HTML/CSS/JS ล้วนใน `docs/ui/theme/`: `tokens.css`, `app.css`, `shell.js` (เมนูสามสถานะ ☰ drawer toast dialog และปุ่มสลับ role จากสำเนาของ `PrototypeData/users.json`), `datatable.js`, หน้า style guide `index.html` และหน้าตัวอย่าง `list.html` `form.html` (`dashboard.html` ถ้ามีหน้า dashboard) ไม่มี build และไม่ต้อง npm ถ้า stack ใช้ Bootstrap preview จะโหลด Bootstrap จาก CDN ให้หน้าตาตรงกับของจริง
+  2. เปิดดูด้วย `python -m http.server 8810 --bind 127.0.0.1 --directory docs/ui/theme` แล้วเข้า `http://127.0.0.1:8810/` (font และ Bootstrap จาก CDN ต้องใช้อินเทอร์เน็ต) ลองย่อหน้าต่างดูเมนูแต่ละสถานะ
+  3. พี่ปูอนุมัติ → README ของ preview เปลี่ยนสถานะจาก `draft` เป็น `approved <วันที่>` ระหว่างนี้ `/mflow:theme update <อะไร>` แก้ที่ preview
+  4. `/mflow:theme port` (ปกติเป็น task หนึ่งใน OpenSpec change ที่ scaffold แอป เพราะ port ไม่สร้างโปรเจกต์ให้) copy `tokens.css` `app.css` `assets/` ไปใช้ตรงๆ แล้วสร้าง shell, component และชั้นสิทธิ์ใน stack ตามสัญญา (`shell.js` กับ `datatable.js` เป็นแค่ตัวอย่างพฤติกรรม เพราะของจริงแบ่งหน้าที่ server) เทียบ style guide ของจริงกับ preview ทุกขนาดจอตรวจรับ
+  5. preview ถูก freeze (`frozen <วันที่>, kit in <path>`) เป็นหลักฐานว่าอนุมัติอะไรไป หลังจากนี้แก้ kit ที่ stack เท่านั้น
+  - `/mflow:screen` จะไม่สร้างหรือปรับหน้าจอจนกว่า kit จะ port เข้า stack แล้ว แต่ `/mflow:screen inventory` ทำได้ตั้งแต่ช่วง preview
+  - ความเห็นของลูกค้าเรื่องหน้าตา เมนู หรือการจัดหน้าบนจอเล็ก `/mflow:review-notes` จะส่งไปที่ `/mflow:theme update <อะไร>`
 - **ตรวจทุกขนาดจอ:** `/mflow:screen` และ `/mflow:review` ตรวจหน้าจอที่ขนาดจอตรวจรับใน `docs/ui/design-system.md` (อย่างน้อยใหญ่สุดและเล็กสุด): หน้าไม่เลื่อนแนวนอน, เมนูเปิดได้, ไม่มีอะไรทับหรือถูกตัด ภาพหน้าจอเก็บทุก role ที่ขนาดใหญ่สุด และหนึ่ง role ที่ขนาดเล็กสุด
 
 ### ขั้น 3: `/mflow:screen inventory [@เอกสาร]`
@@ -390,6 +399,7 @@ git diff --stat openspec/specs
 | ออกแบบตาราง column และ data dictionary ของกลุ่มข้อมูลหนึ่ง | `/mflow:discuss <กลุ่มข้อมูล> data model [@ไฟล์]` |
 | เอกสาร discuss ตรงกับที่คิดแล้ว | `/mflow:discuss <NN> approve` |
 | ยังไม่เคยสร้างหน้าจอเลย | `/mflow:theme` |
+| อยากให้ลูกค้าอนุมัติหน้าตาและเมนู ☰ ก่อนมีโค้ดแอป | `/mflow:theme preview` → อนุมัติ → `/mflow:theme port` |
 | จะเปลี่ยนสี ฟอนต์ หรือ component กลาง | `/mflow:theme update <อะไร>` |
 | kit ไม่มีเมนู ☰ หรือหน้าไม่จัดตัวเองเมื่อย่อจอ (kit ที่สร้างก่อน 0.11) | `/mflow:theme update responsive` |
 | ทำรายการหน้าจอของ release | `/mflow:screen inventory` |
@@ -407,7 +417,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.11.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.12.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -427,6 +437,8 @@ git diff --stat openspec/specs
 | คำสั่งแปลงเอกสารลูกค้าเป็นข้อความก่อน `consult` ต้องมี pandoc หรือ python (python-docx, openpyxl, pypdf) | ติดตั้งตามหัวข้อ 3 ถ้าแปลงไม่ได้ brief จะบอก AI ตัวอื่นว่าไฟล์นั้นอ่านไม่ได้ |
 | โปรเจกต์ที่ init ก่อน 0.10 ไม่มี `## Stack` ใน AGENTS.md | คำสั่งแรกที่ต้องใช้ (`theme`, `screen`, `golden`, `review`) จะเดา stack จาก repo แล้วถามก่อน จากนั้นเพิ่ม section ให้ หรือรัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ |
 | kit ที่ทำ theme ไว้ก่อน 0.11 ไม่มีเมนูสามสถานะ ปุ่ม ☰ และ grid ที่จัดตามความกว้าง | รัน `/mflow:theme update responsive` ก่อนสร้างหน้าจอถัดไป แล้วเติม "อุปกรณ์ที่ต้องรองรับ" และ "ขนาดจอตรวจรับ" ใน `docs/ui/design-system.md` |
+| โหมด `preview` และ `port` ยังไม่เคยรันผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้มาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูทีละขั้น โดยเฉพาะตอน port ที่ต้องเทียบ style guide กับ preview |
+| preview ที่ทำก่อน 0.12 ไม่มีบรรทัด `Status:` ใน `docs/ui/theme/README.md` | `/mflow:screen` ถือว่าเป็น kit แบบเดิมและไม่ขวาง ถ้ายังไม่ได้ port ให้เพิ่ม `Status: approved <วันที่>` เอง |
 | เมนูสามสถานะ ปุ่ม ☰ และการตรวจตามขนาดจอยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้เป็นตัวอย่างมาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูหน้า style guide ที่ทุกขนาดจอตรวจรับ |
 | stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |
 

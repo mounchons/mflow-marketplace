@@ -11,6 +11,7 @@
 - Breakpoints: TODO (default: ≥ 1280 px expanded menu · 768–1279 px icon rail · < 768 px drawer opened by ☰)
 - Layout: fills the window; sidebar and content scroll separately; the top bar stays on top
 - Style guide: `/_styleguide` (dev/prototype only)
+- Kit lives in: TODO (the paths in AGENTS.md `## Stack`; `docs/ui/theme/` while the kit is a static preview, and a pointer to the frozen preview after port)
 
 ## Which component for which need
 | Need | Component | Notes |

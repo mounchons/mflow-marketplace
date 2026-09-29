@@ -18,6 +18,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Have other AI tools analyze a discussion doc too, then choose yourself | `/mflow:discuss <NN> consult [--to <tool>,…]` → run the commands → `/mflow:discuss <NN>` |
 | A discussion doc matches what you think | `/mflow:discuss <NN> approve` |
 | Before building any screen | `/mflow:theme` |
+| Agree the look and the responsive menu before the app exists | `/mflow:theme preview` → approve → `/mflow:theme port` (inside the change that scaffolds the app) |
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |
 | The kit has no ☰ menu, or pages do not reflow on small windows (kits built before 0.11) | `/mflow:theme update responsive` |
 | List the screens for a release | `/mflow:screen inventory` |

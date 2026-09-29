@@ -49,4 +49,5 @@ One invariant holds for every profile: fake users, the role switcher and fake re
 ## Changing the stack later
 
 - **Before `/mflow:theme`:** edit `## Stack`, or ask the question again, and rerun the commands in `## Commands`.
+- **After a static preview but before `/mflow:theme port`:** still cheap. The preview is plain HTML, CSS and JavaScript; only its CSS base (Bootstrap or not) may need adjusting.
 - **After the kit or screens exist:** this is a rebuild of the kit and screens, not a setting. Record it with `backlog decision create` and plan it with พี่ปู. mflow does not move screens between stacks.

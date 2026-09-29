@@ -27,4 +27,6 @@ Done when: every rule input and the expected outcome has a mapped column, or a g
 - A data-driven test in the Unit tests framework of AGENTS.md `## Stack` (xUnit `[MemberData]` in the .NET profiles) that loads the file, runs the domain service or aggregate method, and asserts `expected` with the rounding rule from rules.md. If the domain code does not exist yet, write the test against the intended interface and mark it skipped with the reason `until <change-name> is applied`.
 - Update the hotspot map `Notes → Golden data source`, and `mark` the source `--used-by hs-<slug>`.
 
-Done when: the JSON and test compile, the test runs (passing, failing with a clear diff, or skipped with a reason), and the anomalies list is either empty or turned into tickets.
+**What comes next:** tell the user the test result in one line. A failing test means the code or a rule row is wrong: name the rows that differ. Then give one next command: `/mflow:hotspot <slug>`, which rechecks the readiness bar now that golden data exists, or takes the anomaly tickets this run created. Write it into STATUS.md `## Now`.
+
+Done when: the JSON and test compile, the test runs (passing, failing with a clear diff, or skipped with a reason), the anomalies list is either empty or turned into tickets, and the user has the next command.

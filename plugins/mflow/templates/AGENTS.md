@@ -28,6 +28,17 @@ Profile: TODO
 | E2E tests | TODO |
 | Golden data folder | TODO |
 
+<!-- Filled from the approved tech-stack discussion doc. Every package's licence is checked, not assumed. -->
+| App | Folder | Technology (version) |
+|---|---|---|
+| TODO | TODO | TODO |
+
+| Purpose | Library (version) | Licence |
+|---|---|---|
+| TODO | TODO | TODO |
+
+Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a cache when …, a queue when …)
+
 ## Commands
 <!-- Fill during /mflow:init from the Stack profile. Append `(unverified)` to any command that was not actually run. -->
 - Build: `TODO`
@@ -37,7 +48,8 @@ Profile: TODO
 - Format: `TODO`
 
 ## Architecture
-- Solution layout: TODO (e.g. `src/<Context>.Domain`, `.Application`, `.Infrastructure`, `.Web`)
+- Solution layout: TODO (e.g. `src/<Product>.Domain`, `.Application`, `.Infrastructure`, `.Api` or `.Web`; from the approved code-structure discussion doc)
+- References point inward only: Api and Web → Infrastructure → Application → Domain. TODO: the architecture test that enforces it
 - Bounded contexts: TODO
 - Business rules live in the Domain layer (aggregates, value objects, domain services). UI and controllers call them; they never re-implement them.
 
@@ -56,7 +68,7 @@ Profile: TODO
 | Why an architecture choice was made | Backlog.md decisions (`backlog decision`) | `backlog` CLI only |
 | Big business logic being worked out | `docs/hotspots/<slug>/` | `/mflow:hotspot` |
 | Customer documents (originals, never edited) | `docs/source/` + `docs/source/INDEX.md` | `/mflow:capture` (registry script) |
-| Understanding or design agreed with the user before building (roles, menus, data visibility…) | `docs/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet | `/mflow:discuss` |
+| Understanding or design agreed with the user before building (roles, menus, data visibility…) | `docs/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet; `AGENDA.md` = recommended topics (advice, not a gate) | `/mflow:discuss` |
 | UI kit: tokens, components, which to use | `docs/ui/design-system.md` | `/mflow:theme` |
 | Screen list and prototype data | `docs/ui/screens.md`, `PrototypeData/*.json` | `/mflow:screen` |
 | Change requests after approval | `docs/change-requests/` | `/mflow:change-request` |

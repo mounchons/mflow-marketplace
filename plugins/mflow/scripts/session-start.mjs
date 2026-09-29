@@ -9,7 +9,7 @@ import {
   sessionStateFile, frontmatter, truncate,
 } from "./lib.mjs";
 import { scan as scanSources } from "./source-index.mjs";
-import { list as listDiscussions, reportDiscussId } from "./discuss.mjs";
+import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
 
 const input = readStdinJson();
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
@@ -109,8 +109,10 @@ try {
     });
   if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
 } catch { /* no inbox yet */ }
+let discussions = null;
 try {
-  const drafts = listDiscussions(root).docs.filter((d) => d.status === "draft");
+  discussions = listDiscussions(root);
+  const drafts = discussions.docs.filter((d) => d.status === "draft");
   if (drafts.length) {
     const describe = (d) => {
       const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length;
@@ -132,6 +134,18 @@ try {
   }
 } catch { /* no discussions or inbox yet */ }
 if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
+
+// The discussion agenda is advice: shown as an optional suggestion, never as pending work.
+if (discussions?.agenda) {
+  const { file, topics } = discussions.agenda;
+  const names = (list) => list.slice(0, 3).map((t) => t.slug).join(", ") + (list.length > 3 ? ", …" : "");
+  const notStarted = topics.filter((t) => t.status === NOT_STARTED);
+  const revisit = topics.filter((t) => t.review && t.status.startsWith("อนุมัติแล้ว"));
+  const lines = [];
+  if (notStarted.length) lines.push(`- ${notStarted.length} recommended topic(s) not started: ${names(notStarted)} → /mflow:discuss <slug>, or skip in ${file}`);
+  if (revisit.length) lines.push(`- ${revisit.length} approved topic(s) a newer source may change: ${names(revisit)} → a new doc with /mflow:discuss <slug>`);
+  if (lines.length) parts.push("## Discussion agenda (optional)\n" + lines.join("\n"));
+}
 
 parts.push(
   "## Session ritual\n" +

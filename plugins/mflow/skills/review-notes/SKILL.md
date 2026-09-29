@@ -53,4 +53,6 @@ Write `docs/reviews/<date>-<topic>-summary.md` in Thai: what was agreed, as the 
 
 When the user wants to send it to the people who took part (the usual case for an SA or a PM), add a Thai email draft to the same file: polite, direct, no over-selling. It informs; it does not ask for confirmation. It may close with "ถ้ามีจุดไหนไม่ตรง แจ้งได้ จะปรับในรอบถัดไป".
 
-Done when: the source is marked, destinations are written, the summary exists (with the email draft if the user wanted one), and STATUS.md notes the next test or review date if one was agreed.
+**What comes next:** tell the user what the review produced, by destination, and one next command, in this order of priority: `/mflow:screen <name> …` for the first prototype task, `/mflow:discuss <slug>` for a doc to supersede, `/mflow:hotspot <idea>` for a new rule, `/mflow:change-request` for a built item. Write it into STATUS.md `## Now`.
+
+Done when: the source is marked, destinations are written, the summary exists (with the email draft if the user wanted one), STATUS.md notes the next test or review date if one was agreed, and the user has the next command.

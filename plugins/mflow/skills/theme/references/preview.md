@@ -57,7 +57,7 @@ Write the README with `Status: draft`. When the user approves the preview, set `
 
 This Done-when replaces step 6's, because there is no app to build yet.
 
-Done when: the preview opens from the README's command, the style guide passes §5 at the acceptance sizes (or reports them `(unverified)`), design-system.md names the preview as the kit's home, and the status is `draft` or `approved`.
+Done when: the preview opens from the README's command, the style guide passes §5 at the acceptance sizes (or reports them `(unverified)`), design-system.md names the preview as the kit's home, the status is `draft` or `approved`, and the user has the next step: the command to open it and approve it, then `/mflow:screen inventory` (it runs during the preview), and `/mflow:theme port` once the app is scaffolded.
 
 ## Porting it (`/mflow:theme port`)
 
@@ -71,4 +71,4 @@ Done when: the preview opens from the README's command, the style guide passes �
    - In design-system.md, change the kit's home to the stack paths, and keep one line pointing at the frozen preview.
    - Update STATUS.md.
 
-Done when: the build command in AGENTS.md passes, the stack's style guide matches the preview at the acceptance sizes (or the differences are listed and agreed), the preview is frozen, and design-system.md points at the stack kit.
+Done when: the build command in AGENTS.md passes, the stack's style guide matches the preview at the acceptance sizes (or the differences are listed and agreed), the preview is frozen, design-system.md points at the stack kit, and the user has the next command: `/mflow:screen <name> …` for the first screen in `docs/ui/screens.md`, or `/mflow:screen inventory` if there is no list yet.

@@ -27,7 +27,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.14)
+## คำสั่ง (v0.15)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
@@ -38,6 +38,8 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
+| | `/mflow:discuss tech-stack` / `code-structure` | สองหัวข้อแรกของทุกโปรเจกต์ (ก่อน `/mflow:theme`): แยก web / API / mobile, framework, library ที่เป็น open source และตรวจ licence แล้ว, PostgreSQL + EF Core, Docker, ตัวเสริมที่ใส่ภายหลัง (Redis, queue) และโครง solution แยก layer ตามมาตรฐานของทีม (อ่านจาก knowledge base เช่น Graph Brain ถ้าเชื่อมไว้) |
+| | `/mflow:discuss agenda [skip <slug> <เหตุผล>]` | สร้างหรือเรียง `docs/discuss/AGENDA.md` ใหม่: หัวข้อที่ควร discuss พร้อมเหตุผล ที่มา และควรคุยก่อนขั้นไหน (capture และ screen inventory เพิ่มให้เอง สถานะอัปเดตเอง) เป็นคำแนะนำ ไม่บังคับ |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้า style guide, กฎ UI สำหรับ agent; `update responsive` สำหรับ kit ก่อน 0.11, `update components` สำหรับ kit ก่อน 0.14 |
 | | `/mflow:theme preview` / `port` | ทำ kit เป็น static preview (HTML/CSS/JS) ใน `docs/ui/theme/` ให้อนุมัติก่อนมีโค้ดแอป แล้ว `port` เข้า stack จริงและ freeze preview ไว้เป็นหลักฐาน |
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
@@ -77,7 +79,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 ## Flow ประจำวัน
 
 1. เอกสารลูกค้าเข้า `docs/source/` → `/mflow:capture`
-2. เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → (ถ้าอยากให้ AI หลายตัวช่วยคิด `/mflow:discuss <NN> consult` แล้วรันคำสั่งเอง) → คุณตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
+2. ดูหัวข้อแนะนำใน `docs/discuss/AGENDA.md` (capture สร้างและเพิ่มให้ เป็นคำแนะนำ จะคุยหรือข้ามก็ได้) → เรื่องที่ตีความได้หลายแบบ (สิทธิ์, เมนู, การมองเห็นข้อมูล …) → `/mflow:discuss <หัวข้อ>` → (ถ้าอยากให้ AI หลายตัวช่วยคิด `/mflow:discuss <NN> consult` แล้วรันคำสั่งเอง) → คุณตอบในไฟล์หรือในแชต → `/mflow:discuss <NN> approve`
 3. ครั้งแรกของโปรเจกต์: `/mflow:theme` (หรือ `/mflow:theme preview` ถ้ายังไม่มีโค้ดแอป แล้ว `port` ใน change ที่ scaffold แอป) → `/mflow:screen inventory` → ออกแบบข้อมูลทีละกลุ่ม `/mflow:discuss <กลุ่มข้อมูล> data model` (ไม่บังคับ)
 4. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → ทดสอบใช้งานหรือรีวิว (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 5. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` (+ `/mflow:golden`) → graduate
@@ -99,7 +101,7 @@ mflow/
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
 │   ├─ stop-guard.mjs
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
-│   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ
+│   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ + สถานะของ AGENDA.md
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI

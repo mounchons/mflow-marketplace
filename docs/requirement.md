@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.14.0 |
+| เวอร์ชันที่อธิบาย | 0.15.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-09-29 |
@@ -277,6 +277,22 @@ flowchart TD
 | FR-154 | คำตอบหรือคำสั่งของผู้ใช้นับเป็นคำสั่งของลูกค้าโดยตรงในทุกคำสั่ง (discuss, hotspot, review-notes, change-request, capture, assess, theme, screen) ไม่มีขั้นใดรอลูกค้ายืนยันซ้ำ และคำสั่งให้ทำคือ yes ของเรื่องนั้น | มีแล้ว |
 | FR-155 | หลัก "ทำก่อน ทดสอบใช้งาน แล้วปรับเพิ่ม" อยู่ในหัวข้อ `## Who decides` ของ AGENTS.md (template) และใน `context` ของ `openspec/config.yaml` ที่ `/mflow:init` เติมให้ เพื่อให้ AI ทุกตัวและ OpenSpec proposal ทำตาม | มีแล้ว |
 
+### 6.14 หัวข้อที่ควร discuss (`docs/discuss/AGENDA.md`)
+
+| รหัส | Requirement | สถานะ |
+|---|---|---|
+| FR-162 | เอกสารแนะนำหัวข้อที่ควร discuss เป็นตารางภาษาไทย: ลำดับ, หัวข้อพร้อม slug, เหตุผลพร้อมที่มาและผลเสียถ้าเข้าใจผิด, ควรคุยก่อนขั้นไหน, สถานะ เป็นคำแนะนำ ไม่มีคำสั่งไหนรอ ผู้ใช้เลือกคุย ข้าม (`ข้าม: <เหตุผล>`) หรือไม่ทำอะไรก็ได้ | มีแล้ว |
+| FR-163 | `/mflow:capture` เพิ่มหัวข้อหรือหลักฐานใหม่ทุกครั้งที่รัน รวมถึงตอนเป็นขั้นหนึ่งของ `/mflow:init` หรือคำสั่งอื่น เอกสารใหม่ที่เปลี่ยนเรื่องที่อนุมัติแล้วใส่ป้าย **ทบทวน:** ในเหตุผล `/mflow:screen inventory` เพิ่มหัวข้อ `<aggregate>-data` | มีแล้ว |
+| FR-164 | `/mflow:discuss agenda` สร้างหรือเรียงรายการใหม่จากเอกสาร active ทั้งหมด vision, hotspot, screens และเอกสาร discuss ไม่ลบแถว เก็บสถานะที่เขียนเอง แถวที่ไม่จำเป็นแล้วเขียนเหตุผลแทนการลบ | มีแล้ว |
+| FR-165 | สถานะมาจาก script (`discuss.mjs agenda`): เอกสารล่าสุดของ slug นั้นชนะ ถ้าไม่มีเอกสารเก็บสถานะที่เขียนเอง แก้เฉพาะช่องสถานะและคงทุก byte อื่น (รวม CRLF) แถวที่จำนวนช่องไม่ตรงหรือไม่มี slug ถูกเตือนและไม่แตะ `new` ซิงก์ให้เอง approve และ drop เรียกซิงก์ `list` และ briefing คำนวณสดโดยไม่เขียนไฟล์ | มีแล้ว |
+| FR-167 | `/mflow:init` สร้าง AGENDA.md ทันทีหลัง scaffold และสองแถวแรกมีเสมอ: `tech-stack` และ `code-structure` (ก่อน `/mflow:theme`) ไม่ต้องรอเอกสารลูกค้า `/mflow:theme` เตือนครั้งเดียวถ้ายังไม่อนุมัติ แต่ไม่ขวาง | มีแล้ว |
+| FR-168 | Checklist ของ `tech-stack`: แอปทุกตัว (web แต่ละตัว, API, mobile, worker), front end ต่อแอป, หลาย web app ต้องตัดสินว่า kit อยู่ที่ไหน, mobile, API (.NET 10 + C# 14 เป็นค่าแนะนำ), ข้อมูล (PostgreSQL 18 + EF Core 10), ไฟล์และเอกสาร, Docker และ environment, test, การตรวจ licence ของทุก package และ image ตามเวอร์ชันที่เลือก (ของที่ต้องจ่ายเป็นข้อตัดสินใจของผู้ใช้), และตัวเสริมแต่ละตัวได้ผลเดียว: ใช้เลย (มีหลักฐาน) / ภายหลัง (มีเงื่อนไขและสิ่งที่เตรียมไว้) / ไม่ต้องใช้ ถ้าเกิน ~200 บรรทัดแยกตามแอป | มีแล้ว |
+| FR-169 | Checklist ของ `code-structure`: repo, solution แยก layer (Domain หรือ Core ให้เลือกชื่อเดียว, Application, Infrastructure, Api/Web) อ้างอิงเข้าด้านในและมี architecture test, module, โฟลเดอร์ตาม feature, test project, โฟลเดอร์ของ web/mobile และ package ที่ใช้ร่วม, build settings, path ของ `## Stack` ชี้ที่โฟลเดอร์จริง การสร้าง solution เป็น task หรือ `/opsx:propose` | มีแล้ว |
+| FR-170 | ลำดับที่มาของสองหัวข้อนี้: เอกสารลูกค้าและคำของผู้ใช้ → มาตรฐานของทีมใน knowledge base ที่เชื่อมไว้ (เช่น Graph Brain) ติด `[ที่มา: brain <ชื่อโน้ต>]` → ข้อเสนอของ Claude โน้ตของโปรเจกต์เก่าเป็นตัวอย่าง ที่ขัดกันเป็นข้อตัดสินใจ | มีแล้ว |
+| FR-171 | ตอนอนุมัติ: แอป library พร้อม licence และตัวเสริมภายหลังไปที่ `## Stack` ของ AGENTS.md (ตาราง Apps, Libraries และบรรทัด Later ใน template) profile และ path ถูกปรับถ้าต่างจากตอน init และ `## Commands` ติด `(unverified)` จนกว่าจะรันใหม่ โครง solution และกฎการอ้างอิงไปที่ `## Architecture` | มีแล้ว |
+| FR-172 | ทุกคำสั่งที่ทำงานจบ (hotspot ทุกโหมด, golden, screen, theme และ preview/port, discuss approve, assess, review-notes, review) บอกผู้ใช้ว่าอะไรเปลี่ยนและคำสั่งถัดไปหนึ่งคำสั่งที่พิมพ์ได้ทันที และเขียนคำสั่งนั้นลง `## Now` ของ STATUS.md hotspot บอก readiness bar, ตั๋วที่หยิบได้ต่อไป และตั๋วที่ติดรอ ตั๋วถัดไปเริ่มใน session ใหม่ และตั๋ว `ask` ตอบในคำสั่งได้ (`/mflow:hotspot <slug> <TASK-ID> <คำตอบ>`) | มีแล้ว |
+| FR-166 | ภาพรวม `/mflow:discuss` แสดงหัวข้อที่ยังไม่เริ่มจากรายการนี้แทนการเดาเอง และ briefing ตอนเริ่ม session แสดงเป็นส่วนแยก "optional" (ไม่เกินสามชื่อ ไม่นับที่ข้าม) พร้อมหัวข้อที่อนุมัติแล้วแต่มีป้ายทบทวน | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -309,7 +325,7 @@ repo/
 ├─ docs/
 │   ├─ vision.md             ← เป้าหมาย, story map, ขอบเขต, open questions
 │   ├─ source/               ← ต้นฉบับลูกค้า + INDEX.md (สร้างอัตโนมัติ)
-│   ├─ discuss/              ← NN-<slug>.md เอกสารยืนยันความเข้าใจกับผู้ใช้
+│   ├─ discuss/              ← NN-<slug>.md เอกสารยืนยันความเข้าใจกับผู้ใช้ + AGENDA.md หัวข้อที่ควร discuss
 │   ├─ ui/                   ← design-system.md, screens.md, ภาพหน้าจอ, theme/ (static preview ของ kit ถ้าใช้)
 │   ├─ hotspots/             ← INDEX.md + <slug>/map.md, rules.md, questions-for-customer.md (เมื่อผู้ใช้จะถามคนอื่นก่อน)
 │   ├─ reviews/              ← สรุปผลทดสอบ/รีวิว + code review
@@ -335,7 +351,7 @@ mflow-marketplace/
     │   ├─ session-start.mjs         ← briefing
     │   ├─ stop-guard.mjs            ← เตือน STATUS.md
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
-    │   ├─ discuss.mjs               ← เลขเอกสาร discuss + ตรวจข้อค้างก่อนอนุมัติ
+    │   ├─ discuss.mjs               ← เลขเอกสาร discuss + ตรวจข้อค้างก่อนอนุมัติ + ซิงก์สถานะของ AGENDA.md
     │   ├─ delegate-cmd.mjs          ← คำสั่งของแต่ละ tool
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
@@ -422,10 +438,11 @@ mflow-marketplace/
 | R-08 | ลูกค้าเข้าใจว่า prototype คือระบบเกือบเสร็จ | ความคาดหวังผิด | PrototypeBanner ทุกหน้า + แจ้งก่อนส่งลิงก์ |
 | R-10 | ปุ่มสลับผู้ใช้จำลองหลุดไปถึง production | ใครก็สวมสิทธิ์คนอื่นได้ | ลงทะเบียน `FakeCurrentUser` และ `/_prototype/*` เฉพาะใต้สวิตช์โหมด prototype ของ stack (`Prototype:UseFakeData` สำหรับ .NET) และ `/mflow:review` ตรวจเป็น blocker ทุก profile ต้องระบุวิธีนี้ในตาราง `## Stack` |
 | R-11 | stack แบบ `c)` ยังไม่เคยทดสอบ และ skill เขียนชื่อแบบ `mvc-htmx` ให้ Claude แปลงเอง | หน้าจอหรือ test อาจไม่ตรงกับ contract | ยืนยันตาราง `## Stack` ก่อน `/mflow:theme` แถวที่เติมไม่ได้เขียน `TODO: <เหตุผล>` ห้ามเดา และนั่งดูรอบแรกทีละขั้น |
+| R-13 | `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ theme กับ screen ทำงานกับ UI แอปเดียว | โปรเจกต์ที่มีหลาย web app ทำ kit ต่อแอปไม่ได้อัตโนมัติ | `tech-stack` ต้องตัดสินว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยก และหน้าจอไหนอยู่แอปไหน ส่วนที่เกินทำด้วยมือ |
 | R-12 | ผู้ใช้ตอบแทนลูกค้าแล้วลูกค้าจริงเห็นต่างทีหลัง | ต้องแก้ของที่สร้างแล้ว | ตั้งใจยอมรับตามหลัก P10: ทำ slice เล็ก ทดสอบใช้งานเร็ว (task ทดสอบใช้งานจากหัวข้อ 5 ของเอกสาร discuss) แล้วแก้เป็น change ถัดไป change request บันทึกผลกระทบไว้ |
 | R-09 | จำนวนคำสั่ง (14) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.14)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.15)
 
 | รายการ | ผล |
 |---|---|
@@ -446,6 +463,8 @@ mflow-marketplace/
 | ขั้นถาม stack ใน `/mflow:init` และการถามครั้งแรกใน `theme`/`screen`/`golden`/`review` ของโปรเจกต์ก่อน 0.10 | ยังไม่ได้รันใน session จริง (R-03) |
 | Responsive (0.11): สร้าง kit ที่มี `AppShell` เมนูสามสถานะ ☰ และการตรวจตามขนาดจอผ่าน `/mflow:theme` | ยังไม่ได้รันใน session จริง (R-03) แบบที่ใช้มาจากโปรเจกต์ที่ทำด้วยมือ |
 | Static preview (0.12): `/mflow:theme preview`, การอนุมัติ, `port` และการ freeze | ยังไม่ได้รันใน session จริง (R-03) แบบที่ใช้มาจากโปรเจกต์ที่ทำด้วยมือ |
+| AGENDA.md ใหม่จาก `agenda init`: มี `tech-stack` และ `code-structure` เป็นแถว 1 และ 2 ไม่มี warning ซิงก์เขียน ยังไม่เริ่ม ทั้งสองแถว briefing แสดงทั้งสอง `new tech-stack` เปลี่ยนเป็นกำลังคุย และ init ซ้ำไม่เขียนทับ | ผ่าน |
+| discuss.mjs agenda (0.15): ไม่มีไฟล์ไม่สร้างเอง (สร้างเฉพาะ `agenda init`), สถานะจากเอกสารล่าสุด (superseded + ฉบับใหม่, draft, approved, dropped ทับสถานะเก่า), ข้ามถูกเก็บจนมีเอกสาร, ช่องว่างเป็นยังไม่เริ่ม, `\|` ในช่องไม่เพี้ยน, CRLF คงเดิม, รันซ้ำไม่เขียน, แถวขาดช่องและไม่มี slug ถูกเตือนและไม่แตะ, แถวใน comment ไม่นับ, `new` ซิงก์และบอก `onAgenda`, briefing แสดงหัวข้อที่ยังไม่เริ่มและที่ต้องทบทวนโดยไม่เขียนไฟล์ | ผ่าน |
 | discuss.mjs marker (0.13): `**เลือก:**` และ `> ความเห็น:` นับเป็นคำตอบและ note, marker เดิม `**พี่ปูเลือก:**` และ `> พี่ปู:` ยังนับ, บรรทัด `**codex เลือก:**` ไม่นับเป็นคำตอบ, marker ใน comment และ code block ไม่นับ | ผ่าน |
 | การทำงานตามหลัก P10 ใน skill (discuss, hotspot, review-notes, change-request) | ยังไม่ได้รันใน session จริง (R-03) |
 | Component ของ 0.14 (pager, header search แบบเลือกคอลัมน์, DatePicker, DateRangeField, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView) ผ่าน `/mflow:theme` | ยังไม่ได้รันใน session จริง (R-03) DatePicker มาจากแบบที่ใช้งานจริงในโปรเจกต์ Next.js |

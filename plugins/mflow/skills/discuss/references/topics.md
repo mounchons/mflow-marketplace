@@ -6,6 +6,72 @@ Each topic ends with a Visuals line: the pictures that usually explain it best (
 
 Every checklist item is either answered with a tag in the doc, turned into a decision (D) for the user, or listed under "ไม่รวมในเรื่องนี้". None is silently skipped.
 
+Two topics stand first on every agenda, because everything after them is built on their answers: `tech-stack`, then `code-structure`, both before `/mflow:theme`. The profile chosen at `/mflow:init` is their starting point; these docs settle the detail.
+
+**Where the answers come from, in this order:** the customer's sources and the user's word; then the team's standards, when a team knowledge base is connected (for example the Graph Brain MCP: search it for the standard tech stack, the .NET conventions and the solution structure), tagged `[ที่มา: brain <note title>]`; then Claude's proposal, tagged `[เสนอ]`. A note that records a team standard ("default .NET 10", "default PostgreSQL 18") is the recommended option. A note about one past project is an example, not a rule; where examples disagree (one project uses a mediator library, another forbids it), that is a decision (D). In a repo that already has code, the code is a source too: state what exists and what the doc would change.
+
+## tech-stack: apps, frameworks, libraries, database, containers
+
+Split it by app if it grows past ~200 lines, for example `tech-stack-web` and `tech-stack-mobile`.
+
+Checklist:
+- **Apps:** every deployable part and who uses it: web apps (back office, a portal for customers or suppliers…), the API, mobile, background workers, scheduled jobs. For each: users, reach (intranet or internet), devices, and whether it is in this release or later.
+- **Web front end, per app:** framework (MVC + Razor + HTMX, React + Vite, Next.js with static export or a server), TypeScript strictness, CSS (the kit's `tokens.css` with Bootstrap, or another base), components (the kit's contracts; a component library only if it can meet them), forms and validation, data fetching, tables with server paging, icons, languages (Thai only, or Thai and English), the kit's date format.
+- **Several web apps:** mflow's `## Stack` seams (UI files, tokens, app shell, components, style guide) hold one path each, and `/mflow:theme` and `/mflow:screen` assume one UI app. Decide where the kit lives (one shared kit package, such as `packages/ui`, or one kit per app) and which app each screen belongs to. Building a kit per app is not automated yet; say so in the doc.
+- **Mobile:** a responsive web app or PWA first, React Native (Expo), Flutter, or native; it calls the same API; offline use, push notifications, camera or GPS, store publishing.
+- **API:** the runtime (default .NET 10 LTS with C# 14), minimal APIs or controllers, versioning (`/api/v1`), the OpenAPI document and its UI, authentication (cookie session or JWT with refresh), validation, mapping (hand-written or a library), a mediator (none, or a library), error format (ProblemDetails), logging (for example Serilog), health checks, rate limiting.
+- **Data:** the database (default PostgreSQL 18) and access (EF Core 10 with the Npgsql provider), naming (for example snake_case), how migrations reach each environment, money and date types, soft delete and audit columns (details per aggregate in the data-model docs), one tenant or many, backups.
+- **Files and documents:** where uploads live (disk, or S3-compatible storage such as MinIO), Excel, PDF, e-mail, barcodes and QR codes.
+- **Containers and environments:** Docker for every service; `docker-compose` for local work (the database on a free port rather than the default one, so it does not clash with another project); multi-stage Dockerfiles (for .NET, `mcr.microsoft.com/dotnet/sdk` to build and `aspnet` to run); environments (dev, UAT, production) and where each runs (the customer's server, a cloud); reverse proxy and HTTPS; secrets (`.env` locally, never in git); CI/CD.
+- **Tests:** unit (xUnit for .NET, Vitest for the web), integration against a real database (Testcontainers), E2E (Playwright), the assertion library.
+- **Licences: open source and free is the rule, and it is checked, not assumed.** For every package and container image chosen (NuGet, npm, Docker), verify its current licence for the pinned version at decision time and record it in the libraries table. Licences change between major versions: MediatR, AutoMapper and FluentAssertions moved to commercial licences, EPPlus needs a paid licence for commercial use, QuestPDF is free only under its community terms, and Redis changed its licence (Valkey is the BSD-licensed fork). A paid or non-open-source choice needs the user's explicit decision (D) with the cost stated.
+- **Core now, extras from evidence.** Every extra (a cache such as Redis or Valkey, a message queue such as RabbitMQ, a job scheduler such as Hangfire or Quartz.NET, search, real-time with SignalR, object storage, observability with OpenTelemetry) gets exactly one outcome: **now**, when a cited need requires it (volume, a response-time target, jobs in scope, several instances sharing state); **later**, with the trigger that brings it in and what is prepared now so adding it is cheap (for example an `ICacheService` over the in-memory cache, or an outbox table before a queue); or **not needed**. Nothing is added "just in case".
+
+Suggested shapes for section 3:
+
+| App | Users | Reach | Technology (version) | Folder | Release |
+|---|---|---|---|---|---|
+
+| Purpose | Library or image (version) | Licence (checked on) | Alternative considered |
+|---|---|---|---|
+
+| Extra | Outcome (now / later / not needed) | Evidence or trigger | Prepared now |
+|---|---|---|---|
+
+| Environment | Where it runs | Services (containers) | How it is deployed |
+|---|---|---|---|
+
+Decisions it usually needs: authentication style, a mediator or not, a mapping library or hand-written mapping, the mobile approach, the web framework per app, one kit or one per app.
+
+Visuals: a `flowchart LR` of the apps, the API, the database and the external systems, with the parts left for later dashed and marked (later); the docker-compose services as a small table.
+
+## code-structure: repository, solution and folders
+
+Checklist:
+- **Repository:** one repo for everything (the default: `src/` or `apps/`, `packages/`, `tests/`, `docs/`, `deploy/`) or one per app; the folder of each app from the tech-stack doc.
+- **.NET solution, split by layer,** following the team's standard when the knowledge base has one:
+  - `<Product>.Domain`: entities, value objects, enums, domain services and domain rules; references nothing. Some teams call it `.Core`: choose one name (D). The golden-data folder in `## Stack` follows it (`tests/<Product>.Domain.Tests/Golden/`).
+  - `<Product>.Application`: use cases, DTOs, validation, and the interfaces the outer layers implement (repositories, file storage, e-mail).
+  - `<Product>.Infrastructure`: the EF Core DbContext, entity configurations and migrations, repositories, external services, Excel, PDF and file storage.
+  - `<Product>.Api` (and `<Product>.Web` for an MVC app): endpoints or controllers, authentication, middleware, and the composition root that wires the DI.
+  - References point inward only: Api and Web → Infrastructure → Application → Domain. An architecture test enforces it (NetArchTest or ArchUnitNET, both free).
+- **Modules:** a folder per bounded context inside each layer (`Domain/<Module>/`), or a project per context only when separate teams or deployments need it; a shared building-blocks project only when two contexts truly share code.
+- **Inside Application:** folders by feature (`Features/<Module>/<UseCase>/`, recommended) or by kind (Commands, Queries, Dtos).
+- **Tests:** a project per layer (`<Product>.Domain.Tests` with its golden data, `<Product>.Application.Tests`, `<Product>.Api.Tests` for integration), `<Product>.ArchitectureTests`, and the E2E folder.
+- **Web and mobile apps:** the folder layout of each app (routes or pages, `features/<module>`, `components` for the kit, `lib` for the API client and the date and number formats), and shared packages (`packages/ui` for the kit, an API client generated from the OpenAPI document).
+- **Build settings:** `global.json` pins the SDK; `Directory.Build.props` holds the target framework, nullable and analyzer settings; `Directory.Packages.props` pins package versions in one place; `.editorconfig`; `.env.example` committed and `.env` ignored.
+- **Names:** namespaces follow folders; code names come from the Domain vocabulary in AGENTS.md.
+- **mflow's seams:** every row of `## Stack` (UI files, tokens, app shell, components, prototype data, prototype-mode flag, tests, golden data) points at a real path in this layout.
+
+Suggested shapes for section 3: the folder tree in a `text` block, and
+
+| Project | Holds | References | Must not reference |
+|---|---|---|---|
+
+Creating the solution is work: at approval it becomes a Backlog task or an `/opsx:propose` change, never files written by the discussion.
+
+Visuals: the folder tree; a `flowchart TB` of the project references, with the forbidden direction noted under it.
+
 ## access-control: roles, menus, actions, data visibility
 
 The topic customers underspecify most. Split it into two docs if it grows past ~200 lines, for example `roles-and-menus` and `data-visibility`.

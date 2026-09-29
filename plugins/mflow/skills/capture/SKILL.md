@@ -46,9 +46,10 @@ Sort every meaningful statement from the read files into one destination and sho
 | Change to something already built or archived in `openspec/specs/` | candidate for `/mflow:change-request` |
 | Customer term | Domain vocabulary in AGENTS.md |
 | Vague or contradictory | a question to the user in this table; the answer goes to its destination as the user's. What the user cannot answer yet: Open questions in `docs/vision.md` |
-| Open to interpretation on a cross-cutting topic (roles and permissions, menus, data visibility, org structure, numbering…; see `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md`) | candidate topic for `/mflow:discuss`, listed in the report; nothing written |
+| Open to interpretation on a cross-cutting topic (roles and permissions, menus, data visibility, org structure, numbering…; see `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md`) | a row on `docs/discuss/AGENDA.md`, shaped as "Mode: agenda" step 4 in `${CLAUDE_PLUGIN_ROOT}/skills/discuss/SKILL.md` describes; or, when the topic already has a row, this file's evidence added to its reason |
+| Changes something an approved discussion doc settled (a `--replaces` or changed file) | a `**ทบทวน:** <what changed> [ที่มา: …]` note in that topic's reason on the agenda |
 
-After the user confirms, write the changes.
+After the user confirms, write the changes. Before the first agenda row, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init`, which creates the file and never overwrites it; after writing rows, run `discuss.mjs agenda` and fix its `warnings`. Agenda rows are written whenever this procedure runs, including as a step of `/mflow:init` or another skill.
 
 ## 5. Mark
 
@@ -58,4 +59,4 @@ Done when: `scan` reports nothing in `new` or `changed`, and STATUS.md records w
 
 ## 6. Next
 
-Only when this ran as `/mflow:capture` itself, not as a step of another skill: list the `/mflow:discuss` candidates from the triage, most costly to misread first, with the statement that makes each one ambiguous. Suggest `/mflow:discuss <topic>` for the first one before `/mflow:screen inventory`. If there are none, say so.
+Only when this ran as `/mflow:capture` itself, not as a step of another skill: list the agenda rows this run added or noted, most costly to misread first, each with the statement that makes it ambiguous, and give the path `docs/discuss/AGENDA.md`. Suggest `/mflow:discuss <slug>` for the first one before `/mflow:screen inventory`, as a recommendation: the user may take it, another, or none. If the run added nothing, say so.

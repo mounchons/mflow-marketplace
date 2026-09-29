@@ -1,8 +1,8 @@
 ---
 name: discuss
-description: Write Claude's understanding or proposed design of one topic (roles and permissions, menus, data visibility, org structure…) as a numbered doc in docs/discuss for the user to review, optionally have other AI tools (Codex, OpenCode, Gemini…) analyze it side by side, revise it from the user's replies until it matches, then approve it and merge each agreed item into the main flow.
+description: Write Claude's understanding or proposed design of one topic (roles and permissions, menus, data visibility, org structure…) as a numbered doc in docs/discuss for the user to review, optionally have other AI tools (Codex, OpenCode, Gemini…) analyze it side by side, revise it from the user's replies until it matches, then approve it and merge each agreed item into the main flow. Also keeps docs/discuss/AGENDA.md, the recommended list of topics worth discussing.
 disable-model-invocation: true
-argument-hint: "[<topic> [@files] | <NN> [feedback] | <NN> consult [--to <tool>,…] | <NN> approve | <NN> drop <reason>]"
+argument-hint: "[<topic> [@files] | <NN> [feedback] | <NN> consult [--to <tool>,…] | <NN> approve | <NN> drop <reason> | agenda [skip <slug> <reason>]]"
 ---
 
 A discussion doc checks one thing: does Claude's reading of the sources, or its proposed design for a topic, match what the user has in mind? The doc lays out every statement, marks the ones Claude inferred or proposed, and shows concrete scenarios. The user replies until nothing is open, then approves. Only then do its items flow into vision, AGENTS.md, hotspots, decisions and tasks. The best time is right after `/mflow:capture` and before `/mflow:screen inventory`, while a misunderstanding costs one paragraph instead of ten screens.
@@ -19,7 +19,8 @@ Other AI tools can join the discussion (`consult`). Each one analyzes the doc in
 Registry commands (run from the repo root):
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" list`: every doc with its status, revision, open decisions, pending notes and unprocessed tool reports, plus the next free number.
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" check <NN>`: the open decisions, pending notes, unfilled template placeholders, an unclosed code fence, and unprocessed tool reports (`pendingReports`, matched by `discuss-<NN>` in the report's brief id or file name) of one doc, and whether it is ready to approve. It also counts the pictures (`visuals`) and warns about mermaid labels that will not parse (`mermaidWarnings`); neither blocks approval.
-- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" new <slug> --title "<Thai title>" --sources "<file>, <file>"`: creates `docs/discuss/NN-<slug>.md` from [assets/discussion.md](assets/discussion.md). The slug is ASCII kebab-case. The script never overwrites, and refuses a slug that still has an open draft. A frozen doc's slug can be reused for the doc that follows it.
+- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" new <slug> --title "<Thai title>" --sources "<file>, <file>"`: creates `docs/discuss/NN-<slug>.md` from [assets/discussion.md](assets/discussion.md). The slug is ASCII kebab-case. The script never overwrites, and refuses a slug that still has an open draft. A frozen doc's slug can be reused for the doc that follows it. It also syncs the agenda, and reports `onAgenda: false` when the slug has no row there.
+- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda`: rewrites the สถานะ cells of `docs/discuss/AGENDA.md` from the docs (the newest doc with a row's slug wins; with no doc, a status written by hand is kept), and reports `topics` and `warnings`. It changes nothing else, and does nothing when the file does not exist. `agenda init` creates the file from [assets/agenda.md](assets/agenda.md) first. `list` includes the same view without writing.
 
 Reply markers, explained to the user at the top of every doc:
 - **Decision answer:** text after `**เลือก:**` under a `### D<n>: ...` heading. An empty answer means the decision is open.
@@ -31,12 +32,12 @@ The doc is written in Thai for the user and addresses them as คุณ. Status 
 
 ## Mode: no arguments → overview
 
-Run `list` and show one table: number, title, status, revision, open decisions, pending notes, tool reports waiting. Then suggest up to three topics that have no doc yet. Take them from [references/topics.md](references/topics.md) where the active sources (`docs/source/INDEX.md`) leave room for interpretation, and give one line of evidence for each. Stop.
+Run `list` and show one table: number, title, status, revision, open decisions, pending notes, tool reports waiting. Then show the agenda from the same output: the topics not started, in the agenda's order, each with its reason in one line and its `/mflow:discuss <slug>` command, then any approved topic with a **ทบทวน:** note. Say plainly that it is a recommendation. With no agenda, say that `/mflow:discuss agenda` builds one. Stop.
 
-## Mode: new topic (`<topic>` matches no existing doc)
+## Mode: new topic (`<topic>` matches no existing doc and is not `agenda`)
 
-1. **Scope it.** Choose the slug and a Thai title, and confirm both with the user; a topic the user already named needs no second confirmation. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs worked examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split. Data-dictionary rows and fenced blocks (diagrams, wireframes) do not count toward that cap; a data-model doc covers one aggregate and lists every column.
-2. **Gather evidence.** Named `@files` first. Then the active files in `docs/source/INDEX.md`; never use superseded ones. Then `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/ui/screens.md` if it exists, relevant hotspot `rules.md`, and `docs/reviews/`. Read only the sections the topic touches. A named file that `source-index.mjs scan` reports as `new` or `changed` has not been triaged yet. Follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+1. **Scope it.** Choose the slug and a Thai title, and confirm both with the user; a topic the user already named needs no second confirmation. When the topic is on the agenda, use that row's slug. A topic split into two docs gets a row for each new slug, and the original row's status becomes แยกเป็น followed by the new slugs in backticks. A topic not on the agenda gets a row after `new` reports `onAgenda: false`, so the agenda stays the index of every topic. If the row carries a **ทบทวน:** note, remove the note once the new doc exists. Check `list` and `docs/hotspots/INDEX.md` for overlap. A single business rule that needs worked examples is a hotspot: say so and stop. A topic too big for ~200 lines becomes two docs; propose the split. Data-dictionary rows and fenced blocks (diagrams, wireframes) do not count toward that cap; a data-model doc covers one aggregate and lists every column.
+2. **Gather evidence.** Named `@files` first. Then the active files in `docs/source/INDEX.md`; never use superseded ones. Then `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/ui/screens.md` if it exists, relevant hotspot `rules.md`, and `docs/reviews/`. Read only the sections the topic touches. For `tech-stack` and `code-structure`, also read AGENTS.md `## Stack`, the code already in the repo, and a team knowledge base when one is connected, in the order of sources that topics.md gives for them. A named file that `source-index.mjs scan` reports as `new` or `changed` has not been triaged yet. Follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 3. **Create and write.** Run `new`, then fill every section of the template, using the topic's checklist in [references/topics.md](references/topics.md):
    - Tag every statement: `[ที่มา: <file> §<section>]`, `[ยืนยัน]` (the user said or confirmed it), `[อนุมาน]`, `[เสนอ]`, or `[เสนอ: <tool>]` for a suggestion from another AI tool that Claude has checked. An untagged statement looks like fact; tag it or cut it.
    - Section 8 says "ยังไม่ได้ขอ" until a consult.
@@ -111,7 +112,10 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
    | Per-role permissions, data scope, hidden fields, landing page | the prototype's `PrototypeData/roles.json` and `users.json`, with this doc and its revision in `PrototypeData/README.md`. If the prototype does not exist yet, `/mflow:theme` builds them from this doc; if it does, update them now under the schema-change rule in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` |
    | Rule with conditions that crosses screens (data scope, field masking, approval limits) | a row in `docs/hotspots/INDEX.md` if it still needs many answers or worked examples; else a candidate `/opsx:propose` change |
    | Tables, columns, relations, keys and indexes (data-model doc) | this aggregate's section in `PrototypeData/README.md` (create the file if it is missing), written now. It is the living data dictionary until the aggregate is built, and it cites this doc and its revision. If `PrototypeData/<entity>.json` already exists, align its fields under the schema-change rule; otherwise `/mflow:screen` creates the JSON rows from the README section with the first screen that shows the entity. At build time, the `/opsx:propose` change links this doc and the README |
-   | Architecture, enforcement or storage choice (fixed vs configurable roles, where scope is enforced, key type, soft delete, enum vs lookup table, child table vs JSON) | `backlog decision create`, plus one line in AGENTS.md Conventions if every agent must follow it |
+   | Apps, frameworks and versions, libraries with their licences, database, containers (tech-stack doc) | AGENTS.md `## Stack`: the profile and every seam path (updated when they differ from the profile `/mflow:init` recorded), and the Apps and Libraries tables. `## Commands` lines for a changed stack are marked `(unverified)` until they are run again |
+   | An extra left for later, with its trigger | the Later line of AGENTS.md `## Stack` |
+   | Folder layout, projects and the reference direction (code-structure doc) | AGENTS.md `## Architecture` (solution layout, the rule "references point inward"); creating the solution is a Backlog task or an `/opsx:propose` change |
+   | Architecture, enforcement or storage choice (fixed vs configurable roles, where scope is enforced, key type, soft delete, enum vs lookup table, child table vs JSON; a library over its alternative, a paid licence) | `backlog decision create`, plus one line in AGENTS.md Conventions if every agent must follow it |
    | Durable constraint | one line in AGENTS.md |
    | Scope or release line | `docs/vision.md` story map |
    | Out of scope | `docs/vision.md` Out of scope |
@@ -123,14 +127,36 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
 
    Point to the doc instead of copying it: a destination gets the short fact plus `(docs/discuss/NN-<slug>.md)`. A picture travels with the facts it shows: the `erDiagram` goes into the aggregate's section of `PrototypeData/README.md` beside the dictionary, and a status `stateDiagram-v2` goes into the hotspot's `rules.md` when one is created. Every other picture stays in the frozen doc.
 3. **Write** after the user says yes to the table. Create Backlog items through the CLI only.
-4. **Freeze.** Set the frontmatter: `status: approved`, `approved: <date>`, `merged-into: <comma-separated destinations>`. An approved doc on the same topic that this one replaces gets `status: superseded` and `superseded-by: <NN>`. Add this line under the title: `> อนุมัติแล้ว <date> และนำไปรวมกับ flow หลักแล้ว เอกสารนี้เป็นบันทึกเหตุผล ความจริงปัจจุบันอยู่ที่ปลายทางในหัวข้อ 7`. Update STATUS.md with a log entry.
+4. **Freeze.** Set the frontmatter: `status: approved`, `approved: <date>`, `merged-into: <comma-separated destinations>`. An approved doc on the same topic that this one replaces gets `status: superseded` and `superseded-by: <NN>`. Add this line under the title: `> อนุมัติแล้ว <date> และนำไปรวมกับ flow หลักแล้ว เอกสารนี้เป็นบันทึกเหตุผล ความจริงปัจจุบันอยู่ที่ปลายทางในหัวข้อ 7`. Run `agenda` so the topic's row shows the approval. Update STATUS.md with a log entry.
 5. **Later changes of mind** never edit a frozen doc:
    - Field-level changes after a data-model doc is approved (add, rename or drop a column; change its length or whether it is required) are not a change of mind. They follow the schema-change rule in `PrototypeData/README.md`.
    - Nothing is built yet: start a new doc on the same topic, and cite the old one in section 1. When the new doc is approved, set the old one to `status: superseded` and `superseded-by: <NN>`.
    - Already built: use `/mflow:change-request`. It records the impact and goes ahead on the user's instruction.
 
-Done when: every agreed item exists at its destination, the doc is frozen, and STATUS.md records the approval.
+**What comes next:** tell the user where the agreed items went, and one next command: the next not-started topic on the agenda (`/mflow:discuss <slug>`), or the next step of the flow this doc unblocks (`/mflow:theme`, `/mflow:screen inventory`, `/mflow:theme update access`, a screen). Write it into STATUS.md `## Now`.
+
+Done when: every agreed item exists at its destination, the doc is frozen, STATUS.md records the approval, and the user has the next command.
+
+## Mode: agenda (`agenda`, `agenda <feedback>`, `agenda skip <slug> <reason>`)
+
+`docs/discuss/AGENDA.md` recommends the topics worth a discussion doc, with the reason for each and when to have it. It is advice, never a gate: no skill waits for it, and the user may take any topic in any order, or none. `/mflow:capture` and `/mflow:screen inventory` add rows as documents and screens arrive. This mode builds it from everything at once, which is how a project captured before mflow 0.15 gets one, and how the user asks for a fresh look.
+
+1. Run `agenda init`. It creates the file from [assets/agenda.md](assets/agenda.md) if it is missing and never overwrites it.
+2. **Gather.** The active files in `docs/source/INDEX.md` (never superseded ones), `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/hotspots/INDEX.md`, `docs/ui/screens.md` if it exists, and the docs in `list`. Read only the sections a topic needs.
+3. **Choose the topics.** `tech-stack` and `code-structure` always stay as rows 1 and 2 (the template starts with them), unless the user skips them. Then take each other topic in [references/topics.md](references/topics.md), and any cross-cutting topic particular to this project. A topic earns a row when the sources leave it open to more than one reading, contradict each other, or say nothing about something the scope needs (approvals in scope, but no approver named). A topic the sources settle clearly gets no row.
+4. **Write each row** as the template shows:
+   - **หัวข้อ:** a Thai title with the slug in backticks: the topics.md name (`access-control`, `numbering`…), `<aggregate>-data` for a data model, or the split slugs topics.md suggests. The slug becomes the doc's slug.
+   - **ทำไมควรคุย:** the statement that makes it ambiguous, tagged `[ที่มา: <file> §<section>]`, and what a misreading costs (every screen, the schema, an integration).
+   - **ควรคุยก่อน:** `ก่อน /mflow:screen inventory` for what shapes every screen (roles and data visibility, org structure, menus); `ก่อนหน้าจอแรกของ <กลุ่มข้อมูล>` for a data model or a numbering scheme; `ก่อน /opsx:propose <change>` for integrations, notifications, audit, import and export, and migration.
+   - **#:** the order to take them in: by that stage, then by cost.
+   - **สถานะ:** leave it empty; the script fills it.
+5. **Refresh, never erase.** On an existing agenda keep every row and any status written by hand (`ข้าม: …`, `แยกเป็น …`). Add new topics, add new evidence to a row's reason, and renumber. A row with no doc whose reason no longer holds (its source was superseded by one that settles it) gets `ไม่จำเป็นแล้ว: <why>` as its status; rows are never deleted.
+6. Show the rows before writing, and write after the user's yes. Then run `agenda` and fix every entry in its `warnings`.
+
+`agenda skip <slug> <reason>`: write `ข้าม: <reason>` in that row's status; the user's word is enough. A doc started later on that slug replaces the skip with its own status. `agenda <feedback>`: apply it to the rows the same way.
+
+Done when: every row has a slug the script accepts, a cited reason and a stage, `agenda` reports no warnings, and the user has the file's path and the first topic to take.
 
 ## Mode: drop (`<NN> drop <reason>`)
 
-Set `status: dropped` and add the reason to the revision log. Nothing is merged. Use it when the topic turned out to be a hotspot, or when it was folded into another doc; name that hotspot or doc.
+Set `status: dropped`, add the reason to the revision log, and run `agenda`. Nothing is merged. Use it when the topic turned out to be a hotspot, or when it was folded into another doc; name that hotspot or doc.

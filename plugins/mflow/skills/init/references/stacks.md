@@ -36,7 +36,7 @@ For `custom`, fill every row for the named stack. The prototype-mode flag row mu
 
 1. **Infer.** Take the evidence from the repo: `*.csproj` with `Views/` points to a); `package.json` with `vite` beside an ASP.NET Core Web API points to b); anything else points to c), naming what was found. In an empty repo, recommend a), the fully supported profile.
 2. **Ask, always**, even when the evidence is clear. Show the options `a)` `b)` `c)`, one line each, with the recommendation and its evidence. A letter is a full answer. For c), ask which stack.
-3. **Record.** Write `## Stack` in AGENTS.md: `Profile: <id>` and the rows for that profile. For c), show the filled rows and wait for a yes first.
+3. **Record.** Write `## Stack` in AGENTS.md: `Profile: <id>` and the rows for that profile. For c), show the filled rows and wait for a yes first. The Apps, Libraries and Later parts of `## Stack` stay `TODO`: the `tech-stack` discussion doc, the first topic on the agenda, fills them before `/mflow:theme`, and may change the profile and its paths, which is still cheap at that point.
 
 Done when: AGENTS.md has `## Stack` with a profile, and every row has a value or `TODO: <why>`.
 

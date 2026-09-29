@@ -61,4 +61,6 @@ Set the inbox file's frontmatter `status: assessed`.
 - accept-later → Backlog task, label `later`
 - A misunderstanding caused by a gap or ambiguity in AGENTS.md or the brief → a proposed fix to that file, so the next tool does not repeat it
 
-Done when: accepted items exist as tasks or proposals, and STATUS.md records the assessment.
+**What comes next:** tell the user the verdict counts and one next command: the first accepted task, a suggested `/opsx:propose`, `/mflow:review <branch>` for a code report, or the needs-decision questions to answer. Write it into STATUS.md `## Now`.
+
+Done when: accepted items exist as tasks or proposals, STATUS.md records the assessment, and the user has the next command.

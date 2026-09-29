@@ -30,4 +30,6 @@ Write `docs/reviews/code/<date>-<target>.md`: verdict (`approve` / `changes-requ
 
 For a second opinion, offer `/mflow:delegate <target> --to <tool> --mode review`; when it returns, `/mflow:assess` checks its findings against this report.
 
-Done when: the report exists and STATUS.md records the verdict. Merge only on `approve` and the user's yes.
+**What comes next:** on `approve`, merge after the user's yes, then `/opsx:archive` and `git diff --stat openspec/specs`; on `changes-requested`, the blockers to fix, then `/mflow:review` again. Write it into STATUS.md `## Now`.
+
+Done when: the report exists, STATUS.md records the verdict, and the user has the next command. Merge only on `approve` and the user's yes.

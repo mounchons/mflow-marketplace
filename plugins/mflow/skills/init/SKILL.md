@@ -32,7 +32,9 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.mjs" --root . --name "<project
 
 The script never overwrites. For every entry under `suggested`, a template copy sits in `.mflow/suggested/`: merge it into the existing file by hand (keep everything the user wrote, add the missing mflow sections), show the diff, then delete `.mflow/suggested/`.
 
-Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai-inbox/README.md`, `docs/discuss/README.md` exist and `.mflow/suggested/` is gone.
+Then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init`. It creates `docs/discuss/AGENDA.md`, which starts with the `tech-stack` and `code-structure` topics, and never overwrites an existing one.
+
+Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai-inbox/README.md`, `docs/discuss/README.md` and `docs/discuss/AGENDA.md` exist and `.mflow/suggested/` is gone.
 
 ## 4. Wire OpenSpec and Backlog.md
 
@@ -88,5 +90,6 @@ Update `STATUS.md` (`## Now` + one log entry). Tell the user, briefly:
 - what was created, merged, or left untouched;
 - the stack profile, and for c) that mflow has not been tested with it yet;
 - which commands are `(unverified)`;
-- the open questions and hotspot rows found;
+- the open questions and hotspot rows found, and the recommended discussion topics in `docs/discuss/AGENDA.md` if capture wrote any;
+- the agenda in `docs/discuss/AGENDA.md`, starting with `/mflow:discuss tech-stack` and `/mflow:discuss code-structure` (recommended before theme, not required);
 - the next move: `/mflow:theme` to build the UI kit, then `/mflow:screen inventory`, then prototype screens for the first story-map slice. `/mflow:help` lists every command.

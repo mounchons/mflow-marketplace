@@ -24,7 +24,7 @@ Read `docs/vision.md` (story map), any active source files given (check `docs/so
 | Screen | Route | Role(s) | Shows | Actions | Calculations / rules | Status |
 |---|---|---|---|---|---|---|
 
-Every value in "Calculations / rules" also gets a row in `docs/hotspots/INDEX.md` unless one already covers it. In the report, list each aggregate that the screens show and that has no approved data-model doc (`<aggregate>-data`) as a `/mflow:discuss` candidate, the most widely shared first. It is a suggestion; screens can be built without one. Create nothing else.
+Every value in "Calculations / rules" also gets a row in `docs/hotspots/INDEX.md` unless one already covers it. Each aggregate that the screens show and that has no approved data-model doc gets an `<aggregate>-data` row on `docs/discuss/AGENDA.md`, unless it has one: the screens that use it as the reason, `ก่อนหน้าจอแรกของ <กลุ่มข้อมูล>` as the stage, the most widely shared first (run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init` if the file is missing, then `agenda`). List them in the report. It is a suggestion; screens can be built without one. Besides these rows, create nothing else.
 
 Done when: every story-map step in the first release has at least one screen, and the user has reviewed the table. Create one Backlog task per screen with label `prototype` only after that review.
 
@@ -38,7 +38,7 @@ Done when: every story-map step in the first release has at least one screen, an
 6. **Verify:** run the build command from AGENTS.md; run the app and open the route. Check the page at the acceptance sizes in `docs/ui/design-system.md`, as §5 of `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/responsive.md` describes. Then use the role switcher: as a user of each role in `Role(s)`, check the rows that role's scope allows and only that role's buttons; as a user of one role outside `Role(s)`, check the menu item is gone and the URL returns 403. If the E2E framework is set up, add a smoke test that loads the page as each role and takes the screenshots that §5 names: every role at the largest acceptance size, one role at the smallest.
 7. **Record:** tick the Backlog task, set the row's Status in `screens.md` to `prototype`, update STATUS.md.
 
-Done when: the page builds and loads with JSON data, uses only kit components and tokens, passes at the acceptance sizes in `docs/ui/design-system.md` (or reports them `(unverified)`, as §5 of `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/responsive.md` allows), every faked rule is marked and registered, and each role in `Role(s)`, plus one role outside it, was checked through the switcher (or the row says `access not confirmed`).
+Done when: the page builds and loads with JSON data, uses only kit components and tokens, passes at the acceptance sizes in `docs/ui/design-system.md` (or reports them `(unverified)`, as §5 of `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/responsive.md` allows), every faked rule is marked and registered, and each role in `Role(s)`, plus one role outside it, was checked through the switcher (or the row says `access not confirmed`), and the user has the next step: the page's URL to try as each role, then the next screen in `docs/ui/screens.md` without a prototype (`/mflow:screen <name> …`), or, once a set of screens is ready, a test or review with users followed by `/mflow:review-notes @notes`.
 
 ## Mode: adjust a screen (`<screen-name>` exists)
 
@@ -49,4 +49,4 @@ Apply the requested change (for example "add a search box for job number and cus
 - A change to who sees a screen, a row, a field or a button that differs from the approved access-control discussion doc does not go into `roles.json` directly. It needs a new discussion doc (`/mflow:discuss`) that supersedes the old one, or `/mflow:change-request` if it is already built.
 - A change the user asks for is made: the user's word is the customer's, and the prototype exists to be refined. Only a change to a screen already built for real (archived in `openspec/specs/`) goes to `/mflow:change-request` first.
 
-Done when: the change builds, loads, and the screenshot/test (if any) is refreshed.
+Done when: the change builds, loads, the screenshot/test (if any) is refreshed, and the user has the page's URL and the next step: another change, the next screen, or `/mflow:review-notes` after trying it with users.

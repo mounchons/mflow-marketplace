@@ -2,7 +2,7 @@
 name: hotspot
 description: Chart a piece of big or fuzzy business logic into decision tickets and resolve them one per session until the rules are ready for an OpenSpec proposal.
 disable-model-invocation: true
-argument-hint: "[<idea> [@files] | <slug> [TASK-ID] [@files]]"
+argument-hint: "[<idea> [@files] | <slug> [TASK-ID [answer]] [@files]]"
 ---
 
 A **hotspot** is business logic that crosses screens or is expensive to get wrong: pricing, state machines, stock and ledger rules, approval chains, anything with money or legal impact. Building it slice by slice without seeing the whole rule is how the foundation ends up rebuilt mid-project. This skill finds the rules first and hands them to OpenSpec; it produces decisions, not code.
@@ -30,6 +30,8 @@ After using a file: `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" mark 
 
 Use `backlog <command> --help` for exact flags; edit Backlog files only through the CLI.
 
+**What comes next** closes every run: tell the user, in Thai, what changed and one next command, exactly as they would type it, and write that command into STATUS.md `## Now` so the next session's briefing carries it. One ticket per session means the next ticket starts in a new session (`/clear` first).
+
 ## Ticket types (type label)
 
 - `ask` (HITL): a choice the sources do not settle. Put it to the user in polite, direct Thai with 2 to 4 concrete options, an example for each and Claude's recommendation. The user's answer resolves it: the user speaks for the customer, so it needs no further confirmation, and "use the recommendation" is a full answer. Claude never picks on the user's behalf. Only if the user wants to ask someone else first: draft the question into `questions-for-customer.md`, add label `waiting-customer`, and resolve it from the answer the user brings back.
@@ -39,7 +41,7 @@ Use `backlog <command> --help` for exact flags; edit Backlog files only through 
 
 ## Mode: no arguments → overview
 
-List each folder in `docs/hotspots/` with its map status and frontier count, plus unregistered rows in `INDEX.md`. Stop.
+List each folder in `docs/hotspots/` with its map status, frontier count and how many readiness items pass, plus unregistered rows in `INDEX.md`. Recommend one next command: a map that passes the readiness bar goes to Graduate (`/mflow:hotspot <slug>`), else the map with the most ready tickets, else an unregistered row to chart (`/mflow:hotspot <idea>`). Stop.
 
 ## Mode: chart a new hotspot (argument is an idea, no map exists)
 
@@ -49,14 +51,14 @@ List each folder in `docs/hotspots/` with its map status and frontier count, plu
 4. **Create the tickets you can phrase sharply now**, one question each, sized to one session. Create them all first, then wire dependencies with `--dep` in a second pass. The test for ticket vs fog: can the question be stated precisely now, even if it cannot be answered yet?
 5. **Write the options** into every `ask` ticket's description: 2 to 4 concrete options, an example for each and Claude's recommendation, so the user can answer as soon as the ticket comes up.
 6. **Fire research** tickets in parallel subagents if any exist.
-7. Update STATUS.md and stop. Charting is one session's work; resolve nothing else.
+7. **What comes next.** Tell the user the tickets created, grouped by type, with their dependencies, and every `ask` question with its options, which the user may answer ahead. Give one next command: `/mflow:hotspot <slug>` in a new session (name the ticket it will take), or `/mflow:hotspot <slug> <TASK-ID> <answer>` when the first ticket is an `ask`. Write it into STATUS.md `## Now` and stop. Charting is one session's work; resolve nothing else.
 
 Done when: map.md has a destination, every sharp question is a ticket with its type label, dependencies are wired, and the fog is written down.
 
 ## Mode: work the map (argument is an existing slug, optional task ID)
 
 1. Load `map.md` and `rules.md`, not every ticket body.
-2. Pick the ticket: the one given, else the first frontier ticket. Claim it: status `In Progress`.
+2. Pick the ticket: the one given, else the first frontier ticket. Claim it: status `In Progress`. Text after the task ID is the user's input for that ticket; for an `ask` ticket it is the answer, final as the `ask` type says. With no ticket given and none on the frontier, turn the fog into sharp tickets as chart step 4 does, then go to step 7.
 3. Resolve it by its type. Zoom into related or closed tickets only when needed.
 4. Record:
    - the answer in the task's final summary, status `Done`;
@@ -64,7 +66,20 @@ Done when: map.md has a destination, every sharp question is a ticket with its t
    - the consequence in `rules.md` (a table row, a state, an invariant), citing the task ID;
    - an architecture-level choice (aggregate boundary, sync vs async, where a rule is enforced) also as `backlog decision create`.
 5. Advance the frontier: create newly sharp tickets (create, then wire), move graduated fog out of `Not yet specified`, and close tickets that the answer made pointless. Work beyond the destination goes to `Out of scope` with a reason; it never returns to the fog.
-6. Check the readiness bar in [references/rule-spec.md](references/rule-spec.md). If it passes, go to **Graduate**; otherwise update STATUS.md and stop.
+6. Check the readiness bar in [references/rule-spec.md](references/rule-spec.md). If it passes, go to **Graduate**; otherwise go on to step 7.
+7. **What comes next.** Tell the user, in Thai:
+   - what the ticket settled, in one line, and what changed in `rules.md`;
+   - the readiness bar: how many items pass, and which are still open;
+   - the frontier after step 5 (`backlog task list --labels hs-<slug> --json`, status `To Do` and `isReady`), in the order it will be taken: ID, type and title; then what is blocked: tickets waiting on another ticket (name it) and `waiting-customer` tickets (the answer awaited);
+   - one next command, exactly:
+     - a ready ticket: `/mflow:hotspot <slug>` in a new session, naming the ticket it will take. When that ticket is an `ask`, show its question, options and recommendation now; the user may answer straight in the command: `/mflow:hotspot <slug> <TASK-ID> <answer>`;
+     - golden data is the open readiness item: `/mflow:golden @<file> <slug>`;
+     - nothing is ready but fog remains: `/mflow:hotspot <slug>`, which turns the fog into tickets;
+     - every open ticket waits for an outside answer: name them, and say that `/mflow:hotspot <slug> <TASK-ID> <answer>` records an answer when it arrives.
+
+   Write the same command into STATUS.md `## Now`, then stop.
+
+Done when: the ticket is `Done` with its answer in the final summary, map.md and rules.md show it, the frontier is advanced, and the user has the next command.
 
 Resolve exactly one ticket per session (research tickets excepted). The pull to start coding is the signal to graduate or stop, not to build.
 
@@ -74,5 +89,6 @@ Resolve exactly one ticket per session (research tickets excepted). The pull to 
 2. After a yes, propose the OpenSpec change: run `/opsx:propose <change-name>` with `rules.md` as the input. Each distinct outcome row becomes a Scenario; each invariant becomes a requirement.
 3. Put the golden examples where tests can read them, in the Golden data folder of AGENTS.md `## Stack` (for example `tests/<Context>.Domain.Tests/Golden/<slug>.json` or `.csv`), and reference that path in the change's tasks.
 4. Set map.md frontmatter `status: graduated` and `change: <change-name>`; add at the top of `rules.md`: "Frozen. Source of truth after archive: `openspec/specs/<domain>/spec.md`." Update the INDEX.md row and STATUS.md.
+5. **What comes next.** `/opsx:apply <change-name>` (or `/mflow:delegate <change-name> --mode code` for another tool), then `/mflow:review`, then `/opsx:archive` and `git diff --stat openspec/specs`. Write it into STATUS.md `## Now`.
 
 Done when: the OpenSpec change exists and validates (`openspec validate <change-name>`), the map is marked graduated, and nothing in `rules.md` is newer than the change.

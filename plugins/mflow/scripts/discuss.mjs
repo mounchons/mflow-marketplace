@@ -24,6 +24,15 @@
 // Reports from other tools (/mflow:discuss NN consult) land in <inboxDir> and are matched to a doc by
 // the id `discuss-<NN>-r<revision>` in their `brief` frontmatter or their file name. A report counts as
 // pending while its status is `new`.
+//
+// The agenda (<discussDir>/AGENDA.md) recommends topics worth a discussion doc; it is advice, never a gate.
+//   node discuss.mjs agenda                            -> sync the status cells from the docs (only if the file exists)
+//   node discuss.mjs agenda init                       -> create it from the template (never overwrites), then sync
+// Its table is `| # | หัวข้อ (`slug`) | ทำไมควรคุย | ควรคุยก่อน | สถานะ |`. The slug is the first backticked
+// kebab-case token of the หัวข้อ cell. Only the สถานะ cell is ever rewritten, and only when it changes; every
+// other byte (CRLF included) is kept. The newest doc with the row's slug decides the status; with no doc, a
+// status someone wrote by hand (ข้าม: …, แยกเป็น …) is kept, and an empty cell becomes ยังไม่เริ่ม.
+// `new` syncs the agenda after creating a doc; `list` reports the agenda with live statuses and never writes.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,6 +51,15 @@ const HEADING_RE = /^###\s+(D\d+\b.*)$/;
 const PLACEHOLDER_RE = /<[\u0E00-\u0E7F][^<>\n]*>/;
 
 const REPORT_ID_RE = /(?:^|[^a-z0-9])discuss-(\d{2,})(?:-r(\d+))?(?![0-9])/i;
+
+const AGENDA_FILE = "AGENDA.md";
+const AGENDA_TEMPLATE = path.join(here, "..", "skills", "discuss", "assets", "agenda.md");
+export const NOT_STARTED = "ยังไม่เริ่ม";
+const DOC_STATUS = { draft: "กำลังคุย", approved: "อนุมัติแล้ว", dropped: "ยกเลิก", superseded: "แทนแล้ว" };
+// Statuses the script writes; anything else in the cell was written by hand and is kept while no doc exists.
+const AUTO_STATUS_RE = new RegExp(`^(?:${NOT_STARTED}|(?:${Object.values(DOC_STATUS).join("|")}) \`\\d+\`)$`);
+// A review note a later source added to a settled topic: **ทบทวน:** <what changed> [ที่มา: …]
+const REVIEW_RE = /\*\*ทบทวน:\*\*/;
 
 const toPosix = (p) => p.split(path.sep).join("/");
 const discussDir = (root) => path.join(root, loadConfig(root).discussDir || "docs/discuss");
@@ -170,11 +188,109 @@ function nextId(root) {
 }
 
 export function list(root) {
+  const all = reports(root);
+  const docs = docFiles(root).map((f) => inspect(root, f, all));
   return {
     dir: toPosix(path.relative(root, discussDir(root))),
     next: nextId(root),
-    docs: (() => { const all = reports(root); return docFiles(root).map((f) => inspect(root, f, all)); })(),
+    docs,
+    agenda: agenda(root, { docs }),
   };
+}
+
+/**
+ * The cells of a table row split on unescaped `|`, and where its last cell starts and ends. A row may
+ * leave its closing pipe off; then the last cell runs to the end of the line.
+ */
+function rowCells(line) {
+  const at = [];
+  for (let i = 0; i < line.length; i++) if (line[i] === "|" && line[i - 1] !== "\\") at.push(i);
+  const cells = [];
+  for (let k = 0; k + 1 < at.length; k++) cells.push(line.slice(at[k] + 1, at[k + 1]));
+  const open = at.length > 0 && line.slice(at[at.length - 1] + 1).trim() !== "";
+  if (open) cells.push(line.slice(at[at.length - 1] + 1));
+  const [lastStart, lastEnd] = open ? [at[at.length - 1] + 1, line.length] : [at[at.length - 2] + 1, at[at.length - 1]];
+  return { cells, lastStart, lastEnd };
+}
+
+/** A doc's status as the agenda shows it: the newest doc with the slug wins. */
+function statusFor(slug, docs, current) {
+  const doc = docs.filter((d) => d.slug === slug).sort((a, b) => Number(b.id) - Number(a.id))[0];
+  if (doc) return { status: `${DOC_STATUS[doc.status] || doc.status} \`${doc.id}\``, doc: doc.id, manual: false };
+  if (current && !AUTO_STATUS_RE.test(current)) return { status: current, doc: null, manual: true };
+  return { status: NOT_STARTED, doc: null, manual: false };
+}
+
+/**
+ * Read the agenda and work out each row's status from the docs. With `write`, rewrite the status cells that
+ * changed and nothing else. Returns null when the agenda does not exist.
+ */
+export function agenda(root, { write = false, docs } = {}) {
+  const file = path.join(discussDir(root), AGENDA_FILE);
+  if (!fs.existsSync(file)) return null;
+  const text = fs.readFileSync(file, "utf8");
+  const lines = text.split("\n");
+  // Rows inside HTML comments or code fences (examples) are not rows.
+  const { visible } = scanLines(text);
+  const known = docs || docFiles(root).map((f) => inspect(root, f, []));
+  const topics = [];
+  const warnings = [];
+  const seen = new Set();
+  let written = 0;
+  let state = "out"; // out → header → rows
+  let columns = 0;
+  visible.forEach((shown, i) => {
+    const isRow = shown.trim().startsWith("|");
+    if (!isRow) { state = "out"; return; }
+    if (state === "out") {
+      // A table counts when its header names สถานะ and a separator row follows.
+      if (/สถานะ/.test(shown) && /^\s*\|[\s:|-]+$/.test(visible[i + 1] || "")) {
+        state = "header";
+        columns = rowCells(shown).cells.length;
+      }
+      return;
+    }
+    if (state === "header") { state = "rows"; return; }
+    const cr = lines[i].endsWith("\r");
+    const line = cr ? lines[i].slice(0, -1) : lines[i];
+    const { cells, lastStart: start, lastEnd: end } = rowCells(line);
+    // A row with a cell missing or extra would put the status in the wrong column: report it, touch nothing.
+    if (cells.length !== columns) {
+      warnings.push({ line: i + 1, problem: `row has ${cells.length} cells, the table has ${columns}` });
+      return;
+    }
+    const current = line.slice(start, end).trim();
+    const slug = [...cells[1].matchAll(/`([^`]+)`/g)].map((m) => m[1].trim()).find((s) => SLUG_RE.test(s));
+    if (!slug) { warnings.push({ line: i + 1, problem: "no `slug` (ASCII kebab-case in backticks) in the หัวข้อ cell" }); return; }
+    if (seen.has(slug)) warnings.push({ line: i + 1, problem: `slug '${slug}' is on the agenda twice` });
+    seen.add(slug);
+    const next = statusFor(slug, known, current);
+    if (write && next.status !== current) {
+      lines[i] = line.slice(0, start) + ` ${next.status} ` + line.slice(end) + (cr ? "\r" : "");
+      written++;
+    }
+    topics.push({
+      line: i + 1,
+      order: cells[0].trim(),
+      title: cells[1].replace(/\(?`[^`]*`\)?/g, "").trim(),
+      slug,
+      ...next,
+      review: REVIEW_RE.test(cells[2] || ""),
+    });
+  });
+  if (written) fs.writeFileSync(file, lines.join("\n"));
+  return { file: toPosix(path.relative(root, file)), topics, warnings, written };
+}
+
+function initAgenda(root) {
+  const file = path.join(discussDir(root), AGENDA_FILE);
+  let created = false;
+  if (!fs.existsSync(file)) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, fs.readFileSync(AGENDA_TEMPLATE, "utf8"), { flag: "wx" });
+    created = true;
+  }
+  return { created, ...agenda(root, { write: true }) };
 }
 
 function check(root, ref) {
@@ -209,7 +325,13 @@ function create(root, argv) {
   const dest = path.join(discussDir(root), `${id}-${slug}.md`);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.writeFileSync(dest, content, { flag: "wx" });
-  return { created: toPosix(path.relative(root, dest)), id };
+  // Keep the agenda's status cells current; tell the caller when this topic is not on it yet.
+  const synced = agenda(root, { write: true });
+  return {
+    created: toPosix(path.relative(root, dest)),
+    id,
+    onAgenda: synced ? synced.topics.some((t) => t.slug === slug) : null,
+  };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -221,7 +343,11 @@ if (isMain) {
     if (cmd === "list") out = list(root);
     else if (cmd === "check") out = check(root, rest[0]);
     else if (cmd === "new") out = create(root, rest);
-    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...]");
+    else if (cmd === "agenda" && rest[0] === "init") out = initAgenda(root);
+    else if (cmd === "agenda") {
+      out = agenda(root, { write: true }) ?? { exists: false, hint: "no AGENDA.md yet: run `discuss.mjs agenda init`" };
+    }
+    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | agenda [init]");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

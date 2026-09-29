@@ -21,6 +21,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Agree the look and the responsive menu before the app exists | `/mflow:theme preview` → approve → `/mflow:theme port` (inside the change that scaffolds the app) |
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |
 | The kit has no ☰ menu, or pages do not reflow on small windows (kits built before 0.11) | `/mflow:theme update responsive` |
+| Which topics should be discussed before building? | `/mflow:discuss` shows the agenda; `/mflow:discuss agenda` builds or refreshes it |
 | The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView (kits built before 0.14) | `/mflow:theme update components` |
 | Change the date format (pattern or ค.ศ./พ.ศ.) or get the English and Thai date picker | `/mflow:theme update date-picker` |
 | List the screens for a release | `/mflow:screen inventory` |

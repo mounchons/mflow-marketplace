@@ -9,6 +9,7 @@ A prototype screen is a model-home room: real walls and switches (real views, ro
 
 ## Preconditions
 
+- AGENTS.md has `## Stack` with a profile. If it is missing or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Names below (controller, ViewModel, `PrototypeDataStore`, `Prototype:UseFakeData`) are the `mvc-htmx` form; under another profile, build the equivalents at the paths `## Stack` gives.
 - `docs/ui/design-system.md` exists. If not, stop and ask พี่ปู to run `/mflow:theme` first; screens without the kit drift apart.
 - Data follows [references/prototype-data.md](references/prototype-data.md).
 - The access seams exist (`Permissions`, `ICurrentUser`, `MenuDefinition`, `FakeCurrentUser`, `users.json`, `roles.json`; see "Current user, permissions and the role switcher" in that file). A kit built before them needs `/mflow:theme update access` first.
@@ -31,7 +32,7 @@ Done when: every story-map step in the first release has at least one screen, an
 3. **Domain seam:** entity/record + repository interface in the domain or application project; `Fake<Entity>Repository` reads through `PrototypeDataStore` and does filtering, sorting and paging itself, returning `PagedResult<T>` the way EF Core will. It applies `ICurrentUser.ScopeFor(<entity>)` before paging.
 4. **Screen:** controller + ViewModel + views assembled only from the theme components. Lists use `DataTable` + `FilterPanel` (server-side paging, filter panel above, per-column search inside, state in the URL). Forms use `FormField`. Thai labels in the ViewModel. Every action carries its permission check; the menu item goes into `MenuDefinition` with the view permission; buttons appear through `Can(...)`; restricted fields are masked in the ViewModel mapping.
 5. **Fake logic:** every calculation or rule returns a hard-coded plausible value and carries `// PROTOTYPE: <what is faked> — see docs/hotspots/INDEX.md <slug>`; add or update the INDEX row.
-6. **Verify:** `dotnet build`; run the app and open the route. Then use the role switcher: as a user of each role in `Role(s)`, check the rows that role's scope allows and only that role's buttons; as a user of one role outside `Role(s)`, check the menu item is gone and the URL returns 403. If Playwright is set up, add a smoke test that loads the page as each role and takes a screenshot into `docs/ui/screens/<screen>.<role>.png`.
+6. **Verify:** run the build command from AGENTS.md; run the app and open the route. Then use the role switcher: as a user of each role in `Role(s)`, check the rows that role's scope allows and only that role's buttons; as a user of one role outside `Role(s)`, check the menu item is gone and the URL returns 403. If the E2E framework is set up, add a smoke test that loads the page as each role and takes a screenshot into `docs/ui/screens/<screen>.<role>.png`.
 7. **Record:** tick the Backlog task, set the row's Status in `screens.md` to `prototype`, update STATUS.md.
 
 Done when: the page builds and loads with JSON data, uses only kit components and tokens, every faked rule is marked and registered, and each role in `Role(s)`, plus one role outside it, was checked through the switcher (or the row says `access not confirmed`).

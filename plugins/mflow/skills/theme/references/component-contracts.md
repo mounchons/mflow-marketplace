@@ -1,6 +1,6 @@
 # Component contracts
 
-Each component is built once and reused everywhere. A contract says what the component takes, which states it must show, and how it behaves. Implement for ASP.NET Core MVC + Razor + Bootstrap 5 + HTMX unless the project is React.
+Each component is built once and reused everywhere. A contract says what the component takes, which states it must show, and how it behaves. Implement for the profile in AGENTS.md `## Stack`. The Razor and HTMX details below are the `mvc-htmx` form; `react-vite` keeps the same inputs, states and URL state with React components that call the API.
 
 ## DataTable
 
@@ -56,4 +56,4 @@ Success, error, info. Server sets it through an `HX-Trigger` response header (`s
 
 - A slim warning-colored bar at the top: "PROTOTYPE – ข้อมูลจำลอง ยังไม่บันทึกข้อมูลจริง".
 - On the right, the role switcher: a select that lists every fake user as "ชื่อ · ตำแหน่ง (role)", with the current user selected. Changing it posts to `/_prototype/switch-user` and reloads the page, so the menu, rows and buttons change to that role.
-- Rendered by the layout only when `Prototype:UseFakeData` is true, and never otherwise.
+- Rendered by the layout only when the prototype-mode flag in `## Stack` is on (`Prototype:UseFakeData` in `mvc-htmx`), and never otherwise.

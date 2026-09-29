@@ -9,7 +9,7 @@ A theme is the shared kit every screen is built from, the way a housing project 
 
 Run this before the first `/mflow:screen`. Run `/mflow:theme update <what>` to change the kit; every screen follows automatically because none of them carry their own styles. `/mflow:theme update access` builds or refreshes only the access seams (step 3) from the current approved access-control discussion doc. That includes `users.json` and `roles.json`, which follow the schema-change rule once screens exist. Projects themed before mflow 0.5 need it before their next screen.
 
-Stack: detect it. ASP.NET Core MVC/Razor + Bootstrap 5 + HTMX is the default below. For a React + Vite project, apply the same contracts as React components in `src/components/ui/` and tokens in `src/styles/tokens.css`.
+Stack: read AGENTS.md `## Stack`. If it is missing (projects set up before mflow 0.10) or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Paths and names below are for the `mvc-htmx` profile. Under another profile, use the matching rows of `## Stack` (tokens file, app shell, components, style guide, prototype-mode flag) and keep every contract.
 
 ## 1. Brand input
 
@@ -44,7 +44,7 @@ Done when: each contract has an implementation and the style guide shows it.
 ## 6. Rules for agents
 
 - Write `docs/ui/design-system.md` from [assets/design-system.md](assets/design-system.md): which component for which need, the do-and-don't list, how to add a component.
-- Write `.claude/rules/ui.md` from [assets/ui-rule.md](assets/ui-rule.md), adjusting `paths:` to the real view and component folders. It loads only when Claude opens a UI file.
+- Write `.claude/rules/ui.md` from [assets/ui-rule.md](assets/ui-rule.md), setting `paths:` to the UI files row of AGENTS.md `## Stack`. It loads only when Claude opens a UI file.
 - Add one pointer line to AGENTS.md under Conventions: `UI: build screens only from the components in docs/ui/design-system.md; colors and spacing only from tokens.css.`
 
-Done when: `dotnet build` passes, the style guide renders, the three files above exist, and STATUS.md records the theme decisions (palette, font, density).
+Done when: the build command in AGENTS.md passes, the style guide renders, the three files above exist, and STATUS.md records the theme decisions (palette, font, density).

@@ -9,7 +9,8 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 
 | Situation | Command |
 |---|---|
-| New repo, or first time using mflow here | `/mflow:init` |
+| New repo, or first time using mflow here (it asks which stack first) | `/mflow:init` |
+| Change the stack before `/mflow:theme` has built the kit | edit AGENTS.md `## Stack`, or rerun `/mflow:init` to be asked again |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
 | Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |
 | Replied inside a discussion doc, or want it changed | `/mflow:discuss <NN> [what to change]` |

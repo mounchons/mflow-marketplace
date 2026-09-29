@@ -4,7 +4,7 @@
      Change the kit with /mflow:theme update; screens follow automatically. -->
 
 ## Decisions
-- Palette: TODO (tokens in `wwwroot/css/tokens.css`)
+- Palette: TODO (tokens in the Tokens file of AGENTS.md `## Stack`)
 - Font: TODO
 - Density: TODO
 - Style guide: `/_styleguide` (dev/prototype only)
@@ -13,7 +13,7 @@
 | Need | Component | Notes |
 |---|---|---|
 | Page title, breadcrumb, main actions | `PageHeader` | one per page |
-| Filters above a list | `FilterPanel` | collapsible; submit via HTMX to the list |
+| Filters above a list | `FilterPanel` | collapsible; refreshes only the list, no full page reload |
 | Any list of records | `DataTable` | server-side paging, column search, sort, page size |
 | Any input with label + validation | `FormField` | wraps text, number, date, select, textarea, checkbox |
 | Status of a record | `StatusBadge` | status → color mapping lives in one place |
@@ -32,5 +32,5 @@
 
 ## Adding a component
 1. Write its contract in this file (parameters, states, behaviour).
-2. Implement under `Views/Shared/Components/`.
+2. Implement in the Components folder of AGENTS.md `## Stack`.
 3. Show every state on `/_styleguide`.

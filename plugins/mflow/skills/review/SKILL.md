@@ -10,7 +10,7 @@ A review answers one question: does this diff do what the spec says, the way thi
 ## 1. Scope the diff
 
 - Branch: `git diff main...<branch>`; `--uncommitted`: working tree; change name: the commits and files for `openspec/changes/<name>/`; TASK-ID: the task's `modifiedFiles` and linked commits.
-- Load what the diff must satisfy: the change's `proposal.md`, `tasks.md` and delta specs; the Backlog task's acceptance criteria; AGENTS.md; `docs/ui/design-system.md` for view changes; the hotspot `rules.md` if it implements one.
+- Load what the diff must satisfy: the change's `proposal.md`, `tasks.md` and delta specs; the Backlog task's acceptance criteria; AGENTS.md, including `## Stack` (if it is missing or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section); `docs/ui/design-system.md` for view changes; the hotspot `rules.md` if it implements one.
 
 ## 2. Check
 
@@ -19,7 +19,7 @@ A review answers one question: does this diff do what the spec says, the way thi
 3. **Domain placement:** business rules live in the domain layer (aggregates, value objects, domain services); controllers, views and repositories do not re-implement them. Invariants from rules.md are enforced where their owning aggregate is.
 4. **UI kit:** views use kit components and tokens only; lists use DataTable with server-side paging and both filter locations.
 5. **Data access:** queries page and filter in the database, no N+1 in lists, migrations reversible. Entities, columns, types, precision and nullability match `PrototypeData/README.md` and the approved data-model doc, or the change states the difference; the indexes the doc lists for screen filters exist.
-6. **Security basics:** a `Permissions` key checked on every endpoint that changes data, and on every read the access-control discussion doc restricts; data scope applied in the query, not the view; restricted fields masked in the ViewModel mapping that exports reuse; no role-name comparisons (contract: "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md`); `FakeCurrentUser` and `/_prototype/*` registered only under `Prototype:UseFakeData`; no raw SQL built from input, no secrets in code or config.
+6. **Security basics:** a `Permissions` key checked on every endpoint that changes data, and on every read the access-control discussion doc restricts; data scope applied in the query, not the view; restricted fields masked in the ViewModel mapping that exports reuse; no role-name comparisons (contract: "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md`); `FakeCurrentUser` and `/_prototype/*`, or their equivalents, registered only under the prototype-mode flag in AGENTS.md `## Stack` (`Prototype:UseFakeData` in the .NET profiles); no raw SQL built from input, no secrets in code or config.
 7. **Leftovers:** `// PROTOTYPE:` markers still in code that this change was meant to replace; TODOs without a task.
 
 Done when: every check has a result, with file:line for each problem.

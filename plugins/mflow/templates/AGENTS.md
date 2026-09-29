@@ -6,13 +6,32 @@
 ## Purpose
 One line on what this system does and for whom. Detail: `docs/vision.md`.
 
+## Stack
+<!-- Chosen at /mflow:init (options a/b/c). mflow skills read names and paths from this table;
+     under a profile other than mvc-htmx, read skill names such as ViewModel or Prototype:UseFakeData by their role here. -->
+Profile: TODO
+
+| Seam | Value |
+|---|---|
+| UI files | TODO |
+| Tokens file | TODO |
+| App shell | TODO |
+| Components | TODO |
+| Style guide | TODO |
+| Prototype data | TODO |
+| Prototype-mode flag | TODO |
+| Data access | TODO |
+| Unit tests | TODO |
+| E2E tests | TODO |
+| Golden data folder | TODO |
+
 ## Commands
-<!-- Fill during /mflow:init. Append `(unverified)` to any command that was not actually run. -->
-- Build: `dotnet build`
-- Unit + domain tests: `dotnet test`
-- E2E (Playwright): `TODO`
+<!-- Fill during /mflow:init from the Stack profile. Append `(unverified)` to any command that was not actually run. -->
+- Build: `TODO`
+- Unit + domain tests: `TODO`
+- E2E: `TODO`
 - Run locally: `TODO`
-- Format: `dotnet format`
+- Format: `TODO`
 
 ## Architecture
 - Solution layout: TODO (e.g. `src/<Context>.Domain`, `.Application`, `.Infrastructure`, `.Web`)
@@ -52,12 +71,12 @@ If you were given a brief in `.mflow/briefs/`, it is your contract: stay in its 
 
 ## Definition of done
 A task or change is done when its acceptance criteria are covered by tests that pass:
-- Business rules: xUnit tests in the domain test project, one case per example-table row (`[Theory]` + `[InlineData]` / `[MemberData]`).
-- User flows: Playwright test for each acceptance scenario that crosses the UI.
-- `dotnet build` and `dotnet test` are green. Report the command output, not a claim.
+- Business rules: data-driven unit tests in the domain test project (Unit tests in Stack), one case per example-table row.
+- User flows: an E2E test (E2E tests in Stack) for each acceptance scenario that crosses the UI.
+- The Build and test commands above are green. Report the command output, not a claim.
 
 ## Conventions
-<!-- Only what differs from .NET defaults or cannot be inferred from the code. -->
+<!-- Only what differs from the stack's defaults or cannot be inferred from the code. -->
 - TODO
 
 ## Boundaries

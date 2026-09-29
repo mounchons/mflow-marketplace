@@ -47,4 +47,4 @@ Graduate only when every item holds, each with evidence:
 | Each distinct outcome row | `#### Scenario:` WHEN inputs THEN outcome |
 | Invariant | its own Requirement with a violating Scenario |
 | State transition | Requirement per transition group; Scenario per guard |
-| Golden data | referenced in the change's tasks, loaded by xUnit `[MemberData]` |
+| Golden data | referenced in the change's tasks, loaded by a data-driven test (xUnit `[MemberData]` in the .NET profiles) |

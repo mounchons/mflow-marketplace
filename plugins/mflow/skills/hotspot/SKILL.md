@@ -72,7 +72,7 @@ Resolve exactly one ticket per session (research tickets excepted). The pull to 
 
 1. Show พี่ปู the readiness checklist with evidence for each item.
 2. After a yes, propose the OpenSpec change: run `/opsx:propose <change-name>` with `rules.md` as the input. Each distinct outcome row becomes a Scenario; each invariant becomes a requirement.
-3. Put the golden examples where tests can read them (for example `tests/<Context>.Domain.Tests/Golden/<slug>.json` or `.csv`) and reference that path in the change's tasks.
+3. Put the golden examples where tests can read them, in the Golden data folder of AGENTS.md `## Stack` (for example `tests/<Context>.Domain.Tests/Golden/<slug>.json` or `.csv`), and reference that path in the change's tasks.
 4. Set map.md frontmatter `status: graduated` and `change: <change-name>`; add at the top of `rules.md`: "Frozen. Source of truth after archive: `openspec/specs/<domain>/spec.md`." Update the INDEX.md row and STATUS.md.
 
 Done when: the OpenSpec change exists and validates (`openspec validate <change-name>`), the map is marked graduated, and nothing in `rules.md` is newer than the change.

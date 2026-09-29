@@ -19,13 +19,13 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.9)
+## คำสั่ง (v0.10)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>`
 
 | กลุ่ม | คำสั่ง | ทำอะไร |
 |---|---|---|
-| ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
+| ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack ก่อน, ต่อ OpenSpec + Backlog.md, คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded |
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/discuss/NN-<slug>.md` ให้พี่ปูอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่พี่ปูรันเอง |
@@ -35,12 +35,24 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง |
 | | `/mflow:review-notes @โน้ต` | คัดแยกผลรีวิวกับลูกค้า + ร่างอีเมลสรุปภาษาไทย |
 | โลจิก | `/mflow:hotspot [...]` | chart และแก้กฎใหญ่ทีละตั๋ว → graduate เป็น OpenSpec change |
-| | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + xUnit |
+| | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + unit test ตาม stack (xUnit สำหรับ .NET) |
 | ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมิน, ร่างตอบลูกค้า |
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + รัน test |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด (+ brief ให้ tool อื่นทำต่อ) |
+
+## Stack
+
+`/mflow:init` ถามก่อนเขียนไฟล์ใดๆ ว่าโปรเจกต์ใช้ stack แบบไหน ตอบด้วยตัวอักษรตัวเดียว:
+
+| ตัวเลือก | Profile | รองรับ |
+|---|---|---|
+| a) | `mvc-htmx`: ASP.NET Core MVC + Razor + Bootstrap 5 + HTMX | เต็ม (แนะนำเมื่อ repo ยังว่าง) |
+| b) | `react-vite`: React + Vite + ASP.NET Core Web API | contract เดียวกันในรูป React component |
+| c) | `custom`: stack อื่น เช่น Next.js, Laravel, Django | Claude เติมตาราง mapping ให้ยืนยันก่อน ยังไม่ได้ทดสอบกับ mflow |
+
+คำตอบบันทึกไว้ที่ `## Stack` ใน AGENTS.md ที่เดียว แล้ว `theme`, `screen`, `golden`, `review` อ่าน path และชื่อจากตรงนั้น โปรเจกต์ที่ init ก่อน 0.10 จะถูกถามเมื่อใช้คำสั่งเหล่านี้ครั้งแรก รายละเอียดอยู่ใน `skills/init/references/stacks.md`
 
 ## Hooks (ทำงานเฉพาะ repo ที่มี `.mflow/config.json`)
 

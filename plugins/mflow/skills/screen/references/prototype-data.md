@@ -2,6 +2,8 @@
 
 All prototype screens read one shared set of JSON files, so the same customer, driver or product appears consistently on every screen, like one warehouse supplying every room of a model home.
 
+Paths, C# and `Prototype:UseFakeData` below are the `mvc-htmx` form. Under another profile, the Prototype data and Prototype-mode flag rows of AGENTS.md `## Stack` give the equivalents; the rules stay the same.
+
 ## Location and shape
 
 ```

@@ -38,7 +38,7 @@ Suggested shapes for section 3:
 | Field | Roles that see it | Everyone else sees |
 |---|---|---|
 
-Implementation direction to propose as `[เสนอ]` and confirm through a decision (default .NET stack; adapt to AGENTS.md):
+Implementation direction to propose as `[เสนอ]` and confirm through a decision (for the .NET profiles `mvc-htmx` and `react-vite`; under another profile, adapt to AGENTS.md `## Stack`):
 - One permission list is the single source for the menu, the endpoint authorization and the button visibility. Hiding a menu is not security: every endpoint checks the permission too.
 - ASP.NET Core policy-based authorization with permission claims; the menu is built from the same permissions.
 - Data scope is enforced in the query layer (repository specification or EF Core global query filter), never in the view.
@@ -58,7 +58,7 @@ Checklist:
 - Screens: which screens read or write this aggregate (from `docs/ui/screens.md`), and what each one filters, sorts and searches on.
 - Tables: root and child tables, and what one row means.
 - Columns: name, Thai label, type, length or precision, required, key, default, unique, validation, example, and a source tag.
-- Types: take the database engine from AGENTS.md. Give the .NET type and that engine's column type. With no engine decided, give .NET types only, and make the engine a decision.
+- Types: take the database engine from AGENTS.md. Give the code type in the stack's language and that engine's column type; name the column after the language (`.NET type`, `TS type`, `PHP type`…). With no engine decided, give code types only, and make the engine a decision.
 - Keys: the surrogate key type (Guid or int), the business number (see the numbering topic), and what must be unique.
 - Relations: foreign keys, cardinality, and what happens to children when the parent is cancelled or deleted.
 - Standard columns: the data-scope keys from the access-control doc (`BranchId`, `CreatedBy`, `AssignedTo`), audit columns (created and updated, by whom and when), and a concurrency token.
@@ -86,7 +86,7 @@ One data dictionary per table:
 | Screen | Reads | Filters / sorts / search | Index needed |
 |---|---|---|---|
 
-Implementation direction to propose as `[เสนอ]` (default .NET stack; adapt to AGENTS.md):
+Implementation direction to propose as `[เสนอ]` (for the .NET profiles; under another profile, adapt to AGENTS.md `## Stack`):
 - One EF Core entity per table, configured through `IEntityTypeConfiguration<T>`, with the precision of money set explicitly.
 - Soft delete and data scope as global query filters, and a concurrency token on aggregates that several people edit.
 - React + Vite: the same model lives in the API, and the UI receives DTOs.

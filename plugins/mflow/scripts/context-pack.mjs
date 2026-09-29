@@ -13,7 +13,7 @@ if (oi < 0 || !args[oi + 1]) { process.stderr.write("usage: context-pack.mjs --o
 const out = args[oi + 1];
 const inputs = args.filter((_, i) => i !== oi && i !== oi + 1);
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || process.cwd()) || process.cwd();
-const TEXT = /\.(md|txt|cs|cshtml|razor|csproj|sln|slnx|json|ya?ml|xml|sql|css|scss|js|mjs|ts|tsx|jsx|html|py|config|props|targets|csv|editorconfig)$/i;
+const TEXT = /\.(md|txt|cs|cshtml|razor|csproj|sln|slnx|json|ya?ml|xml|sql|css|scss|js|mjs|ts|tsx|jsx|html|py|vue|svelte|php|java|kt|go|rb|rs|dart|swift|config|props|targets|csv|editorconfig)$/i;
 // Folders never packed, matched against the repo-relative path so "wwwroot/lib" works at any depth.
 const IGNORE = /(^|\/)(bin|obj|node_modules|\.git|\.vs|dist|wwwroot\/lib)$/;
 // Credentials must not travel to a chat UI. Only config-type files are checked:

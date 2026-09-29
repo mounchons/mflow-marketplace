@@ -3,8 +3,8 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.9.1 |
-| วันที่ | 2026-09-26 |
+| เวอร์ชัน plugin | 0.10.0 |
+| วันที่ | 2026-09-29 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
 ---
@@ -67,7 +67,7 @@ flowchart TD
 | OpenSpec 1.10 ขึ้นไป | spec และ change | `npm i -g @fission-ai/openspec@latest` |
 | Backlog.md 1.51 ขึ้นไป | task และตั๋ว hotspot (ต้องใช้ `isReady` ใน JSON) | `npm i -g backlog.md` |
 | Python + pandas, openpyxl, python-docx, pypdf | อ่าน Excel/Word/PDF ของลูกค้า และแปลงเป็นข้อความก่อน `consult` | `pip install pandas openpyxl python-docx pypdf` |
-| .NET SDK | build/test โปรเจกต์ | ติดตั้งตามปกติ |
+| SDK ของ stack ที่เลือก (.NET SDK สำหรับ a และ b, Node สำหรับหน้า React ของ b) | build/test โปรเจกต์ | ติดตั้งตามปกติ |
 | ตัวแสดงภาพ Mermaid (ไม่บังคับ) | ดูแผนภาพในเอกสาร discuss | GitHub แสดงเป็นรูปให้เอง ถ้า preview ของ VS Code แสดงเป็นโค้ด ให้ติดตั้ง extension สำหรับ Mermaid preview |
 | mermaid-cli (ไม่บังคับ) | ให้ Claude ตรวจ syntax ของแผนภาพโดยการ render | `npm i -g @mermaid-js/mermaid-cli` (ดาวน์โหลด browser มาด้วย ขนาดใหญ่) |
 
@@ -86,12 +86,18 @@ flowchart TD
 
 - **ใช้เมื่อ:** ใช้ mflow กับ repo นี้เป็นครั้งแรก หรือหลังอัปเกรด plugin เพื่อรับ template ใหม่
 - **สิ่งที่เกิดขึ้น:**
-  1. สำรวจ repo: solution, test project, Playwright, agent file เดิม, เอกสาร requirement และ CLI ที่ติดตั้งไว้ แล้วสรุปให้ดูในรอบเดียว
-  2. แสดงรายการไฟล์ที่จะสร้าง (dry-run) แล้วสร้าง `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/`, `docs/ai-inbox/`, `docs/discuss/`, `.mflow/config.json` ไฟล์ที่มีอยู่แล้วจะไม่ถูกเขียนทับ template จะไปอยู่ที่ `.mflow/suggested/` เพื่อ merge ให้พร้อมแสดง diff
-  3. ต่อ OpenSpec และ Backlog.md โดยถาม yes ก่อนรันแต่ละคำสั่ง
-  4. รัน `dotnet build` และ `dotnet test` จริง แล้วเขียนเฉพาะคำสั่งที่ผ่านลงใน AGENTS.md คำสั่งที่รันไม่ได้จะติด `(unverified)`
-  5. ย้ายเอกสารลูกค้าที่พบไปไว้ใน `docs/source/` แล้วคัดแยกตามขั้น 1
-- **สิ่งที่พี่ปูต้องตอบ:** คำถามไม่เกินสามข้อ เรื่องจุดประสงค์ของระบบ, bounded context และคำศัพท์ของลูกค้า ข้อไหนยังไม่รู้ให้ตอบว่าข้าม จะเหลือเป็น `TODO` ไว้
+  1. สำรวจ repo: solution, test project, Playwright, stack ที่พบ, agent file เดิม, เอกสาร requirement และ CLI ที่ติดตั้งไว้ แล้วสรุปให้ดูในรอบเดียว
+  2. **ถามเลือก stack ก่อนเขียนไฟล์ใดๆ** (ถามทุกครั้ง แม้จะเดาจาก repo ได้ชัด) ตอบด้วยตัวอักษรตัวเดียว:
+     - `a)` ASP.NET Core MVC + Razor + Bootstrap 5 + HTMX: รองรับเต็ม และเป็นค่าแนะนำเมื่อ repo ยังว่าง
+     - `b)` React + Vite + ASP.NET Core Web API: component ชุดเดียวกันในรูป React และ API เป็นฝ่ายตรวจสิทธิ์และแบ่งหน้า
+     - `c)` stack อื่น (บอกชื่อ เช่น Next.js, Laravel): Claude เติมตาราง mapping (ไฟล์ UI, tokens, layout, component, ข้อมูล prototype, สวิตช์โหมด prototype, test) ให้ยืนยันก่อน ยังไม่ได้ทดสอบกับ mflow
+
+     คำตอบบันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว และคำสั่ง `theme` `screen` `golden` `review` อ่านจากตรงนั้น
+  3. แสดงรายการไฟล์ที่จะสร้าง (dry-run) แล้วสร้าง `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/`, `docs/ai-inbox/`, `docs/discuss/`, `.mflow/config.json` ไฟล์ที่มีอยู่แล้วจะไม่ถูกเขียนทับ template จะไปอยู่ที่ `.mflow/suggested/` เพื่อ merge ให้พร้อมแสดง diff
+  4. ต่อ OpenSpec และ Backlog.md โดยถาม yes ก่อนรันแต่ละคำสั่ง
+  5. รันคำสั่ง build และ test ของ stack ที่เลือกจริง (เช่น `dotnet build`, `dotnet test`) แล้วเขียนเฉพาะคำสั่งที่ผ่านลงใน AGENTS.md คำสั่งที่รันไม่ได้จะติด `(unverified)`
+  6. ย้ายเอกสารลูกค้าที่พบไปไว้ใน `docs/source/` แล้วคัดแยกตามขั้น 1
+- **สิ่งที่พี่ปูต้องตอบ:** เลือก stack (ข้อ 2) แล้วตอบคำถามอีกไม่เกินสามข้อ เรื่องจุดประสงค์ของระบบ, bounded context และคำศัพท์ของลูกค้า ข้อไหนยังไม่รู้ให้ตอบว่าข้าม จะเหลือเป็น `TODO` ไว้
 - **ได้อะไร:** repo พร้อมใช้งาน และตั้งแต่ session ถัดไป hook จะเริ่มทำงาน
 - **ต่อไป:** `/mflow:capture` ถ้ามีเอกสาร แล้ว `/mflow:theme`
 
@@ -197,7 +203,7 @@ flowchart TD
 - **หนึ่งเอกสารต่อหนึ่งกลุ่มข้อมูล (aggregate):** ตารางหลักกับตารางลูกของมัน เช่น `Jobs` กับ `JobStops` แถวใน data dictionary ไม่นับในเพดาน ~200 บรรทัด เพราะต้องแสดงทุก column
 - **ในเอกสารมี:**
   - รายการตาราง (หนึ่งแถวคืออะไร, ความสัมพันธ์, จำนวนแถวต่อเดือน), ER diagram และ state diagram ของสถานะ (ถ้ามี)
-  - data dictionary ทีละตาราง: column, ชื่อไทย, type ของ .NET และ type ของฐานข้อมูล (ตามที่ระบุใน AGENTS.md ถ้ายังไม่ได้เลือกฐานข้อมูล จะกลายเป็นข้อตัดสินใจ), required, key/default, ตัวอย่าง และป้ายที่มา
+  - data dictionary ทีละตาราง: column, ชื่อไทย, type ในภาษาของ stack (.NET สำหรับ a และ b) และ type ของฐานข้อมูล (ตามที่ระบุใน AGENTS.md ถ้ายังไม่ได้เลือกฐานข้อมูล จะกลายเป็นข้อตัดสินใจ), required, key/default, ตัวอย่าง และป้ายที่มา
   - หน้าจอไหนกรอง เรียง หรือค้นหาด้วย column ไหน และต้องมี index อะไร
   - column มาตรฐาน: column สำหรับ data scope จากเอกสารเรื่องสิทธิ์ (`BranchId`, `CreatedBy`), audit column และ concurrency token
   - ข้อตัดสินใจ: key แบบ Guid หรือ int, ลบจริงหรือ soft delete, enum ในโค้ดหรือตาราง lookup, ตารางลูกหรือเก็บเป็น JSON, เก็บค่า ณ วันที่ออกเอกสาร (snapshot) หรืออ้างอิง master
@@ -259,7 +265,7 @@ flowchart TD
 | `/mflow:hotspot <ไอเดีย> [@เอกสาร]` | chart เรื่องใหม่: ตั้ง slug, สร้าง `map.md` และ `rules.md`, สร้างตั๋วคำถาม (`ask` / `examples` / `research` / `spike`) และร่างคำถามถึงลูกค้าเป็นภาษาไทย ใช้หนึ่ง session |
 | `/mflow:hotspot <slug>` | หยิบตั๋วถัดไปใน frontier (ตั๋วที่หยิบได้) มาแก้ **หนึ่งตั๋ว** แล้วบันทึกผลลง `rules.md` |
 | `/mflow:hotspot <slug> <TASK-ID>` | แก้ตั๋วที่ระบุ เช่น เมื่อได้คำตอบจากลูกค้ากลับมาแล้ว |
-| `/mflow:golden @ไฟล์.xlsx <slug>` | ใช้ Excel ที่ลูกค้าคำนวณด้วยมือจริงเป็นเฉลย (golden data) ได้ไฟล์ JSON และ xUnit test ข้อมูลส่วนบุคคลจะถูกปิดบัง และแถวที่ผิดปกติจะถูกแยกออกไปเป็นตั๋วถาม |
+| `/mflow:golden @ไฟล์.xlsx <slug>` | ใช้ Excel ที่ลูกค้าคำนวณด้วยมือจริงเป็นเฉลย (golden data) ได้ไฟล์ JSON และ unit test ตาม stack (xUnit สำหรับ .NET) ข้อมูลส่วนบุคคลจะถูกปิดบัง และแถวที่ผิดปกติจะถูกแยกออกไปเป็นตั๋วถาม |
 
 - **ตั๋ว `ask`:** ส่ง `docs/hotspots/<slug>/questions-for-customer.md` ให้ลูกค้า Claude จะไม่ตอบแทนลูกค้า เมื่อได้คำตอบมาให้พิมพ์ `/mflow:hotspot <slug> <TASK-ID>`
 - **ถ้าเรื่องจบได้ในคุยครั้งเดียว** Claude จะบอกว่าไม่ต้องทำเป็น hotspot และแนะนำ `/opsx:propose` แทน
@@ -308,6 +314,7 @@ Codex และ tool อื่นไม่มี hook ให้ทำตาม�
 # สัปดาห์ที่ 1: ตั้งต้น
 git init
 /mflow:init TransportHub
+  (ถาม stack: ตอบ a)
   (วาง TOR ลูกค้าไว้ที่ docs/source/2026-09-tor-v1.pdf)
 /mflow:capture
 /mflow:discuss สิทธิ์ เมนู และข้อมูลที่แต่ละ role เห็น
@@ -364,7 +371,8 @@ git diff --stat openspec/specs
 
 | สถานการณ์ | คำสั่ง |
 |---|---|
-| repo ใหม่ หรือเพิ่งอัปเกรด plugin | `/mflow:init` |
+| repo ใหม่ หรือเพิ่งอัปเกรด plugin | `/mflow:init` (ถามเลือก stack ก่อน) |
+| จะเปลี่ยน stack ก่อน `/mflow:theme` (หลังจากนั้นต้องสร้าง kit และหน้าจอใหม่) | แก้ `## Stack` ใน AGENTS.md หรือรัน `/mflow:init` ซ้ำให้ถามใหม่ |
 | ลูกค้าส่งเอกสารหรือฉบับใหม่ | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` |
 | อยากเช็กว่า Claude เข้าใจเรื่องหนึ่งตรงกับที่คิด (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | `/mflow:discuss <หัวข้อ> [@ไฟล์]` |
 | เขียนตอบในเอกสาร discuss แล้ว หรืออยากให้แก้ | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` |
@@ -388,7 +396,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.9.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.10.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -406,6 +414,8 @@ git diff --stat openspec/specs
 | ตั้งแต่ 0.8 คำสั่ง `/mflow:source` เปลี่ยนชื่อเป็น `/mflow:capture` แต่โฟลเดอร์ `docs/source/`, `source-index.mjs` และ `sourceDir` ยังชื่อเดิม | โปรเจกต์ที่ init ก่อน 0.8 ยังมี `/mflow:source` เขียนอยู่ใน `AGENTS.md` (ตาราง Where things live) และ `docs/source/README.md` ให้แก้สองจุดนี้เป็น `/mflow:capture` เอง หรือรัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ |
 | โปรเจกต์ที่ `init` ก่อน 0.7 ไม่มีบรรทัดเรื่องเอกสาร discuss และ data dictionary ใน `openspec/config.yaml` | เพิ่มเองตามตัวอย่างด้านล่าง |
 | คำสั่งแปลงเอกสารลูกค้าเป็นข้อความก่อน `consult` ต้องมี pandoc หรือ python (python-docx, openpyxl, pypdf) | ติดตั้งตามหัวข้อ 3 ถ้าแปลงไม่ได้ brief จะบอก AI ตัวอื่นว่าไฟล์นั้นอ่านไม่ได้ |
+| โปรเจกต์ที่ init ก่อน 0.10 ไม่มี `## Stack` ใน AGENTS.md | คำสั่งแรกที่ต้องใช้ (`theme`, `screen`, `golden`, `review`) จะเดา stack จาก repo แล้วถามก่อน จากนั้นเพิ่ม section ให้ หรือรัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ |
+| stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |
 
 โปรเจกต์ที่ init ก่อน 0.7: เพิ่มบรรทัดเหล่านี้ต่อท้ายใต้ key เดียวกันใน `openspec/config.yaml` โดยไม่ต้องลบบรรทัดเดิม:
 

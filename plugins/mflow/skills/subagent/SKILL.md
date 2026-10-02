@@ -16,6 +16,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/apply-subagent.mjs" <on|off|status> [--
 Tell the user, in one or two lines: on or off now, which file holds the rule, and every entry under `warnings`. The ones that matter:
 - `still off`: another file still denies the agent. Say which file and what to do, as the warning gives it.
 - no apply guidance: the project was initialised before 0.16, so `/opsx:apply` will not use the subagent even when on. Point to the 0.16 row of the manual's known issues, or `/mflow:init` to merge it.
+- opened below the project root (`openedBelowRoot`): Claude Code reads permission rules only from the folder it was opened in, so the state and any change apply only to sessions opened there, and a rule at the root does not reach them. Recommend opening Claude Code at the project root.
 
 The change applies from the next `/opsx:apply`. To skip the subagent for one run only, no command is needed: say so in the `/opsx:apply` message.
 

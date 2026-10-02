@@ -87,6 +87,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 - Codex อ่าน guidance เดียวกัน แต่ไม่มี subagent นี้ จึงทำ task เอง
 - เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ ถ้า Claude ทำเองโดยไม่ส่งต่อ ให้บอกในแชต
 - เปิดหรือปิด: `/mflow:subagent off` เพิ่มกฎ deny `Agent(mflow:dev)` ใน `.claude/settings.local.json` (เฉพาะเครื่องนี้ และเพิ่มไฟล์ลง `.gitignore` ให้) `--shared` เขียนใน `.claude/settings.json` ให้ทั้งทีม `on` ลบกฎออก `status` บอกสถานะและไฟล์ที่ปิดไว้ มีผลตั้งแต่ `/opsx:apply` ครั้งถัดไป ตอนปิด Claude ทำทุก task เองโดยไม่หยุดถาม และ briefing ตอนเริ่ม session บอกว่าปิดอยู่
+- มีผลกับ session ที่เปิด Claude Code ที่โฟลเดอร์นั้นเท่านั้น เพราะ Claude Code อ่าน `.claude/settings*.json` จากโฟลเดอร์ที่เปิด ไม่ไล่ขึ้นไปหาโฟลเดอร์แม่ ปกติให้เปิดที่ root ของโปรเจกต์ (โฟลเดอร์ที่มี `.mflow/`) ถ้าเปิดในโฟลเดอร์ย่อย เช่น `apps/api` คำสั่งนี้อ่านและเขียน settings ของโฟลเดอร์นั้น เตือนว่ามีผลแค่ที่นั่น และ briefing บอกเมื่อ root ปิดไว้แต่ session นี้ยังเปิด
 - ไม่ใช้ subagent แค่รอบเดียว: บอกในข้อความ `/opsx:apply` เช่น `/opsx:apply <change> รอบนี้ไม่ใช้ subagent`
 - guidance สั่งให้ตัดสินว่าเปิดหรือปิดจากรายการ agent และกฎ permission ของ session ปัจจุบันเท่านั้น ไม่เชื่อบันทึกจาก session ก่อน (เช่น `.remember/` ที่อาจยังเขียนว่าปิดอยู่)
 - เปลี่ยนโมเดลที่บรรทัด `model:` ของ `agents/dev.md` (เช่น `sonnet` เพื่อตามรุ่นล่าสุด) ถ้าเครื่องตั้ง `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` ไว้ ค่าใน `CLAUDE_CODE_SUBAGENT_MODEL` จะทับบรรทัดนี้

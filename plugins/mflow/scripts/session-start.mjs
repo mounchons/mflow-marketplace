@@ -13,7 +13,10 @@ import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
 
 const input = readStdinJson();
-const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
+// The folder Claude Code was opened in; it may sit below the mflow root, and only its
+// .claude/settings*.json apply to the session.
+const projectDir = path.resolve(process.env.CLAUDE_PROJECT_DIR || input.cwd || ".");
+const root = findRoot(projectDir);
 if (!root) process.exit(0);
 const cfg = loadConfig(root);
 
@@ -27,6 +30,7 @@ try {
     try { state = JSON.parse(fs.readFileSync(stateFile, "utf8")); } catch { /* no earlier record */ }
   }
   if (!state || state.root !== root) state = { root, startedAt: Date.now(), lastBlockAt: 0 };
+  state.projectDir = projectDir; // read by apply-subagent.mjs, which the Bash tool runs without CLAUDE_PROJECT_DIR
   fs.writeFileSync(stateFile, JSON.stringify(state));
 } catch { /* best effort */ }
 
@@ -50,12 +54,16 @@ if (status) {
 const os = runJson("openspec list --json", root, 10000);
 if (os && Array.isArray(os.changes)) {
   const active = os.changes.filter((c) => c.status !== "complete" && c.status !== "archived");
-  // Silent while the apply subagent is on; one line when a permission rule switches it off.
+  // Silent while the apply subagent is on; one line when a permission rule switches it off,
+  // or when the root switches it off but this session was opened in a subfolder the rule does not reach.
   let subagent = "";
   try {
-    const sa = applySubagentStatus(root);
+    const sa = applySubagentStatus(root, projectDir);
+    const where = sa.openedBelowRoot ? ` in ${sa.openedBelowRoot}` : "";
     if (sa.state === "off") {
-      subagent = `\n- apply subagent mflow:dev is off (${sa.deniedBy.map((d) => d.scope).join(", ")} settings): /opsx:apply implements tasks itself → /mflow:subagent on`;
+      subagent = `\n- apply subagent mflow:dev is off${where} (${sa.deniedBy.map((d) => d.scope).join(", ")} settings): /opsx:apply implements tasks itself → /mflow:subagent on`;
+    } else if (sa.rootDeniedBy) {
+      subagent = `\n- apply subagent mflow:dev is ON in this session: the project root switches it off, but Claude Code was opened in ${sa.openedBelowRoot} and reads settings only there → open Claude Code at the project root, or /mflow:subagent off here`;
     }
   } catch { /* settings unreadable: say nothing */ }
   parts.push(

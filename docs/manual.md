@@ -490,7 +490,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.16.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.16.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -520,6 +520,7 @@ git diff --stat openspec/specs
 | โปรเจกต์ที่ init ก่อน 0.16 ยังไม่มี `operations.apply.guidance` ใน `openspec/config.yaml` ตอน `/opsx:apply` Claude จึงเขียนโค้ดเองบนโมเดลของ session | อัปเดต plugin เป็น 0.16 ก่อน (subagent `mflow:dev` มากับ plugin ไม่ต้องสร้างไฟล์ในโปรเจกต์) แล้วรัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
 | การส่งงานให้ `mflow:dev` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ และยังไม่เคยรัน `/opsx:apply` แบบนี้ใน session จริง | ครั้งแรกให้ดูว่า Claude เรียก `mflow:dev` จริง ถ้าทำเองให้บอกในแชต |
 | `/mflow:subagent on` หรือ `off` มีผลตั้งแต่ `/opsx:apply` ครั้งถัดไป (ยังไม่ได้ตรวจว่ามีผลกลาง session ที่เปิดอยู่หรือไม่) และกฎ deny `Agent(mflow:dev)` ใน `~/.claude/settings.json` ปิดทุกโปรเจกต์ | ถ้าเปิดแล้วยังไม่ใช้ ให้ `/mflow:subagent status` ดูว่ามีไฟล์ไหนปิดไว้ หรือเริ่ม session ใหม่ |
+| Claude Code อ่านกฎ permission จากโฟลเดอร์ที่เปิด Claude Code เท่านั้น ถ้าเปิดในโฟลเดอร์ย่อย (เช่น `apps/api`) กฎที่ root ไม่มีผลกับ session นั้น | เปิด Claude Code ที่ root ของโปรเจกต์ ถ้าเปิดในโฟลเดอร์ย่อย `/mflow:subagent` จะอ่านและเขียน settings ของโฟลเดอร์นั้นและเตือนให้ (ตั้งแต่ 0.16.1) และ briefing บอกเมื่อ root ปิดไว้แต่ session นี้ยังเปิด |
 | kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
 | DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
 | ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` ได้เลย |

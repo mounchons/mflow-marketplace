@@ -10,6 +10,7 @@ import {
 } from "./lib.mjs";
 import { scan as scanSources } from "./source-index.mjs";
 import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
+import { status as applySubagentStatus } from "./apply-subagent.mjs";
 
 const input = readStdinJson();
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
@@ -49,11 +50,20 @@ if (status) {
 const os = runJson("openspec list --json", root, 10000);
 if (os && Array.isArray(os.changes)) {
   const active = os.changes.filter((c) => c.status !== "complete" && c.status !== "archived");
+  // Silent while the apply subagent is on; one line when a permission rule switches it off.
+  let subagent = "";
+  try {
+    const sa = applySubagentStatus(root);
+    if (sa.state === "off") {
+      subagent = `\n- apply subagent mflow:dev is off (${sa.deniedBy.map((d) => d.scope).join(", ")} settings): /opsx:apply implements tasks itself → /mflow:subagent on`;
+    }
+  } catch { /* settings unreadable: say nothing */ }
   parts.push(
     "## OpenSpec changes in flight\n" +
       (active.length
         ? active.map((c) => `- ${c.name} (${c.completedTasks ?? "?"}/${c.totalTasks ?? "?"} tasks)`).join("\n")
-        : "- none"),
+        : "- none") +
+      subagent,
   );
 } else {
   parts.push("## OpenSpec\n- CLI unavailable or not initialised (run `openspec --version`)");

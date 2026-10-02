@@ -3,10 +3,10 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.15.0 |
+| เวอร์ชันที่อธิบาย | 0.16.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
-| วันที่ | 2026-09-29 |
+| วันที่ | 2026-10-02 |
 | สถานะ | ใช้งานได้ (pilot) |
 
 ---
@@ -96,6 +96,8 @@ flowchart TD
 | FR-03 | ไม่เขียนทับไฟล์เดิม เขียน template ไว้ที่ `.mflow/suggested/` ให้ merge พร้อมแสดง diff | มีแล้ว |
 | FR-04 | ต่อ OpenSpec (`openspec init --tools claude,codex` หรือ `openspec update`) และ Backlog.md (`backlog init … --agent-instructions agents`) หลังผู้ใช้ตอบ yes | มีแล้ว |
 | FR-05 | เติม `context` และ `rules` ใน openspec/config.yaml: proposal ต้องลิงก์ hotspot และเอกสาร data model ที่อนุมัติ, requirement ต้องมี scenario, task ต้องจบด้วย test และ change ที่สร้าง aggregate ต้องเปลี่ยนส่วนนั้นของ `PrototypeData/README.md` เป็นบรรทัดชี้ไปที่ entity | มีแล้ว |
+| FR-173 | เติม `operations.apply.guidance` ใน openspec/config.yaml: ใน Claude Code `/opsx:apply` ส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ตัวใหม่ (`agents/dev.md` มากับ plugin, `model: claude-sonnet-5-5`, `effort: xhigh`) ทีละ task ตามลำดับใน `tasks.md` พร้อมรายงานของ task ก่อนหน้า Claude ตัวหลักถือ `tasks.md` ตรวจ diff กับผล test ก่อนติ๊กและก่อนเริ่ม task ถัดไป และ tool ที่ไม่มี subagent นี้ (Codex) ทำ task เอง ไม่แก้ไฟล์ที่ OpenSpec สร้าง เพราะ `openspec update` เขียนทับ skill และ command แต่ไม่แตะ `config.yaml` | มีแล้ว |
+| FR-174 | `/mflow:subagent on\|off\|status [--shared]` เปิดหรือปิด `mflow:dev` ต่อโปรเจกต์ด้วยกฎ deny `Agent(mflow:dev)` ของ Claude Code: ค่าเริ่มต้นเขียน `.claude/settings.local.json` (เพิ่มลง `.gitignore` เมื่อสร้างไฟล์) `--shared` เขียน `.claude/settings.json` ไม่แตะไฟล์ใต้ `openspec/` ไม่เขียนทับไฟล์ settings ที่ parse ไม่ได้ และคงค่าอื่นในไฟล์ `status` อ่านทั้งระดับเครื่อง ทีม และ local และเตือนเมื่อ `config.yaml` ไม่มี guidance ตอนปิด guidance ให้ Claude ทำทุก task เองโดยไม่หยุดถาม และตัดสินสถานะจาก session ปัจจุบัน ไม่ใช่บันทึกเก่า briefing บอกเมื่อปิดอยู่ ถ้าไม่ใช้แค่รอบเดียวให้บอกในข้อความ `/opsx:apply` | มีแล้ว |
 | FR-06 | เขียนคำสั่ง build/test ลง AGENTS.md เฉพาะที่รันผ่านจริง ที่รันไม่ได้ติด `(unverified)` | มีแล้ว |
 | FR-07 | เรียกซ้ำได้อย่างปลอดภัยเพื่อรับ template ใหม่เมื่ออัปเกรด plugin | มีแล้ว |
 | FR-08 | ถามเลือก stack หลังสำรวจ repo และก่อนเขียนไฟล์ใดๆ ถามทุกครั้งแม้เดาจาก repo ได้ (ตัวเลือก `a)` `b)` `c)` พร้อมคำแนะนำและหลักฐาน) บันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว (profile + ตาราง seam → path/เทคโนโลยี) และ `theme` `screen` `golden` `review` อ่านจากตรงนั้น โปรเจกต์ที่ยังไม่มี section นี้ ให้ถามเมื่อคำสั่งเหล่านั้นต้องใช้ครั้งแรก | มีแล้ว |
@@ -344,6 +346,7 @@ mflow-marketplace/
 ├─ .claude-plugin/marketplace.json
 └─ plugins/mflow/
     ├─ .claude-plugin/plugin.json
+    ├─ agents/dev.md                 ← subagent `mflow:dev` (Sonnet 5.5) ที่ /opsx:apply ส่งงานเขียนโค้ดให้
     ├─ hooks/hooks.json              ← SessionStart, Stop
     ├─ scripts/
     │   ├─ lib.mjs                   ← config + ทะเบียน tool ค่าเริ่มต้น
@@ -352,10 +355,11 @@ mflow-marketplace/
     │   ├─ stop-guard.mjs            ← เตือน STATUS.md
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
     │   ├─ discuss.mjs               ← เลขเอกสาร discuss + ตรวจข้อค้างก่อนอนุมัติ + ซิงก์สถานะของ AGENDA.md
+    │   ├─ apply-subagent.mjs        ← เปิด/ปิด mflow:dev ด้วยกฎ permission
     │   ├─ delegate-cmd.mjs          ← คำสั่งของแต่ละ tool
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
-    ├─ skills/<14 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ skills/<15 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -378,6 +382,7 @@ mflow-marketplace/
 | `/mflow:delegate <subject> --mode analyze\|review\|code [--to <tool>]` | ส่งงานให้ AI ตัวอื่น |
 | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ผลจาก AI ตัวอื่นกลับมา |
 | `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge |
+| `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
 
 คำสั่ง OpenSpec ที่ใช้ร่วม: `/opsx:explore`, `/opsx:propose`, `/opsx:apply`, `/opsx:archive`
@@ -430,7 +435,7 @@ mflow-marketplace/
 |---|---|---|---|
 | R-01 | OpenSpec เคยมีกรณี archive แล้ว `openspec/specs/` ไม่ถูก merge | spec หลักเก่าโดยไม่มี error | เช็ก `git diff --stat openspec/specs` ทุกครั้ง |
 | R-02 | คำสั่งของ opencode และ gemini ยังไม่ได้รันกับตัวจริง | flag อาจเปลี่ยนตามเวอร์ชัน | ทะเบียนเป็น `verified: false` ให้เช็ก `--help` |
-| R-03 | Skill ทั้ง 14 ตัวยังไม่ได้รันใน Claude Code session จริง (ทดสอบแค่ script และ validate) | ขั้นตอนอาจต้องปรับ | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
+| R-03 | Skill ทั้ง 15 ตัวยังไม่ได้รันใน Claude Code session จริง (ทดสอบแค่ script และ validate) | ขั้นตอนอาจต้องปรับ | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
 | R-04 | Stop hook ทำงานทุกครั้งที่ AI ตอบจบ ไม่ใช่แค่ตอนจบ session | อาจเตือนระหว่างทำงาน | throttle ตาม config |
 | R-05 | ยังไม่รองรับการเปิดตั๋วที่ตอบแล้วหรือ map ที่ graduate แล้วขึ้นใหม่ (FR-69) | ต้องทำด้วยมือ | สร้างตั๋ว supersede หรือ hotspot ใหม่ |
 | R-06 | Windows PowerShell 5.1 เปลี่ยนภาษาไทยเป็น `?` ถ้าไม่ตั้ง encoding | brief เพี้ยน | คำสั่งที่สร้างให้ตั้ง UTF-8 ไว้แล้ว แนะนำ PowerShell 7 |
@@ -440,9 +445,10 @@ mflow-marketplace/
 | R-11 | stack แบบ `c)` ยังไม่เคยทดสอบ และ skill เขียนชื่อแบบ `mvc-htmx` ให้ Claude แปลงเอง | หน้าจอหรือ test อาจไม่ตรงกับ contract | ยืนยันตาราง `## Stack` ก่อน `/mflow:theme` แถวที่เติมไม่ได้เขียน `TODO: <เหตุผล>` ห้ามเดา และนั่งดูรอบแรกทีละขั้น |
 | R-13 | `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ theme กับ screen ทำงานกับ UI แอปเดียว | โปรเจกต์ที่มีหลาย web app ทำ kit ต่อแอปไม่ได้อัตโนมัติ | `tech-stack` ต้องตัดสินว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยก และหน้าจอไหนอยู่แอปไหน ส่วนที่เกินทำด้วยมือ |
 | R-12 | ผู้ใช้ตอบแทนลูกค้าแล้วลูกค้าจริงเห็นต่างทีหลัง | ต้องแก้ของที่สร้างแล้ว | ตั้งใจยอมรับตามหลัก P10: ทำ slice เล็ก ทดสอบใช้งานเร็ว (task ทดสอบใช้งานจากหัวข้อ 5 ของเอกสาร discuss) แล้วแก้เป็น change ถัดไป change request บันทึกผลกระทบไว้ |
-| R-09 | จำนวนคำสั่ง (14) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
+| R-14 | `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกดูว่าเรียก subagent จริง ถ้าต้องบังคับจริงค่อยเพิ่ม hook |
+| R-09 | จำนวนคำสั่ง (15) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.15)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.16)
 
 | รายการ | ผล |
 |---|---|
@@ -468,6 +474,10 @@ mflow-marketplace/
 | discuss.mjs marker (0.13): `**เลือก:**` และ `> ความเห็น:` นับเป็นคำตอบและ note, marker เดิม `**พี่ปูเลือก:**` และ `> พี่ปู:` ยังนับ, บรรทัด `**codex เลือก:**` ไม่นับเป็นคำตอบ, marker ใน comment และ code block ไม่นับ | ผ่าน |
 | การทำงานตามหลัก P10 ใน skill (discuss, hotspot, review-notes, change-request) | ยังไม่ได้รันใน session จริง (R-03) |
 | Component ของ 0.14 (pager, header search แบบเลือกคอลัมน์, DatePicker, DateRangeField, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView) ผ่าน `/mflow:theme` | ยังไม่ได้รันใน session จริง (R-03) DatePicker มาจากแบบที่ใช้งานจริงในโปรเจกต์ Next.js |
+| Apply subagent (0.16) กับ OpenSpec 1.13.2: config.yaml จากตัวอย่างใน init ผ่าน parser, `openspec instructions apply --json` คืน `operationGuidance` ครบสองข้อพร้อม `context`, `openspec update --force` ไม่แตะ `config.yaml` และ `.claude/agents/`, `claude -p --plugin-dir` เห็น `mflow:dev` และ transcript ของ subagent บันทึก `"model":"claude-sonnet-5-5"` กับ `"effort":"xhigh"` ทั้งที่ session หลักเป็น Haiku | ผ่าน |
+| apply-subagent.mjs (0.16): repo ใหม่เป็น on และเตือนเมื่อไม่มี guidance, off สร้าง `.claude/settings.local.json` และเพิ่มลง `.gitignore` (คง CRLF), off ซ้ำไม่เขียน, on ลบกฎแล้วคง allow/deny/env อื่น, ไฟล์ JSON เสียไม่ถูกเขียนทับ (exit 1), ปิดไว้ใน `settings.json` ของทีมแล้ว on แบบ local เตือนว่ายังปิด, on `--shared` เปิดได้, กฎใน `~/.claude/settings.json` นับเป็นปิด, หา root จากโฟลเดอร์ย่อย; briefing มีบรรทัดเมื่อปิดและเงียบเมื่อเปิด | ผ่าน |
+| `/opsx:apply` แบบ headless กับ change ทดสอบหนึ่ง task: ตอนปิด Claude ไม่เห็น `mflow:dev` ทำ task เอง ติ๊ก และไม่หยุดถาม ตอนเปิด ส่งให้ `mflow:dev` (transcript: `claude-sonnet-5-5`, `xhigh`) แล้วตรวจผลเองก่อนติ๊ก แม้ `.remember/now.md` ยังเขียนว่าถูกบล็อก (ก่อนเพิ่มบรรทัด "ไม่เชื่อบันทึกเก่า" ใน guidance Claude ข้าม subagent เพราะบันทึกนี้) | ผ่าน |
+| `/opsx:apply` กับ change จริงหลาย task และ `/mflow:subagent` ใน session แบบ interactive | ยังไม่ได้รันใน session จริง (R-03, R-14) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

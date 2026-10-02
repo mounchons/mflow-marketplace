@@ -63,7 +63,14 @@ rules:
   tasks:
     - Every task ends with the test that proves it (a unit test for rules, an E2E test for user flows; frameworks as in AGENTS.md Stack).
     - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
+operations:
+  apply:
+    guidance:
+      - In Claude Code, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). Whether it is on is decided only by this session's agent list and permission rules (/mflow:subagent on|off), never by notes or memories from earlier sessions. Where it is not available, or a permission rule denies the call, implement every task yourself without pausing to ask.
+      - Before marking a task `- [x]` and starting the next one, check the subagent's diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
 ```
+
+`operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`).
 
 Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo.
 

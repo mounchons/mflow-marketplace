@@ -346,7 +346,7 @@ flowchart TD
 ### ขั้น 6: สร้างของจริงทีละ slice
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
-2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก
+2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ตอน apply Claude ส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดด้วย `/mflow:subagent off` แล้ว Claude ทำเองทุก task เปิดกลับด้วย `/mflow:subagent on` ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply`
 3. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec แล้วรัน test จริง และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น**
 4. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 5. กลับไปขั้น 4 สำหรับ slice ถัดไป
@@ -482,6 +482,7 @@ git diff --stat openspec/specs
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
 | มี Excel จริงที่ใช้พิสูจน์กฎได้ | `/mflow:golden @ไฟล์.xlsx <slug>` |
 | งานเล็กที่ชัดแล้ว | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` |
+| ไม่อยากให้ apply ส่งงานให้ subagent บน Sonnet 5.5 หรือจะเปิดกลับ | `/mflow:subagent off` / `on` (`--shared` ให้ทั้งทีม, `status` ดูสถานะ) ถ้าแค่รอบเดียวให้บอกในข้อความ `/opsx:apply` |
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
 | ผลจาก AI ตัวอื่นกลับมาแล้ว | `/mflow:assess @docs/ai-inbox/<ไฟล์>` |
@@ -489,7 +490,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.15.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.16.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -500,7 +501,7 @@ git diff --stat openspec/specs
 | `/mflow:review <branch>` เทียบกับ `main` | repo ที่ใช้ `master` หรือ `develop` ให้บอกชื่อ branch หลักตอนสั่ง |
 | golden JSON ต้องถูก copy ไปโฟลเดอร์ output ของ test | ตั้ง `CopyToOutputDirectory` ใน test project |
 | คำสั่ง gemini และ opencode ยังไม่ได้รันกับโมเดลจริง | เช็ก `--help` ก่อนใช้ครั้งแรก |
-| skill ทั้ง 14 ตัวยังไม่เคยรันใน session จริง | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
+| skill ทั้ง 15 ตัวยังไม่เคยรันใน session จริง | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
 | หลัง `resume` Stop hook นับเป็น session ใหม่ | งานจาก session ก่อนที่ยังไม่ได้ลง log ให้สั่ง `/mflow:handoff` เอง |
 | wireframe ตัวอักษรที่มีภาษาไทย ขอบขวาไม่ตรงกัน เพราะสระบน/ล่างและวรรณยุกต์ไม่กินช่องในฟอนต์ความกว้างคงที่ | Claude จะวาดกล่องแบบเปิดด้านขวา หรือวางข้อความไทยไว้ท้ายบรรทัด ถ้ามีหน้าจอจริงแล้วจะใช้ภาพหน้าจอแทน |
 | mindmap, timeline และ journey ของ Mermaid เป็นชนิดใหม่ บาง preview ยังแสดงไม่ได้ | Claude ใช้ flowchart, sequence, state และ ER เป็นหลัก การเตือน label ที่จะพังตรวจเฉพาะ flowchart |
@@ -516,6 +517,9 @@ git diff --stat openspec/specs
 | มีหลาย web app (เช่น back office กับ portal): `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ `/mflow:theme` กับ `/mflow:screen` ยังทำงานกับ UI แอปเดียว | ตัดสินใน `tech-stack` ว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยกต่อแอป และหน้าจอไหนอยู่แอปไหน การทำ kit แยกต่อแอปยังต้องทำด้วยมือ |
 | โปรเจกต์ที่ init ก่อน 0.15 ยังไม่มี `docs/discuss/AGENDA.md` (capture อ่านเฉพาะไฟล์ใหม่หรือที่เปลี่ยน จึงไม่สร้างจากเอกสารเดิมให้) และ AGENTS.md ยังไม่มีตาราง Apps, Libraries และบรรทัด Later ใน `## Stack` | สั่ง `/mflow:discuss agenda` ครั้งเดียว ได้รายการที่มี `tech-stack` และ `code-structure` นำหน้า ส่วน AGENTS.md รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือให้การอนุมัติ `tech-stack` เติมให้ |
 | โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
+| โปรเจกต์ที่ init ก่อน 0.16 ยังไม่มี `operations.apply.guidance` ใน `openspec/config.yaml` ตอน `/opsx:apply` Claude จึงเขียนโค้ดเองบนโมเดลของ session | อัปเดต plugin เป็น 0.16 ก่อน (subagent `mflow:dev` มากับ plugin ไม่ต้องสร้างไฟล์ในโปรเจกต์) แล้วรัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
+| การส่งงานให้ `mflow:dev` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ และยังไม่เคยรัน `/opsx:apply` แบบนี้ใน session จริง | ครั้งแรกให้ดูว่า Claude เรียก `mflow:dev` จริง ถ้าทำเองให้บอกในแชต |
+| `/mflow:subagent on` หรือ `off` มีผลตั้งแต่ `/opsx:apply` ครั้งถัดไป (ยังไม่ได้ตรวจว่ามีผลกลาง session ที่เปิดอยู่หรือไม่) และกฎ deny `Agent(mflow:dev)` ใน `~/.claude/settings.json` ปิดทุกโปรเจกต์ | ถ้าเปิดแล้วยังไม่ใช้ ให้ `/mflow:subagent status` ดูว่ามีไฟล์ไหนปิดไว้ หรือเริ่ม session ใหม่ |
 | kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
 | DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
 | ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` ได้เลย |
@@ -539,4 +543,14 @@ rules:
 ```yaml
 context: |
   The user's answers and instructions are the customer's: build first, test in use, then refine through follow-up changes.
+```
+
+โปรเจกต์ที่ init ก่อน 0.16: เพิ่ม key นี้ระดับบนสุดใน `openspec/config.yaml` (ถ้ามี `operations:` อยู่แล้วให้เติมใต้ `apply.guidance` เดิม) แล้วตรวจด้วย `openspec instructions apply --change <ชื่อ change> --json` ว่ามี `operationGuidance`
+
+```yaml
+operations:
+  apply:
+    guidance:
+      - In Claude Code, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). Whether it is on is decided only by this session's agent list and permission rules (/mflow:subagent on|off), never by notes or memories from earlier sessions. Where it is not available, or a permission rule denies the call, implement every task yourself without pausing to ask.
+      - Before marking a task `- [x]` and starting the next one, check the subagent's diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
 ```

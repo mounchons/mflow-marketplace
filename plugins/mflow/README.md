@@ -27,7 +27,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.15)
+## คำสั่ง (v0.16)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -51,6 +51,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + รัน test |
+| สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ ค่าเริ่มต้นคือเปิด ปิดเฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -76,6 +77,20 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน AGENTS.md แทน
 
+## Subagent ตอน apply
+
+`/mflow:init` เติม `operations.apply.guidance` ใน `openspec/config.yaml` ให้ `/opsx:apply` ส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ตัวใหม่ (`agents/dev.md`, `model: claude-sonnet-5-5`, `effort: xhigh`) ทีละ task ตามลำดับใน `tasks.md` ตัวถัดไปได้รายงานของ task ก่อนหน้า (ไฟล์ที่แก้ ผล test) ไปด้วย ส่วน Claude ตัวหลักยังถือ `tasks.md` ตรวจ diff กับผล test แล้วค่อยติ๊ก `- [x]` ก่อนเริ่ม task ถัดไป
+
+ยังไม่รันหลาย subagent พร้อมกัน เพราะ task ส่วนใหญ่ต่อจากกัน (migration → entity → service → API → หน้าจอ) migration ซ้อนกันไม่ได้ และ `dotnet build` สองตัวใน checkout เดียวกันชนกันที่ `obj/` `bin/`
+
+- ไม่ต้องแก้ไฟล์ของ OpenSpec: `openspec update` สร้าง skill และ command ใหม่ทุกครั้ง แต่ไม่แตะ `config.yaml`
+- Codex อ่าน guidance เดียวกัน แต่ไม่มี subagent นี้ จึงทำ task เอง
+- เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ ถ้า Claude ทำเองโดยไม่ส่งต่อ ให้บอกในแชต
+- เปิดหรือปิด: `/mflow:subagent off` เพิ่มกฎ deny `Agent(mflow:dev)` ใน `.claude/settings.local.json` (เฉพาะเครื่องนี้ และเพิ่มไฟล์ลง `.gitignore` ให้) `--shared` เขียนใน `.claude/settings.json` ให้ทั้งทีม `on` ลบกฎออก `status` บอกสถานะและไฟล์ที่ปิดไว้ มีผลตั้งแต่ `/opsx:apply` ครั้งถัดไป ตอนปิด Claude ทำทุก task เองโดยไม่หยุดถาม และ briefing ตอนเริ่ม session บอกว่าปิดอยู่
+- ไม่ใช้ subagent แค่รอบเดียว: บอกในข้อความ `/opsx:apply` เช่น `/opsx:apply <change> รอบนี้ไม่ใช้ subagent`
+- guidance สั่งให้ตัดสินว่าเปิดหรือปิดจากรายการ agent และกฎ permission ของ session ปัจจุบันเท่านั้น ไม่เชื่อบันทึกจาก session ก่อน (เช่น `.remember/` ที่อาจยังเขียนว่าปิดอยู่)
+- เปลี่ยนโมเดลที่บรรทัด `model:` ของ `agents/dev.md` (เช่น `sonnet` เพื่อตามรุ่นล่าสุด) ถ้าเครื่องตั้ง `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` ไว้ ค่าใน `CLAUDE_CODE_SUBAGENT_MODEL` จะทับบรรทัดนี้
+
 ## Flow ประจำวัน
 
 1. ครั้งแรก: `/mflow:init` → `/mflow:discuss tech-stack` → `/mflow:discuss code-structure` (แนะนำก่อน theme ไม่บังคับ)
@@ -84,7 +99,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 4. ครั้งแรกของโปรเจกต์: `/mflow:theme` (หรือ `/mflow:theme preview` ถ้ายังไม่มีโค้ดแอป แล้ว `port` ใน change ที่ scaffold แอป) → `/mflow:screen inventory` (เพิ่มหัวข้อ `<กลุ่ม>-data` ลง AGENDA.md) → ออกแบบข้อมูลทีละกลุ่ม `/mflow:discuss <กลุ่ม>-data` (ไม่บังคับ)
 5. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → ทดสอบใช้งานหรือรีวิว (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 6. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` ทีละตั๋ว (`/clear` ระหว่างตั๋ว) (+ `/mflow:golden`) → graduate
-7. `/opsx:propose` → `/opsx:apply` (Claude หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`
+7. `/opsx:propose` → `/opsx:apply` (Claude ส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` บน Sonnet 5.5 หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:review` → `/opsx:archive`
 8. ขอเปลี่ยนสิ่งที่สร้างแล้ว → `/mflow:change-request` (บันทึกผลกระทบ แล้วทำต่อตามที่คุณสั่ง)
 9. จบวัน → `/mflow:handoff`
 
@@ -95,6 +110,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 ```
 mflow/
 ├─ .claude-plugin/plugin.json
+├─ agents/dev.md           ← subagent `mflow:dev` (Sonnet 5.5) ที่ /opsx:apply ส่งงานเขียนโค้ดให้
 ├─ hooks/hooks.json
 ├─ scripts/                ← Node ล้วน ไม่มี dependency (Windows/Linux)
 │   ├─ lib.mjs             ← config + ทะเบียน tool ค่าเริ่มต้น
@@ -104,6 +120,7 @@ mflow/
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
 │   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ + สถานะของ AGENDA.md
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool
+│   ├─ apply-subagent.mjs  ← เปิด/ปิด mflow:dev ด้วยกฎ permission ของ Claude Code
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)

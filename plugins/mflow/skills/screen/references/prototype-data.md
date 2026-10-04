@@ -88,4 +88,7 @@ The customer walks through the prototype as each role, the way a model home is s
 
 ## Schema changes
 
-Adding an entity file, adding/renaming/removing a field, changing an id format, or changing `users.json`/`roles.json` affects every screen that reads the file. Propose the change, list the screens affected (search the solution for the file name), wait for a yes, then update README.md in the same change.
+Adding an entity file, adding/renaming/removing a field, changing an id format, or changing `users.json`/`roles.json` affects every screen that reads the file. List the screens affected (search the solution for the file name), and update README.md in the same change.
+
+- **Inside the instruction, go ahead:** an addition the work in hand needs (a new entity file, a new field, more rows), and users or grants that the approved access-control discussion doc already gives. Screens that read the file keep working, so list the change in the summary instead of asking.
+- **Ask once, for that change alone:** renaming or removing a field, changing an id format or a relation, or a grant the approved access-control doc does not give. These change screens the user did not ask about: show the change with the screens affected, and go ahead on the user's word. An instruction that names the change is that word.

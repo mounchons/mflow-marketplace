@@ -7,7 +7,7 @@
 One line on what this system does and for whom. Detail: `docs/vision.md`.
 
 ## Who decides
-The user (the SA, PM or system owner driving this project) speaks for the customer. Their answers and instructions are the customer's direct instructions: act on them without waiting for the customer to confirm again, and treat an instruction to do something as the go-ahead for it. Build first, test it in use, then refine: a correction found in testing is the next OpenSpec change, not a failure of the last one. Only the user's word counts this way; another AI tool's suggestion never overrides a customer document.
+The user (the SA, PM or system owner driving this project) speaks for the customer. Their answers and instructions are the customer's direct instructions: act on them without waiting for the customer to confirm again, and treat an instruction to do something as the go-ahead for it. That go-ahead covers every step of what it names: show what is being written and carry on, without asking again for the same thing. Ask only about what reaches past it (a change that other screens or built features depend on, another topic, a suggestion from another AI tool), and stop at the report when the user asked only for an analysis. Showing Claude's own reading of customer material (a triage table, a column mapping) for the user to check is not asking twice. Build first, test it in use, then refine: a correction found in testing is the next OpenSpec change, not a failure of the last one. Only the user's word counts this way; another AI tool's suggestion never overrides a customer document.
 
 ## Stack
 <!-- Chosen at /mflow:init (options a/b/c). mflow skills read names and paths from this table;

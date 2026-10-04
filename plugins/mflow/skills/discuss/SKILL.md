@@ -126,7 +126,7 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
    | Changes a fact from an approved doc on another topic | the destination that doc merged the fact into, with `(docs/discuss/NN-<slug>.md)`. That doc stays approved; never supersede it from another topic |
 
    Point to the doc instead of copying it: a destination gets the short fact plus `(docs/discuss/NN-<slug>.md)`. A picture travels with the facts it shows: the `erDiagram` goes into the aggregate's section of `PrototypeData/README.md` beside the dictionary, and a status `stateDiagram-v2` goes into the hotspot's `rules.md` when one is created. Every other picture stays in the frozen doc.
-3. **Write** after the user says yes to the table. Create Backlog items through the CLI only.
+3. **Write** as soon as the table is shown: `approve` is the user's go-ahead for every row, so do not ask again. Stop only for an item the table cannot place, and ask about that item alone. Create Backlog items through the CLI only.
 4. **Freeze.** Set the frontmatter: `status: approved`, `approved: <date>`, `merged-into: <comma-separated destinations>`. An approved doc on the same topic that this one replaces gets `status: superseded` and `superseded-by: <NN>`. Add this line under the title: `> อนุมัติแล้ว <date> และนำไปรวมกับ flow หลักแล้ว เอกสารนี้เป็นบันทึกเหตุผล ความจริงปัจจุบันอยู่ที่ปลายทางในหัวข้อ 7`. Run `agenda` so the topic's row shows the approval. Update STATUS.md with a log entry.
 5. **Later changes of mind** never edit a frozen doc:
    - Field-level changes after a data-model doc is approved (add, rename or drop a column; change its length or whether it is required) are not a change of mind. They follow the schema-change rule in `PrototypeData/README.md`.
@@ -151,7 +151,7 @@ Done when: every agreed item exists at its destination, the doc is frozen, STATU
    - **#:** the order to take them in: by that stage, then by cost.
    - **สถานะ:** leave it empty; the script fills it.
 5. **Refresh, never erase.** On an existing agenda keep every row and any status written by hand (`ข้าม: …`, `แยกเป็น …`). Add new topics, add new evidence to a row's reason, and renumber. A row with no doc whose reason no longer holds (its source was superseded by one that settles it) gets `ไม่จำเป็นแล้ว: <why>` as its status; rows are never deleted.
-6. Show the rows before writing, and write after the user's yes. Then run `agenda` and fix every entry in its `warnings`.
+6. Show the rows and write them in the same turn: the agenda is advice, and the user reorders, reworks or skips rows afterwards with `agenda <feedback>` or `agenda skip`. Then run `agenda` and fix every entry in its `warnings`.
 
 `agenda skip <slug> <reason>`: write `ข้าม: <reason>` in that row's status; the user's word is enough. A doc started later on that slug replaces the skip with its own status. `agenda <feedback>`: apply it to the rows the same way.
 

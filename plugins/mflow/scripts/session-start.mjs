@@ -5,9 +5,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  readStdinJson, findRoot, loadConfig, run, runJson, readText,
-  sessionStateFile, frontmatter, truncate, gitStatus,
+  readStdinJson, findRoot, loadConfig, run, runJson, readText, readJsonFile,
+  sessionStateFile, frontmatter, truncate, gitStatus, compareVersions,
 } from "./lib.mjs";
+import { fileURLToPath } from "node:url";
 import { scan as scanSources } from "./source-index.mjs";
 import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
@@ -97,7 +98,7 @@ if (os && Array.isArray(os.changes)) {
       subagent,
   );
 } else {
-  parts.push("## OpenSpec\n- CLI unavailable or not initialised (run `openspec --version`)" + subagent);
+  parts.push("## OpenSpec\n- CLI unavailable, not initialised, or its output unreadable → /mflow:help check setup" + subagent);
 }
 
 // 3. Backlog.md: tasks in progress, and hotspot frontiers.
@@ -110,7 +111,7 @@ if (tasks) {
       (doing.length ? doing.map((t) => `- ${t.id} ${t.title} [${(t.labels || []).join(", ")}]`).join("\n") : "- none"),
   );
 } else {
-  parts.push("## Backlog.md\n- CLI unavailable or not initialised (run `backlog --version`)");
+  parts.push("## Backlog.md\n- CLI unavailable, not initialised, or its output unreadable → /mflow:help check setup");
 }
 
 if (cfg) {
@@ -194,6 +195,16 @@ if (cfg) {
     if (lines.length) parts.push("## Discussion agenda (optional)\n" + lines.join("\n"));
   }
 }
+
+// An mflow upgrade: the project's templates came from an older plugin version (or from before the
+// record existed), so /mflow:init has template changes to offer.
+try {
+  const pluginVersion = JSON.parse(readText(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".claude-plugin", "plugin.json"))).version;
+  const offered = readJsonFile(path.join(root, ".mflow", "templates.json"))?.pluginVersion;
+  if (!offered || compareVersions(offered, pluginVersion) < 0) {
+    parts.push(`## mflow upgrade\n- mflow ${pluginVersion} has templates newer than this project's (${offered ? `from ${offered}` : "set up before 0.18.0"}) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check`);
+  }
+} catch { /* unreadable record: /mflow:help check setup reports it */ }
 
 parts.push(
   "## Session ritual\n" +

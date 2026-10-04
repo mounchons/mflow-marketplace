@@ -99,7 +99,8 @@ flowchart TD
 | FR-173 | เติม `operations.apply.guidance` ใน openspec/config.yaml: ใน Claude Code เมื่อ briefing ของ session บอกว่า apply subagent เปิดอยู่ (FR-174) `/opsx:apply` ส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ตัวใหม่ (`agents/dev.md` มากับ plugin, `model: claude-sonnet-5-5`, `effort: xhigh`) ทีละ task ตามลำดับใน `tasks.md` พร้อมรายงานของ task ก่อนหน้า Claude ตัวหลักถือ `tasks.md` ตรวจ diff กับผล test ก่อนติ๊กและก่อนเริ่ม task ถัดไป และ tool ที่ไม่มี subagent นี้ (Codex) ทำ task เอง ไม่แก้ไฟล์ที่ OpenSpec สร้าง เพราะ `openspec update` เขียนทับ skill และ command แต่ไม่แตะ `config.yaml` | มีแล้ว |
 | FR-174 | apply subagent `mflow:dev` **ปิดเป็นค่าเริ่มต้น** จนกว่าจะเปิด `/mflow:subagent on\|off\|status [--shared]` เก็บค่า `applySubagent.enabled` ไว้ใน `.mflow/local.json` (เฉพาะเครื่อง เพิ่มลง `.gitignore` เมื่อสร้างไฟล์) หรือ `.mflow/config.json` (`--shared` ทั้งทีม) ค่า local ทับค่าทีม ไม่มีทั้งสองคือปิด ค่าอยู่ที่ root ของโปรเจกต์จึงได้ผลเดียวกันไม่ว่าเปิด Claude Code ที่โฟลเดอร์ไหน hook PreToolUse (`subagent-guard.mjs`, matcher `Agent\|Task`) ปฏิเสธ `mflow:dev` เมื่อปิด ไม่ใช่โปรเจกต์ mflow หรืออ่านค่าไม่ได้ (fail closed) และปล่อย subagent ตัวอื่นผ่าน briefing มีบรรทัด "is ON" เฉพาะตอนเปิด และ guidance ส่งงานให้ subagent เฉพาะเมื่อ briefing ของ session นั้นบอกว่าเปิด จึงไม่เสียรอบเรียกตอนปิด ตัดสินจาก session ปัจจุบัน ไม่ใช่บันทึกเก่า ปิดมีผลทันที เปิดมีผลหลัง `/clear` หรือ session ใหม่ ไม่แตะไฟล์ใต้ `openspec/` และ `.claude/` ไม่เขียนทับไฟล์ที่ parse ไม่ได้ `status` เตือนเมื่อกฎ deny ของ Claude Code (ของ user หรือโฟลเดอร์ที่เปิด) ปิดไว้ทั้งที่ตั้งเปิด และเมื่อเปิดแต่ `config.yaml` ไม่มี guidance ถ้าไม่ใช้แค่รอบเดียวระหว่างที่เปิด ให้บอกในข้อความ `/opsx:apply` | มีแล้ว |
 | FR-06 | เขียนคำสั่ง build/test ลง AGENTS.md เฉพาะที่รันผ่านจริง ที่รันไม่ได้ติด `(unverified)` | มีแล้ว |
-| FR-07 | เรียกซ้ำได้อย่างปลอดภัยเพื่อรับ template ใหม่เมื่ออัปเกรด plugin | มีแล้ว |
+| FR-07 | เรียกซ้ำได้อย่างปลอดภัยเพื่อรับ template ใหม่เมื่ออัปเกรด plugin: `.mflow/templates.json` บันทึก hash ของ template ที่เคยเสนอและรุ่น plugin ที่เสนอ รอบถัดไปเสนอเฉพาะ template ที่เปลี่ยน ไฟล์ที่ผู้ใช้ merge หรือเลือกเก็บของตัวเองไว้แล้วไม่ถูกเสนอซ้ำ (`kept`) และ stack ที่เลือกไว้แล้วถูกใช้ต่อโดยไม่ถามใหม่ briefing บอกเมื่อ template ของโปรเจกต์เก่ากว่า plugin | มีแล้ว |
+| FR-07a | doctor (`scripts/doctor.mjs`, เรียกผ่าน `/mflow:help check setup` และท้าย `/mflow:init`) ตรวจแบบอ่านอย่างเดียว: รุ่น Node (ขั้นต่ำและวันหมดอายุ), git, รุ่น OpenSpec และ Backlog.md เทียบกับขั้นต่ำและรุ่นที่ทดสอบใน `compat.json`, JSON ที่ briefing อ่านจาก CLI, config (parse ได้ และไม่มีชื่อ setting ที่สะกดผิด), โฟลเดอร์, ทะเบียนเอกสาร, ค่า subagent, AGENTS.md และ STATUS.md, guidance ใน openspec/config.yaml, template ที่เก่ากว่า plugin, `.mflow/suggested/` ที่ค้าง, cache แบบเก่า และโหมด prototype ที่ไม่มีการตรวจตอน start ทุกข้อที่เป็น warn หรือ fail มีวิธีแก้ | มีแล้ว |
 | FR-08 | ถามเลือก stack หลังสำรวจ repo และก่อนเขียนไฟล์ใดๆ ถามทุกครั้งแม้เดาจาก repo ได้ (ตัวเลือก `a)` `b)` `c)` พร้อมคำแนะนำและหลักฐาน) บันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว (profile + ตาราง seam → path/เทคโนโลยี) และ `theme` `screen` `golden` `review` อ่านจากตรงนั้น โปรเจกต์ที่ยังไม่มี section นี้ ให้ถามเมื่อคำสั่งเหล่านั้นต้องใช้ครั้งแรก | มีแล้ว |
 
 ### 6.2 ความจำข้าม session (hooks + ไฟล์)
@@ -299,7 +300,7 @@ flowchart TD
 
 | รหัส | Requirement |
 |---|---|
-| NFR-01 | Script ทั้งหมดเป็น Node ล้วน ไม่มี dependency ทำงานได้ทั้ง Windows และ Linux (Node 20+) |
+| NFR-01 | Script ทั้งหมดเป็น Node ล้วน ไม่มี dependency ทำงานได้ทั้ง Windows และ Linux (Node 20+, CI รัน 20, 22, 24 แนะนำ 22 หรือ 24 เพราะ Node 20 หมดระยะซัพพอร์ตเมื่อ 30 เมษายน 2026) |
 | NFR-02 | Hook ต้องไม่ทำให้ session ล้ม: ทุกคำสั่งภายนอกมี timeout และจับ error เงียบ |
 | NFR-03 | Briefing จำกัดขนาด (~9,000 ตัวอักษร) เพื่อไม่กิน context ถ้าเกินจะย่อส่วนที่ยาวที่สุดก่อนและบอกว่าย่อ ส่วนสั้น (งานที่รอ agenda และ Session ritual) จึงมาครบเสมอ |
 | NFR-04 | ทุก skill เป็นแบบเรียกด้วยมือ (`disable-model-invocation: true`) ไม่กิน context ทุก turn |
@@ -350,6 +351,7 @@ mflow-marketplace/
 ├─ tests/*.test.mjs                ← ชุด regression (`node --test` ที่ root ของ repo) ไม่ติดไปกับ plugin
 └─ plugins/mflow/
     ├─ .claude-plugin/plugin.json
+    ├─ compat.json                   ← Node ขั้นต่ำ วันหมดอายุของแต่ละรุ่น และรุ่นเครื่องมือที่ทดสอบแล้ว (doctor อ่าน)
     ├─ agents/dev.md                 ← subagent `mflow:dev` (Sonnet 5.5) ที่ /opsx:apply ส่งงานเขียนโค้ดให้
     ├─ hooks/hooks.json              ← SessionStart, PreToolUse (Agent), Stop
     ├─ scripts/
@@ -362,6 +364,7 @@ mflow-marketplace/
     │   ├─ apply-subagent.mjs        ← เปิด/ปิด mflow:dev (ค่าใน .mflow/, ค่าเริ่มต้นปิด)
     │   ├─ subagent-guard.mjs        ← hook PreToolUse ปฏิเสธ mflow:dev เมื่อปิด
     │   ├─ delegate-cmd.mjs          ← คำสั่งของแต่ละ tool
+    │   ├─ doctor.mjs                ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ อ่านอย่างเดียว (/mflow:help check setup)
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
     ├─ skills/<15 คำสั่ง>/SKILL.md   (+ references/, assets/)
@@ -429,7 +432,9 @@ mflow-marketplace/
 | Claude Code | 2.1.282 |
 | OpenSpec | 1.13.2 |
 | Backlog.md | 1.53.0 |
-| Node.js | 22 |
+| Node.js | 20, 22, 24 (CI) |
+
+ตารางนี้กับ `plugins/mflow/compat.json` ต้องตรงกัน (`tests/release.test.mjs` ตรวจทุกครั้งที่รัน test) compat.json มีรุ่นขั้นต่ำที่ doctor ใช้ด้วย (Node 20, OpenSpec 1.10, Backlog.md 1.51) เครื่องมือที่เก่ากว่าขั้นต่ำเป็น fail ส่วนที่ใหม่หรือเก่ากว่ารุ่นที่ทดสอบแต่ไม่ต่ำกว่าขั้นต่ำเป็น warn ว่ายังไม่ได้ทดสอบ
 
 ## 13. นอกขอบเขต
 

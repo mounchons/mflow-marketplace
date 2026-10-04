@@ -22,15 +22,15 @@ Done when: you have reported one compact inventory to the user (stack detected o
 
 ## 2. Choose the stack
 
-Ask which stack this project uses, as "Asking" in [references/stacks.md](references/stacks.md) describes: options `a)` `b)` `c)`, a recommendation with its evidence from step 1, and a letter as the answer. Ask it right after the inventory, before any file is written, and on its own; the domain questions come later in step 5. When AGENTS.md already has a filled `## Stack`, show it and ask only whether it still holds.
+Ask which stack this project uses, as "Asking" in [references/stacks.md](references/stacks.md) describes: options `a)` `b)` `c)`, a recommendation with its evidence from step 1, and a letter as the answer. Ask it right after the inventory, before any file is written, and on its own; the domain questions come later in step 5. When AGENTS.md already has a filled `## Stack` (a rerun, such as after an mflow upgrade), show it and carry on with it: a rerun to take new templates is not a stack change, and the user changes it by saying so.
 
-Done when: the user has chosen a profile, and for c) has confirmed the filled rows.
+Done when: the profile is chosen or kept, and for c) the filled rows are written and shown.
 
 ## 3. Scaffold
 
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.mjs" --root . --name "<project name>" --dry-run`, show the planned result, then run it without `--dry-run`.
 
-The script never overwrites. For every entry under `suggested`, a template copy sits in `.mflow/suggested/`: merge it into the existing file by hand (keep everything the user wrote, add the missing mflow sections), show the diff, then delete `.mflow/suggested/`.
+The script never overwrites. For every entry under `suggested`, a template copy sits in `.mflow/suggested/`: merge it into the existing file by hand (keep everything the user wrote, add the missing mflow sections), show the diff, then delete `.mflow/suggested/`. `.mflow/templates.json` records each template offered and the plugin version that offered it, so a rerun after an upgrade suggests only the templates that changed; `kept` lists the files whose template was offered before, where the project's version stands. Commit `.mflow/templates.json` with the rest of `.mflow/`.
 
 Then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init`. It creates `docs/discuss/AGENDA.md`, which starts with the `tech-stack` and `code-structure` topics, and never overwrites an existing one.
 
@@ -92,6 +92,8 @@ Customer documents found in step 1 that live outside `docs/source/`: propose mov
 Done when: `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" scan` reports nothing new or changed, or the remaining files are explicitly noted as irrelevant.
 
 ## 7. Hand off
+
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.mjs"` (read-only). Fix what it reports as `fail` that this run can fix, and pass every other `fail` and `warn` to the user with its `fix`.
 
 Update `STATUS.md` (`## Now` + one log entry). Tell the user, briefly:
 - what was created, merged, or left untouched;

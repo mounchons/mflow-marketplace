@@ -5,11 +5,14 @@ disable-model-invocation: true
 argument-hint: "[describe your situation]"
 ---
 
-If `$ARGUMENTS` describes a situation, recommend the one command that fits and the next one after it. Otherwise print this table. Invoke nothing yourself.
+If `$ARGUMENTS` describes a situation, recommend the one command that fits and the next one after it. Otherwise print this table. Invoke no other command yourself.
+
+**Checking the setup.** When `$ARGUMENTS` asks to check the setup, says something is broken or missing, follows an mflow upgrade, or the briefing calls OpenSpec or Backlog unavailable, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.mjs"`. It is read-only. Report every `fail` and `warn` with its `fix`, worst first, then the one command that fixes the most.
 
 | Situation | Command |
 |---|---|
 | New repo, or first time using mflow here (it asks which stack first) | `/mflow:init` |
+| Check the setup, after an mflow upgrade, or when the briefing calls a CLI unavailable | `/mflow:help check setup` (runs the read-only doctor), then usually `/mflow:init` to take the changed templates |
 | Change the stack before `/mflow:theme` has built the kit | edit AGENTS.md `## Stack`, or rerun `/mflow:init` to be asked again |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
 | Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |

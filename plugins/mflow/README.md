@@ -12,7 +12,7 @@ Workflow สำหรับทำระบบโดยให้ AI ช่วย 
 
 ## ติดตั้ง
 
-ต้องมี Node 20+ และ git
+ต้องมี Node 20+ และ git (แนะนำ Node 22 หรือ 24: Node 20 หมดระยะซัพพอร์ตเมื่อ 30 เมษายน 2026 แต่ยังใช้ได้และอยู่ใน CI) ตรวจเครื่องและโปรเจกต์ได้ด้วย `/mflow:help check setup` ซึ่งรัน doctor แบบอ่านอย่างเดียว
 
 ```bash
 npm i -g @fission-ai/openspec@latest backlog.md
@@ -115,6 +115,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 ```
 mflow/
 ├─ .claude-plugin/plugin.json
+├─ compat.json           ← รุ่นของ Node และเครื่องมือที่ plugin รุ่นนี้ทดสอบแล้ว
 ├─ agents/dev.md           ← subagent `mflow:dev` (Sonnet 5.5) ที่ /opsx:apply ส่งงานเขียนโค้ดให้
 ├─ hooks/hooks.json
 ├─ scripts/                ← Node ล้วน ไม่มี dependency (Windows/Linux)
@@ -127,6 +128,7 @@ mflow/
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool
 │   ├─ apply-subagent.mjs  ← เปิด/ปิด mflow:dev (ค่าใน .mflow/, ค่าเริ่มต้นปิด)
 │   ├─ subagent-guard.mjs  ← hook PreToolUse ที่ปฏิเสธ mflow:dev เมื่อปิดอยู่
+│   ├─ doctor.mjs          ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ (อ่านอย่างเดียว)
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
@@ -138,7 +140,8 @@ mflow/
 1. สร้าง `skills/<ชื่อ>/SKILL.md` ใส่ frontmatter `name`, `description`, `disable-model-invocation: true` (ให้เรียกด้วยมือเท่านั้น ไม่กิน context)
 2. เขียนเป็นขั้นตอน แต่ละขั้นจบด้วยเงื่อนไข "Done when" ที่ตรวจได้
 3. อะไรที่ต้องได้ผลเหมือนเดิมทุกครั้ง (สร้างไฟล์, parse, เช็กสถานะ) เขียนเป็น script ใน `scripts/` แล้วให้ skill เรียก อย่าให้ AI ทำด้วยมือ
-4. เพิ่ม version ใน plugin.json → `claude plugin validate`
+4. ทุก script มี test ใน `tests/` ของ repo (`node --test` ที่ root) ข้อบกพร่องที่รู้แต่ยังไม่แก้เขียนเป็น test แบบ `todo`
+5. ปล่อยรุ่น: เพิ่ม version ใน plugin.json แล้วแก้เลขรุ่นใน `docs/requirement.md`, `docs/manual.md` (หัวเอกสารและหัวข้อ 8) และหัวข้อคำสั่งของ README เมื่อทดสอบกับเครื่องมือรุ่นใหม่ ให้แก้ `compat.json` กับตารางหัวข้อ 12 ของ requirement พร้อมกัน จากนั้น `node --test` (`tests/release.test.mjs` ตรวจว่าทุกที่ตรงกัน) และ `claude plugin validate` ทั้ง plugin และ marketplace
 
 กติกา: เพิ่มคำสั่งหลังจากทำเรื่องเดิมด้วยมือซ้ำ 2 ถึง 3 ครั้งแล้วเท่านั้น
 

@@ -319,6 +319,13 @@ export function frontmatter(text) {
   return out;
 }
 
+/** Compare dotted versions by number: negative when `a` is older than `b`, 0 when equal, positive when newer. */
+export function compareVersions(a, b) {
+  const [x, y] = [a, b].map((v) => String(v).replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0));
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+  return 0;
+}
+
 export function truncate(text, max) {
   if (!text || text.length <= max) return text || "";
   return text.slice(0, max) + "\n…(truncated)";

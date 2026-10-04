@@ -35,7 +35,7 @@ For `custom`, fill every row for the named stack. The prototype-mode flag row mu
 `/mflow:init` asks this right after its inventory report. Any other skill that finds no `## Stack`, or `Profile: TODO`, asks it before doing anything else. That covers projects set up before mflow 0.10.
 
 1. **Infer.** Take the evidence from the repo: `*.csproj` with `Views/` points to a); `package.json` with `vite` beside an ASP.NET Core Web API points to b); anything else points to c), naming what was found. In an empty repo, recommend a), the fully supported profile.
-2. **Ask, always**, even when the evidence is clear. Show the options `a)` `b)` `c)`, one line each, with the recommendation and its evidence. A letter is a full answer. For c), ask which stack.
+2. **Ask, always**, while `## Stack` has no profile, even when the evidence is clear (a profile already chosen is kept on a rerun, as `/mflow:init` step 2 says). Show the options `a)` `b)` `c)`, one line each, with the recommendation and its evidence. A letter is a full answer. For c), ask which stack.
 3. **Record.** Write `## Stack` in AGENTS.md: `Profile: <id>` and the rows for that profile. For c), write the filled rows and show them; they need no separate yes, because the `tech-stack` discussion doc reviews them before `/mflow:theme`. The Apps, Libraries and Later parts of `## Stack` stay `TODO`: the `tech-stack` discussion doc, the first topic on the agenda, fills them before `/mflow:theme`, and may change the profile and its paths, which is still cheap at that point.
 
 Done when: AGENTS.md has `## Stack` with a profile, and every row has a value or `TODO: <why>`.

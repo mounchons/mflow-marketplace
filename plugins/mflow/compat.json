@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "minimum": {
+    "node": "20.0.0",
+    "openspec": "1.10.0",
+    "backlog": "1.51.0"
+  },
+  "nodeEndOfLife": { "18": "2025-04-30", "20": "2026-04-30", "22": "2027-04-30", "24": "2028-04-30" },
+  "ciNode": ["20", "22", "24"],
+  "testedWith": {
+    "openspec": "1.13.2",
+    "backlog": "1.53.0",
+    "claude-code": "2.1.282"
+  },
+  "testedAt": "2026-10-02"
+}

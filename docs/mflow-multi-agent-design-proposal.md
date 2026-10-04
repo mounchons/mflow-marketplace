@@ -2,7 +2,7 @@
 
 วันที่: 2026-10-03 · Revision: 0.2 · สถานะ: ข้อเสนอ ยังไม่ได้เพิ่มคำสั่งใน plugin
 
-> ความคืบหน้า (2026-10-04): ผู้ใช้สั่งให้เริ่มแล้ว กำลังสร้างตามลำดับในหัวข้อ 8 โดยใช้ pipeline ร่วม `plugins/mflow/skills/delegate/references/consultation.md` และ `scripts/consult.mjs` ทำแล้ว: `/mflow:analyze`, `/mflow:design` ยังไม่ได้ทำ: `/mflow:challenge` ส่วนการรันเครื่องมือภายนอกอัตโนมัติ (หัวข้อ 7 ส่วนต่อยอด) ยังไม่ทำ เพราะ requirement §13 ระบุว่า mflow ไม่รัน AI tool อื่นเอง เนื้อหาด้านล่างคงไว้ตามข้อเสนอ
+> ความคืบหน้า (2026-10-04): ผู้ใช้สั่งให้เริ่มแล้ว กำลังสร้างตามลำดับในหัวข้อ 8 โดยใช้ pipeline ร่วม `plugins/mflow/skills/delegate/references/consultation.md` และ `scripts/consult.mjs` ทำแล้ว: `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` (ขั้น 1 ถึง 3 ของหัวข้อ 8) ส่วนการรันเครื่องมือภายนอกอัตโนมัติ (หัวข้อ 7 ส่วนต่อยอด) ยังไม่ทำ เพราะ requirement §13 ระบุว่า mflow ไม่รัน AI tool อื่นเอง เนื้อหาด้านล่างคงไว้ตามข้อเสนอ
 
 ## 1. แนวทางที่แนะนำ
 

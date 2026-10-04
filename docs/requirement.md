@@ -307,6 +307,7 @@ flowchart TD
 | FR-184 | briefing แสดง session ที่ยังไม่สรุปในหัวข้อแยก "Consultations (optional)" ไม่ปนกับงานที่รอ และไม่เป็น next action ของงานหลัก รายงานของ consultation ไม่นับเป็น "AI-inbox item(s) not assessed" | มีแล้ว |
 | FR-185 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus] [--to]` ให้ AI หลายตัววิเคราะห์สภาพจริงของระบบ (สัญญา `consult-analyze`: พฤติกรรมปัจจุบันพร้อมหลักฐาน, findings ที่มี ID หลักฐาน ผลกระทบ confidence, ข้อเสนอเรียงลำดับ, สิ่งที่ยังตรวจไม่ได้) และสรุปที่ `docs/analysis/AN-NNN/summary.md` | มีแล้ว |
 | FR-186 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus] [--to]` ให้ AI หลายตัวเสนอแบบ (สัญญา `consult-design`: ปัญหาและขอบเขต, แบบที่แนะนำเท่าที่หัวข้อต้องการ, ทางเลือกรวมการคงโครงเดิม, สิทธิ์/ความล้มเหลว/การทำงานพร้อมกัน, trade-offs พร้อมสมมติฐาน, การย้ายจากระบบเดิม, เกณฑ์ตรวจรับ, ข้อที่ผู้ใช้ต้องเลือก และป้าย `[เสนอ]`/`[อนุมาน]`) ไม่ต้องผ่าน analyze ก่อน รวมเป็น `docs/design/DS-NNN/proposal.md` (สถานะ proposed/selected/superseded) และ `comparison.md` เมื่อยังมีทางเลือกตั้งแต่สองทาง แบบที่เลือกส่งต่อ `/opsx:propose` โดยอ้าง revision ไม่แก้ `openspec/specs/` เอง | มีแล้ว |
+| FR-187 | `/mflow:challenge @ไฟล์ [--focus] [--to]` ให้ AI หลายตัวหาสถานการณ์ที่ทำให้แบบหรือเอกสารล้มเหลวก่อนมีโค้ด (สัญญา `consult-challenge`: ข้อความที่ถูกทักท้วง → สถานการณ์ → ผลที่ควรเป็น → สิ่งที่ผิดพลาดหรือยังตอบไม่ได้ → หลักฐาน → การทดสอบหรือการแก้ที่เสนอ และส่วนที่ตรวจแล้วยังยืน ไม่มีโควตาจำนวน) session ปักหมุด hash ของไฟล์เป้าหมาย และบอกเมื่อไฟล์ถูกแก้หลังเริ่ม สรุปที่ `docs/challenge/CH-NNN/summary.md` ไม่มีสำเนาของเป้าหมาย ลิงก์กลับเฉพาะแบบเสนอที่ mflow เขียน (`docs/design/DS-NNN/proposal.md`) ไม่แก้เอกสาร discuss ที่ freeze, `openspec/specs/` หรือเอกสารของผู้ใช้ | มีแล้ว |
 
 ## 7. Non-functional requirements
 
@@ -380,7 +381,7 @@ mflow-marketplace/
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   ├─ consult.mjs               ← session ของ analyze/design/challenge (ไม่บังคับ) สถานะอ่านจากไฟล์จริง
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
-    ├─ skills/<17 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ skills/<18 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -404,6 +405,7 @@ mflow-marketplace/
 | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ผลจาก AI ตัวอื่นกลับมา |
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
+| `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
 | `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
@@ -476,7 +478,7 @@ mflow-marketplace/
 | R-13 | `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ theme กับ screen ทำงานกับ UI แอปเดียว | โปรเจกต์ที่มีหลาย web app ทำ kit ต่อแอปไม่ได้อัตโนมัติ | `tech-stack` ต้องตัดสินว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยก และหน้าจอไหนอยู่แอปไหน ส่วนที่เกินทำด้วยมือ |
 | R-12 | ผู้ใช้ตอบแทนลูกค้าแล้วลูกค้าจริงเห็นต่างทีหลัง | ต้องแก้ของที่สร้างแล้ว | ตั้งใจยอมรับตามหลัก P10: ทำ slice เล็ก ทดสอบใช้งานเร็ว (task ทดสอบใช้งานจากหัวข้อ 5 ของเอกสาร discuss) แล้วแก้เป็น change ถัดไป change request บันทึกผลกระทบไว้ |
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
-| R-09 | จำนวนคำสั่ง (17) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
+| R-09 | จำนวนคำสั่ง (18 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
 ## 15. ผลการทดสอบ (v0.3 ถึง v0.18)
 

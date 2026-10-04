@@ -51,6 +51,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
+| | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/challenge/CH-NNN/` |
 | | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + รัน test |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |

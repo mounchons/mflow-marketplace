@@ -175,6 +175,30 @@ Used by `/mflow:design`. Mode `analyze`, subject `<id>-r<n>`. Instructions that 
 - a) … / b) … — recommendation and why
 ```
 
+## Contract: consult-challenge
+
+Used by `/mflow:challenge`. Mode `analyze`, subject `<id>-r<n>`. The brief names the target with the hash the session pinned. Instructions that go into the brief's Goal:
+- Try to make the target fail: find the inputs and situations where what it says would go wrong, or that it does not answer. Check against the target and the real sources and code, not against the target alone.
+- Every challenge needs a scenario or evidence. There is no quota: when nothing breaks, say what was examined, so silence is not mistaken for coverage.
+- Do not open `docs/ai-inbox/` in round 1; in a later round, answer the disputed challenges the brief lists, by their id.
+
+```markdown
+## Target
+<path> at hash <hash from the brief> (say so if you read a different version)
+
+## Challenges
+### X1 <title>
+- Claim challenged: <the statement in the target, with its §>
+- Scenario: <the input or situation, e.g. a user of company A sends company B's id to the API>
+- Expected: <what the target says should happen>
+- Failure or uncertainty: <what goes wrong, or what the target leaves unanswered>
+- Evidence: <file/§ — must be in Files read; "reasoning" if none>
+- Suggested test or fix: <a test that would settle it, or the change to the target>
+
+## Checked and holding
+- <areas examined that held up>
+```
+
 ## Contract: code
 
 Do the work on the branch, commit with the test command's summary in the commit body, tick the matching boxes in `openspec/changes/<name>/tasks.md` if this is an OpenSpec change. Then give as the final message the opening sections plus:

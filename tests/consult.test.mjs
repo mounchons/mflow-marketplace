@@ -92,6 +92,15 @@ test("a challenge pins its target, and an edited target is reported stale", () =
   assert.deepEqual(consult("status", "CH-001").stale.changed, ["docs/design/DS-001/proposal.md"]);
 });
 
+test("a design started from an analysis summary pins it, and sees it change", () => {
+  p = project();
+  p.write("docs/analysis/AN-001/summary.md", "---\nid: AN-001\n---\n# summary v1\n");
+  const s = consult("new", "design", "--scope", "data model for jobs and costs", "--from", "@docs/analysis/AN-001/summary.md");
+  assert.equal(s.snapshot.from.path, "docs/analysis/AN-001/summary.md");
+  p.write("docs/analysis/AN-001/summary.md", "---\nid: AN-001\nrevision: 2\n---\n# summary v2\n");
+  assert.deepEqual(consult("status", "DS-001").stale.changed, ["docs/analysis/AN-001/summary.md"]);
+});
+
 test("files outside the project or missing are refused", () => {
   p = project();
   p.write("../outside.md", "x\n");

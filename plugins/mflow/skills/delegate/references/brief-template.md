@@ -137,6 +137,44 @@ Used by `/mflow:analyze`. Mode `analyze`, subject `<id>-r<n>`. Instructions that
 - <what could not be verified, and the data or experiment that would settle it>
 ```
 
+## Contract: consult-design
+
+Used by `/mflow:design`. Mode `analyze`, subject `<id>-r<n>`. Instructions that go into the brief's Goal:
+- Design only what the topic needs: a flow, module boundaries, a data model or an API contract. No diagram is required for its own sake.
+- Offer real alternatives with their reasons; keeping the current structure may be one of them.
+- Label what you propose `[เสนอ]` and what you infer `[อนุมาน]`, apart from facts with evidence.
+- Do not open `docs/ai-inbox/` in round 1; in a later round, answer the disputed points the brief lists, by their id.
+
+```markdown
+## Problem
+<goal, constraints, and what is out of scope>
+
+## Recommended design
+<the flow, module boundaries, data model or API contract the topic needs, with [เสนอ] / [อนุมาน] labels>
+
+## Alternatives
+### A1 <name>
+- Summary:
+- Better at: / Worse at:
+- When it wins:
+
+## Permissions, failure and concurrency
+<who may do what, retries, partial failure, two users at once — as far as the topic reaches>
+
+## Trade-offs
+<complexity, running cost, cost of changing it later, and the assumptions behind each estimate>
+
+## Migration
+<from the current system: compatibility and data migration, when needed>
+
+## Acceptance scenarios
+- <Given / When / Then, and how to prove the design works>
+
+## Decisions for the user
+### Q1 <question>
+- a) … / b) … — recommendation and why
+```
+
 ## Contract: code
 
 Do the work on the branch, commit with the test command's summary in the commit body, tick the matching boxes in `openspec/changes/<name>/tasks.md` if this is an OpenSpec change. Then give as the final message the opening sections plus:

@@ -3,8 +3,8 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.15.0 |
-| วันที่ | 2026-09-29 |
+| เวอร์ชัน plugin | 0.17.1 |
+| วันที่ | 2026-10-04 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
 ---
@@ -490,7 +490,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.17.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.17.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -524,6 +524,7 @@ git diff --stat openspec/specs
 | กฎ deny `Agent(mflow:dev)` ใน settings ของ Claude Code (เช่น `~/.claude/settings.json` หรือที่ 0.16 เขียนไว้ใน `.claude/settings.local.json`) ยังปิดได้เสมอไม่ว่า mflow จะตั้งอะไร | `/mflow:subagent status` บอกว่าอยู่ไฟล์ไหน ลบเองด้วยมือ |
 | kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
 | DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
+| ตั้งแต่ 0.17.1 ถ้า `.mflow/config.json` หรือ `.mflow/sources.json` อ่านไม่ได้ (เช่น merge conflict ค้าง พิมพ์ JSON ผิด) คำสั่ง mflow จะหยุดพร้อมบอกไฟล์และสาเหตุ และ briefing บอกว่าส่วนไหนไม่แสดง แทนที่จะใช้ค่าเริ่มต้นหรือทะเบียนว่างเงียบๆ | แก้ไฟล์ด้วยมือ หรือเอาฉบับดีล่าสุดจาก git อย่าลบแล้วให้ mflow สร้างใหม่ เพราะทะเบียนเป็นที่เดียวที่บันทึกว่าไฟล์ไหนแทนไฟล์ไหนและใครใช้ |
 | kit ที่ทำ theme ไว้ก่อน 0.17.1 ลงทะเบียน fake user และ `/_prototype/switch-user` ใต้ `Prototype:UseFakeData` อย่างเดียว ซึ่งเป็นค่า runtime ถ้า production เปิดค่านี้ ใครก็สวมสิทธิ์คนอื่นได้ | รัน `/mflow:theme update access` ให้เพิ่มการตรวจตอน start (ไม่ยอม start ถ้าเปิดนอก Development หรือ Prototype) กับ negative test และตั้งเซิร์ฟเวอร์ demo เป็น `ASPNETCORE_ENVIRONMENT=Prototype` |
 | ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` ได้เลย |
 | stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |

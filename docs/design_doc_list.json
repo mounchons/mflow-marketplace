@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0.0",
+  "project_name": "mflow-marketplace",
+  "documents": [
+    {
+      "id": "DOC-MFLOW-REVIEW-001",
+      "name": "วิเคราะห์การออกแบบ mflow plugin และข้อเสนอปรับปรุง",
+      "file_path": "mflow-plugin-design-review.md",
+      "type": "design-review",
+      "version": "1.2.0",
+      "status": "proposals-implemented",
+      "reviewed_plugin_version": "0.17.0-working-tree",
+      "base_commit": "e51a554849647efe424ea8a878ab96c404b1a888",
+      "created_at": "2026-10-03",
+      "verification": {
+        "syntax_checks_passed": 11,
+        "behavior_probes": 8,
+        "live_host_e2e": "not-run"
+      },
+      "implemented_in": "0.17.0-0.18.1",
+      "updated_at": "2026-10-04"
+    },
+    {
+      "id": "DOC-MFLOW-MULTI-AGENT-001",
+      "name": "ข้อเสนอให้ AI หลายตัวช่วยวิเคราะห์และออกแบบ",
+      "file_path": "mflow-multi-agent-design-proposal.md",
+      "type": "design-proposal",
+      "version": "0.2.0",
+      "status": "implemented",
+      "confirmed_constraints": [
+        "New commands are optional, explicitly invoked, and never gate the existing workflow."
+      ],
+      "created_at": "2026-10-03",
+      "related_document": "DOC-MFLOW-REVIEW-001",
+      "implemented_in": "0.19.0",
+      "updated_at": "2026-10-04",
+      "not_implemented": [
+        "automatic execution of external AI tools (proposal section 7, out of scope by requirement section 13)"
+      ]
+    }
+  ]
+}

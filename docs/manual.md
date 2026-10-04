@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.18.1 |
+| เวอร์ชัน plugin | 0.19.0 |
 | วันที่ | 2026-10-04 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -509,7 +509,7 @@ git diff --stat openspec/specs
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.18.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.19.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -543,6 +543,7 @@ git diff --stat openspec/specs
 | กฎ deny `Agent(mflow:dev)` ใน settings ของ Claude Code (เช่น `~/.claude/settings.json` หรือที่ 0.16 เขียนไว้ใน `.claude/settings.local.json`) ยังปิดได้เสมอไม่ว่า mflow จะตั้งอะไร | `/mflow:subagent status` บอกว่าอยู่ไฟล์ไหน ลบเองด้วยมือ |
 | kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
 | DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
+| `/mflow:analyze`, `/mflow:design` และ `/mflow:challenge` (ใหม่ใน 0.19 ไม่บังคับ) ทดสอบแล้วเฉพาะ script ยังไม่เคยใช้ใน session จริงกับรายงานจาก AI ภายนอก และ mflow ไม่รัน AI อื่นให้เอง | ครั้งแรกให้ดูว่าสรุปเก็บความเห็นต่างและ finding ที่ถูกปฏิเสธไว้ครบ ถ้า AI ตัวไหนไม่ได้รัน สั่งสรุปแบบ partial ได้เลย งานหลักไม่ต้องรอ |
 | โปรเจกต์ที่ init ก่อน 0.18 ยังไม่มี `.mflow/templates.json` briefing จึงมีบรรทัด "mflow upgrade" | รัน `/mflow:init` หนึ่งครั้ง รอบนี้เสนอ template ที่ต่างจากไฟล์ของคุณทุกไฟล์ครั้งเดียว (stack เดิมใช้ต่อ ไม่ถามใหม่) รอบถัดไปเสนอเฉพาะ template ที่เปลี่ยนในรุ่นใหม่ ดูภาพรวมทั้งหมดได้ด้วย `/mflow:help check setup` |
 | ไฟล์แปลงแบบเดิม `.mflow/cache/<ชื่อ>.md` (ก่อน 0.17.2) ไม่ถูกใช้แล้ว ตั้งแต่ 0.17.2 ไฟล์แปลงอยู่ที่ `.mflow/cache/<path ของเอกสาร>.<hash>.md` เอกสารที่แก้แล้วจึงถูกแปลงใหม่เสมอ | ลบไฟล์ `.md` ที่อยู่ตรง `.mflow/cache/` ชั้นบนสุดได้ (ยกเว้นโฟลเดอร์ `discuss-<NN>/` ของภาพ mermaid) ครั้งถัดไปที่ capture หรือ consult ต้องใช้ Claude จะแปลงใหม่เอง |
 | ตั้งแต่ 0.17.1 ถ้า `.mflow/config.json` หรือ `.mflow/sources.json` อ่านไม่ได้ (เช่น merge conflict ค้าง พิมพ์ JSON ผิด) คำสั่ง mflow จะหยุดพร้อมบอกไฟล์และสาเหตุ และ briefing บอกว่าส่วนไหนไม่แสดง แทนที่จะใช้ค่าเริ่มต้นหรือทะเบียนว่างเงียบๆ | แก้ไฟล์ด้วยมือ หรือเอาฉบับดีล่าสุดจาก git อย่าลบแล้วให้ mflow สร้างใหม่ เพราะทะเบียนเป็นที่เดียวที่บันทึกว่าไฟล์ไหนแทนไฟล์ไหนและใครใช้ |

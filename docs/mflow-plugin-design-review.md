@@ -2,7 +2,7 @@
 
 วันที่: 2026-10-03 · ฉบับวิเคราะห์: 1.2 · สถานะ: ข้อเสนอ ยังไม่ได้ดำเนินการแก้ plugin
 
-> ความคืบหน้า (2026-10-04, plugin 0.18.1): แก้ครบทุกข้อ F01 ถึง F12 ในรูปแบบที่ระบุในแต่ละ commit F05 มีชุด regression ใน `tests/` และ CI บน Windows/Linux กับ Node 20, 22, 24 ส่วน F07 ทำแบบเบา (approve รันซ้ำได้ด้วย `discuss.mjs cited` ไม่มี operation record เต็มรูปแบบ) สิ่งที่ยังไม่ได้ทำคือการทดสอบ end-to-end ใน session จริงของ Claude Code ตามเกณฑ์ pilot ใน requirement §16 เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์ เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์
+> ความคืบหน้า (2026-10-04, plugin 0.18.1): แก้ครบทุกข้อ F01 ถึง F12 ในรูปแบบที่ระบุในแต่ละ commit F05 มีชุด regression ใน `tests/` และ CI บน Windows/Linux กับ Node 20, 22, 24 ส่วน F07 ทำแบบเบา (approve รันซ้ำได้ด้วย `discuss.mjs cited` ไม่มี operation record เต็มรูปแบบ) §11 สร้างแล้วใน 0.19.0 เป็นคำสั่งเสริมที่ไม่บังคับ `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` (ดู [ข้อเสนอ](mflow-multi-agent-design-proposal.md)) สิ่งที่ยังไม่ได้ทำคือการทดสอบ end-to-end ใน session จริงของ Claude Code ตามเกณฑ์ pilot ใน requirement §16 เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์ เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์
 
 ## 1. ข้อสรุป
 

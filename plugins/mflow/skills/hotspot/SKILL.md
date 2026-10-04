@@ -2,7 +2,7 @@
 name: hotspot
 description: Chart a piece of big or fuzzy business logic into decision tickets and resolve them one per session until the rules are ready for an OpenSpec proposal.
 disable-model-invocation: true
-argument-hint: "[<idea> [@files] | <slug> [TASK-ID [answer]] [@files]]"
+argument-hint: "[<idea> [@files] | <slug> [TASK-ID [answer][, TASK-ID answer…]] [@files]]"
 ---
 
 A **hotspot** is business logic that crosses screens or is expensive to get wrong: pricing, state machines, stock and ledger rules, approval chains, anything with money or legal impact. Building it slice by slice without seeing the whole rule is how the foundation ends up rebuilt mid-project. This skill finds the rules first and hands them to OpenSpec; it produces decisions, not code.
@@ -30,7 +30,7 @@ After using a file: `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" mark 
 
 Use `backlog <command> --help` for exact flags; edit Backlog files only through the CLI.
 
-**What comes next** closes every run: tell the user, in Thai, what changed and one next command, exactly as they would type it, and write that command into STATUS.md `## Now` so the next session's briefing carries it. One ticket per session means the next ticket starts in a new session (`/clear` first).
+**What comes next** closes every run: tell the user, in Thai, what changed and one next command, exactly as they would type it, and write that command into STATUS.md `## Now` so the next session's briefing carries it. Add one line on why it is next: what it unblocks, or which risk it settles. By default one ticket per session, so the next ticket starts in a new session (`/clear` first); simple answers given for several tickets at once are the exception below.
 
 ## Ticket types (type label)
 
@@ -81,7 +81,7 @@ Done when: map.md has a destination, every sharp question is a ticket with its t
 
 Done when: the ticket is `Done` with its answer in the final summary, map.md and rules.md show it, the frontier is advanced, and the user has the next command.
 
-Resolve exactly one ticket per session (research tickets excepted). The pull to start coding is the signal to graduate or stop, not to build.
+Resolve one ticket per session by default (research tickets excepted): a fuzzy rule needs the session's full attention, and the pull to start coding is the signal to graduate or stop, not to build. The user may answer several simple, related tickets at once (`/mflow:hotspot <slug> TASK-12 a, TASK-13 b`): resolve them in one run when each answer is a direct choice that changes no other ticket in the batch; one that needs grilling or reopens another keeps its answer recorded and waits for its own session.
 
 ## Graduate
 

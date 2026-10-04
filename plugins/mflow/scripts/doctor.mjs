@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareVersions as cmp, findRoot, loadConfig, readJsonFile, readText, run } from "./lib.mjs";
-import { scan } from "./source-index.mjs";
+import { fileHash, scan } from "./source-index.mjs";
 import { projectDir, status as subagentStatus } from "./apply-subagent.mjs";
 
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -143,6 +143,19 @@ function projectChecks() {
   const cacheDir = path.join(root, ".mflow", "cache");
   const oldCache = fs.existsSync(cacheDir) ? fs.readdirSync(cacheDir).filter((f) => f.endsWith(".md") && fs.statSync(path.join(cacheDir, f)).isFile()) : [];
   if (oldCache.length) add("cache", "warn", `${oldCache.length} text version(s) in the pre-0.17.2 layout .mflow/cache/<name>.md, no longer read`, "Delete them; capture and consult convert again under .mflow/cache/<path>.<hash>.md");
+
+  // Golden data made from a customer file that has changed since: its expected values may be old.
+  for (const meta of codeFiles(root, ".source.json").filter((f) => /(^|\/)Golden\/[^/]+\.source\.json$/i.test(f))) {
+    let info;
+    try { info = JSON.parse(readText(path.join(root, meta)) || ""); } catch { info = null; }
+    if (!info?.source || !info?.sourceHash) {
+      add("golden", "warn", `${meta} does not name its source and sourceHash`, "Regenerate it with /mflow:golden");
+    } else if (!exists(root, info.source)) {
+      add("golden", "warn", `${meta}: its source ${info.source} is gone`, "Find the file's new name (source-index.mjs scan) and regenerate with /mflow:golden");
+    } else if (fileHash(path.join(root, info.source)) !== info.sourceHash) {
+      add("golden", "warn", `${meta} was made from an older version of ${info.source}`, `Regenerate: /mflow:golden @${info.source} ${path.basename(meta, ".source.json")}`);
+    } else add("golden", "ok", `${meta} matches the current ${info.source}`);
+  }
 
   // Prototype mode that production could turn on (kits built before 0.17.1).
   const cs = codeFiles(root, ".cs");

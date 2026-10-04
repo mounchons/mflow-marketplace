@@ -11,7 +11,7 @@ A report whose brief or file name carries `discuss-<NN>` answers a discussion do
 
 ## 1. Normalize
 
-Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/inbox-normalize.mjs" <file> [--from <tool>] [--mode <mode>] [--brief <id>]` (values from the brief if the file lacks them). It unwraps a fenced answer, ensures frontmatter, and reports whether `Understanding` and `Files read` exist. Load the brief named in the frontmatter.
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/inbox-normalize.mjs" <file> [--from <tool>] [--mode <mode>] [--brief <id>]` (values from the brief if the file lacks them, `--base <commit>` included). It unwraps a fenced answer, ensures frontmatter, and reports whether `Understanding` and `Files read` exist, and under `stale.changedSince` the files the report read that have changed since its `base` commit. Load the brief named in the frontmatter.
 
 If the report does not follow the contract's finding structure, restructure its claims into it and say so.
 
@@ -40,6 +40,7 @@ Open the evidence yourself: code at file:line, spec scenario, source page. A cit
 - **reject:** not true, or conflicts with a spec or decision (cite it)
 - **needs-decision:** true but a trade-off for the user to settle; their call is the customer's
 - **already-done:** handled; cite where
+- **outdated:** it rests on a file in `stale.changedSince`, and the code or text it describes is no longer there; say what changed. A finding on a changed file that still holds gets one of the verdicts above, checked against the current version
 
 For a code-done report, also run `/mflow:review` on its branch, or say it is still needed.
 
@@ -61,6 +62,6 @@ Set the inbox file's frontmatter `status: assessed`.
 - accept-later → Backlog task, label `later`
 - A misunderstanding caused by a gap or ambiguity in AGENTS.md or the brief → a proposed fix to that file, so the next tool does not repeat it
 
-**What comes next:** tell the user the verdict counts and one next command: the first accepted task, a suggested `/opsx:propose`, `/mflow:review <branch>` for a code report, or the needs-decision questions to answer. Write it into STATUS.md `## Now`.
+**What comes next:** tell the user the verdict counts and one next command: the first accepted task, a suggested `/opsx:propose`, `/mflow:review <branch>` for a code report, or the needs-decision questions to answer. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 
 Done when: accepted items exist as tasks or proposals, STATUS.md records the assessment, and the user has the next command.

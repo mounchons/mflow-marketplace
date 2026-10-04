@@ -26,10 +26,10 @@ Done when: every check has a result, with file:line for each problem.
 
 ## 3. Report
 
-Write `docs/reviews/code/<date>-<target>.md`: verdict (`approve` / `changes-requested`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization or data scope, prototype user switching reachable outside prototype mode, a prototype-mode flag that production could turn on without the app refusing to start.
+Write `docs/reviews/code/<date>-<target>.md`: the commit reviewed (`Reviewed: <target> at <git rev-parse of it>`, plus "with uncommitted changes" for `--uncommitted`), verdict (`approve` / `changes-requested`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization or data scope, prototype user switching reachable outside prototype mode, a prototype-mode flag that production could turn on without the app refusing to start.
 
 For a second opinion, offer `/mflow:delegate <target> --to <tool> --mode review`; when it returns, `/mflow:assess` checks its findings against this report.
 
-**What comes next:** on `approve`, merge after the user's yes, then `/opsx:archive` and `git diff --stat openspec/specs`; on `changes-requested`, the blockers to fix, then `/mflow:review` again. Write it into STATUS.md `## Now`.
+**What comes next:** on `approve`, merge after the user's yes, then `/opsx:archive` and `git diff --stat openspec/specs`; on `changes-requested`, the blockers to fix, then `/mflow:review` again. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 
-Done when: the report exists, STATUS.md records the verdict, and the user has the next command. Merge only on `approve` and the user's yes.
+Done when: the report exists, STATUS.md records the verdict, and the user has the next command. Merge only on `approve` and the user's yes, and only while the target still points at the reviewed commit: an approval covers what was reviewed, so commits added since are reviewed first (`git diff <reviewed commit>..<target>`).

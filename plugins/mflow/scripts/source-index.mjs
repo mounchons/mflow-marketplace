@@ -7,6 +7,7 @@
 //        [--by <replacing file>] [--used-by <hs-slug|change|review>] [--note "..."] [--title "..."]
 //   node source-index.mjs render                     -> regenerate INDEX.md
 //   node source-index.mjs cache <file...>            -> JSON: where the text version of each file goes
+//   node source-index.mjs hash <file...>             -> JSON: each file's content hash, as the registry records it
 //
 // Text versions of .docx, .xlsx and .pdf files live at .mflow/cache/<project path>.<hash>.md. The path
 // carries the file's project path and content hash, so two files with one name never share a cache,
@@ -34,6 +35,8 @@ const SKIP = new Set(["INDEX.md", "README.md", ".gitkeep"]);
 
 const toPosix = (p) => p.split(path.sep).join("/");
 const sha = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex").slice(0, 16);
+/** A file's content hash as the registry records it (first 16 hex of sha256): golden data stores it. */
+export const fileHash = sha;
 const defaultRoot = () => findRoot(process.env.CLAUDE_PROJECT_DIR || process.cwd()) || process.cwd();
 
 /** Where the registry and the source folder of a project are. Throws when config.json is broken. */
@@ -213,7 +216,17 @@ if (isMain) {
     else if (cmd === "mark") out = mark(at, rest);
     else if (cmd === "render") { render(at, loadDb(at).db); out = { rendered: `${at.sourceDir}/INDEX.md` }; }
     else if (cmd === "cache") out = cache(at, rest);
-    else throw new Error("usage: source-index.mjs scan | mark <file...> [options] | render | cache <file...>");
+    else if (cmd === "hash") {
+      if (!rest.length) throw new Error("hash: give at least one file");
+      out = {
+        files: rest.map((p) => {
+          const rel = inside(at, p, "hash");
+          if (!fs.existsSync(path.join(at.root, rel))) throw new Error(`hash: not found: ${rel}`);
+          return { file: rel, hash: sha(path.join(at.root, rel)) };
+        }),
+      };
+    }
+    else throw new Error("usage: source-index.mjs scan | mark <file...> [options] | render | cache <file...> | hash <file...>");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

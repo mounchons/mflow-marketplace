@@ -196,7 +196,7 @@ flowchart TD
 | FR-65 | Readiness bar 6 ข้อ ผ่านแล้วจึง graduate เป็น OpenSpec change | มีแล้ว |
 | FR-66 | อ่านเฉพาะไฟล์ที่ระบุด้วย `@` ผ่านทะเบียนเอกสาร และบันทึกว่าใช้ไฟล์ไหน | มีแล้ว |
 | FR-67 | ถ้าเรื่องจบได้ใน session เดียว แนะนำให้ใช้ `/opsx:propose` แทน | มีแล้ว |
-| FR-68 | `/mflow:golden` แปลง Excel ของลูกค้าเป็น golden JSON + data-driven unit test ตาม stack (xUnit `[MemberData]` สำหรับ .NET) ปิดบังข้อมูลส่วนบุคคล แยกแถวผิดปกติออก | มีแล้ว |
+| FR-68 | `/mflow:golden` แปลง Excel ของลูกค้าเป็น golden JSON + data-driven unit test ตาม stack (xUnit `[MemberData]` สำหรับ .NET) ปิดบังข้อมูลส่วนบุคคล แยกแถวผิดปกติออก และเขียน `<slug>.source.json` คู่กัน (ไฟล์ต้นทางและ hash, sheet, range, mapping และรุ่นของ mapping, หน่วย, การปัดเศษ, รูปแบบวันที่, cell สูตรที่ไม่มีค่า, จำนวนแถว, วันที่สร้าง) doctor เตือนเมื่อไฟล์ต้นทางเปลี่ยนหลังสร้าง | มีแล้ว |
 | FR-69 | เปิดตั๋วที่ตอบแล้วขึ้นใหม่เมื่อลูกค้าเปลี่ยนใจ และเปิด map ที่ graduate แล้วขึ้นใหม่ | ยังไม่มี (ใช้ตั๋ว supersede หรือ hotspot ใหม่แทน) |
 
 ### 6.8 เชื่อมกับ OpenSpec
@@ -227,11 +227,11 @@ flowchart TD
 | FR-93 | ทะเบียน tool ค่าเริ่มต้น (codex, opencode, gemini, chat) และเพิ่ม/แก้ได้ใน `.mflow/config.json` tool ที่ไม่รู้จักให้ถามคำสั่งแล้วบันทึก | มีแล้ว |
 | FR-94 | คำสั่งสร้างด้วย script ทั้ง PowerShell (ตั้ง UTF-8) และ Bash ใช้ path แบบ absolute และ `{tool}` ใน path ผลลัพธ์ทำให้หลาย tool ตอบ brief เดียวกันได้โดยไม่ทับกัน | มีแล้ว |
 | FR-95 | ผลลัพธ์เป็นข้อความสุดท้ายของ tool บันทึกโดยคำสั่งลง `docs/ai-inbox/` tool ที่รันแบบ read-only ไม่ต้องเขียนไฟล์ | มีแล้ว |
-| FR-96 | ทุกรายงานต้องมี `Understanding` และ `Files read` นำหน้า | มีแล้ว |
+| FR-96 | ทุกรายงานต้องมี `Understanding` และ `Files read` นำหน้า brief บันทึก `base` (commit ที่เขียน brief) และ `dirty` (มีงานที่ยังไม่ commit หรือไม่) รายงานคัดลอก `base` ไป หัว context pack ก็บอก commit นี้ให้ tool ที่ไม่เห็น repo | มีแล้ว |
 | FR-97 | Context pack รวมไฟล์เป็นไฟล์เดียวสำหรับ chat UI ข้าม binary เตือนเมื่อใหญ่เกิน 400 KB และหยุดก่อนอ่านไฟล์ใดเมื่อเกิน 500 ไฟล์หรือ 2 MB รับเฉพาะไฟล์ในโปรเจกต์ (ตาม path จริงหลังตาม link/junction) โฟลเดอร์นอกโปรเจกต์ต้องระบุด้วย `--allow` ไฟล์ซ้ำหรือตัว pack เองไม่ถูกรวม ตรวจรูปแบบข้อมูลลับในทุกไฟล์ข้อความ (key ของ cloud/GitHub/Slack/AI, JWT, connection string, ค่าลับที่เขียนเป็นตัวอักษรตรงๆ) ไฟล์ที่เข้าข่ายถูกข้ามพร้อมเหตุผล ผลลัพธ์มี manifest (path, ขนาด, hash) และหัว pack บอกว่าเนื้อหาเป็นข้อมูล ไม่ใช่คำสั่ง การตรวจเป็นแบบรูปแบบ จึงต้องอ่าน pack ก่อนส่งออกจากเครื่อง | มีแล้ว |
 | FR-98 | โหมด code ทำใน worktree และ branch `agent/<tool>/<id>` แยกจาก Claude | มีแล้ว |
-| FR-99 | Assess: normalize ไฟล์ → ตรวจความเข้าใจและไฟล์ที่อ่าน → ตั้งระดับความน่าเชื่อถือ → ตรวจ finding ทีละข้อจากหลักฐานที่เปิดเอง → คำตัดสิน 5 แบบ → เสนอ action หลังได้ yes | มีแล้ว |
-| FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), entity ตรงกับ data dictionary และมี index ตามเอกสาร data model, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested | มีแล้ว |
+| FR-99 | Assess: normalize ไฟล์ → ตรวจความเข้าใจและไฟล์ที่อ่าน → ตั้งระดับความน่าเชื่อถือ → ตรวจ finding ทีละข้อจากหลักฐานที่เปิดเอง → คำตัดสิน 6 แบบ (รวม `outdated` เมื่อ finding อิงไฟล์ที่เปลี่ยนหลัง `base` ของรายงานจนสิ่งที่พูดถึงไม่อยู่แล้ว `inbox-normalize.mjs` บอกไฟล์เหล่านั้นใน `stale.changedSince`) → เสนอ action หลังได้ yes | มีแล้ว |
+| FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), entity ตรงกับ data dictionary และมี index ตามเอกสาร data model, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested รายงานบันทึก commit ที่ตรวจ และ merge ได้เฉพาะเมื่อ branch ยังชี้ commit นั้น commit ที่เพิ่มหลังตรวจต้องตรวจก่อน | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -293,7 +293,7 @@ flowchart TD
 | FR-169 | Checklist ของ `code-structure`: repo, solution แยก layer (Domain หรือ Core ให้เลือกชื่อเดียว, Application, Infrastructure, Api/Web) อ้างอิงเข้าด้านในและมี architecture test, module, โฟลเดอร์ตาม feature, test project, โฟลเดอร์ของ web/mobile และ package ที่ใช้ร่วม, build settings, path ของ `## Stack` ชี้ที่โฟลเดอร์จริง การสร้าง solution เป็น task หรือ `/opsx:propose` | มีแล้ว |
 | FR-170 | ลำดับที่มาของสองหัวข้อนี้: เอกสารลูกค้าและคำของผู้ใช้ → มาตรฐานของทีมใน knowledge base ที่เชื่อมไว้ (เช่น Graph Brain) ติด `[ที่มา: brain <ชื่อโน้ต>]` → ข้อเสนอของ Claude โน้ตของโปรเจกต์เก่าเป็นตัวอย่าง ที่ขัดกันเป็นข้อตัดสินใจ | มีแล้ว |
 | FR-171 | ตอนอนุมัติ: แอป library พร้อม licence และตัวเสริมภายหลังไปที่ `## Stack` ของ AGENTS.md (ตาราง Apps, Libraries และบรรทัด Later ใน template) profile และ path ถูกปรับถ้าต่างจากตอน init และ `## Commands` ติด `(unverified)` จนกว่าจะรันใหม่ โครง solution และกฎการอ้างอิงไปที่ `## Architecture` | มีแล้ว |
-| FR-172 | ทุกคำสั่งที่ทำงานจบ (hotspot ทุกโหมด, golden, screen, theme และ preview/port, discuss approve, assess, review-notes, review) บอกผู้ใช้ว่าอะไรเปลี่ยนและคำสั่งถัดไปหนึ่งคำสั่งที่พิมพ์ได้ทันที และเขียนคำสั่งนั้นลง `## Now` ของ STATUS.md hotspot บอก readiness bar, ตั๋วที่หยิบได้ต่อไป และตั๋วที่ติดรอ ตั๋วถัดไปเริ่มใน session ใหม่ และตั๋ว `ask` ตอบในคำสั่งได้ (`/mflow:hotspot <slug> <TASK-ID> <คำตอบ>`) | มีแล้ว |
+| FR-172 | ทุกคำสั่งที่ทำงานจบ (hotspot ทุกโหมด, golden, screen, theme และ preview/port, discuss approve, assess, review-notes, review) บอกผู้ใช้ว่าอะไรเปลี่ยนและคำสั่งถัดไปหนึ่งคำสั่งที่พิมพ์ได้ทันที พร้อมเหตุผลหนึ่งบรรทัดว่าทำไมจึงถัดไป และเขียนคำสั่งนั้นลง `## Now` ของ STATUS.md hotspot บอก readiness bar, ตั๋วที่หยิบได้ต่อไป และตั๋วที่ติดรอ ตั๋วถัดไปเริ่มใน session ใหม่ (ยกเว้นผู้ใช้ตอบตั๋วง่ายที่เกี่ยวกันหลายใบพร้อมกัน ซึ่งปิดได้ในรอบเดียวถ้าแต่ละคำตอบเป็นตัวเลือกตรงๆ ที่ไม่กระทบตั๋วอื่น) help แสดงเส้นทางเริ่มต้นสองแบบ: อยากเห็นหน้าจอเร็ว และกฎซับซ้อนหรือผิดแล้วแพง และตั๋ว `ask` ตอบในคำสั่งได้ (`/mflow:hotspot <slug> <TASK-ID> <คำตอบ>`) | มีแล้ว |
 | FR-166 | ภาพรวม `/mflow:discuss` แสดงหัวข้อที่ยังไม่เริ่มจากรายการนี้แทนการเดาเอง และ briefing ตอนเริ่ม session แสดงเป็นส่วนแยก "optional" (ไม่เกินสามชื่อ ไม่นับที่ข้าม) พร้อมหัวข้อที่อนุมัติแล้วแต่มีป้ายทบทวน | มีแล้ว |
 
 ## 7. Non-functional requirements

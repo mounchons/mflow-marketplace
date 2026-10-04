@@ -23,7 +23,7 @@ Done when: the goal fits in two sentences and every path the tool needs is known
 
 ## 2. Write the brief
 
-`.mflow/briefs/<date>-<id>-<mode>-<tool or any>.md` from the template. Pointers, not pasted content. The output contract for the mode is copied in full, including the mandatory `Understanding` and `Files read` sections.
+`.mflow/briefs/<date>-<id>-<mode>-<tool or any>.md` from the template. Pointers, not pasted content. Record the snapshot the tool reads in the frontmatter: `base:` the output of `git rev-parse HEAD`, and `dirty:` `none` when `git status --porcelain` prints nothing, otherwise the number of uncommitted files, with a line in Scope saying the brief covers uncommitted work. The report copies `base`, so `/mflow:assess` can tell which files changed after the tool read them. The output contract for the mode is copied in full, including the mandatory `Understanding` and `Files read` sections.
 
 For a tool without repo access (`--to chat`, or the user says it is a web chat), also build a context pack of everything in Read first and Scope:
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/context-pack.mjs" --out .mflow/briefs/<brief>.pack.md <paths...>`

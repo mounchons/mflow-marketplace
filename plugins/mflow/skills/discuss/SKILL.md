@@ -133,7 +133,7 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
    - Nothing is built yet: start a new doc on the same topic, and cite the old one in section 1. When the new doc is approved, set the old one to `status: superseded` and `superseded-by: <NN>`.
    - Already built: use `/mflow:change-request`. It records the impact and goes ahead on the user's instruction.
 
-**What comes next:** tell the user where the agreed items went, and one next command: the next not-started topic on the agenda (`/mflow:discuss <slug>`), or the next step of the flow this doc unblocks (`/mflow:theme`, `/mflow:screen inventory`, `/mflow:theme update access`, a screen). Write it into STATUS.md `## Now`.
+**What comes next:** tell the user where the agreed items went, and one next command: the next not-started topic on the agenda (`/mflow:discuss <slug>`), or the next step of the flow this doc unblocks (`/mflow:theme`, `/mflow:screen inventory`, `/mflow:theme update access`, a screen). Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 
 Done when: every agreed item exists at its destination, the doc is frozen, STATUS.md records the approval, and the user has the next command.
 

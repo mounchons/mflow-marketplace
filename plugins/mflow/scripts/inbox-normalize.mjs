@@ -5,7 +5,12 @@
 // filled), the file is rewritten only when something changes, and the first original is kept
 // in .mflow/cache/inbox-original/.
 //
-//   node inbox-normalize.mjs <file> [--from <tool>] [--mode analyze|review|code] [--brief <id>]
+//   node inbox-normalize.mjs <file> [--from <tool>] [--mode analyze|review|code] [--brief <id>] [--base <commit>]
+//
+// With a `base` (the commit the brief was written at, which the report copies), it also lists the
+// files under "Files read" that changed since then (`stale.changedSince`): findings resting on them may
+// describe code or text that is no longer there, so they are checked against the current version.
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { findRoot, frontmatter } from "./lib.mjs";
@@ -38,6 +43,8 @@ const want = {
   mode: fm.mode || opt("--mode") || "analyze",
   brief: fm.brief || opt("--brief") || "",
 };
+const base = fm.base || opt("--base") || "";
+if (base) want.base = base;
 const line = (k, v) => (v ? `${k}: ${v}` : `${k}:`);
 const block = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(text);
 const fmLines = block ? block[1].split(/\r?\n/) : [];
@@ -62,9 +69,42 @@ if (next !== original) {
 
 const hasUnderstanding = /^##\s*Understanding\b/im.test(body);
 const hasFilesRead = /^##\s*Files read\b/im.test(body);
+
+/** Repo-relative paths listed under "## Files read", without backticks, line ranges or "(partial)". */
+function filesRead(md) {
+  const lines = md.split(/\r?\n/);
+  const start = lines.findIndex((l) => /^##\s*Files read\b/i.test(l));
+  if (start < 0) return [];
+  const out = [];
+  for (const l of lines.slice(start + 1)) {
+    if (/^#/.test(l)) break;
+    const item = /^\s*[-*]\s+(.*)$/.exec(l)?.[1];
+    if (!item) continue;
+    const p = item.replace(/`/g, "").replace(/\s*\(.*\)\s*$/, "").replace(/:\d[\d,-]*$/, "").trim();
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+let stale = null;
+if (base) {
+  const root = findRoot(path.dirname(path.resolve(file))) || process.cwd();
+  const read = filesRead(body);
+  try {
+    if (!/^[0-9a-f]{7,64}$/i.test(base)) throw new Error("not a commit id");
+    execFileSync("git", ["cat-file", "-e", `${base}^{commit}`], { cwd: root, stdio: "ignore" });
+    const changed = read.length
+      ? execFileSync("git", ["diff", "--name-only", "--relative", base, "--", ...read], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+      : "";
+    stale = { base, filesRead: read.length, changedSince: changed.split(/\r?\n/).filter(Boolean) };
+  } catch {
+    stale = { base, filesRead: read.length, changedSince: null, note: "the base commit is not in this repository: compare the cited files by hand" };
+  }
+}
+
 process.stdout.write(JSON.stringify({
   file, changed: next !== original, backup, frontmatterAdded: !block, unwrappedFence: unwrapped,
-  ...want, hasUnderstanding, hasFilesRead,
+  ...want, hasUnderstanding, hasFilesRead, stale,
   warning: hasUnderstanding && hasFilesRead ? null
     : "Missing Understanding and/or Files read: treat findings as unverified until checked.",
 }, null, 2) + "\n");

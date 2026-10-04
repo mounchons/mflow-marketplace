@@ -8,6 +8,8 @@ brief: <date>-<id>-<mode>-<tool or any>
 mode: analyze | review | code
 to: <tool or any>
 subject: <TASK-ID | change-name | hotspot-slug | topic>
+base: <commit the brief was written at: git rev-parse HEAD>
+dirty: <none | N uncommitted files>
 ---
 
 # Goal
@@ -43,6 +45,7 @@ status: new
 from: <your tool name>
 mode: <mode>
 brief: <brief id>
+base: <the brief's base, or the Snapshot commit at the top of the context pack>
 ---
 # <subject>
 

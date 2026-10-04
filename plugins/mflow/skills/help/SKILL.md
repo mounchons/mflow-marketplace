@@ -7,6 +7,10 @@ argument-hint: "[describe your situation]"
 
 If `$ARGUMENTS` describes a situation, recommend the one command that fits and the next one after it. Otherwise print this table. Invoke no other command yourself.
 
+**Two ways to start.** Print these above the table when `$ARGUMENTS` is empty or asks where to begin, and recommend one from what the user says matters first. Neither path is required; any command can run when it is needed.
+- **See screens soon:** `/mflow:init` → `/mflow:capture` (only the documents the first screens need) → `/mflow:theme` → `/mflow:screen inventory` → `/mflow:screen <name>` → try it with the user → `/mflow:review-notes`.
+- **Complex rules or costly mistakes** (fees, approvals, payroll, anything legal): `/mflow:init` → `/mflow:capture` → `/mflow:discuss` for the cross-cutting topics and `/mflow:hotspot` for each rule → `/mflow:golden` with the customer's past results → `/opsx:propose`, building screens alongside as their topics settle.
+
 **Checking the setup.** When `$ARGUMENTS` asks to check the setup, says something is broken or missing, follows an mflow upgrade, or the briefing calls OpenSpec or Backlog unavailable, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.mjs"`. It is read-only. Report every `fail` and `warn` with its `fix`, worst first, then the one command that fixes the most.
 
 | Situation | Command |

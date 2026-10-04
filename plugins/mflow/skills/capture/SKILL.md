@@ -10,6 +10,7 @@ Customer documents are evidence: originals are never edited, a new version is a 
 Registry commands (run from the repo root):
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" scan`
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" mark <file> [--status active|superseded|reference] [--by <new-file>] [--used-by <hs-slug|change|review>] [--title "..."] [--note "..."]`
+- `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" cache <file...>`: where the text version of a `.docx`, `.xlsx` or `.pdf` goes, and whether it exists for this version
 
 `mark` regenerates `docs/source/INDEX.md`; never edit that file by hand. When a registry command stops on an error about `.mflow/sources.json` or `.mflow/config.json` (not valid JSON, merge conflict markers, an unknown status), show the user the message and stop: never delete, recreate or hand-patch the file to get past it, because it is the only record of which file replaced which and what used it.
 
@@ -24,7 +25,7 @@ Done when: the user has seen the list of files that will be read and the list sk
 ## 2. Read by type
 
 - `.pdf`, `.md`, `.txt`, `.csv`, `.json`: read directly. For scanned PDFs, flag any number or table you are not certain of.
-- `.docx`: convert to Markdown in `.mflow/cache/<name>.md` (pandoc, or python-docx) and read that; the original in `docs/source/` stays untouched.
+- `.docx`: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" cache <file>`. When `exists` is true, read its `cache` file; otherwise convert the document to Markdown at that path (pandoc, or python-docx) and read that. The path changes whenever the file does, so an old conversion is never read for a new version. Begin the text version with one line: `<!-- Text of <file>, converted with <tool and version> on <date>. Not converted: <what was lost, or none> -->`. The original in `docs/source/` stays untouched.
 - `.xlsx`: read with python (pandas/openpyxl); list sheets first, then read only the sheets that matter. Note merged cells and formulas you cannot see as values.
 
 ## 3. Versions

@@ -6,6 +6,12 @@
 //   node source-index.mjs mark <file...> [--status active|superseded|reference]
 //        [--by <replacing file>] [--used-by <hs-slug|change|review>] [--note "..."] [--title "..."]
 //   node source-index.mjs render                     -> regenerate INDEX.md
+//   node source-index.mjs cache <file...>            -> JSON: where the text version of each file goes
+//
+// Text versions of .docx, .xlsx and .pdf files live at .mflow/cache/<project path>.<hash>.md. The path
+// carries the file's project path and content hash, so two files with one name never share a cache,
+// and an edited file gets a new path instead of the text of its old version (`exists` false: convert
+// again). `cache` deletes conversions of earlier versions of the same file. Plain text needs none.
 //
 // A file counts as "processed" once it has been marked. Editing a file changes its hash,
 // so it shows up as "changed" and must be re-read.
@@ -22,6 +28,8 @@ import { findRoot, loadConfig, parseJsonObject, readTextFile, withFileLock, writ
 export const STATUSES = ["active", "superseded", "reference"];
 const OPTIONS = new Set(["status", "by", "used-by", "note", "title"]);
 const DB = ".mflow/sources.json";
+const CACHE = ".mflow/cache";
+const PLAIN = /\.(md|txt|csv|json)$/i;
 const SKIP = new Set(["INDEX.md", "README.md", ".gitkeep"]);
 
 const toPosix = (p) => p.split(path.sep).join("/");
@@ -107,12 +115,42 @@ function render(at, db) {
 }
 
 /** Project-relative POSIX path of a file named on the command line; refuses one outside the project. */
-function inside(at, p) {
+function inside(at, p, cmd = "mark") {
   const rel = path.relative(at.root, path.resolve(at.root, p));
   if (!rel || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
-    throw new Error(`mark: ${p} is outside the project, nothing was written`);
+    throw new Error(`${cmd}: ${p} is outside the project, nothing was written`);
   }
   return toPosix(rel);
+}
+
+function cache(at, argv) {
+  if (!argv.length) throw new Error("cache: give at least one file");
+  return {
+    files: argv.map((p) => {
+      const rel = inside(at, p, "cache");
+      const full = path.join(at.root, rel);
+      if (!fs.existsSync(full)) throw new Error(`cache: not found: ${rel}`);
+      if (PLAIN.test(rel)) return { file: rel, cache: null, note: "plain text: read the file itself" };
+      const name = path.posix.basename(rel);
+      const current = `${name}.${sha(full)}.md`;
+      const dir = path.join(at.root, CACHE, path.posix.dirname(rel));
+      // Conversions of earlier versions: the same name, then a different 16-hex hash.
+      const removed = [];
+      for (const other of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
+        if (other !== current && other.startsWith(`${name}.`) && /^[0-9a-f]{16}\.md$/.test(other.slice(name.length + 1))) {
+          fs.rmSync(path.join(dir, other));
+          removed.push(toPosix(path.relative(at.root, path.join(dir, other))));
+        }
+      }
+      const cachePath = path.join(dir, current);
+      return {
+        file: rel,
+        cache: toPosix(path.relative(at.root, cachePath)),
+        exists: fs.existsSync(cachePath),
+        ...(removed.length ? { removed } : {}),
+      };
+    }),
+  };
 }
 
 function mark(at, argv) {
@@ -174,7 +212,8 @@ if (isMain) {
     if (cmd === "scan") out = scan(at.root);
     else if (cmd === "mark") out = mark(at, rest);
     else if (cmd === "render") { render(at, loadDb(at).db); out = { rendered: `${at.sourceDir}/INDEX.md` }; }
-    else throw new Error("usage: source-index.mjs scan | mark <file...> [options] | render");
+    else if (cmd === "cache") out = cache(at, rest);
+    else throw new Error("usage: source-index.mjs scan | mark <file...> [options] | render | cache <file...>");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

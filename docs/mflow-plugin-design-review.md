@@ -2,7 +2,7 @@
 
 วันที่: 2026-10-03 · ฉบับวิเคราะห์: 1.2 · สถานะ: ข้อเสนอ ยังไม่ได้ดำเนินการแก้ plugin
 
-> ความคืบหน้า (2026-10-04, plugin 0.18.0): แก้แล้ว F01, F02, F03, F04, F05 (ชุด regression ใน `tests/` และ CI บน Windows/Linux กับ Node 20, 22, 24), F06, F07 แบบเบา (approve รันซ้ำได้ด้วย `discuss.mjs cited` ยังไม่มี operation record เต็มรูปแบบ), F09, F10 (doctor, `compat.json`, `.mflow/templates.json`, release check ใน test), F11, F12 (ส่วนการไม่ถามซ้ำ) และ F08 ส่วน cache ข้อที่ยังไม่ได้ทำ: ส่วนที่เหลือของ F08 และ F12 (เส้นทางเริ่มต้นใน help) และยังไม่ได้รัน end-to-end ใน session จริง เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์
+> ความคืบหน้า (2026-10-04, plugin 0.18.1): แก้ครบทุกข้อ F01 ถึง F12 ในรูปแบบที่ระบุในแต่ละ commit F05 มีชุด regression ใน `tests/` และ CI บน Windows/Linux กับ Node 20, 22, 24 ส่วน F07 ทำแบบเบา (approve รันซ้ำได้ด้วย `discuss.mjs cited` ไม่มี operation record เต็มรูปแบบ) สิ่งที่ยังไม่ได้ทำคือการทดสอบ end-to-end ใน session จริงของ Claude Code ตามเกณฑ์ pilot ใน requirement §16 เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์ เนื้อหาด้านล่างคงไว้ตามที่วิเคราะห์
 
 ## 1. ข้อสรุป
 

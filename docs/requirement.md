@@ -127,7 +127,7 @@ flowchart TD
 | FR-24 | เทียบฉบับใหม่กับฉบับเก่าทีละหัวข้อเมื่อมีการแทนที่ | มีแล้ว |
 | FR-25 | คัดแยกทุกข้อความไปยังปลายทาง: AGENTS.md, vision.md, hotspot INDEX, change request, คำศัพท์ ข้อที่คลุมเครือถามผู้ใช้ในตารางเดียวกัน ข้อที่ยังตอบไม่ได้ไป open questions และให้ผู้ใช้ยืนยันก่อนเขียน | มีแล้ว |
 | FR-26 | อ่าน PDF, MD, CSV โดยตรง, แปลง DOCX เป็น Markdown ใน `.mflow/cache/`, อ่าน XLSX ด้วย python | มีแล้ว |
-| FR-27 | `docs/source/INDEX.md` สร้างอัตโนมัติจาก `.mflow/sources.json` | มีแล้ว |
+| FR-27 | `docs/source/INDEX.md` สร้างอัตโนมัติจาก `.mflow/sources.json` ทะเบียนเป็นข้อมูลหลัก INDEX.md เป็นมุมมองที่ `render` สร้างใหม่ได้ `mark` รับ `--status` เฉพาะ active, superseded, reference และไฟล์ภายในโปรเจกต์ ทะเบียนที่อ่านไม่ได้ทำให้หยุด ไม่เขียนทับ (NFR-11) | มีแล้ว |
 
 ### 6.4 UI kit (`/mflow:theme`)
 
@@ -309,6 +309,7 @@ flowchart TD
 | NFR-08 | สถานะชั่วคราวของ session เก็บใน temp ของ OS ไม่ต้อง gitignore |
 | NFR-09 | ไม่เก็บข้อมูลส่วนบุคคลจริงใน prototype data และ golden data (ปิดบังก่อน) |
 | NFR-10 | `claude plugin validate` ต้องผ่านทั้ง plugin และ marketplace |
+| NFR-11 | ไฟล์สถานะที่มีอยู่แต่อ่านไม่ได้ (`.mflow/config.json`, `.mflow/sources.json`, `.mflow/local.json`) ไม่ถูกตีความว่า "ยังไม่มีข้อมูล": ไฟล์ว่าง อ่านไม่ได้ ไม่ใช่ JSON (รวม merge conflict ที่ค้าง) หรือค่าผิดชนิด ทำให้ script หยุดพร้อมบอกไฟล์และสาเหตุ โดยไม่เขียนทับ และ briefing บอกว่าส่วนไหนไม่แสดงเพราะอะไร (config ว่างใช้ค่าเริ่มต้นได้) รับไฟล์ที่มี UTF-8 BOM ทะเบียนเขียนแบบ temp + rename และถือ lock ระหว่างอ่าน แก้ และเขียน สอง session จึงไม่ทับรายการของกัน |
 
 ## 8. โครงสร้างไฟล์ในโปรเจกต์ที่ใช้ mflow
 
@@ -415,6 +416,8 @@ mflow-marketplace/
 ```
 
 `{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ใส่เครื่องหมายคำพูดแล้ว
+
+ไฟล์นี้ parse ไม่ได้ หรือค่าผิดชนิด (เช่น `sourceDir` ไม่ใช่ข้อความ) คำสั่ง mflow จะหยุดและบอกสาเหตุ แทนการใช้ค่าเริ่มต้นเงียบๆ (NFR-11) ไฟล์ว่างใช้ค่าเริ่มต้น
 
 `applySubagent` ตั้งด้วย `/mflow:subagent on --shared` ส่วนค่าเฉพาะเครื่องอยู่ใน `.mflow/local.json` (รูปแบบเดียวกัน ไม่ commit) และทับค่าในไฟล์นี้
 

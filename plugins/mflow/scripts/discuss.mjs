@@ -36,7 +36,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot, loadConfig, frontmatter, readText } from "./lib.mjs";
+import { findRoot, loadConfig, frontmatter, readText, writeFileAtomic } from "./lib.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(here, "..", "skills", "discuss", "assets", "discussion.md");
@@ -278,7 +278,7 @@ export function agenda(root, { write = false, docs } = {}) {
       review: REVIEW_RE.test(cells[2] || ""),
     });
   });
-  if (written) fs.writeFileSync(file, lines.join("\n"));
+  if (written) writeFileAtomic(file, lines.join("\n"));
   return { file: toPosix(path.relative(root, file)), topics, warnings, written };
 }
 

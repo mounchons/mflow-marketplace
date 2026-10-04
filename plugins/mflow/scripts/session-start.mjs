@@ -18,7 +18,15 @@ const input = readStdinJson();
 const projectDir = path.resolve(process.env.CLAUDE_PROJECT_DIR || input.cwd || ".");
 const root = findRoot(projectDir);
 if (!root) process.exit(0);
-const cfg = loadConfig(root);
+// A broken config.json leaves every folder setting unknown: the sections that need one are left out
+// and the briefing says why, rather than reading guessed folders.
+let cfg = null;
+let configError = null;
+try {
+  cfg = loadConfig(root);
+} catch (err) {
+  configError = err.message;
+}
 
 // Remember when this session started, for the Stop guard. A compaction keeps the same session_id:
 // keep the original start so edits made before the compaction still count and the grace period
@@ -35,6 +43,12 @@ try {
 } catch { /* best effort */ }
 
 const parts = [];
+if (configError) {
+  parts.push(
+    `## mflow config unreadable\n- ${configError}\n` +
+      "- Hotspots, source documents, the AI inbox and discussion docs are left out of this briefing until it parses.",
+  );
+}
 
 // 1. STATUS.md: the "## Now" section plus the newest log entries.
 const status = readText(path.join(root, "STATUS.md"));
@@ -44,7 +58,7 @@ if (status) {
   const entries = logBody ? logBody[1].split(/\n(?=###\s)/).filter((e) => e.trim().startsWith("###")) : [];
   parts.push("## STATUS.md: Now\n" + (now ? now[1].trim() : "(no '## Now' section)"));
   if (entries.length) {
-    parts.push("## STATUS.md: latest log\n" + entries.slice(0, cfg.statusLogEntriesInContext).join("\n").trim());
+    parts.push("## STATUS.md: latest log\n" + entries.slice(0, cfg?.statusLogEntriesInContext ?? 2).join("\n").trim());
   }
 } else {
   parts.push("## STATUS.md\n(missing: create it from the mflow template before working)");
@@ -89,79 +103,85 @@ if (tasks) {
   parts.push("## Backlog.md\n- CLI unavailable or not initialised (run `backlog --version`)");
 }
 
-// 4. Hotspots that are still being charted.
-const hsDir = path.join(root, cfg.hotspotsDir);
-let hotspotLines = [];
-try {
-  for (const slug of fs.readdirSync(hsDir)) {
-    const map = readText(path.join(hsDir, slug, "map.md"));
-    if (!map) continue;
-    const fm = frontmatter(map);
-    if ((fm.status || "active") !== "active") continue;
-    let frontier = "?";
-    if (tasks) {
-      frontier = tasks.filter(
-        (t) => (t.labels || []).includes(`hs-${slug}`) && /to do/i.test(t.status || "") && t.isReady !== false,
-      ).length;
+if (cfg) {
+  // 4. Hotspots that are still being charted.
+  const hsDir = path.join(root, cfg.hotspotsDir);
+  let hotspotLines = [];
+  try {
+    for (const slug of fs.readdirSync(hsDir)) {
+      const map = readText(path.join(hsDir, slug, "map.md"));
+      if (!map) continue;
+      const fm = frontmatter(map);
+      if ((fm.status || "active") !== "active") continue;
+      let frontier = "?";
+      if (tasks) {
+        frontier = tasks.filter(
+          (t) => (t.labels || []).includes(`hs-${slug}`) && /to do/i.test(t.status || "") && t.isReady !== false,
+        ).length;
+      }
+      hotspotLines.push(`- ${slug}: ${fm.destination || "(no destination)"}; frontier tickets: ${frontier}`);
     }
-    hotspotLines.push(`- ${slug}: ${fm.destination || "(no destination)"}; frontier tickets: ${frontier}`);
-  }
-} catch { /* no hotspots dir yet */ }
-if (hotspotLines.length) parts.push("## Active hotspots (/mflow:hotspot <slug>)\n" + hotspotLines.join("\n"));
+  } catch { /* no hotspots dir yet */ }
+  if (hotspotLines.length) parts.push("## Active hotspots (/mflow:hotspot <slug>)\n" + hotspotLines.join("\n"));
 
-// 5. Customer documents not yet processed, and AI-inbox items not yet assessed.
-const pending = [];
-try {
-  const src = scanSources();
-  if (src.new.length) pending.push(`- ${src.new.length} new source doc(s) not processed: ${src.new.slice(0, 5).join(", ")} → /mflow:capture`);
-  if (src.changed.length) pending.push(`- ${src.changed.length} source doc(s) changed since processed: ${src.changed.slice(0, 5).map((c) => c.file).join(", ")} → /mflow:capture`);
-} catch { /* no sources yet */ }
-try {
-  const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");
-  const open = fs.readdirSync(inboxDir).filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
-    .filter((f) => {
-      const fm = frontmatter(readText(path.join(inboxDir, f)));
-      // Reports answering a discussion doc are listed with that doc below, since /mflow:discuss handles them.
-      return (fm.status || "new") === "new" && !reportDiscussId(f, fm);
-    });
-  if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
-} catch { /* no inbox yet */ }
-let discussions = null;
-try {
-  discussions = listDiscussions(root);
-  const drafts = discussions.docs.filter((d) => d.status === "draft");
-  if (drafts.length) {
-    const describe = (d) => {
-      const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length;
-      const ai = d.pendingReports.length ? `, ${d.pendingReports.length} AI report(s) to fold in` : "";
-      return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`}${ai})`;
-    };
-    pending.push(`- ${drafts.length} discussion doc(s) waiting for the user's review: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
+  // 5. Customer documents not yet processed, and AI-inbox items not yet assessed.
+  const pending = [];
+  try {
+    const src = scanSources(root);
+    if (src.new.length) pending.push(`- ${src.new.length} new source doc(s) not processed: ${src.new.slice(0, 5).join(", ")} → /mflow:capture`);
+    if (src.changed.length) pending.push(`- ${src.changed.length} source doc(s) changed since processed: ${src.changed.slice(0, 5).map((c) => c.file).join(", ")} → /mflow:capture`);
+  } catch (err) {
+    // A missing source folder or registry scans as empty, so this is a registry that cannot be trusted.
+    // Listing every file as new would send Claude to /mflow:capture, which would write over it.
+    pending.push(`- source registry unreadable, so new and changed documents are unknown: ${err.message}. Repair it before /mflow:capture`);
   }
-  // Reports for a doc that is no longer a draft, or that does not exist, are listed too, so none is lost.
-  const draftIds = new Set(drafts.map((d) => Number(d.id)));
-  const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");
-  const stray = fs.readdirSync(inboxDir)
-    .filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
-    .map((f) => ({ f, fm: frontmatter(readText(path.join(inboxDir, f))) }))
-    .map(({ f, fm }) => ({ f, status: fm.status || "new", of: reportDiscussId(f, fm) }))
-    .filter((r) => r.of && r.status === "new" && !draftIds.has(Number(r.of.id)));
-  if (stray.length) {
-    pending.push(`- ${stray.length} AI report(s) for a discussion doc that is not a draft: ${stray.slice(0, 5).map((r) => `${r.f} → /mflow:discuss ${r.of.id}`).join(", ")}`);
-  }
-} catch { /* no discussions or inbox yet */ }
-if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
+  try {
+    const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");
+    const open = fs.readdirSync(inboxDir).filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
+      .filter((f) => {
+        const fm = frontmatter(readText(path.join(inboxDir, f)));
+        // Reports answering a discussion doc are listed with that doc below, since /mflow:discuss handles them.
+        return (fm.status || "new") === "new" && !reportDiscussId(f, fm);
+      });
+    if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
+  } catch { /* no inbox yet */ }
+  let discussions = null;
+  try {
+    discussions = listDiscussions(root);
+    const drafts = discussions.docs.filter((d) => d.status === "draft");
+    if (drafts.length) {
+      const describe = (d) => {
+        const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length;
+        const ai = d.pendingReports.length ? `, ${d.pendingReports.length} AI report(s) to fold in` : "";
+        return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`}${ai})`;
+      };
+      pending.push(`- ${drafts.length} discussion doc(s) waiting for the user's review: ${drafts.slice(0, 5).map(describe).join(", ")} → /mflow:discuss <NN>`);
+    }
+    // Reports for a doc that is no longer a draft, or that does not exist, are listed too, so none is lost.
+    const draftIds = new Set(drafts.map((d) => Number(d.id)));
+    const inboxDir = path.join(root, cfg.inboxDir || "docs/ai-inbox");
+    const stray = fs.readdirSync(inboxDir)
+      .filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
+      .map((f) => ({ f, fm: frontmatter(readText(path.join(inboxDir, f))) }))
+      .map(({ f, fm }) => ({ f, status: fm.status || "new", of: reportDiscussId(f, fm) }))
+      .filter((r) => r.of && r.status === "new" && !draftIds.has(Number(r.of.id)));
+    if (stray.length) {
+      pending.push(`- ${stray.length} AI report(s) for a discussion doc that is not a draft: ${stray.slice(0, 5).map((r) => `${r.f} → /mflow:discuss ${r.of.id}`).join(", ")}`);
+    }
+  } catch { /* no discussions or inbox yet */ }
+  if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
 
-// The discussion agenda is advice: shown as an optional suggestion, never as pending work.
-if (discussions?.agenda) {
-  const { file, topics } = discussions.agenda;
-  const names = (list) => list.slice(0, 3).map((t) => t.slug).join(", ") + (list.length > 3 ? ", …" : "");
-  const notStarted = topics.filter((t) => t.status === NOT_STARTED);
-  const revisit = topics.filter((t) => t.review && t.status.startsWith("อนุมัติแล้ว"));
-  const lines = [];
-  if (notStarted.length) lines.push(`- ${notStarted.length} recommended topic(s) not started: ${names(notStarted)} → /mflow:discuss <slug>, or skip in ${file}`);
-  if (revisit.length) lines.push(`- ${revisit.length} approved topic(s) a newer source may change: ${names(revisit)} → a new doc with /mflow:discuss <slug>`);
-  if (lines.length) parts.push("## Discussion agenda (optional)\n" + lines.join("\n"));
+  // The discussion agenda is advice: shown as an optional suggestion, never as pending work.
+  if (discussions?.agenda) {
+    const { file, topics } = discussions.agenda;
+    const names = (list) => list.slice(0, 3).map((t) => t.slug).join(", ") + (list.length > 3 ? ", …" : "");
+    const notStarted = topics.filter((t) => t.status === NOT_STARTED);
+    const revisit = topics.filter((t) => t.review && t.status.startsWith("อนุมัติแล้ว"));
+    const lines = [];
+    if (notStarted.length) lines.push(`- ${notStarted.length} recommended topic(s) not started: ${names(notStarted)} → /mflow:discuss <slug>, or skip in ${file}`);
+    if (revisit.length) lines.push(`- ${revisit.length} approved topic(s) a newer source may change: ${names(revisit)} → a new doc with /mflow:discuss <slug>`);
+    if (lines.length) parts.push("## Discussion agenda (optional)\n" + lines.join("\n"));
+  }
 }
 
 parts.push(

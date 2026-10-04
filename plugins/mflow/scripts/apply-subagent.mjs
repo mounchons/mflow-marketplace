@@ -14,7 +14,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot, readJsonFile, readText, sessionStateFile, MARKER } from "./lib.mjs";
+import { findRoot, readJsonFile, readText, sessionStateFile, writeFileAtomic, MARKER } from "./lib.mjs";
 
 export const AGENT = "mflow:dev";
 export const LOCAL = path.join(".mflow", "local.json");
@@ -135,8 +135,7 @@ export function set(root, on, shared, dir = root) {
   let changed = false;
   if (flag(json) !== on) {
     json.applySubagent = { ...(json.applySubagent || {}), enabled: on };
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(json, null, 2) + "\n");
+    writeFileAtomic(file, JSON.stringify(json, null, 2) + "\n");
     changed = true;
   }
   const gitignored = !shared && !existed ? ensureGitignored(root, toPosix(LOCAL)) : null;

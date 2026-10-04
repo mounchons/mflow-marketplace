@@ -9,46 +9,73 @@
 //
 // A file counts as "processed" once it has been marked. Editing a file changes its hash,
 // so it shows up as "changed" and must be re-read.
+//
+// sources.json is the record and INDEX.md a view that `render` rebuilds. A registry that exists but
+// cannot be read, or holds something this version does not know, stops every command and is never
+// written over: it may be the only copy of which file replaced which and what used it.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot, loadConfig } from "./lib.mjs";
+import { findRoot, loadConfig, parseJsonObject, readTextFile, withFileLock, writeFileAtomic } from "./lib.mjs";
 
-const root = findRoot(process.env.CLAUDE_PROJECT_DIR || process.cwd()) || process.cwd();
-const cfg = loadConfig(root);
-const sourceDir = cfg.sourceDir || "docs/source";
-const absSource = path.join(root, sourceDir);
-const dbFile = path.join(root, ".mflow", "sources.json");
+export const STATUSES = ["active", "superseded", "reference"];
+const OPTIONS = new Set(["status", "by", "used-by", "note", "title"]);
+const DB = ".mflow/sources.json";
 const SKIP = new Set(["INDEX.md", "README.md", ".gitkeep"]);
 
 const toPosix = (p) => p.split(path.sep).join("/");
-const loadDb = () => {
-  try { return JSON.parse(fs.readFileSync(dbFile, "utf8")); } catch { return { version: 1, files: {} }; }
-};
-const saveDb = (db) => {
-  fs.mkdirSync(path.dirname(dbFile), { recursive: true });
-  fs.writeFileSync(dbFile, JSON.stringify(db, null, 2) + "\n");
-};
 const sha = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex").slice(0, 16);
+const defaultRoot = () => findRoot(process.env.CLAUDE_PROJECT_DIR || process.cwd()) || process.cwd();
 
-function listFiles(dir) {
+/** Where the registry and the source folder of a project are. Throws when config.json is broken. */
+function locate(root) {
+  const { sourceDir } = loadConfig(root);
+  return { root, sourceDir, absSource: path.join(root, sourceDir), dbFile: path.join(root, DB) };
+}
+
+/** The registry, and the exact text it came from (null while there is none) to detect a concurrent write. */
+function loadDb(at) {
+  try {
+    const raw = readTextFile(at.dbFile, DB);
+    if (raw === null) return { db: { version: 1, files: {} }, raw };
+    const db = parseJsonObject(raw, DB);
+    checkDb(db);
+    return { db, raw };
+  } catch (err) {
+    throw new Error(`${err.message}; fix it by hand or restore the last good copy from git, nothing was written`);
+  }
+}
+
+function checkDb(db) {
+  const bad = (what) => { throw new Error(`${DB} ${what}`); };
+  if (db.version !== undefined && db.version !== 1) bad(`has version ${JSON.stringify(db.version)}, which this mflow does not know (update the plugin)`);
+  if (!db.files || typeof db.files !== "object" || Array.isArray(db.files)) bad('has no "files" object');
+  for (const [rel, rec] of Object.entries(db.files)) {
+    if (!rec || typeof rec !== "object" || Array.isArray(rec)) bad(`entry "${rel}" is not an object`);
+    if (rec.status !== undefined && !STATUSES.includes(rec.status)) bad(`entry "${rel}" has status "${rec.status}" (expected ${STATUSES.join(", ")})`);
+    if (rec.usedBy !== undefined && !Array.isArray(rec.usedBy)) bad(`entry "${rel}" has a usedBy that is not a list`);
+  }
+}
+
+function listFiles(dir, absSource) {
   const out = [];
   if (!fs.existsSync(dir)) return out;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (e.name.startsWith(".")) continue;
     const full = path.join(dir, e.name);
-    if (e.isDirectory()) out.push(...listFiles(full));
+    if (e.isDirectory()) out.push(...listFiles(full, absSource));
     else if (!SKIP.has(e.name) || dir !== absSource) out.push(full);
   }
   return out;
 }
 
-export function scan() {
-  const db = loadDb();
+export function scan(root = defaultRoot()) {
+  const at = locate(root);
+  const { db } = loadDb(at);
   const seen = new Set();
-  const result = { sourceDir, new: [], changed: [], unchanged: [], missing: [] };
-  for (const full of listFiles(absSource)) {
+  const result = { sourceDir: at.sourceDir, new: [], changed: [], unchanged: [], missing: [] };
+  for (const full of listFiles(at.absSource, at.absSource)) {
     const rel = toPosix(path.relative(root, full));
     seen.add(rel);
     const rec = db.files[rel];
@@ -61,8 +88,7 @@ export function scan() {
   return result;
 }
 
-function render() {
-  const db = loadDb();
+function render(at, db) {
   const rows = Object.entries(db.files).sort(([a], [b]) => a.localeCompare(b));
   const cell = (v) => String(v ?? "").replaceAll("|", "\\|");
   const lines = [
@@ -77,39 +103,65 @@ function render() {
       `| ${cell(f)} | ${cell(r.title)} | ${cell(r.status)} | ${cell(r.supersededBy)} | ${cell((r.usedBy || []).join(", "))} | ${cell(r.processedAt)} | ${cell(r.note)} |`),
     "",
   ];
-  fs.mkdirSync(absSource, { recursive: true });
-  fs.writeFileSync(path.join(absSource, "INDEX.md"), lines.join("\n"));
+  writeFileAtomic(path.join(at.absSource, "INDEX.md"), lines.join("\n"));
 }
 
-function mark(argv) {
+/** Project-relative POSIX path of a file named on the command line; refuses one outside the project. */
+function inside(at, p) {
+  const rel = path.relative(at.root, path.resolve(at.root, p));
+  if (!rel || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+    throw new Error(`mark: ${p} is outside the project, nothing was written`);
+  }
+  return toPosix(rel);
+}
+
+function mark(at, argv) {
   const files = [];
   const opts = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith("--")) opts[a.slice(2)] = argv[++i];
-    else files.push(toPosix(path.relative(root, path.resolve(root, a))));
+    if (!a.startsWith("--")) { files.push(inside(at, a)); continue; }
+    const name = a.slice(2);
+    const value = argv[++i];
+    if (!OPTIONS.has(name)) throw new Error(`mark: unknown option --${name}, nothing was written`);
+    if (value === undefined || value.startsWith("--")) throw new Error(`mark: --${name} needs a value, nothing was written`);
+    opts[name] = value;
   }
   if (!files.length) throw new Error("mark: give at least one file");
-  const db = loadDb();
+  if (opts.status && !STATUSES.includes(opts.status)) {
+    throw new Error(`mark: --status must be ${STATUSES.join(", ")}, not "${opts.status}"; nothing was written`);
+  }
+  const by = opts.by && inside(at, opts.by);
+  // Two sessions marking at once would each write the registry they read, dropping the other's files.
+  return withFileLock(at.dbFile, () => record(at, files, opts, by));
+}
+
+function record(at, files, opts, by) {
+  const { db, raw } = loadDb(at);
   const today = new Date().toISOString().slice(0, 10);
   for (const rel of files) {
-    const full = path.join(root, rel);
+    const full = path.join(at.root, rel);
     if (!fs.existsSync(full)) throw new Error(`mark: not found: ${rel}`);
     const rec = db.files[rel] || { status: "active", usedBy: [] };
+    rec.usedBy ??= [];
     rec.hash = sha(full);
     rec.processedAt = today;
     if (opts.status) rec.status = opts.status;
-    if (opts.by) {
+    if (by) {
       rec.status = "superseded";
-      rec.supersededBy = toPosix(path.relative(root, path.resolve(root, opts.by)));
+      rec.supersededBy = by;
     }
     if (opts["used-by"] && !rec.usedBy.includes(opts["used-by"])) rec.usedBy.push(opts["used-by"]);
     if (opts.note) rec.note = opts.note;
     if (opts.title) rec.title = opts.title;
     db.files[rel] = rec;
   }
-  saveDb(db);
-  render();
+  // The lock keeps mflow out; this catches anything else that rewrote the file meanwhile (an editor, git).
+  if (readTextFile(at.dbFile, DB) !== raw) {
+    throw new Error(`${DB} changed while marking; run the command again, nothing was written`);
+  }
+  writeFileAtomic(at.dbFile, JSON.stringify(db, null, 2) + "\n");
+  render(at, db);
   return { marked: files };
 }
 
@@ -117,10 +169,11 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   const [cmd, ...rest] = process.argv.slice(2);
   try {
+    const at = locate(defaultRoot());
     let out;
-    if (cmd === "scan") out = scan();
-    else if (cmd === "mark") out = mark(rest);
-    else if (cmd === "render") { render(); out = { rendered: `${sourceDir}/INDEX.md` }; }
+    if (cmd === "scan") out = scan(at.root);
+    else if (cmd === "mark") out = mark(at, rest);
+    else if (cmd === "render") { render(at, loadDb(at).db); out = { rendered: `${at.sourceDir}/INDEX.md` }; }
     else throw new Error("usage: source-index.mjs scan | mark <file...> [options] | render");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {

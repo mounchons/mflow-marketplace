@@ -94,6 +94,13 @@ export const DEFAULT_TOOLS = {
   },
 };
 
+const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * Project settings: .mflow/config.json over the defaults, or the defaults alone when the file is
+ * missing or empty. Throws when it exists but cannot be read, is not valid JSON, or a setting has the
+ * wrong type: every folder could then be wrong, so callers stop or say so instead of guessing.
+ */
 export function loadConfig(root) {
   const defaults = {
     version: 1,
@@ -106,10 +113,25 @@ export function loadConfig(root) {
     // The apply subagent (mflow:dev) is off until switched on; .mflow/local.json overrides per machine.
     applySubagent: { enabled: false },
   };
-  let user = {};
+  const label = MARKER.split(path.sep).join("/");
+  const stop = (what) => new Error(`${what}; fix it by hand, mflow stops until it does`);
+  let user;
   try {
-    user = JSON.parse(fs.readFileSync(path.join(root, MARKER), "utf8"));
-  } catch { /* defaults */ }
+    user = readJsonFile(path.join(root, MARKER), { allowEmpty: true, label }) ?? {};
+  } catch (err) {
+    throw stop(err.message);
+  }
+  const wrong = (key, want) => { throw stop(`${label}: "${key}" must be ${want}`); };
+  for (const key of ["hotspotsDir", "sourceDir", "inboxDir", "discussDir"]) {
+    if (key in user && (typeof user[key] !== "string" || !user[key].trim())) wrong(key, "a folder path");
+  }
+  if ("statusLogEntriesInContext" in user && !Number.isInteger(user.statusLogEntriesInContext)) {
+    wrong("statusLogEntriesInContext", "a whole number");
+  }
+  if ("stopGuard" in user && typeof user.stopGuard !== "boolean" && !isObject(user.stopGuard)) {
+    wrong("stopGuard", "true, false or an object");
+  }
+  for (const key of ["applySubagent", "tools"]) if (key in user && !isObject(user[key])) wrong(key, "an object");
   const sg = typeof user.stopGuard === "boolean" ? { enabled: user.stopGuard } : user.stopGuard || {};
   return {
     ...defaults,
@@ -156,35 +178,92 @@ export function readText(file) {
 }
 
 /**
- * Parse a file that holds one JSON object. Returns null when the file does not exist (with
- * `allowEmpty`, also when it is empty). Throws when it exists but cannot be read, is empty, is not
- * valid JSON or is not an object: a broken file must never pass for a missing one, or the next write
- * replaces it. A UTF-8 BOM, which Windows Notepad adds, is accepted.
+ * Text of a file, null when it does not exist. Unlike readText, any other failure throws, so a file
+ * that exists but cannot be read never passes for a missing one. A UTF-8 BOM, which Windows Notepad
+ * adds, is dropped. `label` names the file in messages (default: its path).
  */
-export function readJsonFile(file, { allowEmpty = false } = {}) {
+export function readTextFile(file, label = file) {
   let text;
   try {
     text = fs.readFileSync(file, "utf8");
   } catch (err) {
     if (err.code === "ENOENT") return null;
-    throw new Error(`${file} could not be read (${err.code || err.message})`);
+    throw new Error(`${label} could not be read (${err.code || err.message})`);
   }
-  text = text.replace(/^﻿/, "");
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+/** One JSON object from text; throws when the text is empty (unless `allowEmpty`: null), not JSON or not an object. */
+export function parseJsonObject(text, label, { allowEmpty = false } = {}) {
   if (!text.trim()) {
     if (allowEmpty) return null;
-    throw new Error(`${file} is empty`);
+    throw new Error(`${label} is empty`);
   }
   let json;
   try {
     json = JSON.parse(text);
   } catch (err) {
     const hint = /^<{7}(?: |$)/m.test(text) ? ", it still has git merge conflict markers" : "";
-    throw new Error(`${file} is not valid JSON (${err.message}${hint})`);
+    throw new Error(`${label} is not valid JSON (${err.message}${hint})`);
   }
-  if (json === null || typeof json !== "object" || Array.isArray(json)) {
-    throw new Error(`${file} does not hold a JSON object`);
-  }
+  if (!isObject(json)) throw new Error(`${label} does not hold a JSON object`);
   return json;
+}
+
+/**
+ * Parse a file that holds one JSON object. Returns null when the file does not exist (with
+ * `allowEmpty`, also when it is empty). Throws when it exists but cannot be read, is empty, is not
+ * valid JSON or is not an object: a broken file must never pass for a missing one, or the next write
+ * replaces it.
+ */
+export function readJsonFile(file, { allowEmpty = false, label = file } = {}) {
+  const text = readTextFile(file, label);
+  return text === null ? null : parseJsonObject(text, label, { allowEmpty });
+}
+
+/**
+ * Run `fn` while holding `<file>.lock`, so two sessions never read, change and write the same file at
+ * once (the second would drop what the first added). Waits up to `waitMs` for another holder; a lock
+ * older than `staleMs` was left by a process that died, and is taken over.
+ */
+export function withFileLock(file, fn, { waitMs = 5000, staleMs = 30_000 } = {}) {
+  const lock = `${file}.lock`;
+  fs.mkdirSync(path.dirname(lock), { recursive: true });
+  const until = Date.now() + waitMs;
+  for (;;) {
+    try {
+      fs.closeSync(fs.openSync(lock, "wx"));
+      break;
+    } catch (err) {
+      if (err.code !== "EEXIST") throw err;
+      const since = mtimeMs(lock); // 0: released meanwhile, try again
+      if (since && Date.now() - since > staleMs) fs.rmSync(lock, { force: true });
+      else if (Date.now() > until) throw new Error(`${path.basename(file)} is in use by another session; try again`);
+      else Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    fs.rmSync(lock, { force: true });
+  }
+}
+
+/**
+ * Write a file whole or not at all: write a temp file beside it, then rename it over the target, so
+ * an interrupted write never leaves half a file. The temp name starts with a dot, which the source
+ * scan skips.
+ */
+export function writeFileAtomic(file, text) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
+  try {
+    fs.writeFileSync(tmp, text);
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    fs.rmSync(tmp, { force: true });
+    throw err;
+  }
 }
 
 export function mtimeMs(file) {

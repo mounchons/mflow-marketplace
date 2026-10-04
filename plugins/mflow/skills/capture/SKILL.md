@@ -11,7 +11,7 @@ Registry commands (run from the repo root):
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" scan`
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" mark <file> [--status active|superseded|reference] [--by <new-file>] [--used-by <hs-slug|change|review>] [--title "..."] [--note "..."]`
 
-`mark` regenerates `docs/source/INDEX.md`; never edit that file by hand.
+`mark` regenerates `docs/source/INDEX.md`; never edit that file by hand. When a registry command stops on an error about `.mflow/sources.json` or `.mflow/config.json` (not valid JSON, merge conflict markers, an unknown status), show the user the message and stop: never delete, recreate or hand-patch the file to get past it, because it is the only record of which file replaced which and what used it.
 
 ## 1. Decide what to read
 

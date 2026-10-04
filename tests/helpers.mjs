@@ -1,7 +1,7 @@
 // Shared fixtures for the mflow regression tests. Every test builds a throwaway mflow project under
 // the OS temp folder and runs the plugin scripts as separate processes, the way hooks and skills do.
 // Synthetic data only; nothing here talks to another service.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -43,12 +43,31 @@ export function run(p, script, args = [], { input, cwd, env = {} } = {}) {
     cwd: cwd || p.root,
     input: input === undefined ? "" : typeof input === "string" ? input : JSON.stringify(input),
     encoding: "utf8",
-    env: { ...process.env, CLAUDE_PROJECT_DIR: p.root, TEMP: p.temp, TMP: p.temp, TMPDIR: p.temp, ...env },
+    env: scriptEnv(p, env),
     timeout: 60_000,
   });
+  return result(r.status, r.stdout, r.stderr);
+}
+
+/** Like run, but returns a promise, so several scripts can run at the same time. */
+export function runAsync(p, script, args = [], { cwd, env = {} } = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [path.join(SCRIPTS, script), ...args], { cwd: cwd || p.root, env: scriptEnv(p, env) });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+    child.on("close", (status) => resolve(result(status, stdout, stderr)));
+    child.stdin.end();
+  });
+}
+
+const scriptEnv = (p, env) => ({ ...process.env, CLAUDE_PROJECT_DIR: p.root, TEMP: p.temp, TMP: p.temp, TMPDIR: p.temp, ...env });
+
+function result(status, stdout, stderr) {
   let json = null;
-  try { json = JSON.parse(r.stdout); } catch { /* not JSON */ }
-  return { status: r.status, stdout: r.stdout, stderr: r.stderr, json };
+  try { json = JSON.parse(stdout); } catch { /* not JSON */ }
+  return { status, stdout, stderr, json };
 }
 
 export const hasGit = spawnSync("git", ["--version"]).status === 0;

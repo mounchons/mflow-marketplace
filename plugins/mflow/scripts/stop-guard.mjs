@@ -12,7 +12,12 @@ if (input.stop_hook_active) process.exit(0);
 
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
 if (!root) process.exit(0);
-const guard = loadConfig(root).stopGuard;
+let guard;
+try {
+  guard = loadConfig(root).stopGuard;
+} catch {
+  process.exit(0); // config.json is broken: the session briefing says so, and a reminder cannot help
+}
 if (!guard.enabled) process.exit(0);
 
 const stateFile = sessionStateFile(input.session_id);

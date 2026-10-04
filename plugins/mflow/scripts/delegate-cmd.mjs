@@ -30,7 +30,13 @@ const vars = {
   worktree: abs(opt("--worktree"), "<worktree>"),
 };
 const outFor = (name) => abs(opt("--out")?.replaceAll("{tool}", name), "<out>");
-const tools = loadConfig(root).tools;
+let tools;
+try {
+  tools = loadConfig(root).tools;
+} catch (err) {
+  process.stderr.write(err.message + "\n");
+  process.exit(1);
+}
 const fill = (t, name) =>
   t.replace(/\{(brief|out|worktree)\}/g, (_, k) => (k === "out" ? outFor(name) : vars[k]));
 

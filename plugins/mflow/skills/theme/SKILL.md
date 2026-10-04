@@ -39,7 +39,7 @@ Done when: every color, radius and font used anywhere in the app resolves to a t
 
 The shell needs to know who is logged in, so build the access seams here, exactly as "Current user, permissions and the role switcher" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md` describes them. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`. Take the roles, users and scopes from the approved access-control discussion doc. With none approved, use the single all-permission user it describes.
 
-Done when: the style guide renders the `SidebarMenu` sample twice, each with an explicit permission-set stub, and the two show different items. When `users.json` holds more than one user, switching in the banner also changes who the top bar shows. At each acceptance size the sidebar is in the state the breakpoint table names, and ☰ and the drawer behave as `AppShell` describes.
+Done when: the style guide renders the `SidebarMenu` sample twice, each with an explicit permission-set stub, and the two show different items. When `users.json` holds more than one user, switching in the banner also changes who the top bar shows. At each acceptance size the sidebar is in the state the breakpoint table names, and ☰ and the drawer behave as `AppShell` describes. Started as Production with the prototype-mode flag on, the app refuses to start, and the negative tests in "Production safety" pass.
 
 ## 4. Components
 

@@ -28,7 +28,7 @@ AGENTS.md holds `Profile: <id>` and this table for the chosen profile only (two 
 | E2E tests | Playwright | Playwright |
 | Golden data folder | `tests/<Context>.Domain.Tests/Golden/` | `tests/<Context>.Domain.Tests/Golden/` |
 
-For `custom`, fill every row for the named stack. The prototype-mode flag row must also say how fake users, the role switcher and fake repositories are left out of a production build. A row that cannot be filled is written `TODO: <why>` and raised before `/mflow:theme`; it is never guessed.
+For `custom`, fill every row for the named stack. The prototype-mode flag row must also say how fake users, the role switcher and fake repositories are kept out of production: left out of the production build, or refused at startup when the flag is on outside a development or prototype environment. A runtime flag alone is not enough. A row that cannot be filled is written `TODO: <why>` and raised before `/mflow:theme`; it is never guessed.
 
 ## Asking
 
@@ -44,7 +44,7 @@ Done when: AGENTS.md has `## Stack` with a profile, and every row has a value or
 
 The skills name things the `mvc-htmx` way: controller, ViewModel, partial, `PrototypeDataStore`, `Prototype:UseFakeData`. Under another profile, read each name by its role and build the equivalent at the path `## Stack` gives. The contract stays the same: the inputs, the states, server-side paging, state in the URL, permission keys checked where data is served, and data scope applied in the query.
 
-One invariant holds for every profile: fake users, the role switcher and fake repositories exist only under the prototype-mode flag and never reach a production build. `/mflow:review` treats a breach as a blocker.
+One invariant holds for every profile: fake users, the role switcher and fake repositories exist only under the prototype-mode flag and can never run in production. The flag is decided at runtime, so the app also refuses to start with it on outside a development or prototype environment, unless the production build leaves that code out ("Production safety" in `${CLAUDE_PLUGIN_ROOT}/skills/screen/references/prototype-data.md`). `/mflow:review` treats a breach as a blocker.
 
 ## Changing the stack later
 

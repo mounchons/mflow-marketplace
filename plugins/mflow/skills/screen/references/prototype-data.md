@@ -70,12 +70,21 @@ The customer walks through the prototype as each role, the way a model home is s
 - `PrototypeData/roles.json`: per role, `code`, Thai `name`, `permissions[]`, `dataScope` (`{ "<entity>": "unit" }`), and `landingRoute`. This is the machine home of the role, permission and scope facts. `docs/vision.md` keeps only role names and main jobs.
 - `FakeCurrentUser` reads the chosen user id from the `proto-user` cookie (default: the first user) and resolves grants from `roles.json`.
 - The role switcher in `PrototypeBanner` posts to `/_prototype/switch-user`, which sets the cookie and reloads the page.
-- **Production safety:** `FakeCurrentUser`, the switcher partial and the `/_prototype/switch-user` endpoint are registered inside the same `Prototype:UseFakeData` branch as the fake repositories. A production build cannot contain them.
+- **Production safety:** `FakeCurrentUser`, the switcher partial and the `/_prototype/switch-user` endpoint are registered inside the same `Prototype:UseFakeData` branch as the fake repositories. That branch is decided at runtime, so the code still ships in the published app, one setting away from letting anyone act as any user. Three guards close it:
+  - `Prototype:UseFakeData` is `false` in `appsettings.json`; only `appsettings.Development.json` and `appsettings.Prototype.json` set it to `true`. A demo server for the customer runs with `ASPNETCORE_ENVIRONMENT=Prototype`.
+  - `Program.cs` refuses to start when the flag is on in any other environment, Production included (a server with no environment set runs as Production):
+    ```csharp
+    var useFakeData = builder.Configuration.GetValue<bool>("Prototype:UseFakeData");
+    if (useFakeData && !builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Prototype"))
+        throw new InvalidOperationException(
+            $"Prototype:UseFakeData is on in the {builder.Environment.EnvironmentName} environment. Fake users and /_prototype/switch-user would let anyone act as any user: turn it off, or run a demo with ASPNETCORE_ENVIRONMENT=Prototype.");
+    ```
+  - Negative tests (`WebApplicationFactory`): the app does not start as Production with the flag on; with the flag off, `POST /_prototype/switch-user` returns 404 and a `proto-user` cookie changes nothing; an endpoint called directly without its permission key returns 403, and a list called directly returns only the caller's data scope.
 - **Go-live:** register the claims-based `ICurrentUser`, and replace `roles.json` with the role-to-permission store that the approved access-control discussion doc decided (code or database tables). Controllers, views and the menu do not change.
 
 **Source:** `users.json` and `roles.json` come from the approved access-control discussion doc (`docs/discuss/NN-*.md`, status `approved`). JSON has no comments, so `PrototypeData/README.md` records the doc and its revision. With no approved doc there is one user, `ผู้ดูแลระบบ`, with every permission and scope `all`; suggest `/mflow:discuss access-control`. A draft doc settles nothing.
 
-**React + Vite:** the same contract applies. The API enforces permissions and scope, and the UI reads the user's permission keys only to show or hide things.
+**React + Vite:** the same contract applies. The API enforces permissions and scope, holds the startup check and the negative tests, and the UI reads the user's permission keys only to show or hide things.
 
 ## Schema changes
 

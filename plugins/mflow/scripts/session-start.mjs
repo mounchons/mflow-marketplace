@@ -5,8 +5,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  readStdinJson, findRoot, loadConfig, runJson, readText,
-  sessionStateFile, frontmatter, truncate,
+  readStdinJson, findRoot, loadConfig, run, runJson, readText,
+  sessionStateFile, frontmatter, truncate, gitStatus,
 } from "./lib.mjs";
 import { scan as scanSources } from "./source-index.mjs";
 import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
@@ -28,16 +28,26 @@ try {
   configError = err.message;
 }
 
-// Remember when this session started, for the Stop guard. A compaction keeps the same session_id:
-// keep the original start so edits made before the compaction still count and the grace period
-// does not restart.
+// Remember when this session started, for the Stop guard, with the commit and the uncommitted changes
+// it started from, so the guard can tell files deleted, renamed or committed during the session from
+// ones that were already that way. A compaction keeps the same session_id: keep the original record
+// so edits made before the compaction still count and the grace period does not restart.
 try {
   const stateFile = sessionStateFile(input.session_id);
   let state = null;
   if (input.source === "compact") {
     try { state = JSON.parse(fs.readFileSync(stateFile, "utf8")); } catch { /* no earlier record */ }
   }
-  if (!state || state.root !== root) state = { root, startedAt: Date.now(), lastBlockAt: 0 };
+  if (!state || state.root !== root) {
+    const git = gitStatus(root);
+    state = {
+      root,
+      startedAt: Date.now(),
+      lastBlockAt: 0,
+      head: git ? run("git rev-parse HEAD", root, 8000)?.trim() || null : null,
+      dirty: git ? git.entries.map((e) => e.key) : null,
+    };
+  }
   state.projectDir = projectDir; // read by apply-subagent.mjs, which the Bash tool runs without CLAUDE_PROJECT_DIR
   fs.writeFileSync(stateFile, JSON.stringify(state));
 } catch { /* best effort */ }
@@ -191,7 +201,29 @@ parts.push(
     "update STATUS.md: rewrite '## Now' and add one log entry (Did / Decided / Next).",
 );
 
-const context = truncate("# mflow briefing\n\n" + parts.join("\n\n"), 9000);
+/**
+ * Fit the briefing into `max` characters by shortening the longest parts first, so the short ones
+ * (what is waiting, the agenda, the ritual) always arrive whole. A shortened part says so. Cutting the
+ * joined text from the end, as before, dropped exactly those.
+ */
+function fit(sections, max) {
+  const NOTE = "\n…(shortened to fit the briefing; the file has the rest)";
+  const size = () => sections.reduce((n, p) => n + p.length + 2, -2);
+  const shortened = new Set();
+  while (size() > max) {
+    let i = -1;
+    sections.forEach((p, k) => {
+      if (!shortened.has(k) && p.length > 400 && (i < 0 || p.length > sections[i].length)) i = k;
+    });
+    if (i < 0) break;
+    sections[i] = sections[i].slice(0, Math.max(400, sections[i].length - (size() - max) - NOTE.length)) + NOTE;
+    shortened.add(i);
+  }
+  return truncate(sections.join("\n\n"), max); // only when the short parts alone are too long
+}
+
+const HEADER = "# mflow briefing\n\n";
+const context = HEADER + fit(parts, 9000 - HEADER.length);
 process.stdout.write(
   JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: context } }),
 );

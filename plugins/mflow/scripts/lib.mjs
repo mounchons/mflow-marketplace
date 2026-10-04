@@ -161,6 +161,29 @@ export function run(cmd, cwd, timeout = 8000) {
   }
 }
 
+/**
+ * Uncommitted changes under `root`, from `git status --porcelain -z` (NUL-separated, so no path is
+ * quoted or escaped): `{ top, entries: [{ key, code, rel, abs }] }` with `rel` relative to `root` and
+ * `key` = "<XY> <rel>". A rename or copy lists its new path. Null when git is missing or not a repo.
+ */
+export function gitStatus(root) {
+  const top = run("git rev-parse --show-toplevel", root, 8000)?.trim();
+  if (!top) return null;
+  const out = run("git -c core.quotePath=false status --porcelain=v1 -z -uall -- .", root, 8000);
+  if (out === null) return null;
+  const items = out.split("\0");
+  const entries = [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].length < 4) continue;
+    const code = items[i].slice(0, 2);
+    const abs = path.join(top, items[i].slice(3));
+    if (code[0] === "R" || code[0] === "C") i++; // the next item is the old path
+    const rel = path.relative(root, abs).split(path.sep).join("/");
+    entries.push({ key: `${code} ${rel}`, code, rel, abs });
+  }
+  return { top, entries };
+}
+
 export function runJson(cmd, cwd, timeout) {
   const out = run(cmd, cwd, timeout);
   if (!out) return null;

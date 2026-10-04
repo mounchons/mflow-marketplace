@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Stop hook (fires each time Claude finishes a turn).
-// If files changed since STATUS.md was last written, ask Claude to write the handoff entry.
+// If files changed since STATUS.md was last written, ask Claude to write the handoff entry. Changed means
+// edited, added, deleted or renamed, or committed during the session (SessionStart records the commit and
+// the uncommitted changes it started from).
 // Throttled: not in the first `graceMinutes` of a session, then at most once per `repeatMinutes`.
 // Never loops: respects stop_hook_active.
 import fs from "node:fs";
 import path from "node:path";
-import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile } from "./lib.mjs";
+import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile, gitStatus } from "./lib.mjs";
 
 const input = readStdinJson();
 if (input.stop_hook_active) process.exit(0);
@@ -33,29 +35,38 @@ if (state.lastBlockAt && nowMs - state.lastBlockAt < guard.repeatMinutes * 60_00
 const statusMtime = mtimeMs(path.join(root, "STATUS.md"));
 const since = Math.max(state.startedAt, statusMtime);
 
-// Porcelain paths are relative to the git top level, which sits above `root` when .mflow lives in a
-// monorepo subfolder; `-- .` limits the list to this project. core.quotePath=false keeps Thai file
-// names as text instead of octal escapes.
-const top = run("git rev-parse --show-toplevel", root, 8000)?.trim();
-const porcelain = top && run("git -c core.quotePath=false status --porcelain -uall -- .", root, 8000);
-if (!porcelain) process.exit(0); // not a git repo, git missing, or nothing changed
+// Paths are limited to this project (`-- .`), which may sit below the git top level in a monorepo.
+const git = gitStatus(root);
+if (!git) process.exit(0); // not a git repo, or git missing
 
 const ignored = (p) =>
   p === "STATUS.md" || p.startsWith(".mflow/") || p.startsWith(".claude/") || p.startsWith(".agents/");
+const changed = new Set();
 
-const changedThisSession = porcelain
-  .split(/\r?\n/)
-  .filter(Boolean)
-  .map((line) => {
-    let p = line.slice(3).trim();
-    if (p.includes(" -> ")) p = p.split(" -> ")[1];
-    const abs = path.join(top, p.replace(/^"|"$/g, ""));
-    return { abs, rel: path.relative(root, abs).split(path.sep).join("/") };
-  })
-  .filter((f) => !ignored(f.rel))
-  .filter((f) => mtimeMs(f.abs) > since)
-  .map((f) => f.rel);
+// Uncommitted: an edit since `since` shows in the file's mtime. A deleted file has none, and a renamed
+// one keeps its old mtime, so those count when the session did not start with them. A record from an
+// older mflow has no baseline: they count then, which can ask once too often but never misses one.
+const baseline = new Set(state.dirty || []);
+for (const e of git.entries) {
+  if (ignored(e.rel)) continue;
+  if (mtimeMs(e.abs) > since || (/[DRC]/.test(e.code) && !baseline.has(e.key))) changed.add(e.rel);
+}
 
+// Committed during the session: they leave `git status`. Commit times have whole seconds, so a commit
+// in the same second as `since` counts.
+const head = /^[0-9a-f]{40,64}$/.test(state.head || "") && run("git rev-parse HEAD", root, 8000)?.trim();
+if (head && head !== state.head) {
+  const committedAt = Number(run("git log -1 --format=%ct", root, 8000)?.trim()) || 0;
+  if (committedAt >= Math.floor(since / 1000)) {
+    const names = run(`git -c core.quotePath=false diff --name-only -z ${state.head} HEAD -- .`, root, 8000) || "";
+    for (const p of names.split("\0").filter(Boolean)) {
+      const rel = path.relative(root, path.join(git.top, p)).split(path.sep).join("/");
+      if (!ignored(rel)) changed.add(rel);
+    }
+  }
+}
+
+const changedThisSession = [...changed];
 if (changedThisSession.length === 0) process.exit(0);
 
 state.lastBlockAt = nowMs;

@@ -2,7 +2,7 @@
 // missing its content or an answer, and examples inside code fences must not count as answers.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { project, run } from "./helpers.mjs";
+import { git, hasGit, project, run } from "./helpers.mjs";
 
 let p;
 afterEach(() => p?.cleanup());
@@ -140,6 +140,35 @@ test("a tilde fence closes only on tildes", () => {
   const doc = check(FRONT + body(D1(" a") + "\n" + example));
   assert.deepEqual(doc.openDecisions, []);
   assert.equal(doc.unclosedFenceLine, null);
+});
+
+/** A doc and the places an approve of it may have written, plus places that must not count. */
+function approvedPartway() {
+  p = project();
+  p.write("docs/discuss/01-access-control.md", FRONT + body(D1(" a")));
+  p.write("AGENTS.md", "# Agents\n\n- Data scope is enforced in the query (docs/discuss/01-access-control.md)\n");
+  p.write("backlog/tasks/task-7 - ทดสอบใช้งาน.md", "---\nid: task-7\nreferences:\n  - docs/discuss/01-access-control.md\n---\n");
+  p.write("docs/vision.md", "# Vision\n\nNothing from the doc yet.\n");
+  p.write("docs/discuss/02-menus.md", "See docs/discuss/01-access-control.md\n");
+  p.write("docs/ai-inbox/2026-10-04-codex-discuss-01-r1.md", "About docs/discuss/01-access-control.md\n");
+}
+const citing = () => {
+  const r = run(p, "discuss.mjs", ["cited", "01"]);
+  assert.equal(r.status, 0, r.stderr);
+  return r.json.cited.map((c) => `${c.file}:${c.line}`).sort();
+};
+
+test("cited lists what an approve already wrote, and not the discussion folder or the inbox", () => {
+  approvedPartway();
+  assert.deepEqual(citing(), ["AGENTS.md:3", "backlog/tasks/task-7 - ทดสอบใช้งาน.md:4"]);
+});
+
+test("cited reads git's file list when there is one, leaving ignored files out", { skip: !hasGit && "git not installed" }, () => {
+  approvedPartway();
+  p.write(".gitignore", "scratch/\n");
+  p.write("scratch/notes.md", "docs/discuss/01-access-control.md\n");
+  git(p, "init", "-q");
+  assert.deepEqual(citing(), ["AGENTS.md:3", "backlog/tasks/task-7 - ทดสอบใช้งาน.md:4"]);
 });
 
 test("a CRLF doc reads the same as an LF one", () => {

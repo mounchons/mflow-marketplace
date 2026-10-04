@@ -6,6 +6,8 @@
 //   node discuss.mjs check <NN | file>                 -> JSON: open decisions and pending notes of one doc
 //   node discuss.mjs new <slug> [--title "..."] [--sources "a, b"]
 //                                                      -> create NN-<slug>.md from the template (never overwrites)
+//   node discuss.mjs cited <NN | file>                 -> JSON: every line outside docs/discuss and the AI inbox that
+//                                                         cites the doc's path: what an approve already wrote
 //
 // Reply markers (the template explains them to the user):
 //   decision answer   a line `**เลือก:** <answer>` under a `### D<n>: ...` heading; empty = open
@@ -40,7 +42,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot, loadConfig, frontmatter, readText, writeFileAtomic } from "./lib.mjs";
+import { findRoot, loadConfig, frontmatter, readText, run, writeFileAtomic } from "./lib.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(here, "..", "skills", "discuss", "assets", "discussion.md");
@@ -365,6 +367,51 @@ function check(root, ref) {
   return inspect(root, full);
 }
 
+/** Project files to search: git's tracked and untracked-but-not-ignored files, or a walk without git. */
+function projectFiles(root) {
+  const listed = run("git ls-files -co --exclude-standard -z -- .", root, 15000);
+  if (listed !== null) return listed.split("\0").filter(Boolean);
+  const out = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+      if (/^(\.git|node_modules|bin|obj|dist)$/.test(e.name)) continue;
+      const rel = dir ? `${dir}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(rel);
+      else out.push(rel);
+    }
+  };
+  walk("");
+  return out;
+}
+
+/**
+ * Every line that cites a discussion doc by its path, outside the discussion folder, the AI inbox and
+ * .mflow: the destinations an approve wrote carry "(docs/discuss/NN-<slug>.md)", and Backlog tasks it
+ * created carry the path as their ref. An approve that stopped partway reads this to skip what is
+ * already in place instead of writing it twice.
+ */
+function cited(root, ref) {
+  const doc = check(root, ref);
+  const cfg = loadConfig(root);
+  const skip = [cfg.discussDir || "docs/discuss", cfg.inboxDir || "docs/ai-inbox", ".mflow"].map((d) => d.replace(/\/+$/, "") + "/");
+  const hits = [];
+  for (const file of projectFiles(root)) {
+    const rel = toPosix(file);
+    if (skip.some((d) => rel.startsWith(d))) continue;
+    const full = path.join(root, rel);
+    let text;
+    try {
+      if (fs.statSync(full).size > 1024 * 1024) continue;
+      text = fs.readFileSync(full, "utf8");
+    } catch { continue; }
+    if (text.includes("\0") || !text.includes(doc.file)) continue;
+    text.split(/\r?\n/).forEach((line, i) => {
+      if (line.includes(doc.file)) hits.push({ file: rel, line: i + 1, text: line.trim().slice(0, 200) });
+    });
+  }
+  return { doc: doc.file, status: doc.status, revision: doc.revision, cited: hits };
+}
+
 function create(root, argv) {
   const [slug, ...rest] = argv;
   if (!slug || !SLUG_RE.test(slug)) {
@@ -407,11 +454,12 @@ if (isMain) {
     if (cmd === "list") out = list(root);
     else if (cmd === "check") out = check(root, rest[0]);
     else if (cmd === "new") out = create(root, rest);
+    else if (cmd === "cited") out = cited(root, rest[0]);
     else if (cmd === "agenda" && rest[0] === "init") out = initAgenda(root);
     else if (cmd === "agenda") {
       out = agenda(root, { write: true }) ?? { exists: false, hint: "no AGENDA.md yet: run `discuss.mjs agenda init`" };
     }
-    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | agenda [init]");
+    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | cited <NN|file> | agenda [init]");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

@@ -16,7 +16,7 @@ Brief template and output contracts: [references/brief-template.md](references/b
 - `TASK-…`: `backlog task <id> --plain`; the task's description, acceptance criteria and references define the goal.
 - change name: `openspec/changes/<name>/` (proposal, delta specs, tasks).
 - hotspot slug: `docs/hotspots/<slug>/map.md` and `rules.md`.
-- `discuss-<NN>-r<revision>`: the discussion doc `docs/discuss/NN-<slug>.md` and the sources in its frontmatter. Point to the text versions of the sources in `.mflow/cache/<name>.md` that `consult` prepares, never to a binary, and never pack `docs/ai-inbox/`: tools answer independently. Use the "discuss" output contract, and paste the topic's checklist section from `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md` into the brief, because the plugin folder is outside the repo. `/mflow:discuss <NN> consult` drives this case. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+- `discuss-<NN>-r<revision>`: the discussion doc `docs/discuss/NN-<slug>.md` and the sources in its frontmatter. Point to the text versions of the sources that `consult` prepares (the paths `source-index.mjs cache` gives), never to a binary, and never pack `docs/ai-inbox/`: tools answer independently. Use the "discuss" output contract, and paste the topic's checklist section from `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md` into the brief, because the plugin folder is outside the repo. `/mflow:discuss <NN> consult` drives this case. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 - quoted topic: no file defines it. Choose the files to examine from AGENTS.md's architecture and a code search, and list them explicitly in the brief's Scope so the user can check them.
 
 Done when: the goal fits in two sentences and every path the tool needs is known.
@@ -27,7 +27,7 @@ Done when: the goal fits in two sentences and every path the tool needs is known
 
 For a tool without repo access (`--to chat`, or the user says it is a web chat), also build a context pack of everything in Read first and Scope:
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/context-pack.mjs" --out .mflow/briefs/<brief>.pack.md <paths...>`
-and add "Attach: <pack file>" to the brief. Heed the size warning; narrow the paths rather than sending a truncated pack. Show the user the script's `skipped` list: files that may hold secrets are left out on purpose.
+and add "Attach: <pack file>" to the brief. Heed the size warning; narrow the paths rather than sending a truncated pack (past 500 files or 2 MB the script stops without reading anything). Files outside the project are left out unless their folder is named with `--allow <folder>`, which is for a folder the brief itself lists, such as a shared package. Show the user the script's `skipped` list: files that may hold secrets or sit outside the project are left out on purpose. The secret check matches patterns and can miss some, so tell the user to read the pack before pasting it anywhere.
 
 Done when: the brief alone is enough for a tool that has never seen this project.
 

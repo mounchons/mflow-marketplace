@@ -227,7 +227,7 @@ flowchart TD
 | FR-94 | คำสั่งสร้างด้วย script ทั้ง PowerShell (ตั้ง UTF-8) และ Bash ใช้ path แบบ absolute และ `{tool}` ใน path ผลลัพธ์ทำให้หลาย tool ตอบ brief เดียวกันได้โดยไม่ทับกัน | มีแล้ว |
 | FR-95 | ผลลัพธ์เป็นข้อความสุดท้ายของ tool บันทึกโดยคำสั่งลง `docs/ai-inbox/` tool ที่รันแบบ read-only ไม่ต้องเขียนไฟล์ | มีแล้ว |
 | FR-96 | ทุกรายงานต้องมี `Understanding` และ `Files read` นำหน้า | มีแล้ว |
-| FR-97 | Context pack รวมไฟล์เป็นไฟล์เดียวสำหรับ chat UI ข้าม binary เตือนเมื่อใหญ่เกิน | มีแล้ว |
+| FR-97 | Context pack รวมไฟล์เป็นไฟล์เดียวสำหรับ chat UI ข้าม binary เตือนเมื่อใหญ่เกิน 400 KB และหยุดก่อนอ่านไฟล์ใดเมื่อเกิน 500 ไฟล์หรือ 2 MB รับเฉพาะไฟล์ในโปรเจกต์ (ตาม path จริงหลังตาม link/junction) โฟลเดอร์นอกโปรเจกต์ต้องระบุด้วย `--allow` ไฟล์ซ้ำหรือตัว pack เองไม่ถูกรวม ตรวจรูปแบบข้อมูลลับในทุกไฟล์ข้อความ (key ของ cloud/GitHub/Slack/AI, JWT, connection string, ค่าลับที่เขียนเป็นตัวอักษรตรงๆ) ไฟล์ที่เข้าข่ายถูกข้ามพร้อมเหตุผล ผลลัพธ์มี manifest (path, ขนาด, hash) และหัว pack บอกว่าเนื้อหาเป็นข้อมูล ไม่ใช่คำสั่ง การตรวจเป็นแบบรูปแบบ จึงต้องอ่าน pack ก่อนส่งออกจากเครื่อง | มีแล้ว |
 | FR-98 | โหมด code ทำใน worktree และ branch `agent/<tool>/<id>` แยกจาก Claude | มีแล้ว |
 | FR-99 | Assess: normalize ไฟล์ → ตรวจความเข้าใจและไฟล์ที่อ่าน → ตั้งระดับความน่าเชื่อถือ → ตรวจ finding ทีละข้อจากหลักฐานที่เปิดเอง → คำตัดสิน 5 แบบ → เสนอ action หลังได้ yes | มีแล้ว |
 | FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), entity ตรงกับ data dictionary และมี index ตามเอกสาร data model, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested | มีแล้ว |

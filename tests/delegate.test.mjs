@@ -1,6 +1,8 @@
 // Briefs for other AI tools: the context pack stays inside the project and flags likely secrets, and
 // rendered commands keep every path literal in both PowerShell and Bash. Commands are rendered, never run.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, test } from "node:test";
 import { project, run } from "./helpers.mjs";
 
@@ -26,7 +28,7 @@ test("a config file with a password is skipped", () => {
   assert.match(r.json.skipped.join("\n"), /may contain secrets/);
 });
 
-test("a path outside the project is not packed (T04)", { todo: "F03" }, () => {
+test("a path outside the project is not packed (T04)", () => {
   p = project();
   p.write("../outside.md", "# outside\n");
   const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "../outside.md"]);
@@ -34,11 +36,66 @@ test("a path outside the project is not packed (T04)", { todo: "F03" }, () => {
   assert.doesNotMatch(p.exists(".mflow/briefs/x.pack.md") ? p.read(".mflow/briefs/x.pack.md") : "", /# outside/);
 });
 
-test("a token in a Markdown file is flagged (T04)", { todo: "F03" }, () => {
+test("a token in a Markdown file is flagged (T04)", () => {
   p = project();
   p.write("docs/notes.md", "api_token: SYNTHETIC-SECRET-123456\n");
   const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "docs/notes.md"]);
   assert.notDeepEqual(r.json.skipped, []);
+});
+
+test("a folder link to outside the project is not followed out", () => {
+  p = project();
+  p.write("../shared/secret-plan.md", "# outside plan\n");
+  p.write("docs/vision.md", "# Vision\n");
+  fs.symlinkSync(path.join(p.base, "shared"), p.file("docs/shared"), "junction");
+  const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "docs"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.json.manifest.map((m) => m.file), ["docs/vision.md"]);
+  assert.match(r.json.skipped.join("\n"), /docs\/shared \(outside the project, a link to/);
+  assert.doesNotMatch(p.read(".mflow/briefs/x.pack.md"), /outside plan/);
+});
+
+test("a folder outside the project named with --allow is packed", () => {
+  p = project();
+  p.write("../shared/Money.cs", "public record Money(decimal Amount);\n");
+  const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "--allow", "../shared", "../shared"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.json.manifest.map((m) => m.file), ["../shared/Money.cs"]);
+});
+
+test("an input given twice, or the pack itself, is packed once or not at all", () => {
+  p = project();
+  p.write("docs/vision.md", "# Vision\n");
+  p.write(".mflow/briefs/x.pack.md", "old pack\n");
+  const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "docs", "docs/vision.md", ".mflow/briefs"]);
+  assert.deepEqual(r.json.manifest.map((m) => m.file), ["docs/vision.md"]);
+  assert.match(r.json.manifest[0].sha256, /^[0-9a-f]{16}$/);
+});
+
+test("a selection over the budget stops before anything is read or written", () => {
+  p = project();
+  p.write("docs/big.md", "x".repeat(2 * 1024 * 1024 + 10));
+  const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "docs"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /Too much for one pack/);
+  assert.equal(p.exists(".mflow/briefs/x.pack.md"), false);
+});
+
+test("code with a secret literal is skipped; a Password property or a token type is not", () => {
+  p = project();
+  p.write("src/Settings.cs", 'public static class Settings { public const string ApiKey = "synthetic0123456789"; }\n');
+  p.write("src/LoginViewModel.cs", "public class LoginViewModel { public string Password { get; set; } }\n");
+  p.write("web/auth.ts", "export interface Session { token: string; apiKey: string }\n");
+  const r = run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "src", "web"]);
+  assert.deepEqual(r.json.manifest.map((m) => m.file).sort(), ["src/LoginViewModel.cs", "web/auth.ts"]);
+  assert.match(r.json.skipped.join("\n"), /src\/Settings\.cs \(may contain secrets/);
+});
+
+test("a file holding a ```` fence cannot close its block early", () => {
+  p = project();
+  p.write("docs/example.md", "````markdown\n```\ncode\n```\n````\n");
+  run(p, "context-pack.mjs", ["--out", ".mflow/briefs/x.pack.md", "docs"]);
+  assert.match(p.read(".mflow/briefs/x.pack.md"), /^`````md$/m);
 });
 
 test("paths with spaces and Thai survive in both shells", () => {

@@ -365,7 +365,7 @@ flowchart TD
 1. `/mflow:delegate <TASK-ID | ชื่อ change | slug | "หัวข้อ"> --mode analyze|review|code [--to codex|gemini|opencode|chat]`
    - ได้ brief ที่ `.mflow/briefs/` และบรรทัดคำสั่งทั้ง PowerShell และ Bash
    - ไม่ใส่ `--to` = brief ที่ใช้กับ tool ไหนก็ได้ พร้อมคำสั่งของทุก tool
-   - `--to chat` (ChatGPT/Gemini web) = ได้ context pack ไว้แนบ ไฟล์ที่อาจมีรหัสผ่านจะถูกข้ามและแสดงไว้ในรายการ `skipped`
+   - `--to chat` (ChatGPT/Gemini web) = ได้ context pack ไว้แนบ ไฟล์ที่อาจมีรหัสผ่านหรือ key และไฟล์นอกโปรเจกต์จะถูกข้ามและแสดงไว้ในรายการ `skipped` การตรวจดูจากรูปแบบเท่านั้น จึงควรเปิดอ่าน pack ก่อนวางในแชต
 2. **คุณรันคำสั่งเอง** ผลจะถูกบันทึกลง `docs/ai-inbox/`
 3. `/mflow:assess @docs/ai-inbox/<ไฟล์>` ตรวจว่า tool นั้นเข้าใจระบบและอ่านไฟล์ที่ต้องอ่านครบหรือไม่ แล้วตรวจ finding ทีละข้อกับโค้ดจริง คำตัดสินมี accept, accept-later, reject, needs-decision (Claude ถามคุณเลย) และ already-done → ตอบ yes แล้วจึงสร้าง task
 4. ถ้าเป็นโหมด `code` ให้ `/mflow:review agent/<tool>/<id>` ด้วยก่อน merge

@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareVersions as cmp, findRoot, loadConfig, readJsonFile, readText, run } from "./lib.mjs";
 import { fileHash, scan } from "./source-index.mjs";
+import { list as listConsultations } from "./consult.mjs";
 import { projectDir, status as subagentStatus } from "./apply-subagent.mjs";
 
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -144,12 +145,23 @@ function projectChecks() {
   const oldCache = fs.existsSync(cacheDir) ? fs.readdirSync(cacheDir).filter((f) => f.endsWith(".md") && fs.statSync(path.join(cacheDir, f)).isFile()) : [];
   if (oldCache.length) add("cache", "warn", `${oldCache.length} text version(s) in the pre-0.17.2 layout .mflow/cache/<name>.md, no longer read`, "Delete them; capture and consult convert again under .mflow/cache/<path>.<hash>.md");
 
+  // Consultations (optional): a session file that cannot be read hides nothing, but should be fixed.
+  try {
+    const sessions = listConsultations(root).sessions;
+    if (sessions.length) add("consultations", "ok", `${sessions.length} consultation session(s) read`);
+  } catch (err) {
+    add("consultations", "warn", err.message, "Fix the session file by hand; until then its reports are listed with the waiting work");
+  }
+
   // Golden data made from a customer file that has changed since: its expected values may be old.
   for (const meta of codeFiles(root, ".source.json").filter((f) => /(^|\/)Golden\/[^/]+\.source\.json$/i.test(f))) {
     let info;
     try { info = JSON.parse(readText(path.join(root, meta)) || ""); } catch { info = null; }
+    const rel = typeof info?.source === "string" ? path.relative(root, path.resolve(root, info.source)) : "";
     if (!info?.source || !info?.sourceHash) {
       add("golden", "warn", `${meta} does not name its source and sourceHash`, "Regenerate it with /mflow:golden");
+    } else if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+      add("golden", "warn", `${meta} names a source outside the project, which is not read`, "Regenerate it with /mflow:golden from a file under the source folder");
     } else if (!exists(root, info.source)) {
       add("golden", "warn", `${meta}: its source ${info.source} is gone`, "Find the file's new name (source-index.mjs scan) and regenerate with /mflow:golden");
     } else if (fileHash(path.join(root, info.source)) !== info.sourceHash) {

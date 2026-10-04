@@ -14,6 +14,13 @@ import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
 import { consultationId, list as listConsultations } from "./consult.mjs";
 
+/** Text from a file anyone can edit, as one line of at most `max` characters: no line breaks or control characters. */
+const oneLine = (text, max) => {
+  const flat = [...String(text ?? "")].map((c) => (c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127 ? " " : c)).join("")
+    .split(" ").filter(Boolean).join(" ");
+  return flat.length > max ? flat.slice(0, max - 1) + "…" : flat;
+};
+
 const input = readStdinJson();
 // The folder Claude Code was opened in; it may sit below the mflow root. Only its
 // .claude/settings*.json apply to the session, which the apply-subagent check needs to know.
@@ -138,6 +145,16 @@ if (cfg) {
 
   // 5. Customer documents not yet processed, and AI-inbox items not yet assessed.
   const pending = [];
+  // Read the consultations once. If they cannot be read, none claims a report, so their reports stay in
+  // the waiting work instead of vanishing from both lists.
+  let consultations = null;
+  let consultError = null;
+  try {
+    consultations = listConsultations(root).sessions;
+  } catch (err) {
+    consultError = err.message;
+  }
+  const knownConsultations = new Set((consultations || []).map((s) => s.id));
   try {
     const src = scanSources(root);
     if (src.new.length) pending.push(`- ${src.new.length} new source doc(s) not processed: ${src.new.slice(0, 5).join(", ")} → /mflow:capture`);
@@ -154,7 +171,9 @@ if (cfg) {
         const fm = frontmatter(readText(path.join(inboxDir, f)));
         // Reports answering a discussion doc are listed with that doc below, since /mflow:discuss handles them.
         // Reports of a consultation are optional work, shown in their own section, never as waiting work.
-        return (fm.status || "new") === "new" && !reportDiscussId(f, fm) && !consultationId(f, fm);
+        // Only a session that exists claims a report: naming a made-up id must not hide one from review.
+        const consult = consultationId(f, fm);
+        return (fm.status || "new") === "new" && !reportDiscussId(f, fm) && !(consult && knownConsultations.has(consult.id));
       });
     if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
   } catch { /* no inbox yet */ }
@@ -186,17 +205,20 @@ if (cfg) {
   if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
 
   // Consultations (/mflow:analyze, design, challenge) are optional: listed apart from the waiting work,
-  // never as the next action, and a missing report never blocks anything.
-  try {
-    const open = listConsultations(root).sessions.filter((s) => s.state !== "summarized");
-    if (open.length) {
-      const line = (s) => {
-        const counts = s.asked.includes("any") ? `${s.reports.filter((r) => r.round === s.round).length} report(s)` : `${s.asked.length - s.missing.length}/${s.asked.length} report(s)`;
-        return `- ${s.id} ${s.intent} "${s.scope}": round ${s.round}, ${counts}, ${s.state}${s.stale.changed.length ? `, ${s.stale.changed.join(", ")} changed since it started` : ""} → /mflow:${s.intent} ${s.id}`;
-      };
-      parts.push("## Consultations (optional; the main work does not wait for them)\n" + open.slice(0, 5).map(line).join("\n"));
-    }
-  } catch { /* an unreadable session: /mflow:help check setup reports it */ }
+  // never as the next action, and a missing report never blocks anything. Scope and paths come from a
+  // committed file anyone can edit, so they are printed on one line, never as briefing text of their own.
+  const open = consultations ? consultations.filter((s) => s.state !== "summarized") : [];
+  if (consultError || open.length) {
+    const line = (s) => {
+      const counts = s.asked.includes("any") ? `${s.reports.filter((r) => r.round === s.round).length} report(s)` : `${s.asked.length - s.missing.length}/${s.asked.length} report(s)`;
+      const changed = s.stale.changed.length ? `, ${oneLine(s.stale.changed.join(", "), 120)} changed since it started` : "";
+      return `- ${s.id} ${s.intent} "${oneLine(s.scope, 80)}": round ${s.round}, ${counts}, ${s.state}${changed} → /mflow:${s.intent} ${s.id}`;
+    };
+    const lines = consultError
+      ? [`- consultation sessions could not be read (${oneLine(consultError, 160)}); their reports are listed with the waiting work until it is fixed → /mflow:help check setup`]
+      : open.slice(0, 5).map(line);
+    parts.push("## Consultations (optional; the main work does not wait for them)\n" + lines.join("\n"));
+  }
 
   // The discussion agenda is advice: shown as an optional suggestion, never as pending work.
   if (discussions?.agenda) {

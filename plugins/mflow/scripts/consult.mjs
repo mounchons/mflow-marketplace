@@ -50,8 +50,15 @@ function sessionFile(root, id) {
 
 function readSession(root, id) {
   if (!ID_RE.test(id || "")) throw new Error(`not a consultation id: ${id} (expected AN-001, DS-001 or CH-001)`);
-  const s = readJsonFile(sessionFile(root, id), { label: `${SESSIONS}/${id}/session.json` });
+  const label = `${SESSIONS}/${id}/session.json`;
+  const s = readJsonFile(sessionFile(root, id), { label });
   if (!s) throw new Error(`no consultation ${id}`);
+  const bad = (what) => { throw new Error(`${label} ${what}; fix it by hand`); };
+  if (s.id !== id) bad(`names ${JSON.stringify(s.id)} instead of ${id}`);
+  if (!INTENTS[s.intent]) bad(`has intent ${JSON.stringify(s.intent)}`);
+  if (!Array.isArray(s.rounds) || !s.rounds.length || s.rounds.some((r) => !Number.isInteger(r?.n))) bad("has no valid rounds");
+  if (!Array.isArray(s.participants) || !s.participants.every((t) => typeof t === "string")) bad("has no valid participants");
+  if (!s.snapshot || typeof s.snapshot !== "object") bad("has no snapshot");
   return s;
 }
 
@@ -60,10 +67,17 @@ function sessionIds(root) {
   return fs.existsSync(dir) ? fs.readdirSync(dir).filter((d) => ID_RE.test(d)).sort() : [];
 }
 
+/** Whether a path, relative to the project root, stays inside the project. */
+function insideProject(root, p) {
+  if (typeof p !== "string" || !p) return false;
+  const rel = path.relative(root, path.resolve(root, p));
+  return !!rel && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+}
+
 /** A project file named on the command line, with its hash; refuses one outside the project. */
 function pinned(root, p, flag) {
   const rel = path.relative(root, path.resolve(root, p.replace(/^@/, "")));
-  if (!rel || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) throw new Error(`${flag} ${p} is outside the project`);
+  if (!insideProject(root, rel)) throw new Error(`${flag} ${p} is outside the project`);
   if (!fs.existsSync(path.join(root, rel))) throw new Error(`${flag} ${p}: not found`);
   return { path: toPosix(rel), hash: fileHash(path.join(root, rel)) };
 }
@@ -108,9 +122,10 @@ export function inspect(root, s) {
   else if (unsummarized.length) state = "assessing";
   else state = "summarized";
 
+  // session.json is committed and editable: a pinned path that leaves the project is never read, only reported.
   const changed = [s.snapshot.target, s.snapshot.from].filter(Boolean)
-    .filter((f) => !fs.existsSync(path.join(root, f.path)) || fileHash(path.join(root, f.path)) !== f.hash)
-    .map((f) => f.path);
+    .filter((f) => !insideProject(root, f.path) || !fs.existsSync(path.join(root, f.path)) || fileHash(path.join(root, f.path)) !== f.hash)
+    .map((f) => String(f.path));
   const head = run("git rev-parse HEAD", root, 8000)?.trim() || null;
   const cmd = `/mflow:${s.intent} ${s.id}`;
   const next = {

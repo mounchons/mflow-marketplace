@@ -18,7 +18,7 @@ Other AI tools can join the discussion (`consult`). Each one analyzes the doc in
 
 Registry commands (run from the repo root):
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" list`: every doc with its status, revision, open decisions, pending notes and unprocessed tool reports, plus the next free number.
-- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" check <NN>`: the open decisions, pending notes, unfilled template placeholders, an unclosed code fence, and unprocessed tool reports (`pendingReports`, matched by `discuss-<NN>` in the report's brief id or file name) of one doc, and whether it is ready to approve. It also counts the pictures (`visuals`) and warns about mermaid labels that will not parse (`mermaidWarnings`); neither blocks approval.
+- `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" check <NN>`: the open decisions (a `### D<n>` with no answer line counts), decision problems (two answer lines, a D number used twice, a letter that is not one of the options), missing or empty sections 1 to 7, missing frontmatter (title, status, revision), pending notes, unfilled template placeholders, an unclosed code fence, and unprocessed tool reports (`pendingReports`, matched by `discuss-<NN>` in the report's brief id or file name) of one doc, and whether it is ready to approve. It also counts the pictures (`visuals`) and warns about mermaid labels that will not parse (`mermaidWarnings`); neither blocks approval.
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" new <slug> --title "<Thai title>" --sources "<file>, <file>"`: creates `docs/discuss/NN-<slug>.md` from [assets/discussion.md](assets/discussion.md). The slug is ASCII kebab-case. The script never overwrites, and refuses a slug that still has an open draft. A frozen doc's slug can be reused for the doc that follows it. It also syncs the agenda, and reports `onAgenda: false` when the slug has no row there.
 - `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda`: rewrites the สถานะ cells of `docs/discuss/AGENDA.md` from the docs (the newest doc with a row's slug wins; with no doc, a status written by hand is kept), and reports `topics` and `warnings`. It changes nothing else, and does nothing when the file does not exist. `agenda init` creates the file from [assets/agenda.md](assets/agenda.md) first. `list` includes the same view without writing.
 
@@ -99,7 +99,7 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
 
 ## Mode: approve (`<NN> approve`)
 
-1. **Gate.** `check <NN>` must report `readyToApprove`. If not, list the open decisions, notes, placeholder lines and unprocessed tool reports, and stop. An open decision cannot be approved by default.
+1. **Gate.** `check <NN>` must report `readyToApprove`. If not, list what it reports (open decisions, decision problems, missing or empty sections, missing frontmatter, notes, placeholder lines, an unclosed fence, unprocessed tool reports), and stop. An open decision cannot be approved by default.
 2. **Merge table.** Sort every agreed item into exactly one destination, using the table below, and show it before writing anything:
 
    | Agreed item | Destination |

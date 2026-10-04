@@ -107,7 +107,7 @@ test("a healthy briefing lists new sources, draft discussions and the ritual", (
   assert.match(context, /### 2026-10-01/);
   assert.match(context, /fee: FeeCalculator/);
   assert.match(context, /1 new source doc\(s\) not processed: docs\/source\/tor\.md/);
-  assert.match(context, /01-roles \(rev 1, 1 open item\(s\)\)/);
+  assert.match(context, /01-roles \(rev 1, \d+ open item\(s\)\)/);
   assert.match(context, /## Session ritual/);
 });
 

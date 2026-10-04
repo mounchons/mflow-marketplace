@@ -151,7 +151,8 @@ if (cfg) {
     const drafts = discussions.docs.filter((d) => d.status === "draft");
     if (drafts.length) {
       const describe = (d) => {
-        const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length;
+        const open = d.openDecisions.length + d.pendingNotes.length + d.placeholderLines.length +
+          d.decisionProblems.length + d.missingSections.length + d.emptySections.length + d.missingMetadata.length;
         const ai = d.pendingReports.length ? `, ${d.pendingReports.length} AI report(s) to fold in` : "";
         return `${d.id}-${d.slug} (rev ${d.revision}, ${d.readyToApprove ? "ready to approve" : `${open} open item(s)`}${ai})`;
       };

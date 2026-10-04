@@ -13,9 +13,13 @@
 //   placeholder       Thai text in angle brackets left from the template, e.g. <คำถาม>
 // Docs written before 0.13 use `**พี่ปูเลือก:**` and `> พี่ปู:`; both are still read the same way.
 // Tool picks (`- **codex เลือก:** b`) are not answers: the marker must open the bold span.
-// HTML comments and fenced code blocks are ignored, so examples of the markers there do not count.
-// A doc is ready to approve when it is a draft with no open decision, pending note or placeholder,
-// no unclosed code fence (it would hide everything below it), and no unprocessed report from another AI tool.
+// HTML comments and fenced code blocks are ignored, so examples of the markers there do not count. A fence
+// closes only on the same character repeated at least as often, so a ```` block can show ``` examples.
+// A doc is ready to approve when it is a draft with title, status and revision in its frontmatter;
+// sections 1 to 7 present and none left empty ("ไม่มี" is an answer); every `### D<n>` with exactly one
+// answer line, filled, naming a listed option when it answers with a letter, and no D<n> used twice; no
+// pending note or placeholder; no unclosed code fence (it would hide everything below it); and no
+// unprocessed report from another AI tool.
 //
 // Pictures (skills/discuss/references/visuals.md) are counted and linted but never gate approval:
 //   visuals            mermaid blocks, text-fence wireframes, linked screenshots, mermaid diagram types
@@ -45,6 +49,13 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*(?:พี่ปู)?เลือก:\*\*(.*)$/;
 const NOTE_RE = /^\s*>\s*(?:ความเห็น|พี่ปู)\s*:(.*)$/;
 const HEADING_RE = /^###\s+(D\d+\b.*)$/;
+const ANY_HEADING_RE = /^#{1,6}\s/;
+const SECTION_RE = /^##\s+(\d+)\./;
+const OPTION_RE = /^\s*[-*]\s*([a-z])\)/;
+const REQUIRED_SECTIONS = [1, 2, 3, 4, 5, 6, 7];
+const REQUIRED_META = ["title", "status", "revision"];
+// Opens with three or more backticks or tildes; a backtick fence's info string has no backtick (CommonMark).
+const FENCE_RE = /^\s*(`{3,}|~{3,})(.*)$/;
 // Template placeholders open with Thai text right after "<", e.g. <คำถาม>. Comparisons in validation
 // text ("PickupDate < วันนี้ และ Status > 0") have a space after "<" and are not placeholders;
 // inline code is never a placeholder.
@@ -74,15 +85,23 @@ function scanLines(text) {
   const blocks = [];
   let block = null;
   blanked.split(/\r?\n/).forEach((line, i) => {
-    const fence = /^\s*(?:```|~~~)\s*([\w-]*)/.exec(line);
-    if (fence) {
-      if (block) { blocks.push(block); block = null; }
-      else block = { lang: fence[1].toLowerCase(), line: i + 1, body: [] };
+    const fence = FENCE_RE.exec(line);
+    if (block) {
+      // Only the same character, at least as many, and nothing after it closes the block.
+      if (fence && fence[1][0] === block.char && fence[1].length >= block.size && !fence[2].trim()) {
+        blocks.push(block);
+        block = null;
+      } else block.body.push(line);
       visible.push("");
       return;
     }
-    if (block) block.body.push(line);
-    visible.push(block ? "" : line);
+    if (fence && !(fence[1][0] === "`" && fence[2].includes("`"))) {
+      const lang = /^\s*([\w-]*)/.exec(fence[2])[1].toLowerCase();
+      block = { lang, line: i + 1, body: [], char: fence[1][0], size: fence[1].length };
+      visible.push("");
+      return;
+    }
+    visible.push(line);
   });
   return { visible, blocks, unclosedFenceLine: block ? block.line : null };
 }
@@ -127,21 +146,60 @@ function reports(root) {
 function inspect(root, full, allReports = reports(root)) {
   const text = readText(full) || "";
   const fm = frontmatter(text);
-  const openDecisions = [];
-  const answeredDecisions = [];
   const pendingNotes = [];
   const placeholders = [];
-  let heading = null;
+  const decisions = []; // one per `### D<n>`, plus answer lines found outside one
+  const sections = new Map(); // section number -> { line, filled }
+  const sectionAt = []; // the numbered section each line belongs to, for fenced blocks
+  let decision = null;
+  let section = null;
   const { visible, blocks, unclosedFenceLine } = scanLines(text);
   visible.forEach((line, i) => {
+    if (ANY_HEADING_RE.test(line)) {
+      decision = null;
+      if (!/^###/.test(line)) section = null; // a # or ## heading ends the section; ### stays inside it
+    }
+    const s = SECTION_RE.exec(line);
+    if (s) {
+      section = { line: i + 1, filled: false };
+      if (!sections.has(Number(s[1]))) sections.set(Number(s[1]), section);
+    } else if (section && line.trim() && !ANY_HEADING_RE.test(line)) section.filled = true;
+    sectionAt[i] = section;
     const h = HEADING_RE.exec(line);
-    if (h) heading = h[1].trim();
+    if (h) {
+      decision = { id: /^D\d+/.exec(h[1])[0], name: h[1].trim(), answers: [], options: new Set() };
+      decisions.push(decision);
+    }
+    const o = OPTION_RE.exec(line);
+    if (o && decision) decision.options.add(o[1]);
     const d = DECISION_RE.exec(line);
-    if (d) (d[1].trim() ? answeredDecisions : openDecisions).push(heading || `line ${i + 1}`);
+    if (d) {
+      if (decision) decision.answers.push(d[1].trim());
+      else decisions.push({ id: null, name: `line ${i + 1}`, answers: [d[1].trim()], options: new Set() });
+    }
     const n = NOTE_RE.exec(line);
     if (n) pendingNotes.push({ line: i + 1, text: n[1].trim() });
     if (PLACEHOLDER_RE.test(line.replace(/`[^`]*`/g, ""))) placeholders.push(i + 1);
   });
+  // A picture is content too: a section holding only a mermaid block is not empty.
+  for (const b of blocks) if (sectionAt[b.line - 1]) sectionAt[b.line - 1].filled = true;
+
+  const openDecisions = decisions.filter((x) => !x.answers.some(Boolean)).map((x) => x.name);
+  const answeredDecisions = decisions.length - openDecisions.length;
+  const decisionProblems = [];
+  const seenIds = new Set();
+  for (const x of decisions) {
+    if (x.id && seenIds.has(x.id)) decisionProblems.push(`${x.id} is used for two decisions`);
+    if (x.id) seenIds.add(x.id);
+    if (x.answers.length > 1) decisionProblems.push(`${x.name}: more than one answer line`);
+    const letter = /^([a-z])(?=$|[\s),.])/.exec(x.answers.find(Boolean) || "")?.[1];
+    if (letter && x.options.size && !x.options.has(letter)) {
+      decisionProblems.push(`${x.name}: answer ${letter}) is not one of its options ${[...x.options].map((l) => `${l})`).join(" ")}`);
+    }
+  }
+  const missingSections = REQUIRED_SECTIONS.filter((n) => !sections.has(n));
+  const emptySections = REQUIRED_SECTIONS.filter((n) => sections.has(n) && !sections.get(n).filled);
+  const missingMetadata = REQUIRED_META.filter((k) => !fm[k]);
   const mermaid = blocks.filter((b) => b.lang === "mermaid");
   const visuals = {
     mermaid: mermaid.length,
@@ -163,7 +221,11 @@ function inspect(root, full, allReports = reports(root)) {
     revision: Number(fm.revision) || 1,
     updated: fm.updated || "",
     openDecisions,
-    answeredDecisions: answeredDecisions.length,
+    answeredDecisions,
+    decisionProblems,
+    missingSections,
+    emptySections,
+    missingMetadata,
     pendingNotes,
     placeholderLines: placeholders,
     pendingReports,
@@ -171,8 +233,10 @@ function inspect(root, full, allReports = reports(root)) {
     visuals,
     mermaidWarnings: mermaid.flatMap(lintMermaid),
     readyToApprove:
-      status === "draft" && openDecisions.length === 0 && pendingNotes.length === 0 &&
-      placeholders.length === 0 && pendingReports.length === 0 && unclosedFenceLine === null,
+      status === "draft" && openDecisions.length === 0 && decisionProblems.length === 0 &&
+      missingSections.length === 0 && emptySections.length === 0 && missingMetadata.length === 0 &&
+      pendingNotes.length === 0 && placeholders.length === 0 && pendingReports.length === 0 &&
+      unclosedFenceLine === null,
   };
 }
 

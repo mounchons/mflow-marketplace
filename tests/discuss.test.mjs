@@ -72,24 +72,74 @@ test("an empty answer line keeps the decision open", () => {
   assert.equal(doc.readyToApprove, false);
 });
 
-test("a doc with only frontmatter is not ready (T01)", { todo: "F02" }, () => {
+test("a doc with only frontmatter is not ready (T01)", () => {
   p = project();
   assert.equal(check(FRONT).readyToApprove, false);
 });
 
-test("a decision with no answer line is open (T02)", { todo: "F02" }, () => {
+test("a decision with no answer line is open (T02)", () => {
   p = project();
   const doc = check(FRONT + body(D1(undefined)));
   assert.equal(doc.openDecisions.length, 1);
   assert.equal(doc.readyToApprove, false);
 });
 
-test("markers inside a nested code fence are examples, not answers (T08)", { todo: "F02" }, () => {
+test("markers inside a nested code fence are examples, not answers (T08)", () => {
   p = project();
   const example = "````markdown\n```\n### D9: ตัวอย่าง\n- **เลือก:**\n```\n````\n";
   const doc = check(FRONT + body(D1(" a") + "\n" + example));
   assert.deepEqual(doc.openDecisions, []);
   assert.equal(doc.readyToApprove, true);
+});
+
+test("a missing or empty section is named, and the doc is not ready", () => {
+  p = project();
+  const doc = check(FRONT + body(D1(" a")).replace("## 6. ไม่รวมในเรื่องนี้\n\nไม่มี\n", "").replace("ใครเห็นข้อมูลของสาขาไหน", ""));
+  assert.deepEqual(doc.missingSections, [6]);
+  assert.deepEqual(doc.emptySections, [1]);
+  assert.equal(doc.readyToApprove, false);
+});
+
+test("a section holding only a picture is not empty", () => {
+  p = project();
+  const doc = check(FRONT + body(D1(" a")).replace("ตารางบทบาท [เสนอ]", "```mermaid\nflowchart TD\n  A --> B\n```"));
+  assert.deepEqual(doc.emptySections, []);
+  assert.equal(doc.readyToApprove, true);
+});
+
+test("missing title, status or revision is named", () => {
+  p = project();
+  const doc = check("---\nid: 01\nslug: access-control\n---\n" + body(D1(" a")));
+  assert.deepEqual(doc.missingMetadata, ["title", "status", "revision"]);
+  assert.equal(doc.readyToApprove, false);
+});
+
+test("two answer lines, a reused D number and an unlisted option letter are problems", () => {
+  p = project();
+  const two = D1(" a") + "- **เลือก:** b\n";
+  const reused = D1(" b").replace("ผู้จัดการเขตเห็นกี่สาขา", "อีกเรื่อง");
+  const unlisted = D1(" e").replace("D1", "D2");
+  const doc = check(FRONT + body(two + reused + unlisted));
+  assert.equal(doc.decisionProblems.length, 3, JSON.stringify(doc.decisionProblems));
+  assert.match(doc.decisionProblems.join("\n"), /more than one answer line/);
+  assert.match(doc.decisionProblems.join("\n"), /D1 is used for two decisions/);
+  assert.match(doc.decisionProblems.join("\n"), /answer e\) is not one of its options a\) b\)/);
+  assert.equal(doc.readyToApprove, false);
+});
+
+test("a free-text answer is not read as an option letter", () => {
+  p = project();
+  const doc = check(FRONT + body(D1(" ทุกสาขา แต่ไม่เห็นต้นทุน")));
+  assert.deepEqual(doc.decisionProblems, []);
+  assert.equal(doc.readyToApprove, true);
+});
+
+test("a tilde fence closes only on tildes", () => {
+  p = project();
+  const example = "~~~text\n```\n### D9: ตัวอย่าง\n- **เลือก:**\n~~~\n";
+  const doc = check(FRONT + body(D1(" a") + "\n" + example));
+  assert.deepEqual(doc.openDecisions, []);
+  assert.equal(doc.unclosedFenceLine, null);
 });
 
 test("a CRLF doc reads the same as an LF one", () => {

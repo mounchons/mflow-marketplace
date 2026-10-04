@@ -42,5 +42,6 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Customer asks for a change after approval | `/mflow:change-request <request>` |
 | Hand work, analysis or review to another AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` |
 | Another AI's analysis or review came back | `/mflow:assess @docs/ai-inbox/<file>` |
+| Optional: have several AI tools analyze the system, a part of it or a document, then merge their checked findings | `/mflow:analyze <system \| "topic" \| @file> [--focus …] [--to …]`, then `/mflow:analyze <AN-NNN>` when reports are in |
 | Check code before merging | `/mflow:review <branch>` |
 | End of day, or switching to another tool | `/mflow:handoff [--for <tool>]` |

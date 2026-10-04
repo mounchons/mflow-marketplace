@@ -49,6 +49,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + unit test ตาม stack (xUnit สำหรับ .NET) |
 | ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมินและบันทึกผลกระทบ แล้วทำต่อเมื่อคุณสั่ง (ร่างตอบลูกค้าเมื่อขอ) |
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
+| | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
 | | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + รัน test |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
@@ -130,6 +131,7 @@ mflow/
 │   ├─ subagent-guard.mjs  ← hook PreToolUse ที่ปฏิเสธ mflow:dev เมื่อปิดอยู่
 │   ├─ doctor.mjs          ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ (อ่านอย่างเดียว)
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
+│   ├─ consult.mjs         ← สถานะของ analyze/design/challenge (ไม่บังคับ) อ่านจากไฟล์จริง
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์

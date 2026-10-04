@@ -111,6 +111,32 @@ Instructions that go into the brief's Goal:
 - Confidence: high | medium | low
 ```
 
+## Contract: consult-analyze
+
+Used by `/mflow:analyze`. Mode `analyze`, subject `<id>-r<n>`. Instructions that go into the brief's Goal:
+- Describe what the system does now, each point with evidence, apart from what its documents say it should do.
+- Report only findings with evidence or a concrete scenario; there is no quota. Where nothing was found, say what was examined.
+- Do not open `docs/ai-inbox/` in round 1: other tools answer the same brief, and your view must stay independent. In a later round, answer the disputed findings the brief lists, by their id.
+
+```markdown
+## Current behaviour
+- <what the system does now> — Evidence: <file:line or doc § — must be in Files read>
+
+## Findings
+### F1 <title>
+- Kind: problem | gap | risk | improvement
+- Claim: <one sentence>
+- Evidence: <file:line, spec section, or source doc + page — must be in Files read>
+- Impact: high | medium | low
+- Confidence: high | medium | low
+
+## Recommendations
+1. <what to do, why, and which findings it answers> — priority: now | next | later
+
+## Not checked
+- <what could not be verified, and the data or experiment that would settle it>
+```
+
 ## Contract: code
 
 Do the work on the branch, commit with the test command's summary in the commit body, tick the matching boxes in `openspec/changes/<name>/tasks.md` if this is an OpenSpec change. Then give as the final message the opening sections plus:

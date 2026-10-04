@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { scan as scanSources } from "./source-index.mjs";
 import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
+import { consultationId, list as listConsultations } from "./consult.mjs";
 
 const input = readStdinJson();
 // The folder Claude Code was opened in; it may sit below the mflow root. Only its
@@ -152,7 +153,8 @@ if (cfg) {
       .filter((f) => {
         const fm = frontmatter(readText(path.join(inboxDir, f)));
         // Reports answering a discussion doc are listed with that doc below, since /mflow:discuss handles them.
-        return (fm.status || "new") === "new" && !reportDiscussId(f, fm);
+        // Reports of a consultation are optional work, shown in their own section, never as waiting work.
+        return (fm.status || "new") === "new" && !reportDiscussId(f, fm) && !consultationId(f, fm);
       });
     if (open.length) pending.push(`- ${open.length} AI-inbox item(s) not assessed: ${open.slice(0, 5).join(", ")} → /mflow:assess`);
   } catch { /* no inbox yet */ }
@@ -182,6 +184,19 @@ if (cfg) {
     }
   } catch { /* no discussions or inbox yet */ }
   if (pending.length) parts.push("## Waiting to be processed\n" + pending.join("\n"));
+
+  // Consultations (/mflow:analyze, design, challenge) are optional: listed apart from the waiting work,
+  // never as the next action, and a missing report never blocks anything.
+  try {
+    const open = listConsultations(root).sessions.filter((s) => s.state !== "summarized");
+    if (open.length) {
+      const line = (s) => {
+        const counts = s.asked.includes("any") ? `${s.reports.filter((r) => r.round === s.round).length} report(s)` : `${s.asked.length - s.missing.length}/${s.asked.length} report(s)`;
+        return `- ${s.id} ${s.intent} "${s.scope}": round ${s.round}, ${counts}, ${s.state}${s.stale.changed.length ? `, ${s.stale.changed.join(", ")} changed since it started` : ""} → /mflow:${s.intent} ${s.id}`;
+      };
+      parts.push("## Consultations (optional; the main work does not wait for them)\n" + open.slice(0, 5).map(line).join("\n"));
+    }
+  } catch { /* an unreadable session: /mflow:help check setup reports it */ }
 
   // The discussion agenda is advice: shown as an optional suggestion, never as pending work.
   if (discussions?.agenda) {

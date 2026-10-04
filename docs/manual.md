@@ -370,6 +370,12 @@ flowchart TD
 3. `/mflow:assess @docs/ai-inbox/<ไฟล์>` ตรวจว่า tool นั้นเข้าใจระบบและอ่านไฟล์ที่ต้องอ่านครบหรือไม่ แล้วตรวจ finding ทีละข้อกับโค้ดจริง คำตัดสินมี accept, accept-later, reject, needs-decision (Claude ถามคุณเลย) และ already-done → ตอบ yes แล้วจึงสร้าง task
 4. ถ้าเป็นโหมด `code` ให้ `/mflow:review agent/<tool>/<id>` ด้วยก่อน merge
 
+**ให้ AI หลายตัวช่วยวิเคราะห์ระบบ (ไม่บังคับ): `/mflow:analyze`**
+- ใช้เมื่อเริ่มรับช่วงระบบ ตรวจ requirement หรือหาจุดที่ควรปรับ เช่น `/mflow:analyze system --to codex,gemini` หรือ `/mflow:analyze @docs/requirement.md --focus gaps,edge-cases`
+- ได้เลข `AN-NNN`, brief และคำสั่งของแต่ละ tool คุณรันเองเมื่อสะดวก งานหลักทำต่อได้เลยไม่ต้องรอ briefing แสดงงานนี้ในหัวข้อ "Consultations (optional)" แยกจากงานที่รอ
+- รายงานกลับมาแล้วสั่ง `/mflow:analyze AN-NNN` Claude ตรวจหลักฐานของทุก finding แล้วรวมเป็นสรุปเดียวที่ `docs/analysis/AN-NNN/summary.md` ความเห็นที่ตรงกันหลายตัวแต่ไม่มีหลักฐานยังเป็นแค่สมมติฐาน และความเห็นต่างถูกเก็บไว้ ไม่ตัดทิ้ง
+- ไม่มีอะไรถูกแก้เพราะ AI เสนอ คุณเลือกข้อที่จะเอาไปใช้ แล้ว Claude ส่งต่อให้ (discuss, hotspot, OpenSpec, Backlog) โดยไม่ถามซ้ำ
+
 ## 5. จังหวะประจำวัน
 
 | เวลา | เกิดอะไรขึ้น | คุณทำอะไร |
@@ -478,6 +484,7 @@ git diff --stat openspec/specs
 | เพิ่งทดสอบใช้งานหรือประชุมรีวิว | `/mflow:review-notes @โน้ต` |
 | กฎตัดข้ามหน้าจอ หรือผิดแล้วแพง | `/mflow:hotspot <ไอเดีย> [@ไฟล์]` |
 | ทำ hotspot ต่อ | `/mflow:hotspot <slug>` |
+| อยากให้ AI หลายตัวช่วยวิเคราะห์ระบบ (ไม่บังคับ) | `/mflow:analyze system` หรือ `/mflow:analyze "หัวข้อ"` |
 | พร้อมตอบตั๋ว `ask` หรือได้คำตอบจากคนที่ไปถามมาแล้ว | `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` |
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
 | มี Excel จริงที่ใช้พิสูจน์กฎได้ | `/mflow:golden @ไฟล์.xlsx <slug>` |

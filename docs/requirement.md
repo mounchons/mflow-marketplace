@@ -296,6 +296,17 @@ flowchart TD
 | FR-172 | ทุกคำสั่งที่ทำงานจบ (hotspot ทุกโหมด, golden, screen, theme และ preview/port, discuss approve, assess, review-notes, review) บอกผู้ใช้ว่าอะไรเปลี่ยนและคำสั่งถัดไปหนึ่งคำสั่งที่พิมพ์ได้ทันที พร้อมเหตุผลหนึ่งบรรทัดว่าทำไมจึงถัดไป และเขียนคำสั่งนั้นลง `## Now` ของ STATUS.md hotspot บอก readiness bar, ตั๋วที่หยิบได้ต่อไป และตั๋วที่ติดรอ ตั๋วถัดไปเริ่มใน session ใหม่ (ยกเว้นผู้ใช้ตอบตั๋วง่ายที่เกี่ยวกันหลายใบพร้อมกัน ซึ่งปิดได้ในรอบเดียวถ้าแต่ละคำตอบเป็นตัวเลือกตรงๆ ที่ไม่กระทบตั๋วอื่น) help แสดงเส้นทางเริ่มต้นสองแบบ: อยากเห็นหน้าจอเร็ว และกฎซับซ้อนหรือผิดแล้วแพง และตั๋ว `ask` ตอบในคำสั่งได้ (`/mflow:hotspot <slug> <TASK-ID> <คำตอบ>`) | มีแล้ว |
 | FR-166 | ภาพรวม `/mflow:discuss` แสดงหัวข้อที่ยังไม่เริ่มจากรายการนี้แทนการเดาเอง และ briefing ตอนเริ่ม session แสดงเป็นส่วนแยก "optional" (ไม่เกินสามชื่อ ไม่นับที่ข้าม) พร้อมหัวข้อที่อนุมัติแล้วแต่มีป้ายทบทวน | มีแล้ว |
 
+### 6.15 AI หลายตัวช่วยวิเคราะห์ ออกแบบ และทักท้วง (`/mflow:analyze`, `/mflow:design`, `/mflow:challenge`)
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-180 | ทุกคำสั่งในหมวดนี้ไม่บังคับ: ผู้ใช้เรียกเองเท่านั้น (`disable-model-invocation: true`) hook และคำสั่งอื่นไม่เรียกให้ ไม่เป็นเงื่อนไขก่อนขั้นใดของ flow หลัก รายงานที่ยังไม่กลับมาไม่ block งานหลักและไม่ทำให้อะไรถูกตั้งเป็น blocked โปรเจกต์ที่ไม่เคยใช้ไม่เห็นอะไรเปลี่ยน ผู้ใช้รันเครื่องมือภายนอกเอง (§13) | มีแล้ว |
+| FR-181 | `consult.mjs` เก็บ session ที่ `.mflow/consultations/<id>/session.json` (AN/DS/CH-NNN) เฉพาะข้อมูลที่ไม่เปลี่ยน: intent, scope, snapshot (commit, งานที่ยังไม่ commit, hash ของไฟล์ `--target`/`--from`), tool ที่ขอ และรอบ สถานะอ่านจากไฟล์จริงทุกครั้ง (`prepared → awaiting-reports → assessing → summarized`, completeness `none/partial/complete`, tool ที่ขาด, target ที่เปลี่ยน) เรียกซ้ำด้วย intent และ scope เดิมขณะยังเปิดอยู่ได้ session เดิม (ไม่สร้างซ้ำ) รายงานจับคู่จากชื่อไฟล์ `<id>-r<n>-<tool>.md` หรือ `brief` | มีแล้ว |
+| FR-182 | Pipeline ร่วม (`skills/delegate/references/consultation.md`): brief ผ่านกลไก delegate (mode `analyze` อ่านอย่างเดียวทุก intent) รอบแรกแต่ละ tool ทำอิสระและห้ามเปิด `docs/ai-inbox/` ตรวจแต่ละรายงานตามขั้นของ assess รวม finding ที่ซ้ำโดยระบุทุก tool ที่ยกมา ความเห็นตรงกันไม่ใช่หลักฐาน ความเห็นต่างคงไว้พร้อมวิธีตัดสิน finding ที่ปฏิเสธยังอยู่ในสรุปพร้อมเหตุผล สรุปบันทึก revision, completeness และรายงานทุกฉบับที่รวม (`reports:`) สรุปแบบ partial ได้ รายงานที่มาทีหลังทำ revision ใหม่โดยไม่เปลี่ยนรายการที่ผู้ใช้เลือกไว้ รอบสองเฉพาะประเด็นที่ยังขัดกัน | มีแล้ว |
+| FR-183 | ผลลัพธ์เป็นคำแนะนำ: ไม่แก้ production code, `openspec/specs/` หรือเอกสารที่ freeze เพราะ AI เสนอ ผู้ใช้เลือกรายการแล้วส่งต่อตามตาราง (discuss, hotspot, OpenSpec change, change-request, Backlog, spike) โดยไม่ขออนุมัติซ้ำ และสรุปแยก "พบจริง" กับ "ให้แก้" | มีแล้ว |
+| FR-184 | briefing แสดง session ที่ยังไม่สรุปในหัวข้อแยก "Consultations (optional)" ไม่ปนกับงานที่รอ และไม่เป็น next action ของงานหลัก รายงานของ consultation ไม่นับเป็น "AI-inbox item(s) not assessed" | มีแล้ว |
+| FR-185 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus] [--to]` ให้ AI หลายตัววิเคราะห์สภาพจริงของระบบ (สัญญา `consult-analyze`: พฤติกรรมปัจจุบันพร้อมหลักฐาน, findings ที่มี ID หลักฐาน ผลกระทบ confidence, ข้อเสนอเรียงลำดับ, สิ่งที่ยังตรวจไม่ได้) และสรุปที่ `docs/analysis/AN-NNN/summary.md` | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -366,8 +377,9 @@ mflow-marketplace/
     │   ├─ delegate-cmd.mjs          ← คำสั่งของแต่ละ tool
     │   ├─ doctor.mjs                ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ อ่านอย่างเดียว (/mflow:help check setup)
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
+    │   ├─ consult.mjs               ← session ของ analyze/design/challenge (ไม่บังคับ) สถานะอ่านจากไฟล์จริง
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
-    ├─ skills/<15 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ skills/<16 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -389,6 +401,7 @@ mflow-marketplace/
 | `/mflow:change-request <คำขอ>` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว |
 | `/mflow:delegate <subject> --mode analyze\|review\|code [--to <tool>]` | ส่งงานให้ AI ตัวอื่น |
 | `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ผลจาก AI ตัวอื่นกลับมา |
+| `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
@@ -461,7 +474,7 @@ mflow-marketplace/
 | R-13 | `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ theme กับ screen ทำงานกับ UI แอปเดียว | โปรเจกต์ที่มีหลาย web app ทำ kit ต่อแอปไม่ได้อัตโนมัติ | `tech-stack` ต้องตัดสินว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยก และหน้าจอไหนอยู่แอปไหน ส่วนที่เกินทำด้วยมือ |
 | R-12 | ผู้ใช้ตอบแทนลูกค้าแล้วลูกค้าจริงเห็นต่างทีหลัง | ต้องแก้ของที่สร้างแล้ว | ตั้งใจยอมรับตามหลัก P10: ทำ slice เล็ก ทดสอบใช้งานเร็ว (task ทดสอบใช้งานจากหัวข้อ 5 ของเอกสาร discuss) แล้วแก้เป็น change ถัดไป change request บันทึกผลกระทบไว้ |
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
-| R-09 | จำนวนคำสั่ง (15) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
+| R-09 | จำนวนคำสั่ง (16) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
 ## 15. ผลการทดสอบ (v0.3 ถึง v0.18)
 

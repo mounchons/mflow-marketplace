@@ -345,6 +345,7 @@ repo/
 ```
 mflow-marketplace/
 ├─ .claude-plugin/marketplace.json
+├─ tests/*.test.mjs                ← ชุด regression (`node --test` ที่ root ของ repo) ไม่ติดไปกับ plugin
 └─ plugins/mflow/
     ├─ .claude-plugin/plugin.json
     ├─ agents/dev.md                 ← subagent `mflow:dev` (Sonnet 5.5) ที่ /opsx:apply ส่งงานเขียนโค้ดให้
@@ -454,6 +455,8 @@ mflow-marketplace/
 | R-09 | จำนวนคำสั่ง (15) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
 ## 15. ผลการทดสอบ (v0.3 ถึง v0.17)
+
+ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
 | รายการ | ผล |
 |---|---|

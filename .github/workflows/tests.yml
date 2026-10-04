@@ -1,0 +1,30 @@
+# Regression suite for the mflow plugin's scripts and hooks (tests/*.test.mjs): Node only, nothing to
+# install, no secrets or accounts. Runs on the platforms and Node versions the plugin supports.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Check script syntax
+        shell: bash
+        run: for f in plugins/mflow/scripts/*.mjs; do node --check "$f"; done
+      - name: Run the regression suite
+        run: node --test

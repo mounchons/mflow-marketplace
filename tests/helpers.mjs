@@ -62,7 +62,11 @@ export function runAsync(p, script, args = [], { cwd, env = {} } = {}) {
   });
 }
 
-const scriptEnv = (p, env) => ({ ...process.env, CLAUDE_PROJECT_DIR: p.root, TEMP: p.temp, TMP: p.temp, TMPDIR: p.temp, ...env });
+// GIT_CEILING_DIRECTORIES stops git from finding a repository above the test project, such as a home
+// folder kept in git, whose ignore rules would leak into the test.
+const scriptEnv = (p, env) => ({
+  ...process.env, CLAUDE_PROJECT_DIR: p.root, TEMP: p.temp, TMP: p.temp, TMPDIR: p.temp, GIT_CEILING_DIRECTORIES: p.base, ...env,
+});
 
 function result(status, stdout, stderr) {
   let json = null;
@@ -75,7 +79,7 @@ export const hasGit = spawnSync("git", ["--version"]).status === 0;
 /** git with a fixed identity, run in the project root. */
 export function git(p, ...args) {
   const r = spawnSync("git", ["-c", "user.name=mflow-test", "-c", "user.email=test@example.invalid", ...args], {
-    cwd: p.root, encoding: "utf8",
+    cwd: p.root, encoding: "utf8", env: { ...process.env, GIT_CEILING_DIRECTORIES: p.base },
   });
   if (r.status !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr}`);
   return r.stdout;

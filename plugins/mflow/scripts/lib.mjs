@@ -1,4 +1,4 @@
-// Shared helpers for mflow scripts. Node >= 18, no dependencies, cross-platform.
+// Shared helpers for mflow scripts. Node >= 20, no dependencies, cross-platform (Windows and Linux).
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";

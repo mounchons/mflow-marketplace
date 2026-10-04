@@ -7,6 +7,10 @@
 | วันที่ | 2026-10-04 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
+**สารบัญ:** 1 กติกาเจ็ดข้อ · 2 ภาพรวมลำดับคำสั่ง และทางเริ่มสองแบบ · 3 ก่อนเริ่ม · 4 ขั้นตอนทีละคำสั่ง · 5 จังหวะประจำวัน · 6 ตัวอย่างการใช้งาน (6.1 ครบหนึ่งรอบ, 6.2 ตามสถานการณ์: อัปเกรด, เครื่องมือใช้ไม่ได้, ไฟล์สถานะเสีย, เอกสารยังอนุมัติไม่ได้, approve ค้าง, เฉลยฉบับใหม่, ส่งงานให้ AI บนเว็บ, รายงานเก่า, AI หลายตัว) · 7 ตารางลัด · 8 ข้อควรระวังที่ทราบแล้ว
+
+เพิ่งเริ่มใช้: อ่านหัวข้อ 1 และ 2 แล้วข้ามไป 6.1 ดูหนึ่งรอบเต็ม ติดปัญหา: หา "ตารางลัด" ในหัวข้อ 7 หรือพิมพ์ `/mflow:help <เล่าสถานการณ์>`
+
 ---
 
 ## 1. กติกาเจ็ดข้อก่อนใช้
@@ -58,13 +62,22 @@ flowchart TD
 | 3 | `/mflow:screen inventory` | เริ่ม release | ต่อ release |
 | 3.5 | `/mflow:discuss <กลุ่มข้อมูล> data model` | ก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน | ต่อกลุ่มข้อมูล (ไม่บังคับ) |
 | 4 | `/mflow:screen <ชื่อ> …` → `/mflow:review-notes` | สร้างหรือปรับหน้าจอ แล้วทดสอบใช้งานหรือรีวิว | วนหลายรอบ |
-| 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session |
+| 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session (ตอบตั๋วง่ายหลายใบพร้อมกันได้) |
 | 6 | `/opsx:propose` → `/opsx:apply` → `/mflow:review` → `/opsx:archive` | สร้างของจริงทีละ slice | ต่อ slice |
 | เหตุการณ์ | `/mflow:change-request` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | เมื่อเกิดขึ้น |
 | เหตุการณ์ | `/mflow:delegate` → `/mflow:assess` | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | เมื่อต้องการ |
+| ไม่บังคับ | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` | อยากได้ความเห็นจาก AI หลายตัวพร้อมกัน: วิเคราะห์ระบบ เสนอแบบ หรือหาจุดที่แบบจะพัง | เมื่อต้องการ ไม่มีขั้นไหนรอ |
+| เหตุการณ์ | `/mflow:help check setup` | หลังอัปเกรด plugin, briefing บอกว่า CLI ใช้ไม่ได้ หรือรู้สึกว่ามีอะไรผิด | เมื่อสงสัย |
 | ทุกวัน | `/mflow:handoff` | จบวัน หรือก่อนสลับไปใช้ tool อื่น | วันละครั้ง |
 
 **ช่วงแรกใช้แค่ห้าคำสั่ง:** `init` → `discuss` (เริ่มจาก `tech-stack` และ `code-structure` แล้วหัวข้ออื่นใน AGENDA.md ตามต้องการ) → `capture` → `theme` → `screen` ส่วนที่เหลือค่อยเริ่มใช้เมื่อเจอสถานการณ์ของคำสั่งนั้น หรือเมื่อคำสั่งก่อนหน้าแนะนำ
+
+**เลือกทางเริ่มตามสิ่งที่สำคัญกับงานนี้** (`/mflow:help` แสดงสองทางนี้ และแนะนำทางที่เข้ากับสิ่งที่คุณเล่า ไม่บังคับทางไหน):
+
+| อยาก | ลำดับ |
+|---|---|
+| **เห็นหน้าจอเร็ว** ลูกค้าต้องเห็นของก่อนจึงจะคุยต่อได้ | `init` → `capture` เฉพาะเอกสารที่หน้าจอแรกต้องใช้ → `theme` → `screen inventory` → `screen <ชื่อ>` → ลองใช้กับลูกค้า → `review-notes` |
+| **กฎซับซ้อน หรือผิดแล้วแพง** เช่น ค่าธรรมเนียม การอนุมัติ เงินเดือน เรื่องที่มีผลทางกฎหมาย | `init` → `capture` → `discuss` เรื่องที่ตัดข้ามระบบ และ `hotspot` ทีละกฎ → `golden` ด้วยผลคำนวณจริงของลูกค้า → `/opsx:propose` แล้วสร้างหน้าจอคู่กันไปเมื่อหัวข้อของหน้าจอนั้นนิ่ง |
 
 ## 3. ก่อนเริ่ม
 
@@ -95,16 +108,17 @@ flowchart TD
 - **ใช้เมื่อ:** ใช้ mflow กับ repo นี้เป็นครั้งแรก หรือหลังอัปเกรด plugin เพื่อรับ template ใหม่
 - **สิ่งที่เกิดขึ้น:**
   1. สำรวจ repo: solution, test project, Playwright, stack ที่พบ, agent file เดิม, เอกสาร requirement และ CLI ที่ติดตั้งไว้ แล้วสรุปให้ดูในรอบเดียว
-  2. **ถามเลือก stack ก่อนเขียนไฟล์ใดๆ** (ถามทุกครั้ง แม้จะเดาจาก repo ได้ชัด) ตอบด้วยตัวอักษรตัวเดียว:
+  2. **ถามเลือก stack ก่อนเขียนไฟล์ใดๆ** (ถามเสมอเมื่อ `## Stack` ยังไม่มี profile แม้จะเดาจาก repo ได้ชัด) ตอบด้วยตัวอักษรตัวเดียว:
      - `a)` ASP.NET Core MVC + Razor + Bootstrap 5 + HTMX: รองรับเต็ม และเป็นค่าแนะนำเมื่อ repo ยังว่าง
      - `b)` React + Vite + ASP.NET Core Web API: component ชุดเดียวกันในรูป React และ API เป็นฝ่ายตรวจสิทธิ์และแบ่งหน้า
-     - `c)` stack อื่น (บอกชื่อ เช่น Next.js, Laravel): Claude เติมตาราง mapping (ไฟล์ UI, tokens, layout, component, ข้อมูล prototype, สวิตช์โหมด prototype, test) ให้ยืนยันก่อน ยังไม่ได้ทดสอบกับ mflow
+     - `c)` stack อื่น (บอกชื่อ เช่น Next.js, Laravel): Claude เติมตาราง mapping (ไฟล์ UI, tokens, layout, component, ข้อมูล prototype, สวิตช์โหมด prototype, test) แล้วแสดงให้ดู ไม่ต้องตอบ yes แยก เพราะเอกสาร `tech-stack` จะทบทวนตารางนี้อีกรอบก่อน `/mflow:theme` ยังไม่ได้ทดสอบกับ mflow
 
-     คำตอบบันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว และคำสั่ง `theme` `screen` `golden` `review` อ่านจากตรงนั้น
-  3. แสดงรายการไฟล์ที่จะสร้าง (dry-run) แล้วสร้าง `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/`, `docs/ai-inbox/`, `docs/discuss/`, `.mflow/config.json` ไฟล์ที่มีอยู่แล้วจะไม่ถูกเขียนทับ template จะไปอยู่ที่ `.mflow/suggested/` เพื่อ merge ให้พร้อมแสดง diff
+     คำตอบบันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว และคำสั่ง `theme` `screen` `golden` `review` อ่านจากตรงนั้น ถ้ารัน `/mflow:init` ซ้ำ (เช่น หลังอัปเกรด) stack ที่เลือกไว้แล้วใช้ต่อโดยไม่ถามใหม่ อยากเปลี่ยนให้บอกเอง
+  3. แสดงรายการไฟล์ที่จะสร้าง (dry-run) แล้วสร้าง `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/`, `docs/ai-inbox/`, `docs/discuss/`, `.mflow/config.json` ไฟล์ที่มีอยู่แล้วจะไม่ถูกเขียนทับ template จะไปอยู่ที่ `.mflow/suggested/` เพื่อ merge ให้พร้อมแสดง diff และ `.mflow/templates.json` จดว่าเสนอ template ไหนไปแล้ว รันซ้ำครั้งหน้าจึงเสนอเฉพาะ template ที่เปลี่ยนในรุ่นใหม่ ไฟล์ที่คุณแก้หรือ merge แล้วไม่ถูกเสนอซ้ำ (ขึ้นเป็น `kept`) ให้ commit `templates.json` ไปกับ `.mflow/`
   4. ต่อ OpenSpec และ Backlog.md โดยถาม yes ก่อนรันแต่ละคำสั่ง
   5. รันคำสั่ง build และ test ของ stack ที่เลือกจริง (เช่น `dotnet build`, `dotnet test`) แล้วเขียนเฉพาะคำสั่งที่ผ่านลงใน AGENTS.md คำสั่งที่รันไม่ได้จะติด `(unverified)`
   6. ย้ายเอกสารลูกค้าที่พบไปไว้ใน `docs/source/` แล้วคัดแยกตามขั้น 1
+  7. จบด้วยการรัน doctor (ตรวจอย่างเดียว ไม่แก้อะไร) แล้วแจ้งทุกข้อที่เป็น `fail` หรือ `warn` พร้อมวิธีแก้ (ดูตัวอย่างใน 6.2)
 - **สิ่งที่คุณต้องตอบ:** เลือก stack (ข้อ 2) แล้วตอบคำถามอีกไม่เกินสามข้อ เรื่องจุดประสงค์ของระบบ, bounded context และคำศัพท์ของลูกค้า ข้อไหนยังไม่รู้ให้ตอบว่าข้าม จะเหลือเป็น `TODO` ไว้
 - **ได้อะไร:** repo พร้อมใช้งาน และตั้งแต่ session ถัดไป hook จะเริ่มทำงาน
 - **ได้ `docs/discuss/AGENDA.md` ทันที** โดยสองหัวข้อแรกคือ `tech-stack` และ `code-structure` (แนะนำให้คุยก่อน `/mflow:theme` ไม่บังคับ)
@@ -136,7 +150,8 @@ flowchart TD
   - `/mflow:capture` แบบไม่ใส่ไฟล์ = อ่านเฉพาะไฟล์ใหม่และไฟล์ที่เปลี่ยน (ตรวจจาก hash) ไฟล์ที่เคยอ่านแล้วจะถูกข้าม
   - `/mflow:capture @docs/source/2026-10-tor-v2.pdf --replaces @docs/source/2026-09-tor-v1.pdf` = เทียบฉบับใหม่กับฉบับเก่าทีละหัวข้อ แล้วตั้งฉบับเก่าเป็น `superseded`
 - **สิ่งที่เกิดขึ้น:** แสดงรายการไฟล์ที่จะอ่านและที่จะข้าม → อ่านตามชนิดไฟล์ → คัดแยกทุกข้อความเป็นตารางให้ดูก่อน (ข้อกำหนดถาวรไป AGENTS.md, ขอบเขตไป vision, กฎใหญ่ไป hotspot, ข้อที่คลุมเครือ Claude ถามคุณในตารางเลย ข้อที่ยังตอบไม่ได้ไป open questions …) → หลังคุณตอบ yes จึงเขียน → บันทึกลงทะเบียนเอกสาร
-- **ชนิดไฟล์ที่รองรับตอนนี้:** `.pdf` `.md` `.txt` `.csv` `.json`, `.docx` (แปลงเก็บไว้ที่ `.mflow/cache/`) และ `.xlsx` (อ่านด้วย python) ส่วน `.doc` `.xls` `.pptx` ยังไม่รองรับ ให้ขอไฟล์ `.docx`/`.xlsx`/PDF จากลูกค้า หรือแปลงเองก่อน
+- **ชนิดไฟล์ที่รองรับตอนนี้:** `.pdf` `.md` `.txt` `.csv` `.json`, `.docx` (แปลงเก็บไว้ที่ `.mflow/cache/<path ของไฟล์>.<hash>.md` เอกสารที่แก้แล้วจึงได้ไฟล์แปลงใหม่เสมอ ไม่ใช้ข้อความฉบับเก่า) และ `.xlsx` (อ่านด้วย python) ส่วน `.doc` `.xls` `.pptx` ยังไม่รองรับ ให้ขอไฟล์ `.docx`/`.xlsx`/PDF จากลูกค้า หรือแปลงเองก่อน
+- **ถ้าทะเบียนเอกสารเสีย** (เช่น `.mflow/sources.json` ค้าง merge conflict) capture จะหยุดและบอกสาเหตุ ไม่สร้างทะเบียนใหม่ทับ แก้ไฟล์ด้วยมือหรือเอาฉบับดีจาก git แล้วค่อย capture (ตัวอย่างใน 6.2)
 - **ได้อะไร:** `docs/source/INDEX.md` (สร้างอัตโนมัติ ห้ามแก้เอง) บอกว่าไฟล์ไหนใช้อยู่ ไฟล์ไหนถูกแทนแล้ว และถูกใช้กับเรื่องใด
 - **และได้ `docs/discuss/AGENDA.md` (หัวข้อที่ควร discuss):** เรื่องในเอกสารที่ตีความได้หลายแบบ ขัดกันเอง หรือยังไม่ได้บอกทั้งที่ระบบต้องใช้ จะถูกเพิ่มเป็นหัวข้อแนะนำ แต่ละแถวมีเหตุผลพร้อมที่มา และบอกว่าควรคุยก่อนขั้นไหน เช่น
 
@@ -209,7 +224,8 @@ flowchart TD
   5. อยากให้ AI ตอบกันเองอีกรอบ: สั่ง `consult` ซ้ำหลังปรับเอกสาร รอบใหม่จะเห็นหัวข้อ 8 ของรอบก่อน
   6. อนุมัติไม่ได้จนกว่ารายงานที่ส่งกลับมาจะถูกรวมเข้าเอกสารครบ
 - **คำของคุณชนะเอกสาร แต่ไม่เงียบ:** ถ้าสิ่งที่คุณบอกขัดกับเอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว หรือ spec ที่สร้างแล้ว Claude ทำตามที่คุณบอก (ถือเป็นคำสั่งล่าสุดของลูกค้า) แจ้งครั้งเดียวพร้อมอ้างที่มา และจดไว้ใน "บันทึกการแก้ไข" โดยไม่ถามซ้ำ ส่วนความเห็นของ AI ตัวอื่นที่ขัดกับเอกสารลูกค้า Claude คงข้อความจากเอกสารไว้
-- **อนุมัติ:** ทำได้เมื่อทุกข้อตัดสินใจมีคำตอบ ไม่มีบรรทัด `> ความเห็น:` ค้าง และไม่มีช่องที่ยังไม่ได้เติมจาก template (script ตรวจให้) → Claude แสดงตารางว่าแต่ละข้อจะไปอยู่ที่ไหน (vision, AGENTS.md, hotspot, Backlog decision, task, task ทดสอบใช้งาน) → ตอบ yes → เขียน แล้วเอกสารถูก freeze ไว้เป็นบันทึกเหตุผล
+- **อนุมัติ:** script ตรวจก่อนว่าเอกสารครบ: frontmatter มี title, status และ revision; มีหัวข้อ 1 ถึง 7 ครบและไม่มีหัวข้อว่าง (คำว่า "ไม่มี" นับเป็นคำตอบ ภาพนับเป็นเนื้อหา); ทุก `### D<n>` มีบรรทัด `**เลือก:**` หนึ่งบรรทัดที่ตอบแล้ว ถ้าตอบเป็นตัวอักษรต้องเป็นตัวเลือกที่มีอยู่ และไม่ใช้เลข D ซ้ำ; ไม่มีบรรทัด `> ความเห็น:` ค้าง ไม่มีช่องที่ยังไม่ได้เติมจาก template และรวมรายงานของ AI ครบแล้ว ถ้ายังไม่ครบ Claude บอกว่าขาดอะไร → ถ้าครบ Claude แสดงตารางว่าแต่ละข้อจะไปอยู่ที่ไหน (vision, AGENTS.md, hotspot, Backlog decision, task, task ทดสอบใช้งาน) แล้ว **เขียนทันที** เพราะคำสั่ง `approve` คือ yes แล้ว (จะหยุดถามเฉพาะรายการที่ตารางจัดลงที่ไหนไม่ได้) จากนั้นเอกสารถูก freeze ไว้เป็นบันทึกเหตุผล
+- **approve ที่หยุดกลางทาง** (เช่น context หมดหลังสร้าง task ไปบางส่วน) สั่ง `/mflow:discuss <NN> approve` ซ้ำได้เลย เอกสารยังเป็น draft จนกว่าจะ freeze ซึ่งเป็นขั้นสุดท้าย Claude ใช้ `discuss.mjs cited` หาว่าปลายทางไหนเขียนไปแล้ว แถวเหล่านั้นขึ้นเป็น `มีแล้ว` และไม่ถูกเขียนหรือสร้าง task ซ้ำ
 - **การอนุมัติของคุณคือการยืนยันของลูกค้า:** ไม่มีขั้นรอลูกค้ายืนยันซ้ำ หัวข้อ 5 "สิ่งที่จะดูตอนทดสอบใช้งาน" กลายเป็น task `ทดสอบใช้งาน: <ชื่อเอกสาร>` (label `prototype`) ที่แต่ละข้อเป็นเกณฑ์ตรวจรับ หลังทดสอบ `/mflow:review-notes` ติ๊กข้อที่ผ่าน ข้อที่ไม่ตรงก็ปรับในรอบถัดไป
 - **เปลี่ยนใจภายหลัง:** ถ้ายังไม่ได้สร้าง ให้เปิดเอกสารใหม่หัวข้อเดิม แล้วฉบับเก่าจะเป็น `superseded` ถ้าสร้างแล้ว ให้ใช้ `/mflow:change-request` (บันทึกผลกระทบ แล้วทำต่อตามที่คุณสั่ง)
 - **ต่างจาก hotspot:** discuss ยืนยันความเข้าใจทั้งเรื่องในเอกสารเดียวและวนได้เร็ว ส่วน hotspot ไล่กฎที่ต้องใช้คำตอบหรือตัวอย่างจำนวนมากทีละตั๋วหลาย session เอกสาร discuss อาจสร้างแถว hotspot ได้
@@ -234,6 +250,7 @@ flowchart TD
 
     ตัวเลขปรับได้ให้ขนาดจอที่ลูกค้าตรวจรับตกในสถานะที่ต้องการ และบันทึกไว้ใน `docs/ui/design-system.md` ปุ่ม ☰ จำค่าที่เลือกไว้ หน้าจอไม่มี media query ของตัวเอง เนื้อหาจัดตัวเองตามความกว้างของพื้นที่เนื้อหาผ่าน grid ของ kit
   - ชั้นสิทธิ์ที่ใช้ต่อได้ถึงของจริง: permission key, `ICurrentUser`, `MenuDefinition`, การตรวจสิทธิ์ที่ endpoint และผู้ใช้จำลองใน `PrototypeData/users.json` กับ `roles.json` ที่สร้างจากเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติแล้ว (ถ้ายังไม่มีจะได้ผู้ใช้ "ผู้ดูแลระบบ" คนเดียวที่เห็นทุกอย่าง)
+  - **กันผู้ใช้จำลองหลุดไปถึง production:** ปุ่มสลับ role ทำงานเฉพาะเมื่อ `Prototype:UseFakeData` เป็น true ซึ่งเป็นค่าที่ตั้งตอน runtime โค้ดจึงยังติดไปกับแอปที่ publish ด้วย kit จึงมีกันไว้สามชั้น: ค่านี้เป็น false ใน `appsettings.json`, แอปไม่ยอม start ถ้าเปิดค่านี้นอก environment `Development` หรือ `Prototype` (เซิร์ฟเวอร์ demo ให้ลูกค้าลองใช้ ตั้ง `ASPNETCORE_ENVIRONMENT=Prototype`) และมี negative test ว่า start ไม่ได้ใน Production และเรียก endpoint ตรงโดยไม่มีสิทธิ์ได้ 403
   - component ชุดกลาง: DataTable, FilterPanel, FormField, DatePicker, DateRangeField, PageHeader, Button, Card, Dialog, SidePanel (panel เลื่อนออกจากด้านขวา), Alert, Tabs, Dropdown, Tooltip, Loading, DetailView, StatusBadge, EmptyState, ConfirmDialog, Toast, SidebarMenu
   - **ตารางของ back-office (`DataTable`):**
     - แบ่งหน้าที่ server เสมอ: กรอง เรียง แล้วตัดเอาเฉพาะหน้าที่ต้องการในคำสั่ง query ของ database และนับจำนวนด้วยเงื่อนไขเดียวกัน ไม่ดึงทุกแถวมาไว้ในหน่วยความจำหรือ browser
@@ -309,7 +326,7 @@ flowchart TD
   - `/mflow:screen job-list รายการงานขนส่ง`
   - `/mflow:screen job-list เพิ่มช่องค้นหาเลขงานและชื่อลูกค้า`
 - หน้าจอสร้างใน stack จริง ใช้ข้อมูลจาก `PrototypeData/*.json` ที่ใช้ร่วมกันทุกหน้าจอ และตัวเลขที่ต้องคำนวณจะใส่เป็นค่าคงที่พร้อมคอมเมนต์ `// PROTOTYPE:`
-- ถ้าต้องเพิ่ม field หรือ entity ในไฟล์ JSON Claude จะหยุดถามก่อน เพราะหน้าจออื่นใช้ไฟล์เดียวกัน
+- ถ้าหน้าจอนี้ต้องเพิ่ม field หรือ entity ในไฟล์ JSON Claude เพิ่มให้เลยแล้วแจ้งในสรุป เพราะเป็นส่วนหนึ่งของคำสั่งของคุณ แต่ถ้าต้อง**เปลี่ยนชื่อหรือลบ field, เปลี่ยนรูปแบบ id** หรือเพิ่มสิทธิ์ที่เอกสาร access-control ไม่ได้ให้ไว้ Claude จะหยุดถามก่อนพร้อมรายชื่อหน้าจอที่กระทบ เพราะหน้าจออื่นใช้ไฟล์เดียวกัน
 - entity ใหม่ใช้ field ตามเอกสาร data model ที่อนุมัติแล้ว (ถ้ามี) และ `PrototypeData/README.md` คือ data dictionary ของ prototype
 - ทุกหน้าจอมี permission ของตัวเอง ข้อมูลถูกกรองตาม data scope ของผู้ใช้ และ field ที่ห้ามเห็นถูกซ่อน Claude ตรวจโดยสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ต้องไม่เห็นเมนู และเปิด URL ตรงได้ 403) ถ้ายังไม่มีเอกสาร discuss เรื่องสิทธิ์ที่อนุมัติ หน้าจอจะถูกบันทึกว่า `access not confirmed` และ Claude จะแนะนำ `/mflow:discuss access-control`
 - ถ้าอยากเปลี่ยนว่าใครเห็นอะไร และต่างจากเอกสาร discuss ที่อนุมัติแล้ว Claude จะไม่แก้ `roles.json` ตรงๆ แต่เสนอเอกสาร discuss ใหม่ หรือ change request ถ้าสร้างแล้ว
@@ -336,18 +353,20 @@ flowchart TD
 | `/mflow:hotspot <ไอเดีย> [@เอกสาร]` | chart เรื่องใหม่: ตั้ง slug, สร้าง `map.md` และ `rules.md`, สร้างตั๋วคำถาม (`ask` / `examples` / `research` / `spike`) และเขียนทางเลือกพร้อมคำแนะนำไว้ในตั๋ว `ask` ใช้หนึ่ง session |
 | `/mflow:hotspot <slug>` | หยิบตั๋วถัดไปใน frontier (ตั๋วที่หยิบได้) มาแก้ **หนึ่งตั๋ว** แล้วบันทึกผลลง `rules.md` |
 | `/mflow:hotspot <slug> <TASK-ID> [คำตอบ]` | แก้ตั๋วที่ระบุ ตั๋ว `ask` ตอบในคำสั่งได้เลย เช่น `/mflow:hotspot document-approval TASK-54 b` |
-| `/mflow:golden @ไฟล์.xlsx <slug>` | ใช้ Excel ที่ลูกค้าคำนวณด้วยมือจริงเป็นเฉลย (golden data) ได้ไฟล์ JSON และ unit test ตาม stack (xUnit สำหรับ .NET) ข้อมูลส่วนบุคคลจะถูกปิดบัง และแถวที่ผิดปกติจะถูกแยกออกไปเป็นตั๋วถาม |
+| `/mflow:hotspot <slug> TASK-12 a, TASK-13 b` | ตอบตั๋วง่ายที่เกี่ยวกันหลายใบพร้อมกัน ปิดได้ในรอบเดียวถ้าแต่ละคำตอบเป็นตัวเลือกตรงๆ ที่ไม่กระทบตั๋วอื่น ใบที่ต้องคุยต่อจะจดคำตอบไว้แล้วรอ session ของตัวเอง |
+| `/mflow:golden @ไฟล์.xlsx <slug>` | ใช้ Excel ที่ลูกค้าคำนวณด้วยมือจริงเป็นเฉลย (golden data) ได้ไฟล์ JSON และ unit test ตาม stack (xUnit สำหรับ .NET) ข้อมูลส่วนบุคคลจะถูกปิดบัง และแถวที่ผิดปกติจะถูกแยกออกไปเป็นตั๋วถาม พร้อม `<slug>.source.json` ที่บอกว่าเฉลยมาจากไฟล์ไหน (hash) sheet อะไร ช่วงไหน คอลัมน์ไหนคือ input การปัดเศษ และรูปแบบวันที่ ถ้าไฟล์ต้นทางถูกแก้ภายหลัง `/mflow:help check setup` เตือนให้สร้างใหม่ |
 
 - **ตั๋ว `ask`:** Claude ถามคุณตรงๆ พร้อมทางเลือก ตัวอย่าง และคำแนะนำ คำตอบของคุณปิดตั๋วได้ทันที (ตอบว่า "ตามที่แนะนำ" ก็ได้) Claude ไม่เลือกแทนคุณ ถ้าอยากถามคนอื่นก่อน บอกให้ Claude ร่างคำถามลง `docs/hotspots/<slug>/questions-for-customer.md` (ตั๋วติด label `waiting-customer`) ได้คำตอบแล้วพิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>`
 - **จบแต่ละตั๋ว Claude บอกว่าทำอะไรต่อ:** ตั๋วนี้ตัดสินอะไร, `rules.md` เปลี่ยนตรงไหน, readiness bar ผ่านกี่ข้อ, ตั๋วที่หยิบได้ต่อไป (ID, ประเภท, ชื่อ) และตั๋วที่ติดรอ แล้วให้คำสั่งถัดไปหนึ่งคำสั่ง เช่น `/clear` แล้ว `/mflow:hotspot document-approval` (จะหยิบ TASK-54) ถ้าตั๋วถัดไปเป็น `ask` จะแสดงคำถามและทางเลือกให้ดูก่อน ตอบในคำสั่งถัดไปได้เลย ถ้าผ่าน readiness bar แล้วจะไป graduate และบอกให้ `/opsx:apply`
 - **ถ้าเรื่องจบได้ในคุยครั้งเดียว** Claude จะบอกว่าไม่ต้องทำเป็น hotspot และแนะนำ `/opsx:propose` แทน
-- **Graduate:** เมื่อผ่าน readiness bar ครบ 6 ข้อ Claude จะแสดงหลักฐานของแต่ละข้อ → ตอบ yes → สร้าง OpenSpec change จาก `rules.md` → `rules.md` ถูก freeze นับจากนั้นความจริงอยู่ที่ `openspec/specs/`
+- **Graduate:** เมื่อผ่าน readiness bar ครบ 6 ข้อ Claude จะแสดงหลักฐานของแต่ละข้อ → ตอบ yes (หรือถ้าคุณสั่งให้ graduate เองก็ถือเป็น yes แล้ว) → สร้าง OpenSpec change จาก `rules.md` → `rules.md` ถูก freeze นับจากนั้นความจริงอยู่ที่ `openspec/specs/` ถ้า graduate ค้างกลางทาง สั่งซ้ำได้ Claude ทำต่อกับ change ที่สร้างไว้แล้ว ไม่สร้างใหม่
 
 ### ขั้น 6: สร้างของจริงทีละ slice
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
 2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply`
-3. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec แล้วรัน test จริง และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น**
+3. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec แล้วรัน test จริง และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
+   - (ไม่บังคับ) ก่อน apply ของที่ผิดแล้วแพง ให้ AI หลายตัวหาจุดที่แบบจะพังได้ด้วย `/mflow:challenge @openspec/changes/<ชื่อ change>/proposal.md` ต่างจาก review ที่ตรวจโค้ดซึ่งเขียนแล้ว
 4. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 5. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
@@ -363,11 +382,12 @@ flowchart TD
 
 **ให้ AI ตัวอื่นช่วย: `/mflow:delegate` แล้ว `/mflow:assess`**
 1. `/mflow:delegate <TASK-ID | ชื่อ change | slug | "หัวข้อ"> --mode analyze|review|code [--to codex|gemini|opencode|chat]`
-   - ได้ brief ที่ `.mflow/briefs/` และบรรทัดคำสั่งทั้ง PowerShell และ Bash
+   - ได้ brief ที่ `.mflow/briefs/` และบรรทัดคำสั่งทั้ง PowerShell และ Bash path ในคำสั่งครอบด้วย single quote ตามกฎของแต่ละ shell ชื่อไฟล์ที่มี `$` ช่องว่าง `'` `[ ]` หรือภาษาไทยจึงไม่เพี้ยน
+   - brief บันทึก `base` (commit ที่เขียน brief) และบอกว่ามีงานที่ยังไม่ commit หรือไม่ รายงานที่กลับมาจะอ้าง commit เดียวกัน
    - ไม่ใส่ `--to` = brief ที่ใช้กับ tool ไหนก็ได้ พร้อมคำสั่งของทุก tool
    - `--to chat` (ChatGPT/Gemini web) = ได้ context pack ไว้แนบ ไฟล์ที่อาจมีรหัสผ่านหรือ key และไฟล์นอกโปรเจกต์จะถูกข้ามและแสดงไว้ในรายการ `skipped` การตรวจดูจากรูปแบบเท่านั้น จึงควรเปิดอ่าน pack ก่อนวางในแชต
 2. **คุณรันคำสั่งเอง** ผลจะถูกบันทึกลง `docs/ai-inbox/`
-3. `/mflow:assess @docs/ai-inbox/<ไฟล์>` ตรวจว่า tool นั้นเข้าใจระบบและอ่านไฟล์ที่ต้องอ่านครบหรือไม่ แล้วตรวจ finding ทีละข้อกับโค้ดจริง คำตัดสินมี accept, accept-later, reject, needs-decision (Claude ถามคุณเลย) และ already-done → ตอบ yes แล้วจึงสร้าง task
+3. `/mflow:assess @docs/ai-inbox/<ไฟล์>` ตรวจว่า tool นั้นเข้าใจระบบและอ่านไฟล์ที่ต้องอ่านครบหรือไม่ แล้วตรวจ finding ทีละข้อกับโค้ดจริง คำตัดสินมี accept, accept-later, reject, needs-decision (Claude ถามคุณเลย), already-done และ outdated (finding อิงไฟล์ที่ถูกแก้หลัง commit ที่รายงานอ่าน จนสิ่งที่พูดถึงไม่อยู่แล้ว) → ตอบ yes แล้วจึงสร้าง task (ต้องถามเพราะ action มาจากข้อเสนอของ AI ตัวอื่น ไม่ใช่คำสั่งของคุณ)
 4. ถ้าเป็นโหมด `code` ให้ `/mflow:review agent/<tool>/<id>` ด้วยก่อน merge
 
 **ให้ AI หลายตัวช่วยวิเคราะห์ระบบ (ไม่บังคับ): `/mflow:analyze`**
@@ -390,14 +410,18 @@ flowchart TD
 
 | เวลา | เกิดอะไรขึ้น | คุณทำอะไร |
 |---|---|---|
-| เปิด session | hook ใส่ briefing ให้ Claude อัตโนมัติ: ส่วน Now ของ STATUS.md, log ล่าสุด, change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active, เอกสารที่ยังไม่ได้ประมวลผล, รายงานของ AI อื่นที่ยังไม่ได้ assess, เอกสาร discuss ที่รอคุณอ่าน และส่วนแยก "Discussion agenda (optional)" ที่บอกหัวข้อแนะนำที่ยังไม่เริ่ม (ไม่เกินสามชื่อ) กับหัวข้อที่อนุมัติแล้วแต่มีเอกสารใหม่มากระทบ | สั่งงานต่อจาก Now ได้เลย ไม่ต้องอธิบายซ้ำ ส่วน Now มีคำสั่งถัดไปที่คำสั่งก่อนหน้าเขียนไว้ |
+| เปิด session | hook ใส่ briefing ให้ Claude อัตโนมัติ: ส่วน Now ของ STATUS.md, log ล่าสุด, change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active, เอกสารที่ยังไม่ได้ประมวลผล, รายงานของ AI อื่นที่ยังไม่ได้ assess, เอกสาร discuss ที่รอคุณอ่าน และส่วนแยกที่ไม่บังคับ: "Discussion agenda (optional)" (หัวข้อแนะนำที่ยังไม่เริ่ม ไม่เกินสามชื่อ และหัวข้อที่อนุมัติแล้วแต่มีเอกสารใหม่มากระทบ) กับ "Consultations (optional)" (งาน analyze/design/challenge ที่ยังไม่สรุป ถ้ามี) ถ้ามีอะไรผิด briefing บอกตรงๆ เช่น config อ่านไม่ได้, CLI ใช้ไม่ได้, template ของโปรเจกต์เก่ากว่า plugin ("mflow upgrade") ถ้า STATUS.md ยาวเกิน briefing ย่อส่วนที่ยาวที่สุดก่อน งานที่รอและ ritual จึงไม่หาย | สั่งงานต่อจาก Now ได้เลย ไม่ต้องอธิบายซ้ำ ส่วน Now มีคำสั่งถัดไปที่คำสั่งก่อนหน้าเขียนไว้ เห็นบรรทัดที่บอกว่าผิด ให้ `/mflow:help check setup` |
 | ระหว่างทำงาน | หลัง 10 นาทีแรก ถ้ามีไฟล์เปลี่ยนแต่ STATUS.md ยังไม่ถูกอัปเดต (นับทั้งไฟล์ที่ลบ เปลี่ยนชื่อ และที่ commit ไปแล้วใน session นี้) Claude จะเขียนบันทึกสั้นก่อนหยุด เตือนซ้ำไม่เกินทุก 30 นาที และหลัง compact ก็ยังจำงานก่อนหน้าได้ | ไม่ต้องทำอะไร ปรับเวลาได้ใน `.mflow/config.json` (`stopGuard`) |
 | จบวัน | | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog และผล test) ให้คนที่ไม่เห็นแชตวันนี้ทำต่อได้ |
 | ก่อนสลับไปใช้ tool อื่น | | `/mflow:handoff --for codex` ได้ brief ของงานถัดไปด้วย |
 
 Codex และ tool อื่นไม่มี hook ให้ทำตามส่วน "Session ritual" ใน `AGENTS.md` คืออ่าน STATUS.md ตอนเริ่ม และเขียน log ตอนจบ
 
-## 6. ตัวอย่างครบหนึ่งรอบ: ระบบจัดการงานขนส่ง
+## 6. ตัวอย่างการใช้งาน
+
+บรรทัดที่ขึ้นต้นด้วย `/` คือสิ่งที่คุณพิมพ์ บรรทัด `→` คือผลที่เห็น ข้อความภาษาอังกฤษในตัวอย่างคือข้อความจริงที่ script ของ mflow พิมพ์ออกมา (Claude สรุปเป็นภาษาไทยให้อีกที)
+
+### 6.1 ครบหนึ่งรอบ: ระบบจัดการงานขนส่ง
 
 ```text
 # สัปดาห์ที่ 1: ตั้งต้น
@@ -405,6 +429,7 @@ git init
 /mflow:init TransportHub
   (ถาม stack: ตอบ a)
   → ได้ docs/discuss/AGENDA.md ที่มี tech-stack และ code-structure เป็นสองหัวข้อแรก
+  → จบด้วย doctor: ไม่มี fail (ถ้ายังไม่ได้ติดตั้ง Backlog.md จะขึ้น fail พร้อมคำสั่งติดตั้ง)
 /mflow:discuss tech-stack
   → ได้ docs/discuss/01-tech-stack.md: web back office + API .NET 10 + PostgreSQL 18 ใน Docker,
     library ที่ตรวจ licence แล้ว, Redis เป็น "ภายหลัง" (เพิ่มเมื่อมีหลาย instance)
@@ -421,6 +446,7 @@ git init
   (คุณรันคำสั่งของ codex และ opencode ที่ได้)
 /mflow:discuss 03
 /mflow:discuss 03 approve
+  → ตาราง merge แล้วเขียนทันที (ไม่ถาม yes ซ้ำ) แล้ว freeze
 /mflow:theme @docs/source/ci-guide.pdf
 /mflow:screen inventory
   → AGENDA.md ได้หัวข้อ job-data เพราะกลุ่มข้อมูล "งานขนส่ง" ใช้ใน 4 หน้าจอ แต่ยังไม่มีเอกสาร data model
@@ -448,16 +474,23 @@ git init
   → ตั๋วถัดไปเป็น ask: Claude แสดงคำถาม ทางเลือก และคำแนะนำไว้ก่อน
 /clear
 /mflow:hotspot freight-rate TASK-9 b
+/mflow:hotspot freight-rate TASK-10 a, TASK-11 a
+  → สองตั๋วนี้เป็นตัวเลือกตรงๆ ที่ไม่กระทบกัน ปิดได้ในรอบเดียว
 /mflow:golden @docs/source/ค่าขนส่ง-2026-08.xlsx freight-rate
+  → tests/TransportHub.Domain.Tests/Golden/freight-rate.json (210 แถว, แถวผิดปกติ 3 แถวไปเป็นตั๋วถาม)
+    และ freight-rate.source.json (ไฟล์ต้นทาง + hash, sheet, ช่วง, คอลัมน์, การปัดเศษ)
 /mflow:hotspot freight-rate          → ผ่าน readiness bar → graduate
 
 # สัปดาห์ที่ 4: สร้างของจริง
 /opsx:propose freight-rate-calculation
+/mflow:challenge @openspec/changes/freight-rate-calculation/proposal.md --focus rounding,edge-cases --to codex
+  (ไม่บังคับ: ให้ AI ลองหาจุดที่แบบจะพังก่อนลงมือ ระหว่างรอคุณทำงานอื่นต่อได้)
 /mflow:delegate freight-rate-calculation --mode code --to codex
   (คุณรันคำสั่ง PowerShell ที่ได้)
 /mflow:assess @docs/ai-inbox/2026-10-20-codex-freight-rate-calculation.md
 /mflow:review agent/codex/freight-rate-calculation
-  (approve → merge)
+  → Reviewed: agent/codex/freight-rate-calculation at 4f2a9c1 … approve
+  (merge ได้เพราะ branch ยังชี้ 4f2a9c1 ถ้ามี commit เพิ่ม Claude ตรวจส่วนนั้นก่อน)
 /opsx:archive
 git diff --stat openspec/specs
 
@@ -469,11 +502,175 @@ git diff --stat openspec/specs
 /mflow:handoff
 ```
 
+### 6.2 ตัวอย่างตามสถานการณ์
+
+#### อัปเกรด mflow ในโปรเจกต์ที่ใช้อยู่
+
+เปิด session ใหม่หลังอัปเดต plugin แล้ว briefing มีบรรทัดนี้:
+
+```text
+## mflow upgrade
+- mflow 0.19.0 has templates newer than this project's (set up before 0.18.0) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check
+```
+
+```text
+/mflow:help check setup
+  → warn  agents     AGENTS.md: no ## Who decides section (older template)
+                     แก้: Run /mflow:init: it keeps your text and merges the missing parts
+  → info  templates  set up before mflow 0.18.0, which started recording the templates it offers
+  → warn  cache      3 text version(s) in the pre-0.17.2 layout .mflow/cache/<name>.md, no longer read
+                     แก้: Delete them; capture and consult convert again under .mflow/cache/<path>.<hash>.md
+/mflow:init
+  → Stack: a) mvc-htmx  (ใช้ต่อ ไม่ถามใหม่)
+  → suggested: AGENTS.md, CLAUDE.md, STATUS.md, docs/vision.md   unchanged: 5
+    ครั้งแรกหลังอัปเกรด ไฟล์ที่คุณเคยแก้ทุกไฟล์ถูกเสนอเทียบหนึ่งครั้ง Claude merge ให้
+    โดยคงทุกอย่างที่คุณเขียน เติมเฉพาะส่วนที่ขาด แล้วแสดง diff
+/mflow:init        (รุ่นถัดไป ที่ไม่ได้เปลี่ยน template ของไฟล์เหล่านี้)
+  → suggested: ไม่มี   kept: AGENTS.md, CLAUDE.md, STATUS.md, docs/vision.md
+```
+
+- doctor อ่านอย่างเดียว ไม่แก้อะไร ทุกข้อที่เป็น `warn` หรือ `fail` มีวิธีแก้บอกไว้
+- `kept` คือไฟล์ที่เคยเสนอ template ไปแล้ว ไฟล์ของคุณถือเป็นฉบับที่ใช้ ไม่ถูกเสนอซ้ำ
+
+#### briefing บอกว่าเครื่องมือใช้ไม่ได้
+
+```text
+## Backlog.md
+- CLI unavailable, not initialised, or its output unreadable → /mflow:help check setup
+```
+
+```text
+/mflow:help check setup
+  → fail  backlog       backlog not found
+                        แก้: npm i -g backlog.md
+  → warn  node          Node 20.20.2 works, but Node 20 reached end of life on 2026-04-30
+                        แก้: Move to Node 22 or 24 LTS
+  → info  claude-code   Claude Code 2.1.289 (tested with 2.1.282)
+```
+
+- รุ่นที่ใหม่กว่ารุ่นที่ทดสอบไม่ได้แปลว่าผิด doctor แค่บอกว่ายังไม่ได้ทดสอบ ส่วนรุ่นที่เก่ากว่าขั้นต่ำ (OpenSpec 1.10, Backlog.md 1.51, Node 20) เป็น `fail`
+- ถ้า CLI มีแต่ mflow อ่าน JSON ของมันไม่ได้ doctor จะบอกตรงๆ ว่า output อ่านไม่ได้ พร้อมรุ่นที่ทดสอบไว้
+
+#### ไฟล์สถานะเสียหลัง git pull
+
+หลัง pull แล้ว `.mflow/sources.json` ค้าง merge conflict briefing จะบอกแทนที่จะทำเหมือนไม่มีเอกสาร:
+
+```text
+- source registry unreadable, so new and changed documents are unknown: .mflow/sources.json is not valid JSON (… it still has git merge conflict markers); fix it by hand or restore the last good copy from git, nothing was written. Repair it before /mflow:capture
+```
+
+- เปิดไฟล์แล้วรวมสองฝั่งด้วยมือ (เป็น JSON ธรรมดา แต่ละเอกสารอยู่คนละ key) หรือเอาฉบับดีล่าสุดจาก git แล้วค่อย `/mflow:capture`
+- **อย่าลบไฟล์แล้วให้ mflow สร้างใหม่** เพราะเป็นที่เดียวที่บันทึกว่าไฟล์ไหนแทนไฟล์ไหนและใช้กับเรื่องใด
+- ถ้าเป็น `.mflow/config.json` briefing จะขึ้น "mflow config unreadable" และไม่แสดงส่วนที่ต้องใช้ path จาก config จนกว่าจะแก้
+
+#### เอกสาร discuss ยังอนุมัติไม่ได้
+
+```text
+/mflow:discuss 03 approve
+  → ยังอนุมัติไม่ได้:
+     - D2: ผู้จัดการเขตเห็นกี่สาขา: answer e) is not one of its options a) b) c)
+     - D4: ใครอนุมัติแทนเมื่อหัวหน้าลา  ยังไม่มีบรรทัด **เลือก:**
+     - หัวข้อ 6 ว่าง (เขียน "ไม่มี" ถ้าไม่มีเรื่องที่ไม่รวม)
+```
+
+แก้ในไฟล์ (หรือตอบในแชต `/mflow:discuss 03 D2 b, D4 a`) แล้วสั่ง `approve` อีกครั้ง ตัวอย่างที่อยู่ใน code block (แม้จะซ้อนกันหลายชั้น) ไม่ถูกนับเป็นคำตอบ
+
+#### approve หยุดกลางทาง
+
+```text
+/mflow:discuss 03 approve
+  → … (context หมด หลังสร้าง task ไป 2 จาก 4 ตัว)
+/clear
+/mflow:discuss 03 approve
+  → ตาราง merge: 6 แถว "มีแล้ว" (รอบก่อนเขียนไว้แล้ว) 4 แถวเขียนรอบนี้ แล้ว freeze
+```
+
+ไม่มี task หรือข้อความซ้ำ เพราะ Claude ตรวจว่าปลายทางไหนอ้างเอกสารนี้อยู่แล้วก่อนเขียน
+
+#### ใช้ Excel ฉบับใหม่เป็นเฉลย
+
+```text
+/mflow:golden @docs/source/ค่าขนส่ง-2026-09.xlsx freight-rate
+  → "ชุดเฉลยเดิมมาจากไฟล์ฉบับก่อน (hash ต่างกัน) รอบนี้แทนที่"
+  → freight-rate.json และ freight-rate.source.json ชุดใหม่ แล้วรัน test ให้ดูผล
+```
+
+ถ้ามีคนแก้ไฟล์ Excel เดิมทับที่ (ซึ่งไม่ควรทำ) `/mflow:help check setup` จะเตือน `freight-rate.source.json was made from an older version of docs/source/ค่าขนส่ง-2026-08.xlsx` พร้อมคำสั่งให้สร้างใหม่
+
+#### ส่งงานให้ ChatGPT หรือ Gemini บนเว็บ
+
+```text
+/mflow:delegate "ตรวจ flow อนุมัติใบงาน" --mode analyze --to chat
+  → context pack: .mflow/briefs/2026-10-04-…-analyze-chat.pack.md (12 ไฟล์, 84 KB)
+    หัว pack: Snapshot: commit 3b267d8…  (ให้ AI อ้าง commit นี้ในรายงาน)
+    skipped: appsettings.Development.json (may contain secrets: attach a redacted copy by hand if the tool needs it)
+             ../shared/Money.cs (outside the project: name its folder with --allow if the brief needs it)
+```
+
+- เปิดอ่าน pack ก่อนวางในแชตทุกครั้ง การตรวจข้อมูลลับดูจากรูปแบบเท่านั้น
+- ถ้างานนี้ต้องใช้ shared package นอกโปรเจกต์จริง ให้บอก Claude ใส่ `--allow ../shared`
+
+#### รายงานจาก AI อ่านโค้ดฉบับเก่า
+
+```text
+/mflow:assess @docs/ai-inbox/2026-10-04-codex-TASK-31-review.md
+  → ไฟล์ที่รายงานอ่านแล้วถูกแก้หลัง commit 3b267d8 ที่รายงานอ้าง: src/Billing/FeeCalculator.cs
+  → R1 accept, R2 outdated (บรรทัดที่ R2 พูดถึงถูกแก้แล้วใน commit หลังจากนั้น), R3 accept-later
+```
+
+finding ที่อิงไฟล์ที่เปลี่ยนจะถูกตรวจกับโค้ดปัจจุบัน ไม่เชื่อตามรายงาน
+
+#### ให้ AI หลายตัวช่วยวิเคราะห์ ออกแบบ และทักท้วง (ไม่บังคับทั้งหมด)
+
+```text
+/mflow:analyze system --to codex,gemini
+  → AN-001: brief .mflow/briefs/AN-001-r1.md และคำสั่งของ codex กับ gemini
+    รายงานจะอยู่ที่ docs/ai-inbox/AN-001-r1-codex.md และ AN-001-r1-gemini.md
+  (คุณรัน codex วันนี้ gemini พรุ่งนี้ ระหว่างนั้นทำ /mflow:screen ต่อตามปกติ)
+```
+
+briefing ของ session ถัดไป (เป็นส่วนแยก ไม่ใช่งานที่ต้องทำต่อ):
+
+```text
+## Consultations (optional; the main work does not wait for them)
+- AN-001 analyze "system": round 1, 1/2 report(s), assessing → /mflow:analyze AN-001
+```
+
+```text
+/mflow:analyze AN-001
+  → ตรวจรายงานของ codex (gemini ยังไม่มา คุณสั่งสรุปแบบ partial ได้เลย)
+  → docs/analysis/AN-001/summary.md: 9 ข้อค้นพบ (ยืนยันด้วยหลักฐาน 6, ปฏิเสธพร้อมเหตุผล 2,
+    ยังเป็นสมมติฐาน 1) และความเห็นต่าง 1 ข้อ พร้อมวิธีตัดสิน
+คุณ: เอา F3 ไปทำ ส่วน F5 คุยต่อ
+  → F3 เป็น Backlog task, F5 เปิด /mflow:discuss numbering (ไม่ถามซ้ำ)
+
+/mflow:design "ระบบสิทธิ์หลายบริษัท" --from @docs/analysis/AN-001/summary.md --to codex,gemini
+  … (รายงานกลับมา)
+/mflow:design DS-001
+  → docs/design/DS-001/proposal.md: แบบที่แนะนำ ทางเลือก A1 แยก schema ต่อบริษัท / A2 คอลัมน์ CompanyId
+    ข้อที่คุณต้องตัดสินใจ 2 ข้อ และ comparison.md เทียบ A1 กับ A2
+
+/mflow:challenge @docs/design/DS-001/proposal.md --focus permissions,recovery --to codex
+  … (รายงานกลับมา)
+/mflow:challenge CH-001
+  → X1 "ผู้ใช้บริษัท A ส่ง CompanyId ของบริษัท B มากับ body": ยืนยัน เสนอ test ที่ต้องได้ 403
+  → X2 "retry หลัง network หลุด สร้างรายการซ้ำ": outdated เพราะ proposal rev 2 เพิ่ม idempotency key แล้ว
+
+คุณเลือก A2 → /opsx:propose multi-company-tenancy  (อ้าง DS-001 rev 2 และ test จาก CH-001)
+```
+
+- ทั้งสามคำสั่งเรียกแยกกันได้ ไม่ต้องเรียงลำดับ ไม่มีขั้นไหนของงานหลักรอ และ mflow ไม่รัน AI อื่นให้ คุณรันเอง
+- ความเห็นที่ AI หลายตัวตรงกันแต่ไม่มีหลักฐาน ยังเป็นสมมติฐาน ความเห็นต่างและข้อที่ปฏิเสธอยู่ในสรุปครบ ไม่มีอะไรถูกแก้ในโค้ดหรือ spec เพียงเพราะ AI เสนอ
+- สั่ง `/mflow:analyze system` ซ้ำขณะ AN-001 ยังไม่สรุป จะได้ AN-001 เดิม ไม่เปิดงานซ้ำ
+
 ## 7. ตารางลัด: สถานการณ์ → คำสั่ง
 
 | สถานการณ์ | คำสั่ง |
 |---|---|
-| repo ใหม่ หรือเพิ่งอัปเกรด plugin | `/mflow:init` (ถามเลือก stack ก่อน) |
+| repo ใหม่ | `/mflow:init` (ถามเลือก stack ก่อน) |
+| ไม่รู้จะเริ่มทางไหน | `/mflow:help` (แสดงสองทาง: อยากเห็นหน้าจอเร็ว หรือกฎซับซ้อนผิดแล้วแพง) |
+| เพิ่งอัปเกรด plugin หรือ briefing มีบรรทัด "mflow upgrade" | `/mflow:help check setup` แล้ว `/mflow:init` (ใช้ stack เดิม เสนอเฉพาะ template ที่เปลี่ยน) |
+| briefing บอกว่า CLI ใช้ไม่ได้ config อ่านไม่ได้ หรือรู้สึกว่ามีอะไรผิด | `/mflow:help check setup` (ตรวจอย่างเดียว บอกวิธีแก้ทุกข้อ) |
 | จะเปลี่ยน stack ก่อน `/mflow:theme` (หลังจากนั้นต้องสร้าง kit และหน้าจอใหม่) | แก้ `## Stack` ใน AGENTS.md หรือรัน `/mflow:init` ซ้ำให้ถามใหม่ |
 | ลูกค้าส่งเอกสารหรือฉบับใหม่ | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` |
 | จะเลือก tech stack, library, ฐานข้อมูล, Docker หรือโครงสร้างโฟลเดอร์ | `/mflow:discuss tech-stack` แล้ว `/mflow:discuss code-structure` |
@@ -483,6 +680,7 @@ git diff --stat openspec/specs
 | อยากให้ AI หลายตัวช่วยคิดหัวข้อ discuss แล้วเลือกเอง | `/mflow:discuss <NN> consult` → รันคำสั่ง → `/mflow:discuss <NN>` |
 | ออกแบบตาราง column และ data dictionary ของกลุ่มข้อมูลหนึ่ง | `/mflow:discuss <กลุ่มข้อมูล> data model [@ไฟล์]` |
 | เอกสาร discuss ตรงกับที่คิดแล้ว | `/mflow:discuss <NN> approve` |
+| approve ค้างกลางทาง (context หมด, CLI ล้ม) | `/mflow:discuss <NN> approve` อีกครั้ง (ส่วนที่เขียนแล้วขึ้น `มีแล้ว` ไม่สร้างซ้ำ) |
 | ยังไม่เคยสร้างหน้าจอเลย | `/mflow:theme` |
 | อยากอนุมัติหน้าตาและเมนู ☰ ก่อนมีโค้ดแอป | `/mflow:theme preview` → อนุมัติ → `/mflow:theme port` |
 | จะเปลี่ยนสี ฟอนต์ หรือ component กลาง | `/mflow:theme update <อะไร>` |
@@ -497,6 +695,8 @@ git diff --stat openspec/specs
 | อยากให้ AI หลายตัวช่วยวิเคราะห์ระบบ (ไม่บังคับ) | `/mflow:analyze system` หรือ `/mflow:analyze "หัวข้อ"` |
 | อยากได้แบบเสนอและทางเลือกจาก AI หลายตัวก่อนตัดสินใจ (ไม่บังคับ) | `/mflow:design "หัวข้อ"` |
 | อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง (ไม่บังคับ) | `/mflow:challenge @ไฟล์` |
+| รายงานของ analyze/design/challenge กลับมาแล้ว | `/mflow:analyze AN-NNN` / `/mflow:design DS-NNN` / `/mflow:challenge CH-NNN` (ยังไม่ครบทุกตัวก็สรุปแบบ partial ได้) |
+| ตอบตั๋ว hotspot ง่ายๆ หลายใบพร้อมกัน | `/mflow:hotspot <slug> TASK-12 a, TASK-13 b` |
 | พร้อมตอบตั๋ว `ask` หรือได้คำตอบจากคนที่ไปถามมาแล้ว | `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` |
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
 | มี Excel จริงที่ใช้พิสูจน์กฎได้ | `/mflow:golden @ไฟล์.xlsx <slug>` |
@@ -516,11 +716,11 @@ git diff --stat openspec/specs
 | `init` เสนอ `openspec init --language th` ซึ่งจะได้ข้อความ "written in th" ตามตัวอักษร | ถ้าต้องการ spec ภาษาไทย ให้บอก Claude ใช้ `--language "Thai"` แทน |
 | `backlog init` ในโฟลเดอร์ที่ยังไม่เป็น git repo จะถามคำถาม | รัน `git init` ก่อน `/mflow:init` |
 | `backlog decision create` รับได้แค่ชื่อ | บันทึกเหตุผลของ decision ไว้ในไฟล์ decision เอง หรือใน `rules.md` ของ hotspot |
-| ยังไม่มี `.mflow/.gitignore` | เพิ่มเอง: `cache/`, `suggested/`, `briefs/*.pack.md` |
+| ยังไม่มี `.mflow/.gitignore` | เพิ่มเอง: `cache/`, `suggested/`, `briefs/*.pack.md`, `*.lock` (`local.json` ถูกเพิ่มลง `.gitignore` ให้แล้ว) ส่วน `config.json`, `sources.json`, `templates.json` และ `consultations/` ควร commit |
 | `/mflow:review <branch>` เทียบกับ `main` | repo ที่ใช้ `master` หรือ `develop` ให้บอกชื่อ branch หลักตอนสั่ง |
 | golden JSON ต้องถูก copy ไปโฟลเดอร์ output ของ test | ตั้ง `CopyToOutputDirectory` ใน test project |
 | คำสั่ง gemini และ opencode ยังไม่ได้รันกับโมเดลจริง | เช็ก `--help` ก่อนใช้ครั้งแรก |
-| skill ทั้ง 15 ตัวยังไม่เคยรันใน session จริง | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
+| skill ทั้ง 18 ตัวยังไม่เคยรันครบวงจรใน session จริง (script ทุกตัวมีชุด test ที่รันใน CI แล้ว แต่ยังไม่ได้ยืนยันว่า Claude ทำตามข้อความใน skill ถูกทุกขั้น) | ใช้ครั้งแรกแบบนั่งดูทีละขั้น ถ้าทำไม่ตรงคู่มือให้บอกในแชต |
 | หลัง `resume` Stop hook นับเป็น session ใหม่ | งานจาก session ก่อนที่ยังไม่ได้ลง log ให้สั่ง `/mflow:handoff` เอง |
 | wireframe ตัวอักษรที่มีภาษาไทย ขอบขวาไม่ตรงกัน เพราะสระบน/ล่างและวรรณยุกต์ไม่กินช่องในฟอนต์ความกว้างคงที่ | Claude จะวาดกล่องแบบเปิดด้านขวา หรือวางข้อความไทยไว้ท้ายบรรทัด ถ้ามีหน้าจอจริงแล้วจะใช้ภาพหน้าจอแทน |
 | mindmap, timeline และ journey ของ Mermaid เป็นชนิดใหม่ บาง preview ยังแสดงไม่ได้ | Claude ใช้ flowchart, sequence, state และ ER เป็นหลัก การเตือน label ที่จะพังตรวจเฉพาะ flowchart |

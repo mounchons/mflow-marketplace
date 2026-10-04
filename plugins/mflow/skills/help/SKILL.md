@@ -31,7 +31,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Continue working out a rule | `/mflow:hotspot <slug>` |
 | Customer's spreadsheet should prove a rule | `/mflow:golden @file.xlsx <slug>` |
 | Clear, small change to build | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` |
-| Stop or resume handing apply's code changes to the Sonnet 5.5 subagent (`mflow:dev`) | `/mflow:subagent off` / `on` (`--shared` for the whole team, `status` to check); for one run only, say so in the `/opsx:apply` message |
+| Have apply hand its code changes to the Sonnet 5.5 subagent (`mflow:dev`, off by default), or stop it | `/mflow:subagent on` then `/clear` / `off` (`--shared` for the whole team, `status` to check); while on, skip it for one run by saying so in the `/opsx:apply` message |
 | Customer asks for a change after approval | `/mflow:change-request <request>` |
 | Hand work, analysis or review to another AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` |
 | Another AI's analysis or review came back | `/mflow:assess @docs/ai-inbox/<file>` |

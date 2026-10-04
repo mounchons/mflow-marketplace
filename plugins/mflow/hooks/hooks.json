@@ -1,10 +1,18 @@
 {
-  "description": "mflow: inject project state at session start; ask for a STATUS.md update before stopping when code changed.",
+  "description": "mflow: inject project state at session start; ask for a STATUS.md update before stopping when code changed; keep the apply subagent off until the project switches it on.",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start.mjs\"", "timeout": 30 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-guard.mjs\"", "timeout": 10 }
         ]
       }
     ],

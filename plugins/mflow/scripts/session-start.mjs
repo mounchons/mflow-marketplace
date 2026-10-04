@@ -13,8 +13,8 @@ import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
 
 const input = readStdinJson();
-// The folder Claude Code was opened in; it may sit below the mflow root, and only its
-// .claude/settings*.json apply to the session.
+// The folder Claude Code was opened in; it may sit below the mflow root. Only its
+// .claude/settings*.json apply to the session, which the apply-subagent check needs to know.
 const projectDir = path.resolve(process.env.CLAUDE_PROJECT_DIR || input.cwd || ".");
 const root = findRoot(projectDir);
 if (!root) process.exit(0);
@@ -50,22 +50,21 @@ if (status) {
   parts.push("## STATUS.md\n(missing: create it from the mflow template before working)");
 }
 
-// 2. Active OpenSpec changes (what WILL be true).
+// 2. Active OpenSpec changes (what WILL be true), and the apply subagent.
+// The apply guidance hands tasks to mflow:dev only when this briefing says it is on. Off is the
+// default and needs no line; a permission rule that blocks a switched-on agent is reported.
+let subagent = "";
+try {
+  const sa = applySubagentStatus(root, projectDir);
+  if (sa.state === "on") {
+    subagent = `\n- apply subagent mflow:dev is ON (${sa.source} setting): /opsx:apply hands each task to it → /mflow:subagent off to stop`;
+  } else if (sa.switchedOn && sa.blockedBy) {
+    subagent = `\n- apply subagent mflow:dev is switched on but a Claude Code permission rule blocks it (${sa.blockedBy.map((b) => b.file).join(", ")}): /opsx:apply implements tasks itself`;
+  }
+} catch { /* setting unreadable: the guard denies the agent, say nothing */ }
 const os = runJson("openspec list --json", root, 10000);
 if (os && Array.isArray(os.changes)) {
   const active = os.changes.filter((c) => c.status !== "complete" && c.status !== "archived");
-  // Silent while the apply subagent is on; one line when a permission rule switches it off,
-  // or when the root switches it off but this session was opened in a subfolder the rule does not reach.
-  let subagent = "";
-  try {
-    const sa = applySubagentStatus(root, projectDir);
-    const where = sa.openedBelowRoot ? ` in ${sa.openedBelowRoot}` : "";
-    if (sa.state === "off") {
-      subagent = `\n- apply subagent mflow:dev is off${where} (${sa.deniedBy.map((d) => d.scope).join(", ")} settings): /opsx:apply implements tasks itself → /mflow:subagent on`;
-    } else if (sa.rootDeniedBy) {
-      subagent = `\n- apply subagent mflow:dev is ON in this session: the project root switches it off, but Claude Code was opened in ${sa.openedBelowRoot} and reads settings only there → open Claude Code at the project root, or /mflow:subagent off here`;
-    }
-  } catch { /* settings unreadable: say nothing */ }
   parts.push(
     "## OpenSpec changes in flight\n" +
       (active.length
@@ -74,7 +73,7 @@ if (os && Array.isArray(os.changes)) {
       subagent,
   );
 } else {
-  parts.push("## OpenSpec\n- CLI unavailable or not initialised (run `openspec --version`)");
+  parts.push("## OpenSpec\n- CLI unavailable or not initialised (run `openspec --version`)" + subagent);
 }
 
 // 3. Backlog.md: tasks in progress, and hotspot frontiers.

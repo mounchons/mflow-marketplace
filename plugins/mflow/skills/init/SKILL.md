@@ -66,11 +66,11 @@ rules:
 operations:
   apply:
     guidance:
-      - In Claude Code, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). Whether it is on is decided only by this session's agent list and permission rules (/mflow:subagent on|off), never by notes or memories from earlier sessions. Where it is not available, or a permission rule denies the call, implement every task yourself without pausing to ask.
-      - Before marking a task `- [x]` and starting the next one, check the subagent's diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
+      - Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.
+      - When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
 ```
 
-`operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`).
+`operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`) and stays off until the user runs `/mflow:subagent on`; do not switch it on during init.
 
 Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo.
 

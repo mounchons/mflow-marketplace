@@ -103,6 +103,8 @@ export function loadConfig(root) {
     discussDir: "docs/discuss",
     statusLogEntriesInContext: 2,
     stopGuard: { enabled: true, graceMinutes: 10, repeatMinutes: 30 },
+    // The apply subagent (mflow:dev) is off until switched on; .mflow/local.json overrides per machine.
+    applySubagent: { enabled: false },
   };
   let user = {};
   try {
@@ -113,6 +115,7 @@ export function loadConfig(root) {
     ...defaults,
     ...user,
     stopGuard: { ...defaults.stopGuard, ...sg },
+    applySubagent: { ...defaults.applySubagent, ...(user.applySubagent || {}) },
     tools: { ...DEFAULT_TOOLS, ...(user.tools || {}) },
   };
 }
@@ -150,6 +153,38 @@ export function readText(file) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Parse a file that holds one JSON object. Returns null when the file does not exist (with
+ * `allowEmpty`, also when it is empty). Throws when it exists but cannot be read, is empty, is not
+ * valid JSON or is not an object: a broken file must never pass for a missing one, or the next write
+ * replaces it. A UTF-8 BOM, which Windows Notepad adds, is accepted.
+ */
+export function readJsonFile(file, { allowEmpty = false } = {}) {
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw new Error(`${file} could not be read (${err.code || err.message})`);
+  }
+  text = text.replace(/^﻿/, "");
+  if (!text.trim()) {
+    if (allowEmpty) return null;
+    throw new Error(`${file} is empty`);
+  }
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch (err) {
+    const hint = /^<{7}(?: |$)/m.test(text) ? ", it still has git merge conflict markers" : "";
+    throw new Error(`${file} is not valid JSON (${err.message}${hint})`);
+  }
+  if (json === null || typeof json !== "object" || Array.isArray(json)) {
+    throw new Error(`${file} does not hold a JSON object`);
+  }
+  return json;
 }
 
 export function mtimeMs(file) {

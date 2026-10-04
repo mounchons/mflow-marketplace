@@ -29,7 +29,9 @@ export function findRoot(start) {
 
 /**
  * Command templates for other AI tools, per mode and shell.
- * Placeholders: {brief} brief file, {out} report file, {worktree} worktree dir.
+ * Placeholders: {brief} brief file, {out} report file, {worktree} worktree dir. delegate-cmd.mjs puts
+ * each in as an absolute path quoted for that shell, so templates never quote them; PowerShell
+ * cmdlets take them through -LiteralPath, where [ and ] are not wildcards.
  * Projects override or add tools under "tools" in .mflow/config.json.
  * `verified` = checked against the tool's documentation when this plugin version was written;
  * flags change between releases, so unverified entries tell the user to check --help.
@@ -47,15 +49,15 @@ export const DEFAULT_TOOLS = {
     notes: "Checked against codex-cli 0.156.1. Read-only sandbox for analyze/review; -o saves the final message. Code mode uses the workspace-write sandbox (--full-auto no longer exists); steps that need network, such as a NuGet restore, may be blocked, see --approve-for-me in `codex exec --help`. Interactive: run `codex`, then ask it to read the brief.",
     analyze: {
       bash: "codex exec -s read-only -o {out} - < {brief}",
-      pwsh: PWSH_UTF8 + "Get-Content {brief} -Raw -Encoding utf8 | codex exec -s read-only -o {out} -",
+      pwsh: PWSH_UTF8 + "Get-Content -LiteralPath {brief} -Raw -Encoding utf8 | codex exec -s read-only -o {out} -",
     },
     review: {
       bash: "codex exec -s read-only -o {out} - < {brief}",
-      pwsh: PWSH_UTF8 + "Get-Content {brief} -Raw -Encoding utf8 | codex exec -s read-only -o {out} -",
+      pwsh: PWSH_UTF8 + "Get-Content -LiteralPath {brief} -Raw -Encoding utf8 | codex exec -s read-only -o {out} -",
     },
     code: {
       bash: "codex exec -s workspace-write -C {worktree} -o {out} - < {brief}",
-      pwsh: PWSH_UTF8 + "Get-Content {brief} -Raw -Encoding utf8 | codex exec -s workspace-write -C {worktree} -o {out} -",
+      pwsh: PWSH_UTF8 + "Get-Content -LiteralPath {brief} -Raw -Encoding utf8 | codex exec -s workspace-write -C {worktree} -o {out} -",
     },
   },
   opencode: {
@@ -63,15 +65,15 @@ export const DEFAULT_TOOLS = {
     notes: "Not run against a real install. Uses `opencode run` with the brief attached by -f (flags from the online CLI docs); the `plan` agent is meant for read-only work. Check `opencode run --help` for your version.",
     analyze: {
       bash: `opencode run --agent plan ${ASK} -f {brief} > {out}`,
-      pwsh: PWSH_UTF8 + `opencode run --agent plan ${ASK} -f {brief} | Out-File -Encoding utf8 {out}`,
+      pwsh: PWSH_UTF8 + `opencode run --agent plan ${ASK} -f {brief} | Out-File -Encoding utf8 -LiteralPath {out}`,
     },
     review: {
       bash: `opencode run --agent plan ${ASK} -f {brief} > {out}`,
-      pwsh: PWSH_UTF8 + `opencode run --agent plan ${ASK} -f {brief} | Out-File -Encoding utf8 {out}`,
+      pwsh: PWSH_UTF8 + `opencode run --agent plan ${ASK} -f {brief} | Out-File -Encoding utf8 -LiteralPath {out}`,
     },
     code: {
       bash: `cd {worktree} && opencode run ${ASK} -f {brief} > {out}`,
-      pwsh: PWSH_UTF8 + `Push-Location {worktree}; opencode run ${ASK} -f {brief} | Out-File -Encoding utf8 {out}; Pop-Location`,
+      pwsh: PWSH_UTF8 + `Push-Location -LiteralPath {worktree}; opencode run ${ASK} -f {brief} | Out-File -Encoding utf8 -LiteralPath {out}; Pop-Location`,
     },
   },
   gemini: {
@@ -79,11 +81,11 @@ export const DEFAULT_TOOLS = {
     notes: "Checked against gemini-cli 0.19.1 source, not run end to end: piped stdin is prepended to the -p prompt. -p is marked deprecated, but the positional prompt fails with piped stdin when gemini's sandbox is on. Check `gemini --help` for sandbox/approval flags before code mode.",
     analyze: {
       bash: `gemini -p ${ASK} < {brief} > {out}`,
-      pwsh: PWSH_UTF8 + `Get-Content {brief} -Raw -Encoding utf8 | gemini -p ${ASK} | Out-File -Encoding utf8 {out}`,
+      pwsh: PWSH_UTF8 + `Get-Content -LiteralPath {brief} -Raw -Encoding utf8 | gemini -p ${ASK} | Out-File -Encoding utf8 -LiteralPath {out}`,
     },
     review: {
       bash: `gemini -p ${ASK} < {brief} > {out}`,
-      pwsh: PWSH_UTF8 + `Get-Content {brief} -Raw -Encoding utf8 | gemini -p ${ASK} | Out-File -Encoding utf8 {out}`,
+      pwsh: PWSH_UTF8 + `Get-Content -LiteralPath {brief} -Raw -Encoding utf8 | gemini -p ${ASK} | Out-File -Encoding utf8 -LiteralPath {out}`,
     },
   },
   chat: {

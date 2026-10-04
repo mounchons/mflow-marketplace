@@ -172,7 +172,7 @@ brief ถูกส่งทาง stdin หรือแนบเป็นไฟ�
 }
 ```
 
-`{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ใส่เครื่องหมายคำพูดแล้ว และ `{tool}` ใน path ผลลัพธ์ถูกแทนด้วยชื่อ tool เพื่อให้หลาย tool ตอบ brief เดียวกันได้โดยไม่ทับไฟล์กัน ถ้าเรียก tool ที่ยังไม่มีในทะเบียน `/mflow:delegate` จะถามคำสั่งแล้วบันทึกให้
+`{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ครอบ single quote ตามกฎของแต่ละ shell (Bash และ PowerShell) `$` backtick ช่องว่าง และ `'` ใน path จึงไม่ถูกตีความ ใน template ไม่ต้องใส่เครื่องหมายคำพูดเอง และ cmdlet ของ PowerShell ให้รับ path ผ่าน `-LiteralPath` เพราะ `[ ]` ใน `-Path` เป็น wildcard script ไม่ยอมสร้างคำสั่งถ้าไม่มี `--brief` หรือ `--out` หรือไม่มี `--worktree` ใน mode code และ `{tool}` ใน path ผลลัพธ์ถูกแทนด้วยชื่อ tool เพื่อให้หลาย tool ตอบ brief เดียวกันได้โดยไม่ทับไฟล์กัน ถ้าเรียก tool ที่ยังไม่มีในทะเบียน `/mflow:delegate` จะถามคำสั่งแล้วบันทึกให้
 
 PowerShell: คำสั่งที่สร้างให้ตั้ง UTF-8 ทั้งขาเข้า (`$OutputEncoding` สำหรับ brief ที่ pipe เข้า tool) และขาออก (`[Console]::OutputEncoding` สำหรับคำตอบที่ tool พิมพ์ออกมา) ถ้าตั้งแค่ขาเข้า คำตอบภาษาไทยจะเพี้ยนทั้งใน PowerShell 5.1 และ 7 เมื่อ console ใช้ code page อื่นที่ไม่ใช่ UTF-8
 

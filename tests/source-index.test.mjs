@@ -164,7 +164,7 @@ test("a broken config.json: the briefing says so, the Stop hook stays quiet, del
   const stop = run(p, "stop-guard.mjs", [], { input: { session_id: "t-cfg", cwd: p.root } });
   assert.equal(stop.status, 0);
   assert.equal(stop.stdout, "");
-  const cmd = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex"]);
+  const cmd = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", "b.md", "--out", "r.md"]);
   assert.equal(cmd.status, 1);
   assert.match(cmd.stderr, /config\.json/);
 });

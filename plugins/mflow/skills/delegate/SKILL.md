@@ -42,7 +42,7 @@ Done when: the brief alone is enough for a tool that has never seen this project
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool <tool or any> --brief <brief> --out docs/ai-inbox/<date>-{tool}-<id>.md [--worktree <dir>]` and present its result. The script replaces `{tool}` with each tool's name, so with `--tool any` every tool writes its own report instead of overwriting one file:
 - Both `pwsh` and `bash` lines when available; the PowerShell line sets UTF-8 so Thai text in the brief survives the pipe.
 - Mark entries with `verified: false` as "check `--help` first".
-- `known: false`: ask the user for that tool's non-interactive command (prompt from file or stdin, read-only option, how output is saved), write it into `.mflow/config.json` under `tools.<name>.<mode>.bash` / `.pwsh` using `{brief}` `{out}` `{worktree}`, then rerun the script.
+- `known: false`: ask the user for that tool's non-interactive command (prompt from file or stdin, read-only option, how output is saved), write it into `.mflow/config.json` under `tools.<name>.<mode>.bash` / `.pwsh` using `{brief}` `{out}` `{worktree}` unquoted (the script quotes each path for its shell; PowerShell cmdlets take them with `-LiteralPath`), then rerun the script.
 - Interactive alternative for any CLI tool: open it in the repo and say "read <brief path> and follow it; give the report as your final message and edit no files".
 
 Done when: the brief exists, the command is shown, and STATUS.md records what was delegated, to whom, and where the answer will land.

@@ -1,6 +1,7 @@
 // Briefs for other AI tools: the context pack stays inside the project and flags likely secrets, and
 // rendered commands keep every path literal in both PowerShell and Bash. Commands are rendered, never run.
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -107,7 +108,78 @@ test("paths with spaces and Thai survive in both shells", () => {
   assert.ok(r.json.pwsh.includes(brief), r.json.pwsh);
 });
 
-test("a $ in a path stays literal in both shells (T05)", { todo: "F04" }, () => {
+/** stdout of a shell command, or null when that shell cannot run here (a Windows host's WSL bash counts as missing). */
+function shellWorks(shell, argv) {
+  const s = spawnSync(shell, argv, { encoding: "utf8" });
+  if (s.error || s.status !== 0) return null;
+  if (shell === "bash" && process.platform === "win32" && /^Linux/.test(s.stdout)) return null;
+  return s.stdout;
+}
+
+test("rendered commands hand each path to the program unchanged, run by Bash and by PowerShell", (t) => {
+  p = project();
+  const echo = p.write("echo-args.mjs", 'import fs from "node:fs";\nfs.writeFileSync(process.env.ECHO_OUT, JSON.stringify(process.argv.slice(2)));\n')
+    .split(path.sep).join("/");
+  const config = JSON.parse(p.read(".mflow/config.json"));
+  config.tools = { echo: { verified: true, notes: "test", analyze: { bash: `node "${echo}" {brief} {out}`, pwsh: `node "${echo}" {brief} {out}` } } };
+  p.write(".mflow/config.json", JSON.stringify(config));
+  const name = "it's $HOME `whoami` $(echo x) ‘q’ งาน ใหม่.md";
+  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "echo", "--brief", `.mflow/briefs/${name}`, "--out", `docs/ai-inbox/${name}`]);
+  assert.equal(r.status, 0, r.stderr);
+  const want = [p.file(`.mflow/briefs/${name}`), p.file(`docs/ai-inbox/${name}`)];
+  const shells = [
+    ["bash", ["-c", "uname -s"], ["-c", r.json.bash]],
+    ["pwsh", ["-NoProfile", "-NonInteractive", "-Command", "1"], ["-NoProfile", "-NonInteractive", "-Command", r.json.pwsh]],
+  ];
+  let ran = 0;
+  for (const [shell, probe, argv] of shells) {
+    if (shellWorks(shell, probe) === null) { t.diagnostic(`${shell} is not available here: skipped`); continue; }
+    const outFile = path.join(p.temp, `${shell}.json`);
+    const s = spawnSync(shell, argv, { env: { ...process.env, ECHO_OUT: outFile }, encoding: "utf8" });
+    assert.equal(s.status, 0, `${shell}: ${s.stderr}`);
+    assert.deepEqual(JSON.parse(fs.readFileSync(outFile, "utf8")), want, shell);
+    ran++;
+  }
+  if (!ran) t.skip("neither bash nor pwsh is available");
+});
+
+test("the cmdlets of the default templates read and write a file named with [ ] $ ' and Thai", (t) => {
+  p = project();
+  const config = JSON.parse(p.read(".mflow/config.json"));
+  // The same commands the codex, gemini and opencode templates use around the tool itself.
+  config.tools = { copy: { verified: true, notes: "test", analyze: {
+    bash: "cat {brief} > {out}",
+    pwsh: "$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); Get-Content -LiteralPath {brief} -Raw -Encoding utf8 | Out-File -Encoding utf8 -LiteralPath {out}",
+  } } };
+  p.write(".mflow/config.json", JSON.stringify(config));
+  const name = "brief [1] $x it's งาน.md";
+  p.write(`.mflow/briefs/${name}`, "# งานทดสอบ\n");
+  let ran = 0;
+  for (const [shell, probe, run1] of [
+    ["bash", ["-c", "uname -s"], (cmd) => ["-c", cmd]],
+    ["pwsh", ["-NoProfile", "-NonInteractive", "-Command", "1"], (cmd) => ["-NoProfile", "-NonInteractive", "-Command", cmd]],
+  ]) {
+    if (shellWorks(shell, probe) === null) { t.diagnostic(`${shell} is not available here: skipped`); continue; }
+    const out = `docs/ai-inbox/${shell} [r] $y it's.md`;
+    fs.mkdirSync(p.file("docs/ai-inbox"), { recursive: true });
+    const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "copy", "--brief", `.mflow/briefs/${name}`, "--out", out]);
+    const s = spawnSync(shell, run1(r.json[shell]), { encoding: "utf8" });
+    assert.equal(s.status, 0, `${shell}: ${s.stderr}`);
+    assert.match(p.read(out), /# งานทดสอบ/, shell);
+    ran++;
+  }
+  if (!ran) t.skip("neither bash nor pwsh is available");
+});
+
+test("missing --brief or --out, or --worktree in code mode, is refused instead of rendering placeholders", () => {
+  p = project();
+  assert.equal(run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--out", "r.md"]).status, 1);
+  const code = run(p, "delegate-cmd.mjs", ["--mode", "code", "--tool", "codex", "--brief", "b.md", "--out", "r.md"]);
+  assert.equal(code.status, 1);
+  assert.match(code.stderr, /--worktree/);
+});
+
+test("a $ in a path stays literal in both shells (T05)", () => {
   p = project();
   const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", ".mflow/briefs/$MFlowProbe.md", "--out", "docs/ai-inbox/r.md"]);
   const brief = p.file(".mflow/briefs/$MFlowProbe.md");

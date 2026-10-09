@@ -1,7 +1,7 @@
 {
   "name": "tamra",
-  "version": "0.1.0",
-  "description": "Tamra knowledge base for Claude Code: connects the Tamra MCP server and adds /tamra:search, /tamra:save, /tamra:get and /tamra:update.",
+  "version": "0.2.0",
+  "description": "Tamra knowledge base for Claude Code: connects the Tamra MCP server; /tamra:search, /tamra:save, /tamra:get, /tamra:update, and for owner credentials /tamra:space, /tamra:tag, /tamra:archive, /tamra:withdraw.",
   "author": { "name": "Mounchon" },
   "keywords": ["knowledge-base", "mcp", "thai", "citations"],
   "userConfig": {

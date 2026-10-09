@@ -42,7 +42,7 @@ claude mcp remove tamra-kb -s user          # MCP ที่ add ด้วยม�
 rm -r ~/.claude/skills/kb-*                 # skill /kb-* ที่คัดลอกไว้ (PowerShell: Remove-Item -Recurse ~/.claude/skills/kb-*)
 ```
 
-## คำสั่ง (v0.1)
+## คำสั่ง (v0.2)
 
 | คำสั่ง | ใช้ทำอะไร | ตัวอย่าง |
 |---|---|---|
@@ -51,9 +51,21 @@ rm -r ~/.claude/skills/kb-*                 # skill /kb-* ที่คัดล�
 | `/tamra:get <item_code> [หัวข้อ] [rN] [outline] [history] [compare rA rB]` | เปิดอ่าน ทั้งเรื่องหรือเฉพาะหัวข้อ ฉบับเก่า ประวัติ | `/tamra:get ESH-BUG-1 วิธีแก้` · `/tamra:get ESH-BUG-1 compare r1 r2` |
 | `/tamra:update <item_code> <สิ่งที่จะแก้> [--draft]` | แก้เป็น revision ใหม่ด้วย section_ops | `/tamra:update ESH-BUG-1 เพิ่มหัวข้อบทเรียน` |
 
+**คำสั่งจัดการ (ต้องใช้ token ที่มี scope `kb:admin` ของ principal ที่เป็น `tenant_admin`)** — agent สร้าง space/tag และ archive/withdraw ได้เองผ่าน MCP tool `kb_admin` ทุกครั้งต้องมีเหตุผลและถูกบันทึกใน audit ไม่มีการลบถาวร
+
+| คำสั่ง | ใช้ทำอะไร | ตัวอย่าง |
+|---|---|---|
+| `/tamra:space list \| <code> [PREFIX] [ชื่อ] [--policy none\|self] [--pack ...] \| <code> set ... \| <code> add\|remove <principal>` | space (= project) และสมาชิก | `/tamra:space compare-price CMP "ComparePrice"` |
+| `/tamra:tag list \| <code> [label] [aliases] [space:<code>] \| <code> alias <a,b> \| <code> deprecate` | tag ใน taxonomy | `/tamra:tag payment ชำระเงิน pay,การจ่ายเงิน` |
+| `/tamra:archive <item_code> <เหตุผล> [--undo]` | เก็บถาวร/เอาคืน (ย้อนได้) | `/tamra:archive ESH-BUG-1 ระบบเลิกใช้แล้ว` |
+| `/tamra:withdraw <item_code> rN <เหตุผล>` | ถอนฉบับที่ผิด (ย้อนไม่ได้) | `/tamra:withdraw ESH-BUG-1 r2 วิธีแก้ผิด` |
+
+token ของเครื่อง/คนอื่นควรเป็นแค่ `kb:read`/`kb:write` — จะไม่เห็น `kb_admin` และคำสั่งจัดการจะตอบว่าไม่มีสิทธิ์
+
 - ทุกคำสั่งทำงานเมื่อพิมพ์เรียกเองเท่านั้น และอนุญาตเฉพาะ tool ของ server `kb` ที่คำสั่งนั้นใช้ จึงไม่ถามสิทธิ์ทุกครั้ง
 - `/tamra:save` และ `/tamra:update` publish ทันที เว้นแต่ใส่ `--draft`; space ที่ policy ต้องให้คนยืนยัน (เช่น `notes`) จะได้ draft
-- นอกจากคำสั่ง ยังคุยตามปกติได้ เช่น "ค้นใน tamra ว่าเคยแก้ ... ไหม" Claude จะเรียก tool ของ server `kb` เอง
+- นอกจากคำสั่ง ยังคุยตามปกติได้ เช่น "ค้นใน tamra ว่าเคยแก้ ... ไหม" หรือ "สร้าง space ให้โปรเจกต์ X" Claude จะเรียก tool ของ server `kb` เอง (การเรียก `kb_admin` นอกคำสั่งจัดการจะมีหน้าต่างขออนุญาตทุกครั้ง)
+- `/tamra:withdraw` ไม่อนุญาต `kb_admin` ล่วงหน้า จึงถามยืนยันก่อนถอนเสมอ
 
 ## หมายเหตุ
 

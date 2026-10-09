@@ -13,7 +13,7 @@
     {
       "name": "tamra",
       "source": "./plugins/tamra",
-      "description": "Tamra knowledge base: connects the Tamra MCP server (URL and token asked at install) and adds /tamra:search, /tamra:save, /tamra:get and /tamra:update."
+      "description": "Tamra knowledge base: connects the Tamra MCP server (URL and token asked at install); search, save, read and revise knowledge, and with an owner token manage spaces, tags, archive and withdraw."
     }
   ]
 }

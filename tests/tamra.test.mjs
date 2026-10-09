@@ -10,8 +10,10 @@ import { fileURLToPath } from "node:url";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PLUGIN = "plugins/tamra";
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), "utf8");
-const SKILLS = ["search", "save", "get", "update"];
-const TOOLS = new Set(["kb_overview", "kb_template", "kb_search", "kb_get", "kb_history", "kb_save", "kb_restore"]);
+const SKILLS = ["search", "save", "get", "update", "space", "tag", "archive", "withdraw"];
+const TOOLS = new Set(["kb_overview", "kb_template", "kb_search", "kb_get", "kb_history", "kb_save", "kb_restore", "kb_admin"]);
+// Only explicit admin commands may pre-approve kb_admin; /tamra:withdraw is irreversible, so it always asks.
+const ADMIN_PREAPPROVED = new Set(["space", "tag", "archive"]);
 
 test("the marketplace points at the tamra plugin", () => {
   const entry = JSON.parse(read(".claude-plugin/marketplace.json")).plugins.find((x) => x.name === "tamra");
@@ -45,6 +47,7 @@ test("every skill is user-invoked and pre-approves only tools of the plugin's kb
       const m = tool.match(/^mcp__plugin_tamra_kb__(\w+)$/);
       assert.ok(m && TOOLS.has(m[1]), `${name}: ${tool} is a tool of the kb server`);
     }
-    assert.doesNotMatch(text, /\/kb-(search|save|get|update)\b|tamra-kb/, `${name}: no leftover names from the hand-installed skills`);
+    assert.equal(allowed.includes("mcp__plugin_tamra_kb__kb_admin"), ADMIN_PREAPPROVED.has(name), `${name}: kb_admin pre-approval`);
+    assert.doesNotMatch(text, /\/kb-[a-z]+\b|tamra-kb/, `${name}: no leftover names from the hand-installed skills`);
   }
 });

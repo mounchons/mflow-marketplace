@@ -98,6 +98,14 @@ export const DEFAULT_TOOLS = {
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
+/** Whether a relative folder setting stays inside the project root, on any platform. */
+export function insideProject(rel) {
+  const p = String(rel).trim().replaceAll("\\", "/");
+  if (path.posix.isAbsolute(p) || path.win32.isAbsolute(p) || /^[A-Za-z]:/.test(p)) return false;
+  const n = path.posix.normalize(p);
+  return n !== ".." && !n.startsWith("../");
+}
+
 /**
  * Project settings: .mflow/config.json over the defaults, or the defaults alone when the file is
  * missing or empty. Throws when it exists but cannot be read, is not valid JSON, or a setting has the
@@ -127,7 +135,11 @@ export function loadConfig(root) {
   }
   const wrong = (key, want) => { throw stop(`${label}: "${key}" must be ${want}`); };
   for (const key of ["hotspotsDir", "sourceDir", "inboxDir", "discussDir"]) {
-    if (key in user && (typeof user[key] !== "string" || !user[key].trim())) wrong(key, "a folder path");
+    if (!(key in user)) continue;
+    if (typeof user[key] !== "string" || !user[key].trim()) wrong(key, "a folder path");
+    // config.json comes with the repository, and scripts write into these folders: one that leaves the
+    // project (absolute, or climbing out with ..) would let a cloned repo write files elsewhere.
+    if (!insideProject(user[key])) wrong(key, "a folder inside the project, relative to it (no leading / or drive, no ..)");
   }
   if ("statusLogEntriesInContext" in user && !Number.isInteger(user.statusLogEntriesInContext)) {
     wrong("statusLogEntriesInContext", "a whole number");

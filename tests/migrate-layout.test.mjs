@@ -166,6 +166,20 @@ test("scaffold writes its templates into the folders an old project's settings n
   assert.equal(p.exists("docs/ai"), false);
 });
 
+test("a folder setting that leaves the project is refused, and scaffold writes nothing", () => {
+  for (const bad of ["../escaped", "docs/../../escaped", "/tmp/escaped", "C:\\escaped", "..\\escaped"]) {
+    p = project({ discussDir: bad });
+    const r = run(p, "scaffold.mjs", ["--root", p.root, "--name", "demo"]);
+    assert.equal(r.status, 1, `${bad}: ${r.stdout}`);
+    assert.match(r.stderr, /"discussDir" must be a folder inside the project/);
+    assert.equal(p.exists("AGENTS.md"), false, `${bad}: nothing written`);
+    assert.equal(run(p, "doctor.mjs").json.checks.find((c) => c.id === "config").status, "fail");
+    p.cleanup();
+  }
+  p = project({ discussDir: "docs/./decisions/discuss/" });
+  assert.equal(run(p, "scaffold.mjs", ["--root", p.root, "--name", "demo"]).status, 0, "a folder inside the project still works");
+});
+
 test("a consultation from before the move still finds its summary in the old folder", () => {
   p = project(LEGACY);
   p.write(".mflow/consultations/AN-001/session.json", JSON.stringify({

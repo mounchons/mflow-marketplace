@@ -70,9 +70,21 @@ const destination = (key) => {
   return hit ? cfg[hit[1]].replace(/\/+$/, "") + key.slice(hit[0].length) : key;
 };
 
+// loadConfig already refuses a folder setting outside the project. Checking every destination before the
+// first write keeps any other route from writing there, or from stopping halfway.
+const templates = walk(templatesDir);
+for (const rel of templates) {
+  const out = destination(rel.split(path.sep).join("/"));
+  const back = path.relative(root, path.join(root, out));
+  if (!back || back === ".." || back.startsWith(".." + path.sep) || path.isAbsolute(back)) {
+    process.stderr.write(`${out} is outside the project; nothing was written\n`);
+    process.exit(1);
+  }
+}
+
 const result = { root, dryRun, pluginVersion, created: [], suggested: [], kept: [], unchanged: [] };
 
-for (const rel of walk(templatesDir)) {
+for (const rel of templates) {
   const key = rel.split(path.sep).join("/");
   const src = path.join(templatesDir, rel);
   const raw = fs.readFileSync(src, "utf8");

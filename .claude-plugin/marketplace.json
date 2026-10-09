@@ -1,6 +1,6 @@
 {
   "name": "mflow-marketplace",
-  "description": "Workflow plugins for anyone building a system with AI (an SA, a PM or the system owner): screen-first and spec-driven.",
+  "description": "Plugins for anyone building a system with AI (an SA, a PM or the system owner): a screen-first, spec-driven workflow and a Thai-capable knowledge base.",
   "owner": {
     "name": "Mounchon"
   },
@@ -9,6 +9,11 @@
       "name": "mflow",
       "source": "./plugins/mflow",
       "description": "Screen-first, spec-driven workflow: AGENTS.md + OpenSpec + Backlog.md + tests, with session memory hooks and hotspot charting for big business logic."
+    },
+    {
+      "name": "tamra",
+      "source": "./plugins/tamra",
+      "description": "Tamra knowledge base: connects the Tamra MCP server (URL and token asked at install) and adds /tamra:search, /tamra:save, /tamra:get and /tamra:update."
     }
   ]
 }

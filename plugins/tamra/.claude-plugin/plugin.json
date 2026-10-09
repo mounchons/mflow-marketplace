@@ -1,0 +1,23 @@
+{
+  "name": "tamra",
+  "version": "0.1.0",
+  "description": "Tamra knowledge base for Claude Code: connects the Tamra MCP server and adds /tamra:search, /tamra:save, /tamra:get and /tamra:update.",
+  "author": { "name": "Mounchon" },
+  "keywords": ["knowledge-base", "mcp", "thai", "citations"],
+  "userConfig": {
+    "server_url": {
+      "type": "string",
+      "title": "Tamra MCP URL",
+      "description": "MCP endpoint of the Tamra API, e.g. http://localhost:5080/mcp on the machine running the Docker stack, or the HTTPS URL of a shared server.",
+      "default": "http://localhost:5080/mcp",
+      "required": true
+    },
+    "token": {
+      "type": "string",
+      "title": "Tamra agent token",
+      "description": "Personal access token (kbp_...) from `kb token create` or `kb bootstrap-dev`. Stored in the secure credential store.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}

@@ -101,7 +101,7 @@ test("a file holding a ```` fence cannot close its block early", () => {
 
 test("paths with spaces and Thai survive in both shells", () => {
   p = project();
-  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", ".mflow/briefs/งาน ใหม่.md", "--out", "docs/ai-inbox/r.md"]);
+  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", ".mflow/briefs/งาน ใหม่.md", "--out", "docs/ai/inbox/r.md"]);
   assert.equal(r.status, 0, r.stderr);
   const brief = p.file(".mflow/briefs/งาน ใหม่.md");
   assert.ok(r.json.bash.includes(brief), r.json.bash);
@@ -124,9 +124,9 @@ test("rendered commands hand each path to the program unchanged, run by Bash and
   config.tools = { echo: { verified: true, notes: "test", analyze: { bash: `node "${echo}" {brief} {out}`, pwsh: `node "${echo}" {brief} {out}` } } };
   p.write(".mflow/config.json", JSON.stringify(config));
   const name = "it's $HOME `whoami` $(echo x) ‘q’ งาน ใหม่.md";
-  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "echo", "--brief", `.mflow/briefs/${name}`, "--out", `docs/ai-inbox/${name}`]);
+  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "echo", "--brief", `.mflow/briefs/${name}`, "--out", `docs/ai/inbox/${name}`]);
   assert.equal(r.status, 0, r.stderr);
-  const want = [p.file(`.mflow/briefs/${name}`), p.file(`docs/ai-inbox/${name}`)];
+  const want = [p.file(`.mflow/briefs/${name}`), p.file(`docs/ai/inbox/${name}`)];
   const shells = [
     ["bash", ["-c", "uname -s"], ["-c", r.json.bash]],
     ["pwsh", ["-NoProfile", "-NonInteractive", "-Command", "1"], ["-NoProfile", "-NonInteractive", "-Command", r.json.pwsh]],
@@ -160,8 +160,8 @@ test("the cmdlets of the default templates read and write a file named with [ ] 
     ["pwsh", ["-NoProfile", "-NonInteractive", "-Command", "1"], (cmd) => ["-NoProfile", "-NonInteractive", "-Command", cmd]],
   ]) {
     if (shellWorks(shell, probe) === null) { t.diagnostic(`${shell} is not available here: skipped`); continue; }
-    const out = `docs/ai-inbox/${shell} [r] $y it's.md`;
-    fs.mkdirSync(p.file("docs/ai-inbox"), { recursive: true });
+    const out = `docs/ai/inbox/${shell} [r] $y it's.md`;
+    fs.mkdirSync(p.file("docs/ai/inbox"), { recursive: true });
     const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "copy", "--brief", `.mflow/briefs/${name}`, "--out", out]);
     const s = spawnSync(shell, run1(r.json[shell]), { encoding: "utf8" });
     assert.equal(s.status, 0, `${shell}: ${s.stderr}`);
@@ -181,7 +181,7 @@ test("missing --brief or --out, or --worktree in code mode, is refused instead o
 
 test("a $ in a path stays literal in both shells (T05)", () => {
   p = project();
-  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", ".mflow/briefs/$MFlowProbe.md", "--out", "docs/ai-inbox/r.md"]);
+  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", ".mflow/briefs/$MFlowProbe.md", "--out", "docs/ai/inbox/r.md"]);
   const brief = p.file(".mflow/briefs/$MFlowProbe.md");
   // Single quotes are literal in both Bash and PowerShell; double quotes expand $name in both.
   assert.ok(r.json.bash.includes(`'${brief}'`), r.json.bash);

@@ -1,8 +1,8 @@
 ---
 name: assess
-description: Verify another AI's analysis, review, or code-done report (from docs/ai-inbox) against the real code, specs and sources — check its understanding first, then give each finding a verdict with evidence, and turn accepted ones into tasks or proposals.
+description: Verify another AI's analysis, review, or code-done report (from docs/ai/inbox) against the real code, specs and sources — check its understanding first, then give each finding a verdict with evidence, and turn accepted ones into tasks or proposals.
 disable-model-invocation: true
-argument-hint: "@docs/ai-inbox/<file>.md"
+argument-hint: "@docs/ai/inbox/<file>.md"
 ---
 
 Another model's findings are claims, not facts. First check whether it understood the system and read what it cites; then check each claim yourself. This skill changes no code.
@@ -48,7 +48,7 @@ Done when: every finding has a verdict based on evidence you opened, never only 
 
 ## 4. Write the assessment
 
-`docs/ai-inbox/<same-name>.assessment.md`:
+`docs/ai/inbox/<same-name>.assessment.md`:
 - Trust: level, Understanding rating, missing required files.
 - Table `ID | Verdict | Evidence checked | Action`.
 - Tool notes: where this tool was strong or unreliable on this kind of brief, to guide the next delegation.

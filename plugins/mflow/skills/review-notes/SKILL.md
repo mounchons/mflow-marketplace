@@ -21,7 +21,7 @@ Build one table and show it before writing anything:
 Types and destinations:
 - Flow gap / screen change → Backlog task, label `prototype` (and `/mflow:screen <name> ...` later)
 - Look, menu, component or layout of the kit (colors, font, density, the ☰ menu, how pages fit a small screen) → Backlog task for `/mflow:theme update <what>`, which edits the static preview before port and the stack kit after
-- Hidden rule (if / except / depends / approve / calculate / round / cancel) → `docs/hotspots/INDEX.md` row, or a ticket on an existing hotspot map
+- Hidden rule (if / except / depends / approve / calculate / round / cancel) → `docs/decisions/hotspots/INDEX.md` row, or a ticket on an existing hotspot map
 - Field / data detail (required, format, source, monthly volume) → Backlog task; the hotspot's rules.md if it belongs to one
 - A check on a `ทดสอบใช้งาน` task (from an approved discussion doc's section 5) → confirmed: tick its acceptance criterion (`backlog task edit <id> --check-ac <n>`); not as expected: tick nothing and route the difference as the next items describe
 - Role, permission, menu or data visibility → check approved discussion docs first (`node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" list`, status `approved`):

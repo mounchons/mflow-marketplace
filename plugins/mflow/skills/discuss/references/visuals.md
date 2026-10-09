@@ -46,7 +46,7 @@ class BM,RM guess
 
 ## Screens: screenshots first, wireframes before
 
-- Once `/mflow:screen` has made the screen, link its per-role screenshots from the doc with a relative path: `![job-list ของหัวหน้าสาขา](../ui/screens/job-list.branch-manager.png)`. Every screenshot still needs its statements in the text.
+- Once `/mflow:screen` has made the screen, link its per-role screenshots from the doc with a relative path: `![job-list ของหัวหน้าสาขา](../../ui/screens/job-list.branch-manager.png)`. Every screenshot still needs its statements in the text.
 - Before a screen exists, draw an ASCII wireframe in a `text` fence. Characters that work: `+--+`, `|`, `[ บันทึก ]` for buttons, `[x]` for checkboxes, `(o)` for radio buttons, `____` for inputs, `▼` for dropdowns.
 - Thai vowels and tone marks take no column in a monospace font, so right-hand borders drift. Leave boxes open on the right, or put Thai text last on a line.
 - Draw only what the decision needs: which menus, columns, buttons and fields appear. Leave out colours and spacing; the theme kit decides those.

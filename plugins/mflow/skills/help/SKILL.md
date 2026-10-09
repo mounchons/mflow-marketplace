@@ -7,9 +7,10 @@ argument-hint: "[describe your situation]"
 
 If `$ARGUMENTS` describes a situation, recommend the one command that fits and the next one after it. Otherwise print this table. Invoke no other command yourself.
 
-**Two ways to start.** Print these above the table when `$ARGUMENTS` is empty or asks where to begin, and recommend one from what the user says matters first. Neither path is required; any command can run when it is needed.
+**Three ways to start.** Print these above the table when `$ARGUMENTS` is empty or asks where to begin, and recommend one from what the user says matters first. No path is required; any command can run when it is needed.
 - **See screens soon:** `/mflow:init` → `/mflow:capture` (only the documents the first screens need) → `/mflow:theme` → `/mflow:screen inventory` → `/mflow:screen <name>` → try it with the user → `/mflow:review-notes`.
 - **Complex rules or costly mistakes** (fees, approvals, payroll, anything legal): `/mflow:init` → `/mflow:capture` → `/mflow:discuss` for the cross-cutting topics and `/mflow:hotspot` for each rule → `/mflow:golden` with the customer's past results → `/opsx:propose`, building screens alongside as their topics settle.
+- **The whole system soon, refined after the customer tries it** (mostly lists, forms and reports): `/mflow:init` → `/mflow:discuss tech-stack` (optional) → `/opsx:propose` an empty app → `/mflow:theme` → one `/opsx:propose` per module (real data, kit components only, sample data, assumptions listed as questions for testing) → the customer tries everything → one `/opsx:propose` per round of feedback. Before going live: real login instead of the fake users, `/mflow:hotspot` and `/mflow:golden` for the rules that cost money, `/mflow:review`.
 
 **Checking the setup.** When `$ARGUMENTS` asks to check the setup, says something is broken or missing, follows an mflow upgrade, or the briefing calls OpenSpec or Backlog unavailable, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.mjs"`. It is read-only. Report every `fail` and `warn` with its `fix`, worst first, then the one command that fixes the most.
 
@@ -41,7 +42,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Have apply hand its code changes to the Sonnet 5.5 subagent (`mflow:dev`, off by default), or stop it | `/mflow:subagent on` then `/clear` / `off` (`--shared` for the whole team, `status` to check); while on, skip it for one run by saying so in the `/opsx:apply` message |
 | Customer asks for a change after approval | `/mflow:change-request <request>` |
 | Hand work, analysis or review to another AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` |
-| Another AI's analysis or review came back | `/mflow:assess @docs/ai-inbox/<file>` |
+| Another AI's analysis or review came back | `/mflow:assess @docs/ai/inbox/<file>` |
 | Optional: have several AI tools analyze the system, a part of it or a document, then merge their checked findings | `/mflow:analyze <system \| "topic" \| @file> [--focus …] [--to …]`, then `/mflow:analyze <AN-NNN>` when reports are in |
 | Optional: have several AI tools propose a design for a module, API, data model or workflow, then merge them with their alternatives | `/mflow:design "topic" [--from @file] [--focus …] [--to …]`, then `/mflow:design <DS-NNN>` when reports are in |
 | Optional: have several AI tools try to break a design or document before it is built | `/mflow:challenge @file [--focus …] [--to …]`, then `/mflow:challenge <CH-NNN>` when reports are in |

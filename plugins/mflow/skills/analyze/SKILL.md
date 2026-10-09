@@ -22,7 +22,7 @@ Done when: the brief is written, the user has every tool's command, and STATUS.m
 
 ## Reports back (`AN-NNN`)
 
-Step C of the pipeline (and D only for findings still disputed). The summary at `docs/analysis/<id>/summary.md`, after the frontmatter the pipeline gives:
+Step C of the pipeline (and D only for findings still disputed). The summary at `docs/ai/analysis/<id>/summary.md`, after the frontmatter the pipeline gives:
 - `## ภาพรวมที่ตรวจแล้ว`: what the system does now, only what the evidence confirmed.
 - `## ข้อค้นพบ`: table `ID | ข้อค้นพบ | หลักฐาน | จาก | คำตัดสิน | สถานะ`, every finding of every report, rejected ones included with the reason.
 - `## ความเห็นต่าง`: each position, who holds it, why, and what would settle it.

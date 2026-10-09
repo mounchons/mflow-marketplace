@@ -66,15 +66,17 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 | A change being made | `openspec/changes/<name>/` | OpenSpec (`/opsx:*`) |
 | What to do next, who is on it | Backlog.md tasks | `backlog` CLI only |
 | Why an architecture choice was made | Backlog.md decisions (`backlog decision`) | `backlog` CLI only |
-| Big business logic being worked out | `docs/hotspots/<slug>/` | `/mflow:hotspot` |
+| Big business logic being worked out | `docs/decisions/hotspots/<slug>/` | `/mflow:hotspot` |
 | Customer documents (originals, never edited) | `docs/source/` + `docs/source/INDEX.md` | `/mflow:capture` (registry script) |
-| Understanding or design agreed with the user before building (roles, menus, data visibility…) | `docs/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet; `AGENDA.md` = recommended topics (advice, not a gate) | `/mflow:discuss` |
+| Understanding or design agreed with the user before building (roles, menus, data visibility…) | `docs/decisions/discuss/NN-<slug>.md`; `approved` = frozen record, facts live at its destinations; `draft` = not agreed yet; `AGENDA.md` = recommended topics (advice, not a gate) | `/mflow:discuss` |
 | UI kit: tokens, components, which to use | `docs/ui/design-system.md` | `/mflow:theme` |
 | Screen list and prototype data | `docs/ui/screens.md`, `PrototypeData/*.json` | `/mflow:screen` |
-| Change requests after approval | `docs/change-requests/` | `/mflow:change-request` |
-| Briefs for other AI tools / their results | `.mflow/briefs/`, `docs/ai-inbox/` | `/mflow:delegate`, `/mflow:assess` |
+| What a test or review agreed; code review verdicts | `docs/reviews/<date>-<topic>-summary.md`, `docs/reviews/code/` | `/mflow:review-notes`, `/mflow:review` |
+| Change requests after approval | `docs/reviews/change-requests/` | `/mflow:change-request` |
+| Briefs for other AI tools / their results | `.mflow/briefs/`, `docs/ai/inbox/` | `/mflow:delegate`, `/mflow:assess` |
+| Analyses, designs and challenges from several AI tools (optional) | `docs/ai/analysis/`, `docs/ai/design/`, `docs/ai/challenge/` | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` |
 | Where we are right now | `STATUS.md` | every session |
-| Proof that behaviour works | tests | test projects |
+| Proof that behaviour works | `tests/` at the root, beside `src/` or `apps/`, never inside them; UI unit and E2E tests where `## Stack` says | test projects |
 
 ## Session ritual
 Start: read `STATUS.md`, run `openspec list` and `backlog task list -s "In Progress" --plain`.

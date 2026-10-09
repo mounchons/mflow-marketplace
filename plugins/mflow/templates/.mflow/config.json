@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "hotspotsDir": "docs/hotspots",
+  "hotspotsDir": "docs/decisions/hotspots",
   "sourceDir": "docs/source",
-  "inboxDir": "docs/ai-inbox",
-  "discussDir": "docs/discuss",
+  "inboxDir": "docs/ai/inbox",
+  "discussDir": "docs/decisions/discuss",
   "statusLogEntriesInContext": 2,
   "stopGuard": {
     "enabled": true,

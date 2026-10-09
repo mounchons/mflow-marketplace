@@ -13,7 +13,7 @@ Restate it in one or two sentences and list the screens, rules, data and documen
 
 ## 2. Check against the agreed baseline
 
-Evidence, in order: archived specs in `openspec/specs/`, approved screens in `docs/ui/screens.md`, approved discussion docs in `docs/discuss/`, `docs/vision.md` scope and out-of-scope, active documents in `docs/source/INDEX.md` (never superseded ones), review summaries in `docs/reviews/`.
+Evidence, in order: archived specs in `openspec/specs/`, approved screens in `docs/ui/screens.md`, approved discussion docs in `docs/decisions/discuss/`, `docs/vision.md` scope and out-of-scope, active documents in `docs/source/INDEX.md` (never superseded ones), review summaries in `docs/reviews/`.
 
 Classify with the evidence quoted by file and section:
 - **Defect:** agreed behaviour that was built wrong → Backlog bug task, no charge.
@@ -24,7 +24,7 @@ Done when: the class is backed by at least one cited source, or the ambiguity is
 
 ## 3. For new scope: impact and estimate
 
-Write `docs/change-requests/CR-<nnn>-<slug>.md`: request, reason for classification, impact (screens, specs, hotspots, data migration, tests), risk, estimate as a range in hours with the assumptions that drive it, effect on the delivery date, and an `Approved:` line. Create a Backlog task with label `change-request`.
+Write `docs/reviews/change-requests/CR-<nnn>-<slug>.md` (`<nnn>` follows the highest number there, and in `docs/change-requests/` while a project from before 0.20.0 still has it): request, reason for classification, impact (screens, specs, hotspots, data migration, tests), risk, estimate as a range in hours with the assumptions that drive it, effect on the delivery date, and an `Approved:` line. Create a Backlog task with label `change-request`.
 
 ## 4. Go ahead on the user's instruction
 

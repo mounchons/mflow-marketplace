@@ -104,12 +104,14 @@ const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
  * wrong type: every folder could then be wrong, so callers stop or say so instead of guessing.
  */
 export function loadConfig(root) {
+  // The grouped layout of 0.20.0 (docs/decisions, docs/ai); projects set up earlier name their folders
+  // in config.json, and migrate-layout.mjs moves them.
   const defaults = {
     version: 1,
-    hotspotsDir: "docs/hotspots",
+    hotspotsDir: "docs/decisions/hotspots",
     sourceDir: "docs/source",
-    inboxDir: "docs/ai-inbox",
-    discussDir: "docs/discuss",
+    inboxDir: "docs/ai/inbox",
+    discussDir: "docs/decisions/discuss",
     statusLogEntriesInContext: 2,
     stopGuard: { enabled: true, graceMinutes: 10, repeatMinutes: 30 },
     // The apply subagent (mflow:dev) is off until switched on; .mflow/local.json overrides per machine.

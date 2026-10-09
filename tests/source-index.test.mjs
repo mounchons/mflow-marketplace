@@ -97,8 +97,8 @@ test("a healthy briefing lists new sources, draft discussions and the ritual", (
   p = project();
   p.write("STATUS.md", "# Status\n\n## Now\n- focus\n\n## Log\n\n### 2026-10-01\n- Did: x\n");
   p.write("docs/source/tor.md", "# TOR\n");
-  p.write("docs/discuss/01-roles.md", "---\nid: 01\nslug: roles\nstatus: draft\nrevision: 1\n---\n\n### D1: ใคร\n- **เลือก:**\n");
-  p.write("docs/hotspots/fee/map.md", "---\nstatus: active\ndestination: FeeCalculator\n---\n");
+  p.write("docs/decisions/discuss/01-roles.md", "---\nid: 01\nslug: roles\nstatus: draft\nrevision: 1\n---\n\n### D1: ใคร\n- **เลือก:**\n");
+  p.write("docs/decisions/hotspots/fee/map.md", "---\nstatus: active\ndestination: FeeCalculator\n---\n");
   const r = run(p, "session-start.mjs", [], { input: { session_id: "t-ok", cwd: p.root, source: "startup" } });
   assert.equal(r.status, 0, r.stderr);
   const context = r.json.hookSpecificOutput.additionalContext;

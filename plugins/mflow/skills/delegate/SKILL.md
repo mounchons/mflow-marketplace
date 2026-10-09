@@ -15,8 +15,8 @@ Brief template and output contracts: [references/brief-template.md](references/b
 
 - `TASK-…`: `backlog task <id> --plain`; the task's description, acceptance criteria and references define the goal.
 - change name: `openspec/changes/<name>/` (proposal, delta specs, tasks).
-- hotspot slug: `docs/hotspots/<slug>/map.md` and `rules.md`.
-- `discuss-<NN>-r<revision>`: the discussion doc `docs/discuss/NN-<slug>.md` and the sources in its frontmatter. Point to the text versions of the sources that `consult` prepares (the paths `source-index.mjs cache` gives), never to a binary, and never pack `docs/ai-inbox/`: tools answer independently. Use the "discuss" output contract, and paste the topic's checklist section from `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md` into the brief, because the plugin folder is outside the repo. `/mflow:discuss <NN> consult` drives this case. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
+- hotspot slug: `docs/decisions/hotspots/<slug>/map.md` and `rules.md`.
+- `discuss-<NN>-r<revision>`: the discussion doc `docs/decisions/discuss/NN-<slug>.md` and the sources in its frontmatter. Point to the text versions of the sources that `consult` prepares (the paths `source-index.mjs cache` gives), never to a binary, and never pack `docs/ai/inbox/`: tools answer independently. Use the "discuss" output contract, and paste the topic's checklist section from `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md` into the brief, because the plugin folder is outside the repo. `/mflow:discuss <NN> consult` drives this case. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 - quoted topic: no file defines it. Choose the files to examine from AGENTS.md's architecture and a code search, and list them explicitly in the brief's Scope so the user can check them.
 
 Done when: the goal fits in two sentences and every path the tool needs is known.
@@ -39,7 +39,7 @@ Done when: the brief alone is enough for a tool that has never seen this project
 
 ## 4. Show the command
 
-Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool <tool or any> --brief <brief> --out docs/ai-inbox/<date>-{tool}-<id>.md [--worktree <dir>]` and present its result. The script replaces `{tool}` with each tool's name, so with `--tool any` every tool writes its own report instead of overwriting one file:
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool <tool or any> --brief <brief> --out docs/ai/inbox/<date>-{tool}-<id>.md [--worktree <dir>]` and present its result. The script replaces `{tool}` with each tool's name, so with `--tool any` every tool writes its own report instead of overwriting one file:
 - Both `pwsh` and `bash` lines when available; the PowerShell line sets UTF-8 so Thai text in the brief survives the pipe.
 - Mark entries with `verified: false` as "check `--help` first".
 - `known: false`: ask the user for that tool's non-interactive command (prompt from file or stdin, read-only option, how output is saved), write it into `.mflow/config.json` under `tools.<name>.<mode>.bash` / `.pwsh` using `{brief}` `{out}` `{worktree}` unquoted (the script quotes each path for its shell; PowerShell cmdlets take them with `-LiteralPath`), then rerun the script.
@@ -49,6 +49,6 @@ Done when: the brief exists, the command is shown, and STATUS.md records what wa
 
 ## When it comes back
 
-- analyze/review → `/mflow:assess @docs/ai-inbox/<file>` (it normalizes the file first).
+- analyze/review → `/mflow:assess @docs/ai/inbox/<file>` (it normalizes the file first).
 - a `discuss-<NN>` brief → `/mflow:discuss <NN>`, which folds every tool's report into the doc.
 - code on `agent/<…>/<id>` → `/mflow:review agent/<…>/<id>`, plus `/mflow:assess` on the done report; merge only after that verdict and the user's yes.

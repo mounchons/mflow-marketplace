@@ -6,7 +6,7 @@
 //   node discuss.mjs check <NN | file>                 -> JSON: open decisions and pending notes of one doc
 //   node discuss.mjs new <slug> [--title "..."] [--sources "a, b"]
 //                                                      -> create NN-<slug>.md from the template (never overwrites)
-//   node discuss.mjs cited <NN | file>                 -> JSON: every line outside docs/discuss and the AI inbox that
+//   node discuss.mjs cited <NN | file>                 -> JSON: every line outside the discussion folder and the AI inbox that
 //                                                         cites the doc's path: what an approve already wrote
 //
 // Reply markers (the template explains them to the user):
@@ -75,7 +75,7 @@ const AUTO_STATUS_RE = new RegExp(`^(?:${NOT_STARTED}|(?:${Object.values(DOC_STA
 const REVIEW_RE = /\*\*ทบทวน:\*\*/;
 
 const toPosix = (p) => p.split(path.sep).join("/");
-const discussDir = (root) => path.join(root, loadConfig(root).discussDir || "docs/discuss");
+const discussDir = (root) => path.join(root, loadConfig(root).discussDir);
 
 /**
  * Blank out HTML comments and fenced code blocks, keeping line numbers intact, and collect the fenced
@@ -133,7 +133,7 @@ export function reportDiscussId(fileName, fm = {}) {
 }
 
 function reports(root) {
-  const dir = path.join(root, loadConfig(root).inboxDir || "docs/ai-inbox");
+  const dir = path.join(root, loadConfig(root).inboxDir);
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir)
     .filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
@@ -386,14 +386,14 @@ function projectFiles(root) {
 
 /**
  * Every line that cites a discussion doc by its path, outside the discussion folder, the AI inbox and
- * .mflow: the destinations an approve wrote carry "(docs/discuss/NN-<slug>.md)", and Backlog tasks it
+ * .mflow: the destinations an approve wrote carry "(<discussDir>/NN-<slug>.md)", and Backlog tasks it
  * created carry the path as their ref. An approve that stopped partway reads this to skip what is
  * already in place instead of writing it twice.
  */
 function cited(root, ref) {
   const doc = check(root, ref);
   const cfg = loadConfig(root);
-  const skip = [cfg.discussDir || "docs/discuss", cfg.inboxDir || "docs/ai-inbox", ".mflow"].map((d) => d.replace(/\/+$/, "") + "/");
+  const skip = [cfg.discussDir, cfg.inboxDir, ".mflow"].map((d) => d.replace(/\/+$/, "") + "/");
   const hits = [];
   for (const file of projectFiles(root)) {
     const rel = toPosix(file);

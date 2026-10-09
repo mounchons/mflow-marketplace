@@ -25,11 +25,19 @@ import { fileURLToPath } from "node:url";
 import { findRoot, frontmatter, gitStatus, loadConfig, readJsonFile, readText, run, writeFileAtomic } from "./lib.mjs";
 import { fileHash } from "./source-index.mjs";
 
+// `legacy` is the folder before 0.20.0: a session written there and not moved yet by migrate-layout.mjs
+// keeps its summary there, so a project that has not moved still reads its sessions.
 export const INTENTS = {
-  analyze: { prefix: "AN", dir: "docs/analysis", summary: "summary.md" },
-  design: { prefix: "DS", dir: "docs/design", summary: "proposal.md" },
-  challenge: { prefix: "CH", dir: "docs/challenge", summary: "summary.md" },
+  analyze: { prefix: "AN", dir: "docs/ai/analysis", legacy: "docs/analysis", summary: "summary.md" },
+  design: { prefix: "DS", dir: "docs/ai/design", legacy: "docs/design", summary: "proposal.md" },
+  challenge: { prefix: "CH", dir: "docs/ai/challenge", legacy: "docs/challenge", summary: "summary.md" },
 };
+
+/** The folder of one session's documents: the current one, or the legacy one while only that holds it. */
+function docsDir(root, s) {
+  const { dir, legacy } = INTENTS[s.intent];
+  return !fs.existsSync(path.join(root, dir, s.id)) && fs.existsSync(path.join(root, legacy, s.id)) ? legacy : dir;
+}
 const ID_RE = /^(AN|DS|CH)-\d{3,}$/;
 const REPORT_RE = /(?:^|[^A-Za-z0-9])((?:AN|DS|CH)-\d{3,})-r(\d+)(?![0-9])/;
 const SESSIONS = ".mflow/consultations";
@@ -83,11 +91,11 @@ function pinned(root, p, flag) {
 }
 
 const paths = (root, s, round) => {
-  const inbox = loadConfig(root).inboxDir || "docs/ai-inbox";
+  const inbox = loadConfig(root).inboxDir;
   return {
     brief: `.mflow/briefs/${s.id}-r${round}.md`,
     out: `${inbox}/${s.id}-r${round}-{tool}.md`,
-    summary: `${INTENTS[s.intent].dir}/${s.id}/${INTENTS[s.intent].summary}`,
+    summary: `${docsDir(root, s)}/${s.id}/${INTENTS[s.intent].summary}`,
   };
 };
 
@@ -95,7 +103,7 @@ const paths = (root, s, round) => {
 export function inspect(root, s) {
   const latest = Math.max(...s.rounds.map((r) => r.n));
   const where = paths(root, s, latest);
-  const inboxDir = path.join(root, loadConfig(root).inboxDir || "docs/ai-inbox");
+  const inboxDir = path.join(root, loadConfig(root).inboxDir);
   const reports = (fs.existsSync(inboxDir) ? fs.readdirSync(inboxDir) : [])
     .filter((f) => f.endsWith(".md") && f !== "README.md" && !f.endsWith(".assessment.md"))
     .map((f) => {

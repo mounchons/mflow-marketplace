@@ -14,6 +14,7 @@ import { compareVersions as cmp, findRoot, loadConfig, readJsonFile, readText, r
 import { fileHash, scan } from "./source-index.mjs";
 import { list as listConsultations } from "./consult.mjs";
 import { projectDir, status as subagentStatus } from "./apply-subagent.mjs";
+import { plan as layoutPlan } from "./migrate-layout.mjs";
 
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const plugin = JSON.parse(fs.readFileSync(path.join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).version;
@@ -83,6 +84,15 @@ function projectChecks() {
     const missing = ["sourceDir", "hotspotsDir", "inboxDir", "discussDir"].filter((k) => !exists(root, cfg[k]));
     if (missing.length) add("folders", "warn", `folders from the settings do not exist: ${missing.map((k) => `${k} (${cfg[k]})`).join(", ")}`, "Run /mflow:init to create them, or fix the path in .mflow/config.json");
     else add("folders", "ok", "every configured folder exists");
+    try {
+      const lp = layoutPlan(root, { rewrites: false });
+      const moving = [...new Set([...lp.moves.map((m) => m.from.split("/").slice(0, 2).join("/")), ...lp.settings.map((s) => s.from)])];
+      if (lp.layout === "legacy") add("layout", "warn", `documents in the layout before 0.20.0: ${moving.join(", ")}`, `Run /mflow:init: it shows the move plan (docs/decisions, docs/ai, docs/reviews/change-requests) and moves on your yes. Or node "${path.join(PLUGIN, "scripts", "migrate-layout.mjs")}", then --apply`);
+      else if (lp.conflicts.length) add("layout", "warn", `the 0.20 layout is half done: ${lp.conflicts.map((c) => c.from).join(", ")} also exist at the new place`, "Merge each pair by hand, then run migrate-layout.mjs again");
+      else add("layout", "ok", "documents in the 0.20 layout (docs/decisions, docs/ai, docs/reviews)");
+    } catch (err) {
+      add("layout", "warn", `layout check failed: ${err.message}`);
+    }
     try {
       const s = scan(root);
       const todo = s.new.length + s.changed.length;

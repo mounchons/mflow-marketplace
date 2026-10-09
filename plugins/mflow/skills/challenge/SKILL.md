@@ -11,7 +11,7 @@ The steps shared with `/mflow:analyze` and `/mflow:design` are in `${CLAUDE_PLUG
 
 ## Start (`@<file> [--focus …] [--to …]`)
 
-1. **Target.** Any project file that states a design or a decision: a design proposal (`docs/design/DS-NNN/proposal.md`), a discussion doc, an OpenSpec change, a hotspot's `rules.md`, a requirement section. Read first: the target, then the sources, specs and code it rests on. `--focus` names where to push: permissions, concurrency, recovery, data integrity, scale, edge cases, or the user's own words.
+1. **Target.** Any project file that states a design or a decision: a design proposal (`docs/ai/design/DS-NNN/proposal.md`), a discussion doc, an OpenSpec change, a hotspot's `rules.md`, a requirement section. Read first: the target, then the sources, specs and code it rests on. `--focus` names where to push: permissions, concurrency, recovery, data integrity, scale, edge cases, or the user's own words.
 2. **Open:** `node "${CLAUDE_PLUGIN_ROOT}/scripts/consult.mjs" new challenge --target <file> [--focus …] [--to …]`, which pins the target's hash, then steps A and B of the pipeline with the `consult-challenge` contract. The brief names the target with that hash.
 
 Done when: the brief is written, the user has every tool's command, and STATUS.md says the challenge is optional and the main work continues.
@@ -20,14 +20,14 @@ Done when: the brief is written, the user has every tool's command, and STATUS.m
 
 Step C of the pipeline (and D only for challenges still disputed). When `consult.mjs status` lists the target under `stale.changed`, the target was edited after the session opened: say so, and check each challenge against the current text, giving `outdated` to the ones the edit already answered.
 
-Write `docs/challenge/<id>/summary.md`, in Thai for the user, after the frontmatter the pipeline gives plus `target:` and `targetHash:` (the session's snapshot):
+Write `docs/ai/challenge/<id>/summary.md`, in Thai for the user, after the frontmatter the pipeline gives plus `target:` and `targetHash:` (the session's snapshot):
 - `## เป้าหมาย`: the target, the version the tools read, and the areas the brief pushed on.
 - `## ข้อทักท้วง`: table `ID | ข้อความที่ถูกทักท้วง | สถานการณ์ | ผลที่ควรเป็น → สิ่งที่ผิดพลาด | หลักฐาน | จาก | คำตัดสิน | สถานะ`, every challenge of every report, rejected ones included with the reason.
 - `## ส่วนที่ตรวจแล้วยังยืน`: what the tools examined and found holding.
 - `## ข้อเสนอการทดสอบและการแก้`: the tests that would settle each open challenge, and the changes to the target.
 - `## ความเห็นต่าง` and `## รายงานที่รวม`, as the pipeline describes.
 
-The summary keeps no copy of the target. Link back without editing what must not change: when the target is a design proposal mflow wrote (`docs/design/DS-NNN/proposal.md`), add one line under its `## ความเห็นต่าง`: `ถูกทักท้วงใน docs/challenge/<id>/summary.md`. Never edit an approved or frozen discussion doc, `openspec/specs/`, or a document the user wrote; the session and the summary hold the link there.
+The summary keeps no copy of the target. Link back without editing what must not change: when the target is a design proposal mflow wrote (`docs/ai/design/DS-NNN/proposal.md`), add one line under its `## ความเห็นต่าง`: `ถูกทักท้วงใน docs/ai/challenge/<id>/summary.md`. Never edit an approved or frozen discussion doc, `openspec/specs/`, or a document the user wrote; the session and the summary hold the link there.
 
 Then step E: a confirmed failure becomes a change to the target on the user's instruction (a new revision of the proposal, a new discussion doc, or an OpenSpec change), a suggested test becomes an acceptance scenario or a test task, and an open question goes to `/mflow:discuss` or `/mflow:hotspot`.
 

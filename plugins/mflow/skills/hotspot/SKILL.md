@@ -11,9 +11,9 @@ Every hotspot has the same **destination**: a `rules.md` that passes the readine
 
 ## Where things live
 
-- `docs/hotspots/<slug>/map.md`: the **map**. An index, never a store: destination, notes, one line per resolved ticket pointing at its task, the fog, out of scope. Template: [assets/map.md](assets/map.md).
-- `docs/hotspots/<slug>/rules.md`: the growing rule spec. Template: [assets/rules.md](assets/rules.md).
-- `docs/hotspots/<slug>/questions-for-customer.md`: only for `ask` questions the user chooses to take to someone else first, written in Thai.
+- `docs/decisions/hotspots/<slug>/map.md`: the **map**. An index, never a store: destination, notes, one line per resolved ticket pointing at its task, the fog, out of scope. Template: [assets/map.md](assets/map.md).
+- `docs/decisions/hotspots/<slug>/rules.md`: the growing rule spec. Template: [assets/rules.md](assets/rules.md).
+- `docs/decisions/hotspots/<slug>/questions-for-customer.md`: only for `ask` questions the user chooses to take to someone else first, written in Thai.
 - **Tickets** are Backlog.md tasks with labels `decision`, `hs-<slug>`, and one type label; milestone `HS: <slug>`. The answer lives in the task's final summary and nowhere else.
 - The **frontier** is `backlog task list --labels hs-<slug> --json` filtered to status `To Do` and `isReady: true`.
 - **Sources** (customer documents) are tracked by `/mflow:capture`'s registry, `docs/source/INDEX.md`, and listed in the map's `Sources` section.
@@ -41,11 +41,11 @@ Use `backlog <command> --help` for exact flags; edit Backlog files only through 
 
 ## Mode: no arguments → overview
 
-List each folder in `docs/hotspots/` with its map status, frontier count and how many readiness items pass, plus unregistered rows in `INDEX.md`. Recommend one next command: a map that passes the readiness bar goes to Graduate (`/mflow:hotspot <slug>`), else the map with the most ready tickets, else an unregistered row to chart (`/mflow:hotspot <idea>`). Stop.
+List each folder in `docs/decisions/hotspots/` with its map status, frontier count and how many readiness items pass, plus unregistered rows in `INDEX.md`. Recommend one next command: a map that passes the readiness bar goes to Graduate (`/mflow:hotspot <slug>`), else the map with the most ready tickets, else an unregistered row to chart (`/mflow:hotspot <idea>`). Stop.
 
 ## Mode: chart a new hotspot (argument is an idea, no map exists)
 
-1. **Name it.** Choose a short kebab-case slug and confirm it with the user. Add or update its row in `docs/hotspots/INDEX.md`.
+1. **Name it.** Choose a short kebab-case slug and confirm it with the user. Add or update its row in `docs/decisions/hotspots/INDEX.md`.
 2. **Check it needs a map.** Grill breadth-first across the whole rule area: states, actors, inputs, outcomes, edge cases, what happens on failure or reversal. If every question can be settled in this one conversation, it is not a hotspot: say so and suggest `/opsx:explore` or `/opsx:propose` directly. Stop.
 3. **Create the map and rules files** from the templates. Fill Destination, Notes (bounded context, likely owning aggregate, related screens), Sources, and sketch the fog into `Not yet specified`.
 4. **Create the tickets you can phrase sharply now**, one question each, sized to one session. Create them all first, then wire dependencies with `--dep` in a second pass. The test for ticket vs fog: can the question be stated precisely now, even if it cannot be answered yet?

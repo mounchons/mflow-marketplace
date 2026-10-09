@@ -31,11 +31,11 @@ function reported() {
   git(p, "add", ".");
   git(p, "commit", "-q", "-m", "base");
   const base = git(p, "rev-parse", "HEAD").trim();
-  p.write("docs/ai-inbox/r.md", `---\nstatus: new\nfrom: codex\nmode: review\nbrief: b\nbase: ${base}\n---\n# r\n\n## Understanding\nok\n\n## Files read\n- \`src/Fee.cs\` (partial)\n- src/Other.cs:1-3\n\n## Findings\n- F1 src/Fee.cs:1\n`);
+  p.write("docs/ai/inbox/r.md", `---\nstatus: new\nfrom: codex\nmode: review\nbrief: b\nbase: ${base}\n---\n# r\n\n## Understanding\nok\n\n## Files read\n- \`src/Fee.cs\` (partial)\n- src/Other.cs:1-3\n\n## Findings\n- F1 src/Fee.cs:1\n`);
   return base;
 }
 const normalize = () => {
-  const r = run(p, "inbox-normalize.mjs", [p.file("docs/ai-inbox/r.md")]);
+  const r = run(p, "inbox-normalize.mjs", [p.file("docs/ai/inbox/r.md")]);
   assert.equal(r.status, 0, r.stderr);
   return r.json;
 };
@@ -51,7 +51,7 @@ test("files the report read that changed since its base are listed", needsGit, (
 
 test("a base this repository does not have is said, not guessed", needsGit, () => {
   reported();
-  p.write("docs/ai-inbox/r.md", p.read("docs/ai-inbox/r.md").replace(/base: [0-9a-f]+/, "base: 0123456789abcdef0123456789abcdef01234567"));
+  p.write("docs/ai/inbox/r.md", p.read("docs/ai/inbox/r.md").replace(/base: [0-9a-f]+/, "base: 0123456789abcdef0123456789abcdef01234567"));
   const stale = normalize().stale;
   assert.equal(stale.changedSince, null);
   assert.match(stale.note, /not in this repository/);
@@ -59,7 +59,7 @@ test("a base this repository does not have is said, not guessed", needsGit, () =
 
 test("a report with no base has no staleness to report", () => {
   p = project();
-  p.write("docs/ai-inbox/r.md", "---\nstatus: new\n---\n# r\n");
+  p.write("docs/ai/inbox/r.md", "---\nstatus: new\n---\n# r\n");
   assert.equal(normalize().stale, null);
 });
 

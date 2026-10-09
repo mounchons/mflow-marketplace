@@ -28,13 +28,15 @@ Done when: the profile is chosen or kept, and for c) the filled rows are written
 
 ## 3. Scaffold
 
+**On a rerun, move the documents first.** When `.mflow/config.json` already exists, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/migrate-layout.mjs"` (read-only). If it reports `layout: legacy`, or any `rewrites`, the project still keeps its documents in the layout before 0.20.0 (`docs/discuss`, `docs/hotspots`, `docs/ai-inbox`, `docs/analysis`, `docs/design`, `docs/challenge`, `docs/change-requests`). Show the plan in one compact table: each move (from → to), the settings it changes, how many files get the new paths (grouped by top folder: docs, backlog, openspec, code), and anything under `kept` or `conflicts`. On a yes, run it again with `--apply`, then tell the user to look at `git status` and commit with `git add -A` (git shows the moves as renames). A no is fine: the folder settings keep the old paths working, and the scaffold below writes its templates into the folders the settings name. Conflicts are for the user to merge by hand; they never hold up the rest of init.
+
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.mjs" --root . --name "<project name>" --dry-run`, show the planned result, then run it without `--dry-run`.
 
 The script never overwrites. For every entry under `suggested`, a template copy sits in `.mflow/suggested/`: merge it into the existing file by hand (keep everything the user wrote, add the missing mflow sections), show the diff, then delete `.mflow/suggested/`. `.mflow/templates.json` records each template offered and the plugin version that offered it, so a rerun after an upgrade suggests only the templates that changed; `kept` lists the files whose template was offered before, where the project's version stands. Commit `.mflow/templates.json` with the rest of `.mflow/`.
 
-Then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init`. It creates `docs/discuss/AGENDA.md`, which starts with the `tech-stack` and `code-structure` topics, and never overwrites an existing one.
+Then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init`. It creates `docs/decisions/discuss/AGENDA.md`, which starts with the `tech-stack` and `code-structure` topics, and never overwrites an existing one.
 
-Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai-inbox/README.md`, `docs/discuss/README.md` and `docs/discuss/AGENDA.md` exist and `.mflow/suggested/` is gone.
+Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/decisions/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai/inbox/README.md`, `docs/decisions/discuss/README.md` and `docs/decisions/discuss/AGENDA.md` exist (or the same files in the folders `.mflow/config.json` names, when the user kept the old layout) and `.mflow/suggested/` is gone.
 
 ## 4. Wire OpenSpec and Backlog.md
 
@@ -51,13 +53,13 @@ Then add to `openspec/config.yaml` (edit YAML, keep existing keys, show the diff
 context: |
   Read AGENTS.md for stack, commands, architecture and domain vocabulary.
   The user's answers and instructions are the customer's: build first, test in use, then refine through follow-up changes.
-  Business rules for fuzzy areas are worked out first in docs/hotspots/<slug>/rules.md.
-  Designs agreed before building (roles, data models, ...) are in docs/discuss/NN-*.md with status approved.
+  Business rules for fuzzy areas are worked out first in docs/decisions/hotspots/<slug>/rules.md.
+  Designs agreed before building (roles, data models, ...) are in docs/decisions/discuss/NN-*.md with status approved.
   The current data dictionary is PrototypeData/README.md until a change builds the entity.
 rules:
   proposal:
-    - If the change implements a hotspot, link docs/hotspots/<slug>/rules.md in the proposal.
-    - If the change adds or alters tables, link the approved data-model doc in docs/discuss/ and follow PrototypeData/README.md; state any difference.
+    - If the change implements a hotspot, link docs/decisions/hotspots/<slug>/rules.md in the proposal.
+    - If the change adds or alters tables, link the approved data-model doc in docs/decisions/discuss/ and follow PrototypeData/README.md; state any difference.
   specs:
     - Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.
   tasks:
@@ -99,6 +101,6 @@ Update `STATUS.md` (`## Now` + one log entry). Tell the user, briefly:
 - what was created, merged, or left untouched;
 - the stack profile, and for c) that mflow has not been tested with it yet;
 - which commands are `(unverified)`;
-- the open questions and hotspot rows found, and the recommended discussion topics in `docs/discuss/AGENDA.md` if capture wrote any;
-- the agenda in `docs/discuss/AGENDA.md`, starting with `/mflow:discuss tech-stack` and `/mflow:discuss code-structure` (recommended before theme, not required);
+- the open questions and hotspot rows found, and the recommended discussion topics in `docs/decisions/discuss/AGENDA.md` if capture wrote any;
+- the agenda in `docs/decisions/discuss/AGENDA.md`, starting with `/mflow:discuss tech-stack` and `/mflow:discuss code-structure` (recommended before theme, not required);
 - the next move: `/mflow:theme` to build the UI kit, then `/mflow:screen inventory`, then prototype screens for the first story-map slice. `/mflow:help` lists every command.

@@ -14,7 +14,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readJsonFile, writeFileAtomic } from "./lib.mjs";
+import { loadConfig, readJsonFile, writeFileAtomic } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -54,6 +54,22 @@ try {
 }
 record.files ??= {};
 
+// The templates of the folders a project may move (.mflow/config.json) land where its settings say, so a
+// project still in the layout before 0.20.0 gets them in its own folders, never as a second copy. A new
+// project has no settings yet and gets the defaults, the same paths as the templates.
+let cfg;
+try {
+  cfg = loadConfig(root);
+} catch (err) {
+  process.stderr.write(`${err.message}; nothing was written\n`);
+  process.exit(1);
+}
+const FOLDERS = [["docs/decisions/discuss", "discussDir"], ["docs/decisions/hotspots", "hotspotsDir"], ["docs/ai/inbox", "inboxDir"], ["docs/source", "sourceDir"]];
+const destination = (key) => {
+  const hit = FOLDERS.find(([prefix]) => key.startsWith(prefix + "/"));
+  return hit ? cfg[hit[1]].replace(/\/+$/, "") + key.slice(hit[0].length) : key;
+};
+
 const result = { root, dryRun, pluginVersion, created: [], suggested: [], kept: [], unchanged: [] };
 
 for (const rel of walk(templatesDir)) {
@@ -61,20 +77,21 @@ for (const rel of walk(templatesDir)) {
   const src = path.join(templatesDir, rel);
   const raw = fs.readFileSync(src, "utf8");
   const content = fill(raw);
-  const dest = path.join(root, rel);
+  const out = destination(key); // where it lands, relative to the project root
+  const dest = path.join(root, out);
 
   if (fs.existsSync(dest)) {
     if (fs.readFileSync(dest, "utf8") === content) {
-      result.unchanged.push(rel);
+      result.unchanged.push(out);
       record.files[key] = hash(raw);
       continue;
     }
     if (record.files[key] === hash(raw)) {
-      result.kept.push(rel); // this template was offered before; the project's version stands
+      result.kept.push(out); // this template was offered before; the project's version stands
       continue;
     }
-    const sug = path.join(root, ".mflow", "suggested", rel);
-    result.suggested.push({ existing: rel, template: path.relative(root, sug) });
+    const sug = path.join(root, ".mflow", "suggested", out);
+    result.suggested.push({ existing: out, template: path.relative(root, sug).split(path.sep).join("/") });
     record.files[key] = hash(raw);
     if (!dryRun) {
       fs.mkdirSync(path.dirname(sug), { recursive: true });
@@ -83,7 +100,7 @@ for (const rel of walk(templatesDir)) {
     continue;
   }
 
-  result.created.push(rel);
+  result.created.push(out);
   record.files[key] = hash(raw);
   if (!dryRun) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });

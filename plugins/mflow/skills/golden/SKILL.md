@@ -13,7 +13,7 @@ Golden data is the customer's own past results, calculated by hand, used as the 
 - If the file is not registered yet, follow `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` for it first. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 - If `<slug>.source.json` already exists in the Golden data folder and its `sourceHash` differs from the file's current hash (`node "${CLAUDE_PLUGIN_ROOT}/scripts/source-index.mjs" hash <file>`), say so first: the old answer key came from an earlier version of the spreadsheet, and this run replaces it.
 - Read it with python (pandas/openpyxl): list sheets, header rows, merged cells, formula cells. Pick the sheet and range with the user.
-- Map columns to the inputs and expected outcome of the rule table in `docs/hotspots/<slug>/rules.md`. Show the mapping and 5 sample rows before writing anything.
+- Map columns to the inputs and expected outcome of the rule table in `docs/decisions/hotspots/<slug>/rules.md`. Show the mapping and 5 sample rows before writing anything.
 
 Done when: every rule input and the expected outcome has a mapped column, or a gap is listed as a question.
 

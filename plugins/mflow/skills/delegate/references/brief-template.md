@@ -1,6 +1,6 @@
 # Brief template
 
-The answer always comes back as the tool's **final message**, which the command saves to `docs/ai-inbox/` (`-o`, `> file`, or the user saving a chat answer). Tools run read-only for analyze and review, so they must not be asked to write files.
+The answer always comes back as the tool's **final message**, which the command saves to `docs/ai/inbox/` (`-o`, `> file`, or the user saving a chat answer). Tools run read-only for analyze and review, so they must not be asked to write files.
 
 ```markdown
 ---
@@ -95,7 +95,7 @@ Instructions that go into the brief's Goal:
 - Check the topic checklist pasted into the brief. Report every item the doc neither answers nor lists as out of scope.
 - Write the findings in Thai; keep paths and identifiers as they are. Edit no files.
 - A diagram, wireframe or screenshot that contradicts the text or a source is a `challenge` targeting that picture's caption; the Suggestion may include a corrected mermaid block.
-- Do not open `docs/ai-inbox/`. Other tools are answering the same brief, and your view must stay independent. Earlier rounds reach you through section 8 of the doc.
+- Do not open `docs/ai/inbox/`. Other tools are answering the same brief, and your view must stay independent. Earlier rounds reach you through section 8 of the doc.
 
 ```markdown
 ## Picks
@@ -116,7 +116,7 @@ Instructions that go into the brief's Goal:
 Used by `/mflow:analyze`. Mode `analyze`, subject `<id>-r<n>`. Instructions that go into the brief's Goal:
 - Describe what the system does now, each point with evidence, apart from what its documents say it should do.
 - Report only findings with evidence or a concrete scenario; there is no quota. Where nothing was found, say what was examined.
-- Do not open `docs/ai-inbox/` in round 1: other tools answer the same brief, and your view must stay independent. In a later round, answer the disputed findings the brief lists, by their id.
+- Do not open `docs/ai/inbox/` in round 1: other tools answer the same brief, and your view must stay independent. In a later round, answer the disputed findings the brief lists, by their id.
 
 ```markdown
 ## Current behaviour
@@ -143,7 +143,7 @@ Used by `/mflow:design`. Mode `analyze`, subject `<id>-r<n>`. Instructions that 
 - Design only what the topic needs: a flow, module boundaries, a data model or an API contract. No diagram is required for its own sake.
 - Offer real alternatives with their reasons; keeping the current structure may be one of them.
 - Label what you propose `[เสนอ]` and what you infer `[อนุมาน]`, apart from facts with evidence.
-- Do not open `docs/ai-inbox/` in round 1; in a later round, answer the disputed points the brief lists, by their id.
+- Do not open `docs/ai/inbox/` in round 1; in a later round, answer the disputed points the brief lists, by their id.
 
 ```markdown
 ## Problem
@@ -180,7 +180,7 @@ Used by `/mflow:design`. Mode `analyze`, subject `<id>-r<n>`. Instructions that 
 Used by `/mflow:challenge`. Mode `analyze`, subject `<id>-r<n>`. The brief names the target with the hash the session pinned. Instructions that go into the brief's Goal:
 - Try to make the target fail: find the inputs and situations where what it says would go wrong, or that it does not answer. Check against the target and the real sources and code, not against the target alone.
 - Every challenge needs a scenario or evidence. There is no quota: when nothing breaks, say what was examined, so silence is not mistaken for coverage.
-- Do not open `docs/ai-inbox/` in round 1; in a later round, answer the disputed challenges the brief lists, by their id.
+- Do not open `docs/ai/inbox/` in round 1; in a later round, answer the disputed challenges the brief lists, by their id.
 
 ```markdown
 ## Target

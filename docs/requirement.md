@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.19.0 |
+| เวอร์ชันที่อธิบาย | 0.20.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -92,7 +92,7 @@ flowchart TD
 | รหัส | Requirement | สถานะ |
 |---|---|---|
 | FR-01 | สำรวจ repo ก่อนถามผู้ใช้: solution, test project, Playwright, agent file เดิม, เอกสาร requirement, CLI ที่ติดตั้ง | มีแล้ว |
-| FR-02 | สร้าง AGENTS.md, CLAUDE.md (`@AGENTS.md`), STATUS.md, docs/vision.md, docs/hotspots/INDEX.md, docs/source/README.md, docs/ai-inbox/README.md, docs/discuss/README.md, .mflow/config.json | มีแล้ว |
+| FR-02 | สร้าง AGENTS.md, CLAUDE.md (`@AGENTS.md`), STATUS.md, docs/vision.md, docs/decisions/hotspots/INDEX.md, docs/source/README.md, docs/ai/inbox/README.md, docs/decisions/discuss/README.md, .mflow/config.json | มีแล้ว |
 | FR-03 | ไม่เขียนทับไฟล์เดิม เขียน template ไว้ที่ `.mflow/suggested/` ให้ merge พร้อมแสดง diff | มีแล้ว |
 | FR-04 | ต่อ OpenSpec (`openspec init --tools claude,codex` หรือ `openspec update`) และ Backlog.md (`backlog init … --agent-instructions agents`) หลังผู้ใช้ตอบ yes | มีแล้ว |
 | FR-05 | เติม `context` และ `rules` ใน openspec/config.yaml: proposal ต้องลิงก์ hotspot และเอกสาร data model ที่อนุมัติ, requirement ต้องมี scenario, task ต้องจบด้วย test และ change ที่สร้าง aggregate ต้องเปลี่ยนส่วนนั้นของ `PrototypeData/README.md` เป็นบรรทัดชี้ไปที่ entity | มีแล้ว |
@@ -101,6 +101,7 @@ flowchart TD
 | FR-06 | เขียนคำสั่ง build/test ลง AGENTS.md เฉพาะที่รันผ่านจริง ที่รันไม่ได้ติด `(unverified)` | มีแล้ว |
 | FR-07 | เรียกซ้ำได้อย่างปลอดภัยเพื่อรับ template ใหม่เมื่ออัปเกรด plugin: `.mflow/templates.json` บันทึก hash ของ template ที่เคยเสนอและรุ่น plugin ที่เสนอ รอบถัดไปเสนอเฉพาะ template ที่เปลี่ยน ไฟล์ที่ผู้ใช้ merge หรือเลือกเก็บของตัวเองไว้แล้วไม่ถูกเสนอซ้ำ (`kept`) และ stack ที่เลือกไว้แล้วถูกใช้ต่อโดยไม่ถามใหม่ briefing บอกเมื่อ template ของโปรเจกต์เก่ากว่า plugin | มีแล้ว |
 | FR-07a | doctor (`scripts/doctor.mjs`, เรียกผ่าน `/mflow:help check setup` และท้าย `/mflow:init`) ตรวจแบบอ่านอย่างเดียว: รุ่น Node (ขั้นต่ำและวันหมดอายุ), git, รุ่น OpenSpec และ Backlog.md เทียบกับขั้นต่ำและรุ่นที่ทดสอบใน `compat.json`, JSON ที่ briefing อ่านจาก CLI, config (parse ได้ และไม่มีชื่อ setting ที่สะกดผิด), โฟลเดอร์, ทะเบียนเอกสาร, ค่า subagent, AGENTS.md และ STATUS.md, guidance ใน openspec/config.yaml, template ที่เก่ากว่า plugin, `.mflow/suggested/` ที่ค้าง, cache แบบเก่า, session ของ consultation ที่อ่านไม่ได้, golden data ที่ไฟล์ต้นทางเปลี่ยนหรือชี้ออกนอกโปรเจกต์ และโหมด prototype ที่ไม่มีการตรวจตอน start ทุกข้อที่เป็น warn หรือ fail มีวิธีแก้ | มีแล้ว |
+| FR-07b | เอกสารทั้งหมดที่ mflow เขียนอยู่ใต้ `docs/` ห้าหมวด (0.20): `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `change-requests/`), `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md` นอก `docs/` มีเฉพาะ AGENTS.md, CLAUDE.md, STATUS.md, `.mflow/`, `openspec/`, `backlog/` โปรเจกต์ที่สร้างก่อน 0.20 ใช้ต่อได้ด้วย path ใน `.mflow/config.json` (scaffold วาง template ลง folder ตามค่าตั้ง จึงไม่มีไฟล์ซ้ำสองที่ และ consultation เก่าอ่านจาก folder เดิมจนกว่าจะย้าย) doctor และ briefing เตือนว่าใช้โครงเก่า `/mflow:init` รัน `migrate-layout.mjs` แสดงแผน (ย้ายอะไรไปไหน, ค่าตั้งที่เปลี่ยน, ไฟล์ที่ต้องแก้ path) แล้วย้ายเมื่อผู้ใช้ตอบ yes: ย้าย folder, แก้ค่าตั้ง, แก้ path แบบเต็มในทุกไฟล์ข้อความ (รวม backlog, openspec, comment ในโค้ด, brief และ session ใน `.mflow/`) คำนวณ relative link ใน Markdown ใหม่ ไม่แตะเอกสารลูกค้าใน `docs/source/` folder ที่ชื่อทั่วไป (`analysis`, `design`, `challenge`, `change-requests`) ย้ายเฉพาะรายการที่ชื่อเป็นเลขของ mflow folder ที่ตั้งเองด้วยมือคงไว้ ส่วนที่ชนกับของที่มีอยู่แล้วแสดงเป็น conflict ไม่ย้าย รันซ้ำได้ ไม่ commit ให้ | มีแล้ว |
 | FR-08 | ถามเลือก stack หลังสำรวจ repo และก่อนเขียนไฟล์ใดๆ ถามทุกครั้งแม้เดาจาก repo ได้ (ตัวเลือก `a)` `b)` `c)` พร้อมคำแนะนำและหลักฐาน) บันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว (profile + ตาราง seam → path/เทคโนโลยี) และ `theme` `screen` `golden` `review` อ่านจากตรงนั้น โปรเจกต์ที่ยังไม่มี section นี้ ให้ถามเมื่อคำสั่งเหล่านั้นต้องใช้ครั้งแรก | มีแล้ว |
 
 ### 6.2 ความจำข้าม session (hooks + ไฟล์)
@@ -226,7 +227,7 @@ flowchart TD
 | FR-92 | `--to` ไม่บังคับ ถ้าไม่ระบุได้ brief กลางและคำสั่งของทุก tool ในทะเบียน | มีแล้ว |
 | FR-93 | ทะเบียน tool ค่าเริ่มต้น (codex, opencode, gemini, chat) และเพิ่ม/แก้ได้ใน `.mflow/config.json` tool ที่ไม่รู้จักให้ถามคำสั่งแล้วบันทึก | มีแล้ว |
 | FR-94 | คำสั่งสร้างด้วย script ทั้ง PowerShell (ตั้ง UTF-8) และ Bash ใช้ path แบบ absolute และ `{tool}` ใน path ผลลัพธ์ทำให้หลาย tool ตอบ brief เดียวกันได้โดยไม่ทับกัน | มีแล้ว |
-| FR-95 | ผลลัพธ์เป็นข้อความสุดท้ายของ tool บันทึกโดยคำสั่งลง `docs/ai-inbox/` tool ที่รันแบบ read-only ไม่ต้องเขียนไฟล์ | มีแล้ว |
+| FR-95 | ผลลัพธ์เป็นข้อความสุดท้ายของ tool บันทึกโดยคำสั่งลง `docs/ai/inbox/` tool ที่รันแบบ read-only ไม่ต้องเขียนไฟล์ | มีแล้ว |
 | FR-96 | ทุกรายงานต้องมี `Understanding` และ `Files read` นำหน้า brief บันทึก `base` (commit ที่เขียน brief) และ `dirty` (มีงานที่ยังไม่ commit หรือไม่) รายงานคัดลอก `base` ไป หัว context pack ก็บอก commit นี้ให้ tool ที่ไม่เห็น repo | มีแล้ว |
 | FR-97 | Context pack รวมไฟล์เป็นไฟล์เดียวสำหรับ chat UI ข้าม binary เตือนเมื่อใหญ่เกิน 400 KB และหยุดก่อนอ่านไฟล์ใดเมื่อเกิน 500 ไฟล์หรือ 2 MB รับเฉพาะไฟล์ในโปรเจกต์ (ตาม path จริงหลังตาม link/junction) โฟลเดอร์นอกโปรเจกต์ต้องระบุด้วย `--allow` ไฟล์ซ้ำหรือตัว pack เองไม่ถูกรวม ตรวจรูปแบบข้อมูลลับในทุกไฟล์ข้อความ (key ของ cloud/GitHub/Slack/AI, JWT, connection string, ค่าลับที่เขียนเป็นตัวอักษรตรงๆ) ไฟล์ที่เข้าข่ายถูกข้ามพร้อมเหตุผล ผลลัพธ์มี manifest (path, ขนาด, hash) และหัว pack บอกว่าเนื้อหาเป็นข้อมูล ไม่ใช่คำสั่ง การตรวจเป็นแบบรูปแบบ จึงต้องอ่าน pack ก่อนส่งออกจากเครื่อง | มีแล้ว |
 | FR-98 | โหมด code ทำใน worktree และ branch `agent/<tool>/<id>` แยกจาก Claude | มีแล้ว |
@@ -246,7 +247,7 @@ flowchart TD
 
 | รหัส | Requirement | สถานะ |
 |---|---|---|
-| FR-120 | เขียนความเข้าใจหรือแบบที่เสนอของหนึ่งหัวข้อเป็น `docs/discuss/NN-<slug>.md` ภาษาไทย เลขเอกสารและไฟล์สร้างด้วย script และไม่ทับไฟล์เดิม | มีแล้ว |
+| FR-120 | เขียนความเข้าใจหรือแบบที่เสนอของหนึ่งหัวข้อเป็น `docs/decisions/discuss/NN-<slug>.md` ภาษาไทย เลขเอกสารและไฟล์สร้างด้วย script และไม่ทับไฟล์เดิม | มีแล้ว |
 | FR-121 | ทุกข้อความติดป้ายที่มา `[ที่มา: ไฟล์ §หัวข้อ]` `[ยืนยัน]` (ผู้ใช้บอกหรือยืนยัน) `[อนุมาน]` `[เสนอ]` และมีตัวอย่างสถานการณ์ด้วยชื่อสมมติ อย่างน้อยหนึ่งเรื่องเป็นกรณีขอบ | มีแล้ว |
 | FR-122 | ทุกเรื่องที่เอกสารไม่ได้บอกเป็นข้อตัดสินใจให้ผู้ใช้ตอบแทนลูกค้า (ทางเลือก ข้อดีข้อเสีย และคำแนะนำของ Claude) ไม่มีหมวดคำถามที่ต้องรอลูกค้า ทางเลือกใช้ป้าย `a)` `b)` `c)` `d)` (ไม่ใช่ ก ข ค) เพื่อให้ตอบได้โดยไม่ต้องสลับภาษาแป้นพิมพ์ เอกสารเก่าที่ใช้ ก ข ค อ่านคำตอบตามลำดับ และเปลี่ยนป้ายเฉพาะข้อที่ยังเปิดอยู่ | มีแล้ว |
 | FR-123 | ผู้ใช้ตอบได้ทั้งในไฟล์ (`**เลือก:**`, บรรทัด `> ความเห็น:`) และในแชต ทุกรอบเพิ่ม revision และบันทึกว่าแก้อะไรเพราะอะไร เอกสารก่อน 0.13 ที่ใช้ `**พี่ปูเลือก:**` และ `> พี่ปู:` ยังอ่านได้ และรอบแก้ถัดไปเปลี่ยนเฉพาะบรรทัดคำตอบที่ยังเปิด | มีแล้ว |
@@ -257,7 +258,7 @@ flowchart TD
 | FR-128 | Checklist ของหัวข้อที่มักตีความได้หลายแบบ (access control, org structure, numbering, notifications, audit …) พร้อมรูปตารางที่แนะนำ | มีแล้ว |
 | FR-129 | Briefing ตอนเริ่ม session แจ้งเอกสาร discuss ที่รอผู้ใช้อ่าน, `/mflow:capture` เสนอหัวข้อที่ควรคุย, `/mflow:screen inventory` ใช้ role และเมนูจากเอกสารที่อนุมัติแล้ว | มีแล้ว |
 | FR-130 | `consult` สร้าง brief หนึ่งฉบับ (subject `discuss-NN-rN`, สัญญาผลลัพธ์แบบ discuss) และคำสั่งของแต่ละ AI tool ที่ผู้ใช้รันเอง ผลของแต่ละ tool ลงไฟล์แยก (`{tool}` ใน path) | มีแล้ว |
-| FR-131 | Brief ให้ tool อ่านเอกสารลูกค้าก่อนเอกสาร discuss, ตรวจทุกข้อที่เป็น [อนุมาน]/[เสนอ], เลือกเองในทุกข้อตัดสินใจที่ยังเปิด, ตรวจ checklist ของหัวข้อที่แปะมาใน brief และห้ามเปิด `docs/ai-inbox/` เพื่อให้ความเห็นแต่ละตัวเป็นอิสระ | มีแล้ว |
+| FR-131 | Brief ให้ tool อ่านเอกสารลูกค้าก่อนเอกสาร discuss, ตรวจทุกข้อที่เป็น [อนุมาน]/[เสนอ], เลือกเองในทุกข้อตัดสินใจที่ยังเปิด, ตรวจ checklist ของหัวข้อที่แปะมาใน brief และห้ามเปิด `docs/ai/inbox/` เพื่อให้ความเห็นแต่ละตัวเป็นอิสระ | มีแล้ว |
 | FR-132 | รวมรายงานทุกตัวในรอบเดียว: ตรวจความเข้าใจและหลักฐานตาม assess, แสดงตัวเลือกของแต่ละ tool ในข้อตัดสินใจ, เรื่องที่เห็นต่างกลายเป็นข้อตัดสินใจใหม่, ทุกข้ออยู่ในตารางหัวข้อ 8 รวมข้อที่ไม่ใช้พร้อมเหตุผล | มีแล้ว |
 | FR-133 | ความเห็นของ AI ไม่นับเป็นของผู้ใช้: ห้ามเติม `**เลือก:**` แทน ห้ามเขียนเป็น `> ความเห็น:` ห้ามติดป้าย `[ยืนยัน]` ข้อเสนอที่ใช้ติดป้าย `[เสนอ: <tool>]` และ Claude ตัดข้อเสนอได้เฉพาะเมื่อมีหลักฐาน | มีแล้ว |
 | FR-134 | รายงานที่ยังไม่ได้รวมเข้าเอกสารทำให้อนุมัติไม่ได้ และ briefing ส่งรายงานเหล่านี้ไปที่ `/mflow:discuss NN` ไม่ใช่ `/mflow:assess` รวมถึงรายงานของเอกสารที่อนุมัติแล้วหรือไม่มีอยู่ | มีแล้ว |
@@ -280,7 +281,7 @@ flowchart TD
 | FR-154 | คำตอบหรือคำสั่งของผู้ใช้นับเป็นคำสั่งของลูกค้าโดยตรงในทุกคำสั่ง (discuss, hotspot, review-notes, change-request, capture, assess, theme, screen) ไม่มีขั้นใดรอลูกค้ายืนยันซ้ำ และคำสั่งให้ทำคือ yes ของเรื่องนั้น | มีแล้ว |
 | FR-155 | หลัก "ทำก่อน ทดสอบใช้งาน แล้วปรับเพิ่ม" อยู่ในหัวข้อ `## Who decides` ของ AGENTS.md (template) และใน `context` ของ `openspec/config.yaml` ที่ `/mflow:init` เติมให้ เพื่อให้ AI ทุกตัวและ OpenSpec proposal ทำตาม | มีแล้ว |
 
-### 6.14 หัวข้อที่ควร discuss (`docs/discuss/AGENDA.md`)
+### 6.14 หัวข้อที่ควร discuss (`docs/decisions/discuss/AGENDA.md`)
 
 | รหัส | Requirement | สถานะ |
 |---|---|---|
@@ -302,12 +303,12 @@ flowchart TD
 |---|---|---|
 | FR-180 | ทุกคำสั่งในหมวดนี้ไม่บังคับ: ผู้ใช้เรียกเองเท่านั้น (`disable-model-invocation: true`) hook และคำสั่งอื่นไม่เรียกให้ ไม่เป็นเงื่อนไขก่อนขั้นใดของ flow หลัก รายงานที่ยังไม่กลับมาไม่ block งานหลักและไม่ทำให้อะไรถูกตั้งเป็น blocked โปรเจกต์ที่ไม่เคยใช้ไม่เห็นอะไรเปลี่ยน ผู้ใช้รันเครื่องมือภายนอกเอง (§13) | มีแล้ว |
 | FR-181 | `consult.mjs` เก็บ session ที่ `.mflow/consultations/<id>/session.json` (AN/DS/CH-NNN) เฉพาะข้อมูลที่ไม่เปลี่ยน: intent, scope, snapshot (commit, งานที่ยังไม่ commit, hash ของไฟล์ `--target`/`--from`), tool ที่ขอ และรอบ สถานะอ่านจากไฟล์จริงทุกครั้ง (`prepared → awaiting-reports → assessing → summarized`, completeness `none/partial/complete`, tool ที่ขาด, target ที่เปลี่ยน) เรียกซ้ำด้วย intent และ scope เดิมขณะยังเปิดอยู่ได้ session เดิม (ไม่สร้างซ้ำ) รายงานจับคู่จากชื่อไฟล์ `<id>-r<n>-<tool>.md` หรือ `brief` | มีแล้ว |
-| FR-182 | Pipeline ร่วม (`skills/delegate/references/consultation.md`): brief ผ่านกลไก delegate (mode `analyze` อ่านอย่างเดียวทุก intent) รอบแรกแต่ละ tool ทำอิสระและห้ามเปิด `docs/ai-inbox/` ตรวจแต่ละรายงานตามขั้นของ assess รวม finding ที่ซ้ำโดยระบุทุก tool ที่ยกมา ความเห็นตรงกันไม่ใช่หลักฐาน ความเห็นต่างคงไว้พร้อมวิธีตัดสิน finding ที่ปฏิเสธยังอยู่ในสรุปพร้อมเหตุผล สรุปบันทึก revision, completeness และรายงานทุกฉบับที่รวม (`reports:`) สรุปแบบ partial ได้ รายงานที่มาทีหลังทำ revision ใหม่โดยไม่เปลี่ยนรายการที่ผู้ใช้เลือกไว้ รอบสองเฉพาะประเด็นที่ยังขัดกัน | มีแล้ว |
+| FR-182 | Pipeline ร่วม (`skills/delegate/references/consultation.md`): brief ผ่านกลไก delegate (mode `analyze` อ่านอย่างเดียวทุก intent) รอบแรกแต่ละ tool ทำอิสระและห้ามเปิด `docs/ai/inbox/` ตรวจแต่ละรายงานตามขั้นของ assess รวม finding ที่ซ้ำโดยระบุทุก tool ที่ยกมา ความเห็นตรงกันไม่ใช่หลักฐาน ความเห็นต่างคงไว้พร้อมวิธีตัดสิน finding ที่ปฏิเสธยังอยู่ในสรุปพร้อมเหตุผล สรุปบันทึก revision, completeness และรายงานทุกฉบับที่รวม (`reports:`) สรุปแบบ partial ได้ รายงานที่มาทีหลังทำ revision ใหม่โดยไม่เปลี่ยนรายการที่ผู้ใช้เลือกไว้ รอบสองเฉพาะประเด็นที่ยังขัดกัน | มีแล้ว |
 | FR-183 | ผลลัพธ์เป็นคำแนะนำ: ไม่แก้ production code, `openspec/specs/` หรือเอกสารที่ freeze เพราะ AI เสนอ ผู้ใช้เลือกรายการแล้วส่งต่อตามตาราง (discuss, hotspot, OpenSpec change, change-request, Backlog, spike) โดยไม่ขออนุมัติซ้ำ และสรุปแยก "พบจริง" กับ "ให้แก้" | มีแล้ว |
 | FR-184 | briefing แสดง session ที่ยังไม่สรุปในหัวข้อแยก "Consultations (optional)" ไม่ปนกับงานที่รอ และไม่เป็น next action ของงานหลัก รายงานของ consultation ไม่นับเป็น "AI-inbox item(s) not assessed" เฉพาะเมื่อ session นั้นมีอยู่จริง (ชื่อ id ที่แต่งขึ้นไม่ทำให้รายงานหลุดจากคิวตรวจ) ถ้า session อ่านไม่ได้ briefing บอก และรายงานกลับไปอยู่ในรายการรอ scope และ path จาก session แสดงเป็นบรรทัดเดียว ไม่แทรกข้อความเข้า briefing และ path ที่ปักหมุดไว้ซึ่งชี้ออกนอกโปรเจกต์ไม่ถูกอ่าน | มีแล้ว |
-| FR-185 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus] [--to]` ให้ AI หลายตัววิเคราะห์สภาพจริงของระบบ (สัญญา `consult-analyze`: พฤติกรรมปัจจุบันพร้อมหลักฐาน, findings ที่มี ID หลักฐาน ผลกระทบ confidence, ข้อเสนอเรียงลำดับ, สิ่งที่ยังตรวจไม่ได้) และสรุปที่ `docs/analysis/AN-NNN/summary.md` | มีแล้ว |
-| FR-186 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus] [--to]` ให้ AI หลายตัวเสนอแบบ (สัญญา `consult-design`: ปัญหาและขอบเขต, แบบที่แนะนำเท่าที่หัวข้อต้องการ, ทางเลือกรวมการคงโครงเดิม, สิทธิ์/ความล้มเหลว/การทำงานพร้อมกัน, trade-offs พร้อมสมมติฐาน, การย้ายจากระบบเดิม, เกณฑ์ตรวจรับ, ข้อที่ผู้ใช้ต้องเลือก และป้าย `[เสนอ]`/`[อนุมาน]`) ไม่ต้องผ่าน analyze ก่อน รวมเป็น `docs/design/DS-NNN/proposal.md` (สถานะ proposed/selected/superseded) และ `comparison.md` เมื่อยังมีทางเลือกตั้งแต่สองทาง แบบที่เลือกส่งต่อ `/opsx:propose` โดยอ้าง revision ไม่แก้ `openspec/specs/` เอง | มีแล้ว |
-| FR-187 | `/mflow:challenge @ไฟล์ [--focus] [--to]` ให้ AI หลายตัวหาสถานการณ์ที่ทำให้แบบหรือเอกสารล้มเหลวก่อนมีโค้ด (สัญญา `consult-challenge`: ข้อความที่ถูกทักท้วง → สถานการณ์ → ผลที่ควรเป็น → สิ่งที่ผิดพลาดหรือยังตอบไม่ได้ → หลักฐาน → การทดสอบหรือการแก้ที่เสนอ และส่วนที่ตรวจแล้วยังยืน ไม่มีโควตาจำนวน) session ปักหมุด hash ของไฟล์เป้าหมาย และบอกเมื่อไฟล์ถูกแก้หลังเริ่ม สรุปที่ `docs/challenge/CH-NNN/summary.md` ไม่มีสำเนาของเป้าหมาย ลิงก์กลับเฉพาะแบบเสนอที่ mflow เขียน (`docs/design/DS-NNN/proposal.md`) ไม่แก้เอกสาร discuss ที่ freeze, `openspec/specs/` หรือเอกสารของผู้ใช้ | มีแล้ว |
+| FR-185 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus] [--to]` ให้ AI หลายตัววิเคราะห์สภาพจริงของระบบ (สัญญา `consult-analyze`: พฤติกรรมปัจจุบันพร้อมหลักฐาน, findings ที่มี ID หลักฐาน ผลกระทบ confidence, ข้อเสนอเรียงลำดับ, สิ่งที่ยังตรวจไม่ได้) และสรุปที่ `docs/ai/analysis/AN-NNN/summary.md` | มีแล้ว |
+| FR-186 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus] [--to]` ให้ AI หลายตัวเสนอแบบ (สัญญา `consult-design`: ปัญหาและขอบเขต, แบบที่แนะนำเท่าที่หัวข้อต้องการ, ทางเลือกรวมการคงโครงเดิม, สิทธิ์/ความล้มเหลว/การทำงานพร้อมกัน, trade-offs พร้อมสมมติฐาน, การย้ายจากระบบเดิม, เกณฑ์ตรวจรับ, ข้อที่ผู้ใช้ต้องเลือก และป้าย `[เสนอ]`/`[อนุมาน]`) ไม่ต้องผ่าน analyze ก่อน รวมเป็น `docs/ai/design/DS-NNN/proposal.md` (สถานะ proposed/selected/superseded) และ `comparison.md` เมื่อยังมีทางเลือกตั้งแต่สองทาง แบบที่เลือกส่งต่อ `/opsx:propose` โดยอ้าง revision ไม่แก้ `openspec/specs/` เอง | มีแล้ว |
+| FR-187 | `/mflow:challenge @ไฟล์ [--focus] [--to]` ให้ AI หลายตัวหาสถานการณ์ที่ทำให้แบบหรือเอกสารล้มเหลวก่อนมีโค้ด (สัญญา `consult-challenge`: ข้อความที่ถูกทักท้วง → สถานการณ์ → ผลที่ควรเป็น → สิ่งที่ผิดพลาดหรือยังตอบไม่ได้ → หลักฐาน → การทดสอบหรือการแก้ที่เสนอ และส่วนที่ตรวจแล้วยังยืน ไม่มีโควตาจำนวน) session ปักหมุด hash ของไฟล์เป้าหมาย และบอกเมื่อไฟล์ถูกแก้หลังเริ่ม สรุปที่ `docs/ai/challenge/CH-NNN/summary.md` ไม่มีสำเนาของเป้าหมาย ลิงก์กลับเฉพาะแบบเสนอที่ mflow เขียน (`docs/ai/design/DS-NNN/proposal.md`) ไม่แก้เอกสาร discuss ที่ freeze, `openspec/specs/` หรือเอกสารของผู้ใช้ | มีแล้ว |
 
 ## 7. Non-functional requirements
 
@@ -369,7 +370,8 @@ mflow-marketplace/
     ├─ hooks/hooks.json              ← SessionStart, PreToolUse (Agent), Stop
     ├─ scripts/
     │   ├─ lib.mjs                   ← config + ทะเบียน tool ค่าเริ่มต้น
-    │   ├─ scaffold.mjs              ← สร้างไฟล์จาก template ไม่ทับของเดิม
+    │   ├─ scaffold.mjs              ← สร้างไฟล์จาก template ไม่ทับของเดิม (ลง folder ตามค่าตั้ง)
+    │   ├─ migrate-layout.mjs        ← ย้ายเอกสารจากโครงก่อน 0.20 เข้าหมวด (แสดงแผนก่อน ย้ายเมื่อ --apply)
     │   ├─ session-start.mjs         ← briefing
     │   ├─ stop-guard.mjs            ← เตือน STATUS.md
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
@@ -402,7 +404,7 @@ mflow-marketplace/
 | `/mflow:golden @xlsx <slug>` | ใช้ Excel จริงของลูกค้าพิสูจน์กฎ |
 | `/mflow:change-request <คำขอ>` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว |
 | `/mflow:delegate <subject> --mode analyze\|review\|code [--to <tool>]` | ส่งงานให้ AI ตัวอื่น |
-| `/mflow:assess @docs/ai-inbox/<ไฟล์>` | ผลจาก AI ตัวอื่นกลับมา |
+| `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ผลจาก AI ตัวอื่นกลับมา |
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
 | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
@@ -417,10 +419,10 @@ mflow-marketplace/
 ```json
 {
   "version": 1,
-  "hotspotsDir": "docs/hotspots",
+  "hotspotsDir": "docs/decisions/hotspots",
   "sourceDir": "docs/source",
-  "inboxDir": "docs/ai-inbox",
-  "discussDir": "docs/discuss",
+  "inboxDir": "docs/ai/inbox",
+  "discussDir": "docs/decisions/discuss",
   "statusLogEntriesInContext": 2,
   "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 },
   "applySubagent": { "enabled": false },
@@ -437,6 +439,8 @@ mflow-marketplace/
 ```
 
 `{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ครอบ single quote ตามกฎของแต่ละ shell (Bash และ PowerShell) `$` backtick ช่องว่าง และ `'` ใน path จึงไม่ถูกตีความ ใน template ไม่ต้องใส่เครื่องหมายคำพูดเอง และ cmdlet ของ PowerShell ให้รับ path ผ่าน `-LiteralPath` เพราะ `[ ]` ใน `-Path` เป็น wildcard script ไม่ยอมสร้างคำสั่งถ้าไม่มี `--brief` หรือ `--out` หรือไม่มี `--worktree` ใน mode code
+
+ค่าของ folder ข้างบนเป็นค่าเริ่มต้นตั้งแต่ 0.20 โปรเจกต์ที่สร้างก่อนนั้นมี `docs/hotspots`, `docs/ai-inbox` และ `docs/discuss` เขียนไว้ในไฟล์นี้ จึงยังทำงานกับ folder เดิมได้ จนกว่า `migrate-layout.mjs --apply` จะย้ายและแก้ค่าให้ (FR-07b)
 
 ไฟล์นี้ parse ไม่ได้ หรือค่าผิดชนิด (เช่น `sourceDir` ไม่ใช่ข้อความ) คำสั่ง mflow จะหยุดและบอกสาเหตุ แทนการใช้ค่าเริ่มต้นเงียบๆ (NFR-11) ไฟล์ว่างใช้ค่าเริ่มต้น
 
@@ -480,7 +484,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (18 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.19)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.20)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -515,6 +519,9 @@ mflow-marketplace/
 | apply-subagent.mjs และ subagent-guard.mjs (0.17): repo ใหม่ปิด (source default) ไม่มีคำเตือน, on สร้าง `.mflow/local.json` และเพิ่มลง `.gitignore` (คง CRLF), on ซ้ำไม่เขียน, off ตั้ง false, `--shared` เขียน `.mflow/config.json` โดยคง key อื่น และเตือนเมื่อ local ทับ, ไม่มี local ใช้ค่าทีม, `local.json` เสียไม่ถูกเขียนทับ (exit 1), `local.json` ว่างหรืออ่านไม่ได้ (เช่นเป็นโฟลเดอร์) ปฏิเสธแทนการถือว่าไม่มีไฟล์ แม้ค่าทีมเปิดอยู่, `off` เขียนทับไฟล์ว่างได้, ไฟล์ที่มี UTF-8 BOM อ่านได้, ไฟล์ที่ค้าง merge conflict บอกสาเหตุ, กฎ deny ใน `~/.claude/settings.json` ทำให้ปิดแม้ตั้งเปิด, รันจากโฟลเดอร์ย่อยหา root ได้, ไม่ใช่โปรเจกต์ mflow ขึ้น error; hook: subagent อื่นผ่าน, เปิดผ่าน, ปิดปฏิเสธ, ไม่ใช่ mflow ปฏิเสธ, stdin เสียผ่าน (ไม่รู้ว่าเป็น agent ไหน), `local.json` เสียปฏิเสธ, cwd เป็นโฟลเดอร์ย่อยแต่ root เปิดผ่าน; briefing มีบรรทัดตอนเปิด (ทั้งที่ root และเปิดใน `apps/api`) เงียบตอนปิด บอกเมื่อกฎ deny บล็อก และแสดงได้แม้ไม่มี `openspec/` | ผ่าน |
 | headless (0.17): ค่าเริ่มต้นปิด `/opsx:apply` ทำ task เองโดยไม่มีการเรียก Agent เลย (ไม่มีโฟลเดอร์ subagents), เรียก `mflow:dev` ตรงๆ ตอนปิดได้ข้อความปฏิเสธจาก hook, `/mflow:subagent on` เขียน `.mflow/local.json` แล้ว `/opsx:apply` ใน session ใหม่ส่งให้ `mflow:dev` (`claude-sonnet-5-5`, `xhigh`), เปิด Claude Code ใน `apps/api` ขณะที่ root เปิดเรียก `mflow:dev` ได้ | ผ่าน |
 | `/opsx:apply` กับ change จริงหลาย task และ `/mflow:subagent` ใน session แบบ interactive | ยังไม่ได้รันใน session จริง (R-03, R-14) |
+| migrate-layout.mjs (0.20): แผนไม่เขียนอะไร, `--apply` ย้าย folder ค่าตั้ง และ path ในทุกไฟล์ (AGENTS.md, backlog, openspec, comment ในโค้ด, summary, session ของ consultation) แต่ไม่แตะ `docs/source/`, relative link สามแบบ (จากไฟล์ที่ย้ายไปไฟล์ที่ไม่ย้าย, ระหว่างไฟล์ที่ย้าย, เข้าไฟล์ที่ย้าย), pin ของ consultation ได้ hash ใหม่, รันซ้ำไม่มีงาน, conflict ไม่ย้ายและคงค่าตั้งเดิม, ค่าตั้งที่ตั้งเองคงไว้, ไฟล์ที่ git ignore ไม่แตะ, doctor และ briefing เตือนจนกว่าจะย้าย, scaffold วางลง folder เดิมตามค่าตั้ง, consultation เก่าอ่าน summary จาก folder เดิม | ผ่าน |
+| ย้ายสำเนา (git clone) ของโปรเจกต์จริงที่ใช้ mflow 0.19 (เอกสาร discuss 11 ฉบับ, hotspot 2 ตัว, CR 1 ใบ): ย้าย 4 รายการ แก้ path 210 ไฟล์ git เห็น 19 การเปลี่ยนชื่อ รันซ้ำไม่มีงาน `discuss.mjs list`, `source-index.mjs scan` และ briefing อ่านโครงใหม่ได้ | ผ่าน |
+| ขั้นย้ายเอกสารใน `/mflow:init` (แสดงแผน ถาม yes แล้ว `--apply`) และคู่มือทางลัด `docs/manual-fast-track.md` | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

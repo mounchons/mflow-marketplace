@@ -82,7 +82,7 @@ The customer walks through the prototype as each role, the way a model home is s
   - Negative tests (`WebApplicationFactory`): the app does not start as Production with the flag on; with the flag off, `POST /_prototype/switch-user` returns 404 and a `proto-user` cookie changes nothing; an endpoint called directly without its permission key returns 403, and a list called directly returns only the caller's data scope.
 - **Go-live:** register the claims-based `ICurrentUser`, and replace `roles.json` with the role-to-permission store that the approved access-control discussion doc decided (code or database tables). Controllers, views and the menu do not change.
 
-**Source:** `users.json` and `roles.json` come from the approved access-control discussion doc (`docs/discuss/NN-*.md`, status `approved`). JSON has no comments, so `PrototypeData/README.md` records the doc and its revision. With no approved doc there is one user, `ผู้ดูแลระบบ`, with every permission and scope `all`; suggest `/mflow:discuss access-control`. A draft doc settles nothing.
+**Source:** `users.json` and `roles.json` come from the approved access-control discussion doc (`docs/decisions/discuss/NN-*.md`, status `approved`). JSON has no comments, so `PrototypeData/README.md` records the doc and its revision. With no approved doc there is one user, `ผู้ดูแลระบบ`, with every permission and scope `all`; suggest `/mflow:discuss access-control`. A draft doc settles nothing.
 
 **React + Vite:** the same contract applies. The API enforces permissions and scope, holds the startup check and the negative tests, and the UI reads the user's permission keys only to show or hide things.
 

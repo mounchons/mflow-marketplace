@@ -3,6 +3,8 @@
 // plan first, rewrites every path that names a moved folder (never in the customer's own files), and can
 // run again safely.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, test } from "node:test";
 import { fileHash } from "../plugins/mflow/scripts/source-index.mjs";
 import { git, hasGit, project, run } from "./helpers.mjs";
@@ -178,6 +180,61 @@ test("a folder setting that leaves the project is refused, and scaffold writes n
   }
   p = project({ discussDir: "docs/./decisions/discuss/" });
   assert.equal(run(p, "scaffold.mjs", ["--root", p.root, "--name", "demo"]).status, 0, "a folder inside the project still works");
+});
+
+/** A link in the project pointing outside it: a junction for a folder (no admin rights needed on Windows). */
+function link(target, at, type) {
+  try {
+    fs.mkdirSync(path.dirname(p.file(at)), { recursive: true });
+    fs.symlinkSync(target, p.file(at), type);
+    return true;
+  } catch {
+    return false; // file links need extra rights on some Windows machines
+  }
+}
+
+test("a linked docs/ that leads outside stops scaffold before it writes anything", () => {
+  p = project();
+  const outside = path.join(p.base, "outside");
+  fs.mkdirSync(outside);
+  assert.ok(link(outside, "docs", "junction"), "junction");
+  const r = run(p, "scaffold.mjs", ["--root", p.root, "--name", "demo"]);
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stderr, /link that leads outside/);
+  assert.deepEqual(fs.readdirSync(outside), []);
+  assert.equal(p.exists("AGENTS.md"), false);
+});
+
+test("a link to a file that does not exist yet is not followed", (t) => {
+  p = project();
+  const victim = path.join(p.base, "victim.md");
+  if (!link(victim, "AGENTS.md", "file")) return t.skip("this machine cannot make file links");
+  const r = run(p, "scaffold.mjs", ["--root", p.root, "--name", "demo"]);
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stderr, /outside the project.*AGENTS\.md/);
+  assert.equal(fs.existsSync(victim), false);
+});
+
+test("a linked .mflow stops every script before it reads through the link", () => {
+  p = project();
+  const outside = path.join(p.base, "outside-mflow");
+  fs.renameSync(p.file(".mflow"), outside);
+  assert.ok(link(outside, ".mflow", "junction"), "junction");
+  const r = run(p, "migrate-layout.mjs");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /\.mflow leads outside the project through a link/);
+  assert.equal(run(p, "doctor.mjs").json.checks.find((c) => c.id === "config").status, "fail");
+});
+
+test("the migration never rewrites a link", (t) => {
+  legacyProject();
+  const secret = path.join(p.base, "secret.md");
+  fs.writeFileSync(secret, "mentions docs/discuss\n");
+  if (!link(secret, "notes/linked.md", "file")) return t.skip("this machine cannot make file links");
+  const done = migrate("--apply");
+  assert.ok(!done.rewrites.some((r) => r.file === "notes/linked.md"));
+  assert.equal(fs.lstatSync(p.file("notes/linked.md")).isSymbolicLink(), true);
+  assert.equal(fs.readFileSync(secret, "utf8"), "mentions docs/discuss\n");
 });
 
 test("a consultation from before the move still finds its summary in the old folder", () => {

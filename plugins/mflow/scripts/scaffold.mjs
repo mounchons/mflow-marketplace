@@ -14,7 +14,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadConfig, readJsonFile, writeFileAtomic } from "./lib.mjs";
+import { loadConfig, readJsonFile, realInside, writeFileAtomic } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -70,16 +70,19 @@ const destination = (key) => {
   return hit ? cfg[hit[1]].replace(/\/+$/, "") + key.slice(hit[0].length) : key;
 };
 
-// loadConfig already refuses a folder setting outside the project. Checking every destination before the
-// first write keeps any other route from writing there, or from stopping halfway.
+// loadConfig already refuses a folder setting outside the project. A cloned repository can also carry
+// links (docs/ as a junction, AGENTS.md as a link to a file that does not exist yet), so every place this
+// run may write, its suggested copy and the record included, is checked through them before the first
+// write: nothing lands outside, and the run never stops halfway.
 const templates = walk(templatesDir);
-for (const rel of templates) {
+const outside = [recordFile, ...templates.flatMap((rel) => {
   const out = destination(rel.split(path.sep).join("/"));
-  const back = path.relative(root, path.join(root, out));
-  if (!back || back === ".." || back.startsWith(".." + path.sep) || path.isAbsolute(back)) {
-    process.stderr.write(`${out} is outside the project; nothing was written\n`);
-    process.exit(1);
-  }
+  return [path.join(root, out), path.join(root, ".mflow", "suggested", out)];
+})].filter((file) => !realInside(root, file));
+if (outside.length) {
+  const shown = outside.map((f) => path.relative(root, f).split(path.sep).join("/"));
+  process.stderr.write(`these would be written outside the project, through a link or a path that leaves it: ${shown.join(", ")}; nothing was written\n`);
+  process.exit(1);
 }
 
 const result = { root, dryRun, pluginVersion, created: [], suggested: [], kept: [], unchanged: [] };
@@ -105,19 +108,14 @@ for (const rel of templates) {
     const sug = path.join(root, ".mflow", "suggested", out);
     result.suggested.push({ existing: out, template: path.relative(root, sug).split(path.sep).join("/") });
     record.files[key] = hash(raw);
-    if (!dryRun) {
-      fs.mkdirSync(path.dirname(sug), { recursive: true });
-      fs.writeFileSync(sug, content);
-    }
+    if (!dryRun) writeFileAtomic(sug, content);
     continue;
   }
 
   result.created.push(out);
   record.files[key] = hash(raw);
-  if (!dryRun) {
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, content);
-  }
+  // Written beside and renamed into place, so a link at `dest` would be replaced, never followed.
+  if (!dryRun) writeFileAtomic(dest, content);
 }
 
 if (!dryRun) {

@@ -107,6 +107,28 @@ export function insideProject(rel) {
 }
 
 /**
+ * Whether `target` (relative to root or absolute; it need not exist yet) really lies inside root once
+ * symlinks and junctions are followed. A cloned repository can carry links, so a path that reads as
+ * inside may lead out: the nearest entry that exists, a link included, must resolve inside root, and a
+ * dangling link, which a write would follow to create its target, counts as outside.
+ */
+export function realInside(root, target) {
+  let realRoot;
+  try { realRoot = fs.realpathSync(root); } catch { return false; }
+  let at = path.resolve(root, target);
+  for (;;) {
+    try { fs.lstatSync(at); break; } catch { /* not there: look at its parent */ }
+    const up = path.dirname(at);
+    if (up === at) return false;
+    at = up;
+  }
+  let real;
+  try { real = fs.realpathSync(at); } catch { return false; }
+  const rel = path.relative(realRoot, real);
+  return rel === "" || (rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel));
+}
+
+/**
  * Project settings: .mflow/config.json over the defaults, or the defaults alone when the file is
  * missing or empty. Throws when it exists but cannot be read, is not valid JSON, or a setting has the
  * wrong type: every folder could then be wrong, so callers stop or say so instead of guessing.
@@ -127,6 +149,9 @@ export function loadConfig(root) {
   };
   const label = MARKER.split(path.sep).join("/");
   const stop = (what) => new Error(`${what}; fix it by hand, mflow stops until it does`);
+  // .mflow holds what the scripts write; a link that takes it outside the project is refused before
+  // anything is read through it.
+  if (!realInside(root, ".mflow")) throw stop(".mflow leads outside the project through a link");
   let user;
   try {
     user = readJsonFile(path.join(root, MARKER), { allowEmpty: true, label }) ?? {};
@@ -135,11 +160,13 @@ export function loadConfig(root) {
   }
   const wrong = (key, want) => { throw stop(`${label}: "${key}" must be ${want}`); };
   for (const key of ["hotspotsDir", "sourceDir", "inboxDir", "discussDir"]) {
-    if (!(key in user)) continue;
-    if (typeof user[key] !== "string" || !user[key].trim()) wrong(key, "a folder path");
-    // config.json comes with the repository, and scripts write into these folders: one that leaves the
-    // project (absolute, or climbing out with ..) would let a cloned repo write files elsewhere.
-    if (!insideProject(user[key])) wrong(key, "a folder inside the project, relative to it (no leading / or drive, no ..)");
+    if (key in user && (typeof user[key] !== "string" || !user[key].trim())) wrong(key, "a folder path");
+    // config.json and any links come with the repository, and scripts write into these folders: one that
+    // leaves the project (absolute, climbing out with .., or through a link) would let a cloned repo write
+    // files elsewhere. The defaults are checked too, since a linked docs/ would carry them out.
+    const value = key in user ? user[key] : defaults[key];
+    if (!insideProject(value)) wrong(key, "a folder inside the project, relative to it (no leading / or drive, no ..)");
+    if (!realInside(root, value)) wrong(key, `a folder inside the project; ${value}, or a folder above it, is a link that leads outside`);
   }
   if ("statusLogEntriesInContext" in user && !Number.isInteger(user.statusLogEntriesInContext)) {
     wrong("statusLogEntriesInContext", "a whole number");

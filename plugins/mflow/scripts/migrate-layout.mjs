@@ -27,7 +27,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot, loadConfig, readJsonFile, run, writeFileAtomic } from "./lib.mjs";
+import { findRoot, loadConfig, readJsonFile, realInside, run, writeFileAtomic } from "./lib.mjs";
 import { fileHash } from "./source-index.mjs";
 
 const FOLDERS = [
@@ -45,6 +45,7 @@ const CONFIG = ".mflow/config.json";
 const TEXT = /\.(md|mdx|markdown|txt|json|jsonc|ya?ml|toml|ini|cs|cshtml|razor|ts|tsx|js|jsx|mjs|cjs|vue|svelte|css|scss|html?|xml|sql|sh|ps1|py)$/i;
 const NEVER = [/^\.mflow\/(cache|suggested)\//, /^\.mflow\/(config|local|sources)\.json$/, /(^|\/)(node_modules|bin|obj|dist|\.git)\//];
 const MAX_BYTES = 2 * 1024 * 1024;
+const LINKED = "it, or a folder above it, is a link that leads outside the project; not moved";
 
 const posix = path.posix;
 const toPosix = (p) => p.split(path.sep).join("/");
@@ -55,8 +56,8 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** What moving this project to the 0.20 layout would do. `rewrites: false` skips reading the files. */
 export function plan(root, { rewrites = true } = {}) {
+  const cfg = loadConfig(root); // throws on a broken config or a linked .mflow, like every other script
   const raw = readJsonFile(path.join(root, CONFIG), { allowEmpty: true, label: CONFIG }) ?? {};
-  const cfg = loadConfig(root); // throws on a broken config, like every other script
   const out = { root, layout: "current", moves: [], settings: [], kept: [], conflicts: [], rewrites: [], pins: [], emptied: [] };
   const pairs = []; // [old, new] path prefixes that text and links are rewritten by
 
@@ -77,6 +78,10 @@ export function plan(root, { rewrites = true } = {}) {
       out.conflicts.push({ from: f.from, to: f.to, reason: `${f.to} already holds files; merge the two by hand, then run this again` });
       continue;
     }
+    if (!realInside(root, f.from) || !realInside(root, f.to)) {
+      out.conflicts.push({ from: f.from, to: f.to, reason: LINKED });
+      continue;
+    }
     out.moves.push({ from: f.from, to: f.to });
     out.settings.push({ setting: f.setting, from: f.from, to: f.to });
     pairs.push([f.from, f.to]);
@@ -87,12 +92,14 @@ export function plan(root, { rewrites = true } = {}) {
     const ours = names.filter((n) => e.id.test(n));
     const others = names.filter((n) => !e.id.test(n));
     const clash = ours.filter((n) => fs.existsSync(path.join(root, e.to, n)));
-    const moving = ours.filter((n) => !clash.includes(n));
+    const linked = ours.filter((n) => !clash.includes(n) && (!realInside(root, `${e.from}/${n}`) || !realInside(root, `${e.to}/${n}`)));
+    const moving = ours.filter((n) => !clash.includes(n) && !linked.includes(n));
     const already = entries(root, e.to).filter((n) => e.id.test(n) && !names.includes(n));
     for (const n of clash) out.conflicts.push({ from: `${e.from}/${n}`, to: `${e.to}/${n}`, reason: "both exist; keep one by hand, then run this again" });
+    for (const n of linked) out.conflicts.push({ from: `${e.from}/${n}`, to: `${e.to}/${n}`, reason: LINKED });
     for (const n of moving) out.moves.push({ from: `${e.from}/${n}`, to: `${e.to}/${n}` });
     if (others.length && ours.length) out.kept.push({ path: e.from, reason: `not written by mflow: ${others.join(", ")}` });
-    if (!others.length && !clash.length && (moving.length || already.length)) {
+    if (!others.length && !clash.length && !linked.length && (moving.length || already.length)) {
       pairs.push([e.from, e.to]);
       if (moving.length) out.emptied.push(e.from);
     } else {
@@ -110,6 +117,8 @@ export function plan(root, { rewrites = true } = {}) {
       let text;
       try {
         const full = path.join(root, file);
+        // A link is never rewritten: writing would replace it, and its target may lie outside the project.
+        if (fs.lstatSync(full).isSymbolicLink() || !realInside(root, file)) continue;
         if (fs.statSync(full).size > MAX_BYTES) continue;
         text = fs.readFileSync(full, "utf8");
       } catch { continue; }
@@ -195,7 +204,7 @@ function pinsToRehash(root, mapPath) {
       const pin = s?.snapshot?.[field];
       if (typeof pin?.path !== "string" || typeof pin.hash !== "string") continue;
       const rel = trim(pin.path);
-      if (rel.startsWith("..") || path.isAbsolute(rel) || !fs.existsSync(path.join(root, rel))) continue;
+      if (rel.startsWith("..") || path.isAbsolute(rel) || !fs.existsSync(path.join(root, rel)) || !realInside(root, rel)) continue;
       const to = mapPath(rel);
       if (to !== rel && fileHash(path.join(root, rel)) === pin.hash) pins.push({ session: file, field, path: to });
     }

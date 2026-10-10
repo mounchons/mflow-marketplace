@@ -29,6 +29,7 @@ Use it when the app is not scaffolded yet, when the stack is `custom`, or when t
 | `README.md` | status line, how to open the preview, file roles, sidebar behaviour | status set to `frozen` |
 
 - **Same CSS base as the stack**, or nothing carries over. When the kit uses Bootstrap (always in `mvc-htmx`; in `react-vite` only if the Tokens file row keeps the Bootstrap bridge), load Bootstrap 5.3 CSS and JS from a CDN, so the tokens bridge and `app.css` behave exactly as they will in the app, and build the drawer on Bootstrap's offcanvas as `AppShell` requires. Otherwise use plain CSS.
+- **Fonts and icons of the house style** from CDNs: Google Fonts (Inter, Noto Sans Thai, JetBrains Mono) and Font Awesome 6 Free from cdnjs, each pinned to an exact version. The stack may self-host them instead; the tech-stack doc decides.
 - **No build step and no npm.** Pages load `tokens.css`, `app.css` and the scripts directly. Each page has `<meta name="viewport" content="width=device-width, initial-scale=1">` and `lang="th"`.
 - **Menu and users are copies.** `shell.js` holds the menu (with an icon per item) and some of the fake users from `PrototypeData/users.json` and `roles.json`, marked in a comment as a copy for the preview. The source stays `PrototypeData/` and, after port, `MenuDefinition`. `update access` before port refreshes both together.
 - **Browser storage** (the ☰ choice, open filter panels) is preview-only and wrapped in try/catch, as [responsive.md](responsive.md) §3 describes.

@@ -32,7 +32,8 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | The kit has no ☰ menu, or pages do not reflow on small windows (kits built before 0.11) | `/mflow:theme update responsive` |
 | Which topics should be discussed before building? | `/mflow:discuss` shows the agenda; `/mflow:discuss agenda` builds or refreshes it |
 | The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView (kits built before 0.14), or QuickView and the table icon column (before 0.21) | `/mflow:theme update components` |
-| Give the kit a modern back-office look made for this customer (with the frontend-design skill when installed), or redo it | `/mflow:theme update look` |
+| Give the kit mflow's house style (navy sidebar, white top bar, sky blue, Inter + Noto Sans Thai, Font Awesome) with the customer's colors, or redo the look (with the frontend-design skill when installed) | `/mflow:theme update look` |
+| The top bar lacks search, the scope chip or the user block, or phones need a bottom tab bar (kits built before 0.23) | `/mflow:theme update components` |
 | Change the date format (pattern or ค.ศ./พ.ศ.) or get the English and Thai date picker | `/mflow:theme update date-picker` |
 | List the screens for a release | `/mflow:screen inventory` |
 | Build or change a prototype screen | `/mflow:screen <name> <what>` |

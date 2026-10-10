@@ -4,9 +4,11 @@
      Change the kit with /mflow:theme update; screens follow automatically. -->
 
 ## Decisions
-- Look: TODO (the visual direction: its name, the one bold place, what it chose instead of the stock look; skills/theme/references/visual-direction.md)
+- Look: mflow house style (skills/theme/references/house-style.md): navy sidebar, white top bar, sky blue, Inter + Noto Sans Thai, Font Awesome 6 Free. Adapted: TODO (the customer's CI in the brand family, or none; any other change and why)
+- Button contrast: a) the kit's fills with white text, below AA for button text [เสนอ] (the other option, b) text-step fills that pass AA, is in skills/theme/references/house-style.md, "Contrast")
+- Breadcrumb: in the top bar (house style), so `PageHeader` has none
 - Palette: TODO (tokens in the Tokens file of AGENTS.md `## Stack`)
-- Font: TODO
+- Font: Inter + Noto Sans Thai, JetBrains Mono for codes and amounts (house style), or TODO
 - Density: TODO
 - Devices: TODO (desktop and laptop only / plus tablet / every size including phones); acceptance sizes: TODO (e.g. 1366×768, 1920×1080)
 - Breakpoints: TODO (default: ≥ 1280 px expanded menu · 768–1279 px icon rail · < 768 px drawer opened by ☰)
@@ -58,6 +60,8 @@
 - Do show a row's details in place with `QuickView` before building a separate detail page.
 - Do build new needs as a component first, add it to the style guide, then use it.
 - Do keep Thai text in ViewModels/resources.
+- Do color text with the text step (`--app-primary-text`, `--app-<tone>-text`) and fills with the fill step (`--app-primary`, `--app-<tone>`); a light fill color never sets text on a light surface.
+- Do take every icon from the kit's icon library (Font Awesome 6 Free, solid, in the house style).
 - Don't put hex colors, inline styles or page-level CSS in views.
 - Don't build a table by hand, even a small one.
 - Don't use the browser's `<input type="date">`, and don't format a date in a screen; dates go through `FormField` type `date` and the kit's date format.

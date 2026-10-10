@@ -1,68 +1,88 @@
 /* tokens.css — the only place colors, fonts, radius and spacing are defined.
    Screens and components use var(--app-*) or Bootstrap classes; never hex values.
    Load after bootstrap.min.css. Replace the brand values; keep the names.
-   The values come from the kit's visual direction (skills/theme/references/visual-direction.md). */
+   The values below are mflow's house style (skills/theme/references/house-style.md); a customer's CI
+   replaces the brand family and keeps the rest, as skills/theme/references/visual-direction.md says.
+   Contrast notes give the ratio against white; "below AA" marks the house-style decision on solid fills. */
 
 :root {
-  /* Brand */
-  --app-primary: #1f5fae;
-  --app-primary-rgb: 31, 95, 174;
-  --app-primary-hover: #1a5195;
-  --app-primary-active: #16447d;
-  --app-primary-subtle: #e6eef8;
-  --app-primary-emphasis: #0f305a;
-  --app-on-primary: #ffffff;        /* text on a primary fill (buttons, the picked date) */
-  --app-secondary: #5f6b7a;
-  --app-secondary-rgb: 95, 107, 122;
+  /* Brand: one hue, two jobs. The fill step colors buttons, active states, focus and icons;
+     the text step colors primary text on light surfaces (links, codes in tables). */
+  --app-primary: #0ea5e9;
+  --app-primary-rgb: 14, 165, 233;
+  --app-primary-hover: #0284c7;
+  --app-primary-active: #0369a1;
+  --app-primary-subtle: #f0f9ff;    /* active filter chip, selected row */
+  --app-primary-emphasis: #075985;
+  --app-primary-text: #0369a1;      /* 5.93:1 */
+  --app-primary-text-rgb: 3, 105, 161;
+  --app-on-primary: #ffffff;        /* text on a primary fill: 2.77:1, below AA (house-style.md, "Contrast") */
+  --app-secondary: #6366f1;
+  --app-secondary-rgb: 99, 102, 241;
+  --app-secondary-hover: #4f46e5;
 
-  /* Semantic */
-  --app-success: #1e7f4f;  --app-success-rgb: 30, 127, 79;   --app-success-subtle: #e4f3eb;
-  --app-warning: #b26a00;  --app-warning-rgb: 178, 106, 0;   --app-warning-subtle: #fbf0dc;
-  --app-danger:  #c0392b;  --app-danger-rgb: 192, 57, 43;    --app-danger-subtle:  #fbe7e5;
-  --app-info:    #0e7490;  --app-info-rgb: 14, 116, 144;     --app-info-subtle:    #e0f2f7;
+  /* Semantic: fill, text step (on white and on its subtle tint), subtle tint */
+  --app-success: #22c55e;  --app-success-rgb: 34, 197, 94;   --app-success-text: #15803d;  --app-success-subtle: #f0fdf4;
+  --app-warning: #f59e0b;  --app-warning-rgb: 245, 158, 11;  --app-warning-text: #b45309;  --app-warning-subtle: #fffbeb;
+  --app-danger:  #ef4444;  --app-danger-rgb: 239, 68, 68;    --app-danger-text:  #b91c1c;  --app-danger-subtle:  #fef2f2;
+  --app-info:    #3b82f6;  --app-info-rgb: 59, 130, 246;     --app-info-text:    #1d4ed8;  --app-info-subtle:    #eff6ff;
+  /* text steps: 5.02, 5.02, 6.47, 6.70:1; white on the fills: 2.28, 2.15, 3.76, 3.68:1 (below AA) */
 
-  /* Surfaces and text */
-  --app-bg: #f5f6f8;
+  /* Surfaces and text (neutral scale N-50 … N-900) */
+  --app-bg: #f5f5f5;                /* N-100, app background */
   --app-surface: #ffffff;
-  --app-surface-muted: #f0f2f5;
-  --app-border: #dde1e6;
-  --app-text: #1d2330;
-  --app-text-muted: #5f6b7a;
+  --app-surface-muted: #fafafa;     /* N-50, table header, hover */
+  --app-border: #e5e5e5;            /* N-200 */
+  --app-control-border: #cbd5e1;    /* outline buttons and button groups, 1.5px */
+  --app-heading: #171717;           /* N-900 */
+  --app-text: #404040;              /* N-700, 10.37:1 */
+  --app-text-muted: #737373;        /* N-500, 4.74:1 on white, 4.35:1 on --app-bg */
+  --app-text-hint: #a3a3a3;         /* N-400, placeholders and decoration only: 2.52:1 */
   --app-focus-ring: rgba(var(--app-primary-rgb), .25);
-  --app-backdrop: rgba(29, 35, 48, .42);   /* behind the drawer and dialogs */
+  --app-backdrop: rgba(15, 23, 42, .5);    /* behind the drawer and dialogs */
 
-  /* Sidebar: often the one bold place of the direction; the content area stays quiet */
-  --app-sidebar-bg: var(--app-surface);
-  --app-sidebar-text: var(--app-text);
-  --app-sidebar-muted: var(--app-text-muted);         /* group headings */
-  --app-sidebar-active-bg: var(--app-primary-subtle);
-  --app-sidebar-active-text: var(--app-primary-emphasis);
+  /* Sidebar: the house style's one bold place; the content area stays quiet */
+  --app-sidebar-bg: #0f172a;
+  --app-sidebar-text: #cbd5e1;                          /* 12.02:1 */
+  --app-sidebar-muted: #94a3b8;                         /* group headings, counts: 6.96:1 */
+  --app-sidebar-border: rgba(255, 255, 255, .06);
+  --app-sidebar-hover-bg: rgba(255, 255, 255, .04);
+  --app-sidebar-active-bg: rgba(var(--app-primary-rgb), .12);
+  --app-sidebar-active-text: #ffffff;
+  --app-sidebar-accent: var(--app-primary);             /* active bar and icon: 6.44:1 */
 
-  /* Type (Thai-first stack) */
-  --app-font: "IBM Plex Sans Thai", "Sarabun", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --app-font-heading: var(--app-font);   /* a second family only if the direction picks one; it must cover Thai */
-  --app-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
-  --app-font-size: 0.9375rem;      /* dense back-office: 15px */
+  /* Type: Inter sets Latin and digits, Noto Sans Thai sets Thai; JetBrains Mono for codes and amounts */
+  --app-font: "Inter", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --app-font-heading: var(--app-font);
+  --app-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  --app-font-size: 0.875rem;       /* body 14px */
   --app-line-height: 1.6;          /* Thai vowels and tone marks need room */
+  --app-fs-display: 1.75rem;       /* 28 / 700 / -0.02em */
+  --app-fs-h1: 1.375rem;           /* page title 22 / 700 */
+  --app-fs-h2: 1.125rem;           /* section 18 / 600 */
+  --app-fs-h3: 0.875rem;           /* card title 14 / 600 */
+  --app-fs-small: 0.75rem;         /* 12 / 500, muted */
 
   /* Shape and rhythm */
-  --app-radius: 0.5rem;            /* buttons, inputs */
-  --app-radius-sm: 0.375rem;       /* small controls, table cells */
-  --app-radius-lg: 0.75rem;        /* cards, dialogs, side panels: the radius grows with the surface */
-  --app-radius-pill: 50rem;        /* badges, chips */
-  --app-shadow-float: 0 0.5rem 1.5rem rgba(29, 35, 48, .16);   /* only what floats: dropdowns, dialogs, side panels */
-  --app-motion: 180ms;             /* opening and closing only; the kit drops it under prefers-reduced-motion */
+  --app-radius: 0.5rem;            /* buttons, inputs: 8px */
+  --app-radius-sm: 0.25rem;        /* small controls: 4px */
+  --app-radius-lg: 0.75rem;        /* cards, dialogs, side panels: 12px; the radius grows with the surface */
+  --app-radius-pill: 50rem;        /* badges, chips, avatars */
+  --app-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);                /* cards in the page flow */
+  --app-shadow-float: 0 0.625rem 1.5rem rgba(15, 23, 42, .12);     /* only what floats: dropdowns, dialogs, side panels */
+  --app-motion: 250ms;             /* opening and closing only; the kit drops it under prefers-reduced-motion */
   --app-space-1: 0.25rem; --app-space-2: 0.5rem; --app-space-3: 1rem; --app-space-4: 1.5rem; --app-space-5: 2rem;
+  --app-control-height: 2.25rem;   /* inputs and default buttons: at least 36px */
   --app-table-row-height: 2.75rem;
 
   /* Layout. Breakpoints cannot be variables in media queries: they are a decision in
      docs/ui/design-system.md and appear only in the kit's stylesheet. */
-  --app-sidebar-width: 15.5rem;    /* expanded */
+  --app-sidebar-width: 15rem;      /* expanded: 240px */
   --app-rail-width: 4.75rem;       /* icon rail */
-  --app-topbar-height: 3rem;
+  --app-topbar-height: 3.75rem;    /* 60px */
   --app-banner-height: 2.125rem;   /* PrototypeBanner */
-  --app-main-pad-x: 2.75rem;       /* the kit reduces both on narrower windows */
-  --app-main-pad-y: 2rem;
+  --app-main-pad-x: 1.5rem;        /* the kit reduces both on narrower windows */
+  --app-main-pad-y: 1.5rem;
   --app-content-max: none;         /* a length caps line length on very wide screens */
   --app-touch-target: 2.5rem;      /* minimum tap height on tablet and phone sizes */
 
@@ -73,47 +93,60 @@
   --bs-warning: var(--app-warning);        --bs-warning-rgb: var(--app-warning-rgb);
   --bs-danger: var(--app-danger);          --bs-danger-rgb: var(--app-danger-rgb);
   --bs-info: var(--app-info);              --bs-info-rgb: var(--app-info-rgb);
-  --bs-primary-bg-subtle: var(--app-primary-subtle);
-  --bs-primary-text-emphasis: var(--app-primary-emphasis);
+  --bs-primary-bg-subtle: var(--app-primary-subtle);   --bs-primary-text-emphasis: var(--app-primary-text);
+  --bs-success-bg-subtle: var(--app-success-subtle);   --bs-success-text-emphasis: var(--app-success-text);
+  --bs-warning-bg-subtle: var(--app-warning-subtle);   --bs-warning-text-emphasis: var(--app-warning-text);
+  --bs-danger-bg-subtle: var(--app-danger-subtle);     --bs-danger-text-emphasis: var(--app-danger-text);
+  --bs-info-bg-subtle: var(--app-info-subtle);         --bs-info-text-emphasis: var(--app-info-text);
   --bs-body-bg: var(--app-bg);
   --bs-body-color: var(--app-text);
+  --bs-heading-color: var(--app-heading);
   --bs-secondary-color: var(--app-text-muted);
   --bs-border-color: var(--app-border);
   --bs-body-font-family: var(--app-font);
   --bs-body-font-size: var(--app-font-size);
   --bs-body-line-height: var(--app-line-height);
+  --bs-font-monospace: var(--app-font-mono);
   --bs-border-radius: var(--app-radius);
   --bs-border-radius-sm: var(--app-radius-sm);
   --bs-border-radius-lg: var(--app-radius-lg);
   --bs-border-radius-pill: var(--app-radius-pill);
+  --bs-box-shadow-sm: var(--app-shadow-sm);
   --bs-box-shadow: var(--app-shadow-float);
   --bs-box-shadow-lg: var(--app-shadow-float);
-  --bs-link-color: var(--app-primary);     --bs-link-color-rgb: var(--app-primary-rgb);
-  --bs-link-hover-color: var(--app-primary-hover);
+  --bs-link-color: var(--app-primary-text);   --bs-link-color-rgb: var(--app-primary-text-rgb);
+  --bs-link-hover-color: var(--app-primary-emphasis);
   --bs-focus-ring-color: var(--app-focus-ring);
 }
 
 /* Component-level Bootstrap variables that do not read the root ones */
 .btn-primary {
+  --bs-btn-color: var(--app-on-primary);     --bs-btn-hover-color: var(--app-on-primary);  --bs-btn-active-color: var(--app-on-primary);
   --bs-btn-bg: var(--app-primary);           --bs-btn-border-color: var(--app-primary);
   --bs-btn-hover-bg: var(--app-primary-hover); --bs-btn-hover-border-color: var(--app-primary-hover);
   --bs-btn-active-bg: var(--app-primary-active); --bs-btn-active-border-color: var(--app-primary-active);
   --bs-btn-disabled-bg: var(--app-primary);  --bs-btn-disabled-border-color: var(--app-primary);
   --bs-btn-focus-shadow-rgb: var(--app-primary-rgb);
 }
-.btn-outline-primary {
-  --bs-btn-color: var(--app-primary);        --bs-btn-border-color: var(--app-primary);
-  --bs-btn-hover-bg: var(--app-primary);     --bs-btn-hover-border-color: var(--app-primary);
-  --bs-btn-active-bg: var(--app-primary-active); --bs-btn-active-border-color: var(--app-primary-active);
-  --bs-btn-focus-shadow-rgb: var(--app-primary-rgb);
-}
+.btn-secondary { --bs-btn-color: var(--app-on-primary); --bs-btn-hover-color: var(--app-on-primary); --bs-btn-bg: var(--app-secondary); --bs-btn-border-color: var(--app-secondary); --bs-btn-hover-bg: var(--app-secondary-hover); --bs-btn-hover-border-color: var(--app-secondary-hover); --bs-btn-focus-shadow-rgb: var(--app-secondary-rgb); }
+.btn-success   { --bs-btn-color: var(--app-on-primary); --bs-btn-hover-color: var(--app-on-primary); --bs-btn-bg: var(--app-success); --bs-btn-border-color: var(--app-success); --bs-btn-hover-bg: var(--app-success-text); --bs-btn-hover-border-color: var(--app-success-text); --bs-btn-focus-shadow-rgb: var(--app-success-rgb); }
+.btn-warning   { --bs-btn-color: var(--app-on-primary); --bs-btn-hover-color: var(--app-on-primary); --bs-btn-bg: var(--app-warning); --bs-btn-border-color: var(--app-warning); --bs-btn-hover-bg: var(--app-warning-text); --bs-btn-hover-border-color: var(--app-warning-text); --bs-btn-focus-shadow-rgb: var(--app-warning-rgb); }
+.btn-danger    { --bs-btn-color: var(--app-on-primary); --bs-btn-hover-color: var(--app-on-primary); --bs-btn-bg: var(--app-danger); --bs-btn-border-color: var(--app-danger); --bs-btn-hover-bg: var(--app-danger-text); --bs-btn-hover-border-color: var(--app-danger-text); --bs-btn-focus-shadow-rgb: var(--app-danger-rgb); }
+.btn-info      { --bs-btn-color: var(--app-on-primary); --bs-btn-hover-color: var(--app-on-primary); --bs-btn-bg: var(--app-info); --bs-btn-border-color: var(--app-info); --bs-btn-hover-bg: var(--app-info-text); --bs-btn-hover-border-color: var(--app-info-text); --bs-btn-focus-shadow-rgb: var(--app-info-rgb); }
+/* Outline and ghost buttons and button groups keep a visible frame; their text uses the text step */
+[class*="btn-outline-"] { --bs-btn-border-width: 1.5px; --bs-btn-border-color: var(--app-control-border); }
+.btn-outline-primary   { --bs-btn-color: var(--app-primary-text); --bs-btn-hover-color: var(--app-primary-text); --bs-btn-hover-bg: var(--app-primary-subtle); --bs-btn-hover-border-color: var(--app-primary); --bs-btn-active-bg: var(--app-primary-subtle); --bs-btn-active-color: var(--app-primary-text); --bs-btn-focus-shadow-rgb: var(--app-primary-rgb); }
+.btn-outline-secondary { --bs-btn-color: var(--app-text); --bs-btn-hover-color: var(--app-heading); --bs-btn-hover-bg: var(--app-surface-muted); --bs-btn-hover-border-color: var(--app-control-border); }
+.btn-outline-success   { --bs-btn-color: var(--app-success-text); --bs-btn-hover-color: var(--app-success-text); --bs-btn-hover-bg: var(--app-success-subtle); --bs-btn-hover-border-color: var(--app-success); }
+.btn-outline-danger    { --bs-btn-color: var(--app-danger-text); --bs-btn-hover-color: var(--app-danger-text); --bs-btn-hover-bg: var(--app-danger-subtle); --bs-btn-hover-border-color: var(--app-danger); }
 .pagination {
-  --bs-pagination-color: var(--app-primary);
+  --bs-pagination-color: var(--app-primary-text);
   --bs-pagination-active-bg: var(--app-primary);
   --bs-pagination-active-border-color: var(--app-primary);
   --bs-pagination-focus-box-shadow: 0 0 0 .25rem var(--app-focus-ring);
 }
 .nav-pills { --bs-nav-pills-link-active-bg: var(--app-primary); }
+.nav-tabs, .nav-underline { --bs-nav-link-color: var(--app-text-muted); --bs-nav-link-hover-color: var(--app-heading); --bs-nav-underline-link-active-color: var(--app-primary-text); }
 .form-control:focus, .form-select:focus, .form-check-input:focus {
   border-color: var(--app-primary);
   box-shadow: 0 0 0 .25rem var(--app-focus-ring);

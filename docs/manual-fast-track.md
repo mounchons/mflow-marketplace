@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือทางลัด: ใช้ mflow เฉพาะส่วนตั้งต้น (stack และหน้าตา) แล้วสร้างทั้งระบบด้วย OpenSpec |
-| เวอร์ชัน plugin | 0.22.0 |
+| เวอร์ชัน plugin | 0.23.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/manual.md` (คู่มือหลัก ทางเต็มทีละหน้าจอ) |
 
@@ -109,7 +109,7 @@ flowchart TD
     ใช้บน desktop และ tablet วันที่แบบ a ปี พ.ศ.
   ```
 - **ได้:**
-  - `tokens.css`, app shell (เมนูข้าง ☰ แถบบน), component ทั้งชุด (DataTable, FilterPanel, FormField, DatePicker, Dialog, QuickView …) หน้ารายการเปิดรายละเอียดของแถวใน dialog หรือ side panel โดยไม่เปลี่ยนหน้า
+  - `tokens.css`, app shell (เมนูข้าง ☰ แถบบน), component ทั้งชุด (DataTable, FilterPanel, FormField, DatePicker, Dialog, QuickView …) หน้ารายการเปิดรายละเอียดของแถวใน dialog หรือ side panel โดยไม่เปลี่ยนหน้า หน้าตามาตรฐานคือ house style: sidebar สีกรมท่า top bar สีขาว สีฟ้า ฟอนต์ Inter + Noto Sans Thai ไอคอน Font Awesome 6 ปรับสีตาม CI ของลูกค้าได้
   - หน้า `/_styleguide` ที่รวมทุก component และหน้าตัวอย่าง ใช้ให้ลูกค้าตกลงหน้าตาครั้งเดียว ไม่ต้องตกลงทีละหน้า
   - `docs/ui/design-system.md` และ `.claude/rules/ui.md` ไฟล์หลังถูกโหลดทุกครั้งที่ Claude เปิดไฟล์ UI ตอน `/opsx:apply` ก็โหลดด้วย **นี่คือส่วนที่ทำให้หน้าที่สร้างด้วย OpenSpec ยังใช้ kit เดียวกัน**
   - ระบบผู้ใช้จำลอง: แถบ PROTOTYPE ที่สลับ role ได้ และ flag `Prototype:UseFakeData` (ดูหัวข้อ 6)

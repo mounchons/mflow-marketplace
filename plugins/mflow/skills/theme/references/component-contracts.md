@@ -6,15 +6,21 @@ Each component is built once and reused everywhere. A contract says what the com
 
 The frame every page sits in. It is built once in the layout; screens only fill the main area.
 
-- **Structure:** the `PrototypeBanner` (prototype mode only) on top, then the `SidebarMenu` beside the content column. The content column holds the top bar (☰ toggle, page context, notifications slot, current user) above the main area. A skip link "ข้ามไปเนื้อหาหลัก" is the first focusable element.
+- **Structure:** the `PrototypeBanner` (prototype mode only) on top, then the `SidebarMenu` beside the content column. The content column holds the top bar above the main area. A skip link "ข้ามไปเนื้อหาหลัก" is the first focusable element.
+- **Top bar:** on the left the ☰ toggle and the page context: the breadcrumb when design-system.md puts it in the top bar (the house style does, and `PageHeader` then has none), otherwise the page title. On the right, in this order:
+  - the global search, only when the product has one, with its shortcut shown as `Ctrl K` (`⌘K` on a Mac);
+  - the notifications bell, with a dot while anything is unread;
+  - the scope chip, only when data scope divides the data (a branch, a company, a tenant): the unit whose data the user sees, from `ICurrentUser`; it opens a switcher only when the user holds more than one;
+  - the current user: an initials avatar, the name and the role, opening the user's menu.
 - **Fills the window:** full height (`100dvh`); the sidebar and the content scroll separately; the top bar stays on top (sticky). The main area is a size container (`container-type: inline-size`), so content reflows by its own width. Its width is capped only if design-system.md says so (`--app-content-max`).
 - **Sidebar states**, switched at the breakpoints in design-system.md:
   - `expanded`: icon and label, group headings, badges.
   - `rail`: icons only. Each label becomes a tooltip and stays readable to screen readers, group headings become a thin rule, and badges sit on the icon.
   - `drawer`: off-canvas over the page, with a backdrop.
 - **☰ toggle:** in the top bar at every width. On wide and medium windows it switches expanded ↔ rail, and the choice is remembered per user (responsive.md §3). Below the drawer breakpoint it opens the drawer and leaves the remembered choice alone.
+- **Bottom tab bar** (optional, only when the devices in design-system.md include phones): at phone sizes, 4 or 5 shortcuts along the bottom, each an icon over a short label, from the `MenuDefinition` items marked for it and filtered by permission like the menu. The last may be "อื่น", which opens the drawer. The active one carries `aria-current="page"`, and the main area keeps room for the bar.
 - **Drawer:** Esc, a tap on the backdrop, choosing a menu item, or any navigation closes it. In `mvc-htmx`, build it on Bootstrap 5.3's offcanvas, which already handles focus, Esc and the backdrop, and close it after an HTMX-boosted navigation.
-- **Narrow:** below the drawer breakpoint the top bar keeps one line: the user's name gives way to the avatar, and text buttons become icon buttons with an `aria-label`. Main padding comes from tokens (`--app-main-pad-x`, `--app-main-pad-y`) that the kit's stylesheet reduces on narrower windows.
+- **Narrow:** below the drawer breakpoint the top bar keeps one line: the page title replaces the breadcrumb, the search becomes an icon button, the scope chip shows its initials only, the user's name gives way to the avatar, and text buttons become icon buttons with an `aria-label`. Main padding comes from tokens (`--app-main-pad-x`, `--app-main-pad-y`) that the kit's stylesheet reduces on narrower windows.
 - **Accessibility:** as responsive.md §4.
 
 ## DataTable
@@ -119,7 +125,7 @@ A From and To pair: two `FormField` date cells that the filter and form grids la
 
 ## PageHeader
 
-Title, optional subtitle, breadcrumb, up to one primary `Button` and a secondary actions `Dropdown`. **Narrow:** the actions move under the title; the secondary actions stay in the dropdown.
+Title, optional subtitle (counts and freshness, such as "รวม 1,247 ราย · อัปเดตล่าสุด 2 นาทีที่แล้ว"), the breadcrumb unless design-system.md puts it in the `AppShell` top bar (one home, never both), up to one primary `Button`, a few secondary actions as outline or icon buttons, and the rest in a `Dropdown`. An optional KPI strip of `Card`s may follow it. **Narrow:** the actions move under the title; the secondary actions stay in the dropdown.
 
 ## StatusBadge
 
@@ -224,6 +230,7 @@ The read-only view of one record: label and value pairs in the kit's grid, group
 - **Input:** `MenuDefinition` and `ICurrentUser` (see "Current user, permissions and the role switcher" in `skills/screen/references/prototype-data.md`).
 - **Behaviour:** shows only the items whose permission the user `Can`; a group with no visible item is hidden; the active item follows the current route and carries `aria-current="page"`. Screens never add menu items in views. A new screen adds its item, with its permission, to `MenuDefinition`.
 - **Icons:** every item has an icon, because the rail shows nothing else. An optional badge shows a pending count.
+- **Groups and footer:** items sit in named groups (such as หลัก, ข้อมูลหลัก, ตั้งค่า); an optional footer line shows the app version and its status. The active item is marked by more than color (the house style adds a bar at the sidebar's edge).
 - **States:** expanded, rail and drawer, as `AppShell` describes.
 
 ## PrototypeBanner

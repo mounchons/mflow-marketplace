@@ -333,7 +333,7 @@ flowchart TD
 | NFR-07 | ข้อความภาษาไทยต้องผ่าน pipe และไฟล์โดยไม่เพี้ยน (UTF-8) |
 | NFR-08 | สถานะชั่วคราวของ session เก็บใน temp ของ OS ไม่ต้อง gitignore |
 | NFR-09 | ไม่เก็บข้อมูลส่วนบุคคลจริงใน prototype data และ golden data (ปิดบังก่อน) |
-| NFR-10 | `claude plugin validate` ต้องผ่านทั้ง plugin และ marketplace |
+| NFR-10 | `claude plugin validate` ต้องผ่านทั้ง plugin และ marketplace และทุก plugin ใน `marketplace.json` ระบุ `version` ตรงกับ `plugin.json` ของมัน (`tests/release.test.mjs` ตรวจ จึงต้องแก้สองที่พร้อมกันทุกครั้งที่ออก version) |
 | NFR-11 | ไฟล์สถานะที่มีอยู่แต่อ่านไม่ได้ (`.mflow/config.json`, `.mflow/sources.json`, `.mflow/local.json`) ไม่ถูกตีความว่า "ยังไม่มีข้อมูล": ไฟล์ว่าง อ่านไม่ได้ ไม่ใช่ JSON (รวม merge conflict ที่ค้าง) หรือค่าผิดชนิด ทำให้ script หยุดพร้อมบอกไฟล์และสาเหตุ โดยไม่เขียนทับ และ briefing บอกว่าส่วนไหนไม่แสดงเพราะอะไร (config ว่างใช้ค่าเริ่มต้นได้) รับไฟล์ที่มี UTF-8 BOM ทะเบียนเขียนแบบ temp + rename และถือ lock ระหว่างอ่าน แก้ และเขียน สอง session จึงไม่ทับรายการของกัน |
 
 ## 8. โครงสร้างไฟล์ในโปรเจกต์ที่ใช้ mflow

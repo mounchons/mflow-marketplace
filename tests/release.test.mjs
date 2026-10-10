@@ -77,3 +77,11 @@ test("the marketplace points at the plugin", () => {
   assert.ok(entry, "mflow in marketplace.json");
   assert.ok(fs.existsSync(path.join(REPO, entry.source, ".claude-plugin", "plugin.json")), "its source has a plugin.json");
 });
+
+test("every marketplace entry states its plugin's version, the same as its plugin.json", () => {
+  for (const entry of JSON.parse(read(".claude-plugin/marketplace.json")).plugins) {
+    const manifest = JSON.parse(read(path.join(entry.source, ".claude-plugin", "plugin.json")));
+    assert.match(entry.version ?? "", /^\d+\.\d+\.\d+$/, `${entry.name}: version in marketplace.json`);
+    assert.equal(entry.version, manifest.version, `${entry.name}: marketplace.json says ${entry.version}, plugin.json says ${manifest.version}`);
+  }
+});

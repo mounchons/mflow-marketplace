@@ -7,11 +7,13 @@
   "plugins": [
     {
       "name": "mflow",
+      "version": "0.23.0",
       "source": "./plugins/mflow",
       "description": "Screen-first, spec-driven workflow: AGENTS.md + OpenSpec + Backlog.md + tests, with session memory hooks and hotspot charting for big business logic."
     },
     {
       "name": "tamra",
+      "version": "0.2.0",
       "source": "./plugins/tamra",
       "description": "Tamra knowledge base: connects the Tamra MCP server (URL and token asked at install); search, save, read and revise knowledge, and with an owner token manage spaces, tags, archive and withdraw."
     }

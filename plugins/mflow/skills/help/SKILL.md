@@ -34,6 +34,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView (kits built before 0.14), or QuickView and the table icon column (before 0.21) | `/mflow:theme update components` |
 | Give the kit mflow's house style (navy sidebar, white top bar, sky blue, Inter + Noto Sans Thai, Font Awesome) with the customer's colors, or redo the look (with the frontend-design skill when installed) | `/mflow:theme update look` |
 | The top bar lacks search, the scope chip or the user block, or phones need a bottom tab bar (kits built before 0.23) | `/mflow:theme update components` |
+| The kit looks grey: statuses share one color, no colored avatars or KPI icon tiles (kits built before 0.24) | `/mflow:theme update look` for the bright hues, then `/mflow:theme update components` for the status colors, avatars and KPI tiles |
 | Change the date format (pattern or ค.ศ./พ.ศ.) or get the English and Thai date picker | `/mflow:theme update date-picker` |
 | List the screens for a release | `/mflow:screen inventory` |
 | Build or change a prototype screen | `/mflow:screen <name> <what>` |

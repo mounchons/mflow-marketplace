@@ -28,6 +28,24 @@
   --app-info:    #3b82f6;  --app-info-rgb: 59, 130, 246;     --app-info-text:    #1d4ed8;  --app-info-subtle:    #eff6ff;
   /* text steps: 5.02, 5.02, 6.47, 6.70:1; white on the fills: 2.28, 2.15, 3.76, 3.68:1 (below AA) */
 
+  /* Hues: the house style's bright palette (the kit's workflow colors, plus sky). Color that carries
+     meaning takes one: a status in StatusBadge, an initials avatar, a KPI icon tile, a category icon.
+     Fixed values: a customer's CI changes the brand family above, never these. Same three steps as the
+     semantic colors: fill (dots, icons, solid fills), text (on white and on the tint), subtle (tint). */
+  --app-hue-sky:     #0ea5e9;  --app-hue-sky-text:     #0369a1;  --app-hue-sky-subtle:     #f0f9ff;
+  --app-hue-blue:    #3b82f6;  --app-hue-blue-text:    #1d4ed8;  --app-hue-blue-subtle:    #eff6ff;
+  --app-hue-indigo:  #6366f1;  --app-hue-indigo-text:  #4338ca;  --app-hue-indigo-subtle:  #eef2ff;
+  --app-hue-violet:  #8b5cf6;  --app-hue-violet-text:  #6d28d9;  --app-hue-violet-subtle:  #f5f3ff;
+  --app-hue-cyan:    #06b6d4;  --app-hue-cyan-text:    #0e7490;  --app-hue-cyan-subtle:    #ecfeff;
+  --app-hue-emerald: #10b981;  --app-hue-emerald-text: #047857;  --app-hue-emerald-subtle: #ecfdf5;
+  --app-hue-green:   #22c55e;  --app-hue-green-text:   #15803d;  --app-hue-green-subtle:   #f0fdf4;
+  --app-hue-yellow:  #eab308;  --app-hue-yellow-text:  #a16207;  --app-hue-yellow-subtle:  #fefce8;
+  --app-hue-amber:   #f59e0b;  --app-hue-amber-text:   #b45309;  --app-hue-amber-subtle:   #fffbeb;
+  --app-hue-red:     #ef4444;  --app-hue-red-text:     #b91c1c;  --app-hue-red-subtle:     #fef2f2;
+  /* text steps on white: 5.93, 6.70, 7.90, 7.10, 5.36, 5.48, 5.02, 4.92, 5.02, 6.47:1 (all at least 4.76:1 on
+     their tint); white on the fills: 2.77, 3.68, 4.47, 4.23, 2.43, 2.54, 2.28, 1.92, 2.15, 3.76:1, so white
+     sits on a hue only as avatar initials beside the name, or a count on a counter badge */
+
   /* Surfaces and text (neutral scale N-50 … N-900) */
   --app-bg: #f5f5f5;                /* N-100, app background */
   --app-surface: #ffffff;
@@ -41,12 +59,13 @@
   --app-focus-ring: rgba(var(--app-primary-rgb), .25);
   --app-backdrop: rgba(15, 23, 42, .5);    /* behind the drawer and dialogs */
 
-  /* Sidebar: the house style's one bold place; the content area stays quiet */
+  /* Sidebar: the house style's one bold place for the brand; the content area colors meaning with the hues */
   --app-sidebar-bg: #0f172a;
-  --app-sidebar-text: #cbd5e1;                          /* 12.02:1 */
+  --app-sidebar-bg-2: #1e293b;                          /* the kit's second navy: raised parts, hairlines */
+  --app-sidebar-text: #cbd5e1;                          /* 12.02:1, 6.97:1 on the hover */
   --app-sidebar-muted: #94a3b8;                         /* group headings, counts: 6.96:1 */
-  --app-sidebar-border: rgba(255, 255, 255, .06);
-  --app-sidebar-hover-bg: rgba(255, 255, 255, .04);
+  --app-sidebar-border: var(--app-sidebar-bg-2);
+  --app-sidebar-hover-bg: #334155;
   --app-sidebar-active-bg: rgba(var(--app-primary-rgb), .12);
   --app-sidebar-active-text: #ffffff;
   --app-sidebar-accent: var(--app-primary);             /* active bar and icon: 6.44:1 */
@@ -69,7 +88,8 @@
   --app-radius-lg: 0.75rem;        /* cards, dialogs, side panels: 12px; the radius grows with the surface */
   --app-radius-pill: 50rem;        /* badges, chips, avatars */
   --app-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);                /* cards in the page flow */
-  --app-shadow-float: 0 0.625rem 1.5rem rgba(15, 23, 42, .12);     /* only what floats: dropdowns, dialogs, side panels */
+  --app-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, .08), 0 2px 4px -2px rgba(15, 23, 42, .05);    /* dropdowns, tooltips */
+  --app-shadow-float: 0 10px 25px -5px rgba(15, 23, 42, .12), 0 8px 10px -6px rgba(15, 23, 42, .06); /* dialogs, side panels, the drawer */
   --app-motion: 250ms;             /* opening and closing only; the kit drops it under prefers-reduced-motion */
   --app-space-1: 0.25rem; --app-space-2: 0.5rem; --app-space-3: 1rem; --app-space-4: 1.5rem; --app-space-5: 2rem;
   --app-control-height: 2.25rem;   /* inputs and default buttons: at least 36px */
@@ -112,7 +132,7 @@
   --bs-border-radius-lg: var(--app-radius-lg);
   --bs-border-radius-pill: var(--app-radius-pill);
   --bs-box-shadow-sm: var(--app-shadow-sm);
-  --bs-box-shadow: var(--app-shadow-float);
+  --bs-box-shadow: var(--app-shadow-md);
   --bs-box-shadow-lg: var(--app-shadow-float);
   --bs-link-color: var(--app-primary-text);   --bs-link-color-rgb: var(--app-primary-text-rgb);
   --bs-link-hover-color: var(--app-primary-emphasis);

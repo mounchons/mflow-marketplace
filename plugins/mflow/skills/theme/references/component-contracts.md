@@ -27,14 +27,14 @@ The frame every page sits in. It is built once in the layout; screens only fill 
 
 The most important component; most back-office screens are a DataTable plus a FilterPanel.
 
-- **Input:** a `DataTableModel<TRow>` with `Columns` (key, Thai header, width, align, sortable, searchable (default off), format: text/number/money/date/status/icons), `Rows`, `Page`, `PageSize`, `TotalCount`, `Sort`, `ColumnFilters`, `RowUrl` (optional), `RowActions` (optional), `QuickView` (optional: what a row and its icons open, see `QuickView`). A list has `RowUrl` or `QuickView`, never both: `RowUrl` goes to another page, `QuickView` opens in place, and a list with a quick view reaches a full page only through the panel's "เปิดหน้าเต็ม".
+- **Input:** a `DataTableModel<TRow>` with `Columns` (key, Thai header, width, align, sortable, searchable (default off), format: text/number/money/date/status/person/icons), `Rows`, `Page`, `PageSize`, `TotalCount`, `Sort`, `ColumnFilters`, `RowUrl` (optional), `RowActions` (optional), `QuickView` (optional: what a row and its icons open, see `QuickView`). A list has `RowUrl` or `QuickView`, never both: `RowUrl` goes to another page, `QuickView` opens in place, and a list with a quick view reaches a full page only through the panel's "เปิดหน้าเต็ม".
 - **Paging:** server-side only, to keep database load and page weight low. The controller receives `page`, `pageSize` (10/25/50/100), `sort`, `dir`, and filters. The repository applies the filters and the sort, then skips and takes one page inside the database query (`IQueryable` in EF Core, `OFFSET … FETCH` in SQL), counts with the same filters, and returns `PagedResult<T>` with `TotalCount`. Never load all rows into memory or to the browser.
 - **Search:** both server-side. `FilterPanel` is a separate panel above the table, for structured filters; it is never inside the table. The header search is optional: a search input under the header of each column marked `searchable` (debounced 400 ms, `hx-trigger="keyup changed delay:400ms"`). A screen marks some columns, or none; with none, the search row is not rendered at all.
 - **State in the URL:** every filter, sort and page value is a query-string parameter (`hx-push-url="true"`), so a filtered view can be bookmarked, shared and reloaded.
 - **HTMX:** the table body + pager is a partial; filters, column search, sort and paging swap only that partial (`hx-target`, `hx-indicator`).
-- **Formats:** money right-aligned with 2 decimals and thousands separators; dates in the project date format (see `DatePicker`), never formatted by a screen; status via `StatusBadge`; icons as below.
+- **Formats:** money right-aligned with 2 decimals and thousands separators; dates in the project date format (see `DatePicker`), never formatted by a screen; status via `StatusBadge`; a person or company (`person`) as an initials avatar beside the name, with an optional second line (a code or a role), the avatar's colors picked by the kit from a stable hash of the name, never by the screen; icons as below.
 - **Icon column** (format `icons`): a row of small icons for the features people compare across rows, such as the coverages of an insurance package. The column names an icon set; the row gives each key's state.
-  - **Icon set:** one dictionary per kind, in one place like `StatusBadge`: each key has an icon from the kit's icon library, a Thai label, and the Thai words for its three states (for coverages: คุ้มครอง, คุ้มครองบางส่วน, ไม่คุ้มครอง). Screens pass keys and states, never icons or colors.
+  - **Icon set:** one dictionary per kind, in one place like `StatusBadge`: each key has an icon from the kit's icon library, a Thai label, and the Thai words for its three states (for coverages: คุ้มครอง, คุ้มครองบางส่วน, ไม่คุ้มครอง). A set may also give each key a hue (`--app-hue-*`), used where the key stands for a kind of thing (a cost type in a list, a category in a menu); in the icon column the state colors below win. Screens pass keys and states, never icons or colors.
   - **States:** `yes`, `partial` and `no`, told apart by shape as well as color, never by color alone: `yes` filled in `--app-primary`, `partial` outlined with a small mark in `--app-warning`, `no` outlined, struck through and in `--app-text-muted`. Every key of the set keeps its place on every row, so the eye can run down one coverage; a `no` stays in place, muted.
   - **Each icon** carries `aria-label` and a `Tooltip` of "<label>: <state words>". When the column has a quick view, each icon is a `<button>` that opens it on that key's section; otherwise it is `role="img"`. A click on an icon opens only its own section, never the row's whole-record quick view.
   - **Narrow:** the icons wrap inside their cell; on tablet and phone sizes each one keeps a tap area of `--app-touch-target`. The quick view is how touch reaches the tooltip's text.
@@ -129,7 +129,7 @@ Title, optional subtitle (counts and freshness, such as "รวม 1,247 รา�
 
 ## StatusBadge
 
-`StatusBadge(status)` maps each domain status to a label and a semantic color in one dictionary. Screens never choose badge colors themselves.
+`StatusBadge(status)` maps each domain status to a Thai label and a hue (`--app-hue-*`, as house-style.md "Hues" orders them by meaning) in one dictionary. Two statuses of one dictionary never share a hue; a pipeline longer than the palette pairs a reused hue with an icon. The chip shows a dot and the label, so a status reads without its color. Screens never choose badge colors themselves.
 
 ## EmptyState
 
@@ -155,7 +155,7 @@ Success, error, info. Server sets it through an `HX-Trigger` response header (`s
 ## Card
 
 - **Input:** an optional header (title, optional subtitle, optional actions on the right), a body, an optional footer.
-- **Use:** groups related content on a detail page, a form section or a dashboard. A KPI card is a Card variant: a label, a value in the kit's number or money format, and an optional change against the previous period. A list of records is a `DataTable`, never a grid of cards.
+- **Use:** groups related content on a detail page, a form section or a dashboard. A KPI card is a Card variant: a label, a value in the kit's number or money format, an optional change against the previous period, and an optional icon in a tinted tile. A strip of KPI cards gives its tiles hues in a fixed order (sky, violet, emerald, amber, then the rest of the palette), so a screen never picks one. A list of records is a `DataTable`, never a grid of cards.
 - **States:** default, loading (a `Loading` skeleton in the body), empty (`EmptyState` in the body).
 - **Narrow:** cards sit in the kit's grid and stack to one column at the narrowest step; header actions wrap under the title.
 - In `mvc-htmx`, Bootstrap's `.card`.

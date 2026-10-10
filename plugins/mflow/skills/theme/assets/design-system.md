@@ -5,9 +5,11 @@
 
 ## Decisions
 - Look: mflow house style (skills/theme/references/house-style.md): navy sidebar, white top bar, sky blue, Inter + Noto Sans Thai, Font Awesome 6 Free. Adapted: TODO (the customer's CI in the brand family, or none; any other change and why)
-- Button contrast: a) the kit's fills with white text, below AA for button text [เสนอ] (the other option, b) text-step fills that pass AA, is in skills/theme/references/house-style.md, "Contrast")
+- Button contrast: a) the kit's bright fills with white text, below AA for white text on a fill [ยืนยัน] (the user chose the bright fills, 2026-10-10; the other option, b) text-step fills that pass AA, is in skills/theme/references/house-style.md, "Contrast", for a customer who asks for it)
 - Breadcrumb: in the top bar (house style), so `PageHeader` has none
 - Palette: TODO (tokens in the Tokens file of AGENTS.md `## Stack`)
+- Hues: the house style's bright palette (`--app-hue-*`: sky, blue, indigo, violet, cyan, emerald, green, yellow, amber, red) for statuses, avatars, KPI tiles and category icons
+- Status colors: (none yet) <!-- one line per StatusBadge dictionary: status → hue, e.g. jobs: เปิดงาน blue · กำลังส่ง indigo · ส่งแล้ว cyan · ปิดงาน emerald · ยกเลิก red -->
 - Font: Inter + Noto Sans Thai, JetBrains Mono for codes and amounts (house style), or TODO
 - Density: TODO
 - Devices: TODO (desktop and laptop only / plus tablet / every size including phones); acceptance sizes: TODO (e.g. 1366×768, 1920×1080)
@@ -41,7 +43,8 @@
 | Label for an icon-only button or a cut-off text | `Tooltip` | never the only place important information lives |
 | Waiting for content | `Loading` | spinner in a button, bar on a table or card, skeleton on first load |
 | A read-only record | `DetailView` | label and value pairs in the kit grid, grouped in cards |
-| Status of a record | `StatusBadge` | status → color mapping lives in one place |
+| Status of a record | `StatusBadge` | status → hue mapping lives in one place; two statuses never share a hue |
+| A person or company in a list | `DataTable` column format `person` | initials avatar beside the name; its colors come from the name, never from the screen |
 | Nothing to show | `EmptyState` | message + primary action |
 | Destructive or irreversible action | `ConfirmDialog` | always states what will happen |
 | Result feedback | `Toast` | success/error after an action |
@@ -62,6 +65,7 @@
 - Do keep Thai text in ViewModels/resources.
 - Do color text with the text step (`--app-primary-text`, `--app-<tone>-text`) and fills with the fill step (`--app-primary`, `--app-<tone>`); a light fill color never sets text on a light surface.
 - Do take every icon from the kit's icon library (Font Awesome 6 Free, solid, in the house style).
+- Do let color carry meaning, brightly: statuses, avatars, KPI tiles and category icons take their hues from the kit's dictionaries (`StatusBadge`, icon sets, the `person` format, the KPI strip); a screen never picks a hue.
 - Don't put hex colors, inline styles or page-level CSS in views.
 - Don't build a table by hand, even a small one.
 - Don't use the browser's `<input type="date">`, and don't format a date in a screen; dates go through `FormField` type `date` and the kit's date format.

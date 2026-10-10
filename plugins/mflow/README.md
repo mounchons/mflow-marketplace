@@ -29,13 +29,13 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.21)
+## คำสั่ง (v0.22)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
 | กลุ่ม | คำสั่ง | ทำอะไร |
 |---|---|---|
-| ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack ก่อน, ต่อ OpenSpec + Backlog.md, สร้าง `docs/decisions/discuss/AGENDA.md` (มี `tech-stack` และ `code-structure` นำหน้า), คัดแยกเอกสารเดิม |
+| ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack และชื่อโปรเจกต์ในโค้ด (เสนอให้สามชื่อ) ก่อน, ต่อ OpenSpec + Backlog.md, สร้าง `docs/decisions/discuss/AGENDA.md` (มี `tech-stack` และ `code-structure` นำหน้า), คัดแยกเอกสารเดิม |
 | เอกสารลูกค้า | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded, เพิ่มหัวข้อที่ควร discuss ลง AGENDA.md |
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/decisions/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
@@ -61,7 +61,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ## Stack
 
-`/mflow:init` ถามก่อนเขียนไฟล์ใดๆ ว่าโปรเจกต์ใช้ stack แบบไหน ตอบด้วยตัวอักษรตัวเดียว:
+`/mflow:init` ถามก่อนเขียนไฟล์ใดๆ ว่าโปรเจกต์ใช้ stack แบบไหน และชื่อโปรเจกต์ในโค้ด ตอบด้วยตัวอักษรข้อละตัว (หรือพิมพ์ชื่อเอง):
 
 | ตัวเลือก | Profile | รองรับ |
 |---|---|---|

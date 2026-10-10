@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "[project name]"
 ---
 
-Set this repository up so every future session (Claude Code or Codex) starts from the same state and knows where each kind of fact lives. The project name is `$ARGUMENTS`, or the folder name when empty.
+Set this repository up so every future session (Claude Code or Codex) starts from the same state and knows where each kind of fact lives. The project's display name is `$ARGUMENTS`, or the folder name when empty: the AGENTS.md title and the `backlog init` name, which may be Thai. The project name in code, which every project and namespace starts with, is asked in step 2; a `$ARGUMENTS` that is already a valid name in code becomes its suggestion b).
 
 Work through the steps in order. Each ends on a completion criterion; reach it before moving on.
 
@@ -20,11 +20,15 @@ Look before asking. Find:
 
 Done when: you have reported one compact inventory to the user (stack detected or none, test projects, agent files, docs, tools present/missing/initialised).
 
-## 2. Choose the stack
+## 2. Choose the stack and the project name
 
-Ask which stack this project uses, as "Asking" in [references/stacks.md](references/stacks.md) describes: options `a)` `b)` `c)`, a recommendation with its evidence from step 1, and a letter as the answer. Ask it right after the inventory, before any file is written, and on its own; the domain questions come later in step 5. When AGENTS.md already has a filled `## Stack` (a rerun, such as after an mflow upgrade), show it and carry on with it: a rerun to take new templates is not a stack change, and the user changes it by saying so.
+Ask two things in one message, right after the inventory and before any file is written; the domain questions come later in step 5:
+1. Which stack this project uses, as "Asking" in [references/stacks.md](references/stacks.md) describes: options `a)` `b)` `c)`, a recommendation with its evidence from step 1.
+2. The project name in code, which every project, folder and namespace starts with (`<ProjectName>.Api`, `<ProjectName>.Web.Backend`), as "Project name" in the same file describes: three suggestions with one recommended, or a name of the user's own.
 
-Done when: the profile is chosen or kept, and for c) the filled rows are written and shown.
+A letter for each, or a typed name, is a full answer. When AGENTS.md already has a filled `## Stack` (a rerun, such as after an mflow upgrade), show it and carry on with it: a rerun to take new templates is not a stack change, and the user changes it by saying so. If that `## Stack` has no `Project name (code)` yet (set up before mflow 0.22), ask only the name.
+
+Done when: the profile and the project name are chosen or kept, and for c) the filled rows are written and shown.
 
 ## 3. Scaffold
 
@@ -79,13 +83,13 @@ Done when: `openspec list --json` and `backlog task list --json` both return JSO
 ## 5. Fill AGENTS.md from facts
 
 Replace TODOs only with things you verified:
-- Stack: write `## Stack` with the profile chosen in step 2 and its rows, as "Record" in [references/stacks.md](references/stacks.md) describes.
+- Stack: write `## Stack` with the project name and the profile chosen in step 2 and its rows, as "Record" in [references/stacks.md](references/stacks.md) describes.
 - Commands: run the build and test commands of that profile (`dotnet build` and `dotnet test` for a); for b) also the front end's build and test) and the E2E command if one exists. Write the exact command that worked. Anything you could not run gets `(unverified)`.
 - Architecture: from the actual project layout.
 - Domain vocabulary, bounded contexts, purpose: ask the user in one batch of at most three questions; leave `TODO` for anything not answered. A TODO is honest, a guess looks authoritative.
 - Delete template sections that stay empty after this step, except `Domain vocabulary` and `Stack`.
 
-Done when: `## Stack` names a profile, every command line in AGENTS.md was either run successfully or carries `(unverified)`, and AGENTS.md is under 200 lines.
+Done when: `## Stack` names the project name and a profile, every command line in AGENTS.md was either run successfully or carries `(unverified)`, and AGENTS.md is under 200 lines.
 
 ## 6. Existing requirement docs
 
@@ -99,7 +103,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.mjs"` (read-only). Fix what it r
 
 Update `STATUS.md` (`## Now` + one log entry). Tell the user, briefly:
 - what was created, merged, or left untouched;
-- the stack profile, and for c) that mflow has not been tested with it yet;
+- the project name and the stack profile, and for c) that mflow has not been tested with it yet;
 - which commands are `(unverified)`;
 - the open questions and hotspot rows found, and the recommended discussion topics in `docs/decisions/discuss/AGENDA.md` if capture wrote any;
 - the agenda in `docs/decisions/discuss/AGENDA.md`, starting with `/mflow:discuss tech-stack` and `/mflow:discuss code-structure` (recommended before theme, not required);

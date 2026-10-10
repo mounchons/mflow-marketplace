@@ -24,7 +24,7 @@ Done when: every rule input and the expected outcome has a mapped column, or a g
 
 ## 3. Write
 
-- `<Golden data folder>/<slug>.json`, the folder from AGENTS.md `## Stack` (`tests/<Context>.Domain.Tests/Golden/` in the .NET profiles): array of `{ "id", inputs..., "expected", "sourceRow" }`.
+- `<Golden data folder>/<slug>.json`, the folder from AGENTS.md `## Stack` (`tests/<ProjectName>.Domain.Tests/Golden/` in the .NET profiles): array of `{ "id", inputs..., "expected", "sourceRow" }`.
 - `<Golden data folder>/<slug>.source.json` beside it, so the answer key can be traced and checked later: `source` (project path), `sourceHash` (from `source-index.mjs hash <file>`), `sheet`, `range`, `mapping` (`version`, and the column of each rule input and of the expected outcome), `units`, `rounding` (the rule from rules.md, by its id), `dates` (the source's calendar and format, and what the JSON uses), `formulas` (cells with no cached value: listed as anomalies, never computed by guess), `rows`, `anomalies` and `generatedAt`. `/mflow:help check setup` warns once the source changes; rerunning this skill for the slug rewrites both files.
 - A data-driven test in the Unit tests framework of AGENTS.md `## Stack` (xUnit `[MemberData]` in the .NET profiles) that loads the file, runs the domain service or aggregate method, and asserts `expected` with the rounding rule from rules.md. If the domain code does not exist yet, write the test against the intended interface and mark it skipped with the reason `until <change-name> is applied`.
 - Update the hotspot map `Notes → Golden data source`, and `mark` the source `--used-by hs-<slug>`.

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือทางลัด: ใช้ mflow เฉพาะส่วนตั้งต้น (stack และหน้าตา) แล้วสร้างทั้งระบบด้วย OpenSpec |
-| เวอร์ชัน plugin | 0.21.0 |
+| เวอร์ชัน plugin | 0.22.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/manual.md` (คู่มือหลัก ทางเต็มทีละหน้าจอ) |
 
@@ -27,7 +27,7 @@
 
 ```mermaid
 flowchart TD
-    I["1. /mflow:init<br/>เลือก stack, ต่อ OpenSpec + Backlog"] --> TS["2. /mflow:discuss tech-stack<br/>(ไม่บังคับ)"]
+    I["1. /mflow:init<br/>เลือก stack และชื่อโปรเจกต์, ต่อ OpenSpec + Backlog"] --> TS["2. /mflow:discuss tech-stack<br/>(ไม่บังคับ)"]
     I -.->|ข้ามได้| SC
     TS --> SC["3. /opsx:propose app-scaffold<br/>/opsx:apply → /opsx:archive"]
     SC --> TH["4. /mflow:theme<br/>UI kit + /_styleguide"]
@@ -65,8 +65,9 @@ flowchart TD
 
 - **Claude ถาม:**
   1. stack แบบ `a)` `b)` `c)` ตอบเป็นตัวอักษร: a) ASP.NET Core MVC + HTMX (รองรับครบที่สุด), b) React + Vite กับ ASP.NET Core Web API, c) stack อื่นที่คุณบอก (ยังไม่ได้ทดสอบกับ mflow)
-  2. ขอ yes ก่อนรัน `openspec init` และ `backlog init`
-  3. คำถามเรื่อง domain ไม่เกินสามข้อ ข้อที่ยังไม่รู้ตอบว่า "ข้าม" ได้ จะกลายเป็น `TODO`
+  2. ชื่อโปรเจกต์ในโค้ด (ในข้อความเดียวกับ stack) Claude เสนอสามชื่อพร้อมชื่อที่แนะนำ ตอบเป็นตัวอักษรหรือพิมพ์ชื่อเอง เช่น `SchoolHr` ทุก project ขึ้นต้นด้วยชื่อนี้: `SchoolHr.Web.Backend` (หลังบ้าน), `SchoolHr.Web.Frontend` (หน้าบ้าน), `SchoolHr.Api`
+  3. ขอ yes ก่อนรัน `openspec init` และ `backlog init`
+  4. คำถามเรื่อง domain ไม่เกินสามข้อ ข้อที่ยังไม่รู้ตอบว่า "ข้าม" ได้ จะกลายเป็น `TODO`
 - **ได้:** `AGENTS.md` (ส่วน `## Stack`), `STATUS.md`, `docs/vision.md`, `docs/decisions/`, `openspec/` พร้อมกฎใน `config.yaml` และ `backlog/`
 - **ต่อไป:** ขั้น 2 ถ้าอยากล็อกรายละเอียด stack หรือข้ามไปขั้น 3
 
@@ -214,22 +215,29 @@ test ของ .NET **ไม่อยู่ใต้ `src/` หรือ `apps/`
 
 | ประเภท | ที่อยู่ | เหตุผล |
 |---|---|---|
-| Unit / integration test ของ .NET (xUnit) | `tests/<App>.Domain.Tests/`, `tests/<App>.Api.Tests/` | `dotnet publish` และ Docker image ไม่ติด test ไปด้วย, ตั้ง `Directory.Build.props` แยกให้ test ได้, CI หา test ด้วย path เดียว |
-| Golden data | `tests/<App>.Domain.Tests/Golden/` | `/mflow:golden` เขียนที่นี่ และ `/mflow:help check setup` ตรวจที่นี่ |
-| Unit test ของ React (Vitest) | ข้างไฟล์ที่ทดสอบ เช่น `apps/web/src/**/Foo.test.tsx` | ธรรมเนียมของ Vite/Vitest ย้ายไฟล์แล้ว test ไปด้วย |
-| E2E (Playwright) | ในแอปเว็บ เช่น `apps/web/e2e/` หรือ `tests/e2e/` ถ้ามีหลายแอป | ใช้ config และ base URL ของแอปนั้น |
+| Unit / integration test ของ .NET (xUnit) | `tests/<ชื่อโปรเจกต์>.Domain.Tests/`, `tests/<ชื่อโปรเจกต์>.Api.Tests/` | `dotnet publish` และ Docker image ไม่ติด test ไปด้วย, ตั้ง `Directory.Build.props` แยกให้ test ได้, CI หา test ด้วย path เดียว |
+| Golden data | `tests/<ชื่อโปรเจกต์>.Domain.Tests/Golden/` | `/mflow:golden` เขียนที่นี่ และ `/mflow:help check setup` ตรวจที่นี่ |
+| Unit test ของ React (Vitest) | ข้างไฟล์ที่ทดสอบ เช่น `src/SchoolHr.Web.Frontend/src/**/Foo.test.tsx` | ธรรมเนียมของ Vite/Vitest ย้ายไฟล์แล้ว test ไปด้วย |
+| E2E (Playwright) | ในแอปเว็บ เช่น `src/SchoolHr.Web.Backend/e2e/` หรือ `tests/e2e/` ถ้ามีหลายแอป | ใช้ config และ base URL ของแอปนั้น |
 
 โครงที่แนะนำ (เป็นค่าเริ่มต้นของ `/mflow:discuss code-structure`):
 
 ```text
 <repo>/
-├── src/ หรือ apps/     แอปที่ deploy (web, api, worker)
-├── packages/           library ที่ใช้ร่วมกัน (Domain, Application, Infrastructure)
-├── tests/              test ของ .NET ทุกตัว
+├── src/
+│   ├── SchoolHr.Domain/           กฎธุรกิจ (layer ใช้ร่วมกันทุกแอป)
+│   ├── SchoolHr.Application/
+│   ├── SchoolHr.Infrastructure/
+│   ├── SchoolHr.Api/              API (มีตัวเดียว จึงไม่มีส่วนต่อท้าย)
+│   ├── SchoolHr.Web.Backend/      หลังบ้าน
+│   └── SchoolHr.Web.Frontend/     หน้าบ้าน
+├── tests/                         test ของ .NET ทุกตัว (ชื่อ project ที่ทดสอบ + .Tests)
 ├── docs/
-├── deploy/             docker, migration script
-└── <App>.slnx
+├── deploy/                        docker, migration script
+└── SchoolHr.slnx
 ```
+
+ชื่อแอปทุกตัวเป็น `<ชื่อโปรเจกต์>.<ชนิด>` หรือ `<ชื่อโปรเจกต์>.<ชนิด>.<ส่วน>`: ชนิดคือ `Web` หรือ `Api` (หรือ `Worker`, `Mobile`) ส่วนบอกกลุ่มผู้ใช้ `Frontend` = หน้าบ้าน `Backend` = หลังบ้าน ถ้าชนิดไหนมีหรือจะมีมากกว่าหนึ่งแอป ทุกตัวใส่ส่วนตั้งแต่แรก ถ้าอยากแยกแอปกับ library ก็ใช้ `apps/` กับ `packages/` แทน `src/` ได้ ชื่อยังตามรูปแบบเดิม
 
 ## 9. ข้อควรระวัง
 

@@ -11,7 +11,10 @@ The user (the SA, PM or system owner driving this project) speaks for the custom
 
 ## Stack
 <!-- Chosen at /mflow:init (options a/b/c). mflow skills read names and paths from this table;
-     under a profile other than mvc-htmx, read skill names such as ViewModel or Prototype:UseFakeData by their role here. -->
+     under a profile other than mvc-htmx, read skill names such as ViewModel or Prototype:UseFakeData by their role here.
+     Project name (code): PascalCase, chosen at /mflow:init; every project, folder and namespace starts with it
+     (<ProjectName>.Domain, <ProjectName>.Api, <ProjectName>.Web.Backend; app names in the code-structure discussion doc). -->
+Project name (code): TODO
 Profile: TODO
 
 | Seam | Value |
@@ -48,8 +51,8 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 - Format: `TODO`
 
 ## Architecture
-- Solution layout: TODO (e.g. `src/<Product>.Domain`, `.Application`, `.Infrastructure`, `.Api` or `.Web`; from the approved code-structure discussion doc)
-- References point inward only: Api and Web → Infrastructure → Application → Domain. TODO: the architecture test that enforces it
+- Solution layout: TODO (e.g. `src/<ProjectName>.Domain`, `.Application`, `.Infrastructure`, `.Api`, `.Web.Backend`, `.Web.Frontend`; from the approved code-structure discussion doc)
+- References point inward only: the Api and Web apps → Infrastructure → Application → Domain. TODO: the architecture test that enforces it
 - Bounded contexts: TODO
 - Business rules live in the Domain layer (aggregates, value objects, domain services). UI and controllers call them; they never re-implement them.
 

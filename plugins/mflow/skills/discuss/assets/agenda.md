@@ -20,4 +20,4 @@
 | # | หัวข้อ | ทำไมควรคุย | ควรคุยก่อน | สถานะ |
 |---|---|---|---|---|
 | 1 | Tech stack: แอป เฟรมเวิร์ก library ฐานข้อมูล Docker (`tech-stack`) | ทุกขั้นหลังจากนี้ (theme, หน้าจอ, data model, OpenSpec) สร้างบน stack นี้ ต้องตกลงให้ละเอียดก่อน: แยก web แต่ละตัว, API, mobile, library ที่ใช้ (open source และฟรี ตรวจ licence), ฐานข้อมูล, Docker และตัวเสริมที่ใส่ภายหลังได้ (Redis, queue) ถ้าเลือกผิดต้องสร้าง kit และหน้าจอใหม่ | ก่อน `/mflow:theme` |  |
-| 2 | โครงสร้างโค้ดและโฟลเดอร์ (`code-structure`) | โครง repo และ solution แยกตาม layer (Domain, Application, Infrastructure, Api) โฟลเดอร์ของแต่ละแอป และทิศทางการอ้างอิงระหว่าง project ถ้าตั้งผิดตอนเริ่มต้องย้ายไฟล์ทั้ง repo ภายหลัง | ก่อน `/mflow:theme` |  |
+| 2 | โครงสร้างโค้ดและโฟลเดอร์ (`code-structure`) | โครง repo และ solution แยกตาม layer (Domain, Application, Infrastructure) ชื่อแอปตามรูปแบบ `<ชื่อโปรเจกต์>.Web.Frontend` / `.Web.Backend` / `.Api` โฟลเดอร์ของแต่ละแอป และทิศทางการอ้างอิงระหว่าง project ถ้าตั้งผิดตอนเริ่มต้องย้ายไฟล์ทั้ง repo ภายหลัง | ก่อน `/mflow:theme` |  |

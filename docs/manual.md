@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.21.0 |
+| เวอร์ชัน plugin | 0.22.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -132,13 +132,15 @@ docs/
      - `b)` React + Vite + ASP.NET Core Web API: component ชุดเดียวกันในรูป React และ API เป็นฝ่ายตรวจสิทธิ์และแบ่งหน้า
      - `c)` stack อื่น (บอกชื่อ เช่น Next.js, Laravel): Claude เติมตาราง mapping (ไฟล์ UI, tokens, layout, component, ข้อมูล prototype, สวิตช์โหมด prototype, test) แล้วแสดงให้ดู ไม่ต้องตอบ yes แยก เพราะเอกสาร `tech-stack` จะทบทวนตารางนี้อีกรอบก่อน `/mflow:theme` ยังไม่ได้ทดสอบกับ mflow
 
+     **และถามชื่อโปรเจกต์ในโค้ดในข้อความเดียวกัน:** ชื่อที่ทุก project, folder และ namespace ขึ้นต้นด้วย (เช่น `SchoolHr.Api`, `SchoolHr.Web.Backend`) ไม่ใช่ชื่อที่แสดงในหัว AGENTS.md ซึ่งเป็นภาษาไทยได้ Claude เสนอสามชื่อพร้อมชื่อที่แนะนำ: a) จากชื่อที่ลูกค้าเรียกระบบ (ระบบบริหารบุคลากรโรงเรียน → `SchoolHr`) b) จากชื่อโปรเจกต์หรือชื่อโฟลเดอร์ (`school-hr-system` → `SchoolHrSystem`) c) ชื่อสั้นแบบแบรนด์ (`KruHub`) ตอบเป็นตัวอักษรหรือพิมพ์ชื่อเองก็ได้ ชื่อต้องเป็น PascalCase ภาษาอังกฤษ ไม่มีช่องว่างหรือขีด ไม่เกินราว 20 ตัวอักษร (มีชื่อบริษัทนำหน้าได้แบบ `Acme.SchoolHr`) และไม่ใช่คำอย่าง `System`, `App`, `Web`, `Api`, `Core` บันทึกเป็นบรรทัด `Project name (code)` ใน `## Stack` ถ้ารัน init ซ้ำกับโปรเจกต์ที่ยังไม่มีบรรทัดนี้ (ก่อน 0.22) จะถามเฉพาะชื่อ
+
      คำตอบบันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว และคำสั่ง `theme` `screen` `golden` `review` อ่านจากตรงนั้น ถ้ารัน `/mflow:init` ซ้ำ (เช่น หลังอัปเกรด) stack ที่เลือกไว้แล้วใช้ต่อโดยไม่ถามใหม่ อยากเปลี่ยนให้บอกเอง
   3. แสดงรายการไฟล์ที่จะสร้าง (dry-run) แล้วสร้าง `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/decisions/hotspots/INDEX.md`, `docs/source/`, `docs/ai/inbox/`, `docs/decisions/discuss/`, `.mflow/config.json` ไฟล์ที่มีอยู่แล้วจะไม่ถูกเขียนทับ template จะไปอยู่ที่ `.mflow/suggested/` เพื่อ merge ให้พร้อมแสดง diff และ `.mflow/templates.json` จดว่าเสนอ template ไหนไปแล้ว รันซ้ำครั้งหน้าจึงเสนอเฉพาะ template ที่เปลี่ยนในรุ่นใหม่ ไฟล์ที่คุณแก้หรือ merge แล้วไม่ถูกเสนอซ้ำ (ขึ้นเป็น `kept`) ให้ commit `templates.json` ไปกับ `.mflow/`
   4. ต่อ OpenSpec และ Backlog.md โดยถาม yes ก่อนรันแต่ละคำสั่ง
   5. รันคำสั่ง build และ test ของ stack ที่เลือกจริง (เช่น `dotnet build`, `dotnet test`) แล้วเขียนเฉพาะคำสั่งที่ผ่านลงใน AGENTS.md คำสั่งที่รันไม่ได้จะติด `(unverified)`
   6. ย้ายเอกสารลูกค้าที่พบไปไว้ใน `docs/source/` แล้วคัดแยกตามขั้น 1
   7. จบด้วยการรัน doctor (ตรวจอย่างเดียว ไม่แก้อะไร) แล้วแจ้งทุกข้อที่เป็น `fail` หรือ `warn` พร้อมวิธีแก้ (ดูตัวอย่างใน 6.2)
-- **สิ่งที่คุณต้องตอบ:** เลือก stack (ข้อ 2) แล้วตอบคำถามอีกไม่เกินสามข้อ เรื่องจุดประสงค์ของระบบ, bounded context และคำศัพท์ของลูกค้า ข้อไหนยังไม่รู้ให้ตอบว่าข้าม จะเหลือเป็น `TODO` ไว้
+- **สิ่งที่คุณต้องตอบ:** เลือก stack และชื่อโปรเจกต์ในโค้ด (ข้อ 2) แล้วตอบคำถามอีกไม่เกินสามข้อ เรื่องจุดประสงค์ของระบบ, bounded context และคำศัพท์ของลูกค้า ข้อไหนยังไม่รู้ให้ตอบว่าข้าม จะเหลือเป็น `TODO` ไว้
 - **ได้อะไร:** repo พร้อมใช้งาน และตั้งแต่ session ถัดไป hook จะเริ่มทำงาน
 - **ได้ `docs/decisions/discuss/AGENDA.md` ทันที** โดยสองหัวข้อแรกคือ `tech-stack` และ `code-structure` (แนะนำให้คุยก่อน `/mflow:theme` ไม่บังคับ)
 - **ต่อไป:** `/mflow:discuss tech-stack` แล้ว `/mflow:discuss code-structure` → `/mflow:capture` ถ้ามีเอกสาร → `/mflow:theme`
@@ -157,7 +159,12 @@ docs/
   - **test:** xUnit, Testcontainers, Playwright, Vitest
   - **licence:** เน้น open source และฟรี **ต้องตรวจ licence จริงของเวอร์ชันที่เลือกทุกตัว** เพราะบาง library เปลี่ยนเป็น commercial แล้ว (เช่น MediatR, AutoMapper, FluentAssertions 8, EPPlus, QuestPDF ฟรีเฉพาะตามเงื่อนไข community, Redis เปลี่ยน licence และมี Valkey เป็นตัวแทน) ตัวที่ต้องเสียเงินต้องให้คุณตัดสินเอง
   - **ตัวเสริม (Redis/Valkey, queue, job scheduler, search, real-time, object storage, observability):** แต่ละตัวได้ผลเดียว คือ **ใช้เลย** เมื่อมีเหตุผลจากเอกสาร (ปริมาณข้อมูล, เวลาตอบสนอง, job ที่อยู่ในขอบเขต) **ภายหลัง** พร้อมเงื่อนไขว่าจะเพิ่มเมื่อไร และสิ่งที่เตรียมไว้ตอนนี้ให้เพิ่มง่าย หรือ **ไม่ต้องใช้** ไม่เพิ่มแบบเผื่อไว้
-- **`code-structure` คุยอะไร:** repo เดียวหรือหลาย repo, โฟลเดอร์ของแต่ละแอป, solution .NET แยก project ตาม layer (`<Product>.Domain` หรือ `.Core` ให้เลือกชื่อเดียว, `.Application`, `.Infrastructure`, `.Api`/`.Web`) โดยอ้างอิงเข้าด้านในเท่านั้นและมี architecture test บังคับ, โฟลเดอร์แยกตาม feature, test project ของแต่ละ layer, `global.json` `Directory.Build.props` `Directory.Packages.props`, และ path ของ `## Stack` ทุกแถวต้องชี้ที่โฟลเดอร์จริง
+- **ชื่อแอปในโค้ด (ตกลงใน `code-structure`):** ทุกแอปที่ deploy ชื่อ `<ชื่อโปรเจกต์>.<ชนิด>` หรือ `<ชื่อโปรเจกต์>.<ชนิด>.<ส่วน>` ทั้งชื่อ project ชื่อโฟลเดอร์ และ namespace
+  - ชนิด: `Web` (เว็บที่เปิดใน browser), `Api` (HTTP API) ชนิดอื่นใช้รูปแบบเดียวกัน (`Worker`, `Mobile`)
+  - ส่วน: บอกว่าเป็นแอปไหนของชนิดนั้น `Frontend` = หน้าบ้าน (ลูกค้าหรือคนทั่วไป) `Backend` = หลังบ้าน (เจ้าหน้าที่) หรือชื่ออื่นตามกลุ่มผู้ใช้ (`Portal`, `Partner`) Frontend/Backend ในที่นี้หมายถึงกลุ่มผู้ใช้ ไม่ใช่ฝั่ง browser กับฝั่ง server
+  - ถ้าชนิดไหนมีมากกว่าหนึ่งแอป หรือ `tech-stack` วางแผนว่าจะมีเพิ่มภายหลัง ทุกแอปของชนิดนั้นใส่ส่วนตั้งแต่แอปแรก จะได้ไม่ต้องเปลี่ยนชื่อทีหลัง ถ้ามีแอปเดียวและไม่มีแผนเพิ่ม ไม่ต้องมีส่วน (`SchoolHr.Api`)
+  - ตัวอย่าง: `SchoolHr.Web.Backend` (หลังบ้านของฝ่ายบุคคล), `SchoolHr.Web.Frontend` (หน้าบ้านของครู), `SchoolHr.Api`, `SchoolHr.Domain`, test ใช้ชื่อ project ที่ทดสอบต่อด้วย `.Tests` (`SchoolHr.Api.Tests`) แอปที่ไม่ใช่ .NET ใช้ชื่อโฟลเดอร์เดียวกัน ส่วนชื่อ package เป็นตัวเล็กคั่นด้วยขีด (`schoolhr-web-frontend`)
+- **`code-structure` คุยอะไร:** ชื่อโปรเจกต์ในโค้ด (ถ้า init ยังไม่ได้ตั้ง), repo เดียวหรือหลาย repo, ชื่อและโฟลเดอร์ของแต่ละแอปตามรูปแบบข้างบน, solution .NET แยก project ตาม layer (`<ชื่อโปรเจกต์>.Domain` หรือ `.Core` ให้เลือกชื่อเดียว, `.Application`, `.Infrastructure`, แอป `.Api` และ `.Web.<ส่วน>`) โดยอ้างอิงเข้าด้านในเท่านั้นและมี architecture test บังคับ, โฟลเดอร์แยกตาม feature, test project ของแต่ละ layer, `global.json` `Directory.Build.props` `Directory.Packages.props`, และ path ของ `## Stack` ทุกแถวต้องชี้ที่โฟลเดอร์จริง
 - **ข้อมูลมาจากไหน (ตามลำดับ):** เอกสารลูกค้าและคำของคุณ → มาตรฐานของทีมใน knowledge base ถ้าเชื่อมไว้ (เช่น Graph Brain: มาตรฐาน .NET 10, PostgreSQL 18, Clean Architecture) ติดป้าย `[ที่มา: brain <ชื่อโน้ต>]` → ข้อเสนอของ Claude `[เสนอ]` โน้ตของโปรเจกต์เก่าเป็นแค่ตัวอย่าง ถ้าขัดกันจะเป็นข้อตัดสินใจให้คุณเลือก
 - **ตอนอนุมัติ:** แอป, library พร้อม licence และตัวเสริมที่ทำภายหลังไปอยู่ใน `## Stack` ของ AGENTS.md (profile และ path ถูกปรับถ้าต่างจากที่เลือกตอน init, คำสั่งใน `## Commands` ติด `(unverified)` จนกว่าจะรันใหม่) โครง solution และกฎการอ้างอิงไปอยู่ใน `## Architecture` ส่วนการสร้าง solution จริงเป็น task หรือ `/opsx:propose`
 
@@ -708,7 +715,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 | สถานการณ์ | คำสั่ง |
 |---|---|
-| repo ใหม่ | `/mflow:init` (ถามเลือก stack ก่อน) |
+| repo ใหม่ | `/mflow:init` (ถามเลือก stack และชื่อโปรเจกต์ในโค้ดก่อน) |
 | ไม่รู้จะเริ่มทางไหน | `/mflow:help` (แสดงสองทาง: อยากเห็นหน้าจอเร็ว หรือกฎซับซ้อนผิดแล้วแพง) |
 | เพิ่งอัปเกรด plugin หรือ briefing มีบรรทัด "mflow upgrade" | `/mflow:help check setup` แล้ว `/mflow:init` (ใช้ stack เดิม เสนอเฉพาะ template ที่เปลี่ยน) |
 | briefing บอกว่าเอกสารอยู่ในโครงก่อน 0.20.0 | commit งานที่ค้างก่อน แล้ว `/mflow:init` ดูแผนย้าย ตอบ yes แล้ว commit การย้ายแยกเป็นหนึ่ง commit |
@@ -753,7 +760,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.21.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.22.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -786,6 +793,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | hook ที่ปิด `mflow:dev` ทำงานในทุกโปรเจกต์ที่เปิด plugin mflow ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้ | ตั้งใจไว้แบบนี้ เพราะ subagent ตัวนี้มีไว้สำหรับ `/opsx:apply` ของ mflow |
 | กฎ deny `Agent(mflow:dev)` ใน settings ของ Claude Code (เช่น `~/.claude/settings.json` หรือที่ 0.16 เขียนไว้ใน `.claude/settings.local.json`) ยังปิดได้เสมอไม่ว่า mflow จะตั้งอะไร | `/mflow:subagent status` บอกว่าอยู่ไฟล์ไหน ลบเองด้วยมือ |
 | kit ที่ทำ theme ไว้ก่อน 0.14 บังคับ header search ทุกตาราง ใช้ช่องวันที่ของ browser และยังไม่มี Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView เป็น component | รัน `/mflow:theme update components` Claude เทียบแล้วแสดงเฉพาะส่วนที่ขาดก่อนแก้ และปรับ `.claude/rules/ui.md` กับ `docs/ui/design-system.md` ให้ด้วย (`/mflow:init` ไม่ได้เขียนสองไฟล์นี้) คอลัมน์ที่มี header search อยู่แล้วจะถูกตั้ง `searchable` ไว้ หน้าจอเดิมจึงไม่เปลี่ยน |
+| โปรเจกต์ที่ init ก่อน 0.22 ไม่มีบรรทัด `Project name (code)` ใน `## Stack` และเอกสาร `code-structure` ที่อนุมัติแล้วอาจตั้งชื่อแอปแบบเดิม (`<Product>.Web`) | รัน `/mflow:init` ซ้ำ Claude จะถามเฉพาะชื่อโปรเจกต์ (เสนอ prefix ของ solution ที่มีอยู่เป็นชื่อแนะนำ) ชื่อแอปที่อนุมัติไปแล้วไม่ถูกเปลี่ยนเอง ถ้าจะเปลี่ยนเป็นรูปแบบใหม่ให้เปิดเอกสาร `code-structure` ฉบับใหม่แล้วทำเป็น OpenSpec change |
 | visual direction, `QuickView` และคอลัมน์ไอคอนของ 0.21 ยังไม่เคยสร้างผ่าน `/mflow:theme` และ `/mflow:screen` ใน session จริง และ `frontend-design` เป็น plugin แยกที่ mflow ไม่ได้ติดตั้งให้ | ครั้งแรกให้ดูหน้า style guide ที่เปิด quick view ทั้งแบบ Dialog และ SidePanel และลองพิมพ์ URL ของ quick endpoint ด้วย role ที่ไม่มีสิทธิ์ (ต้องได้ 403) ถ้าไม่ได้ติดตั้ง `frontend-design` Claude ใช้ขั้นตอนใน `visual-direction.md` แทน |
 | DatePicker, pager และ component ใหม่ของ 0.14 ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
 | `/mflow:analyze`, `/mflow:design` และ `/mflow:challenge` (ใหม่ใน 0.19 ไม่บังคับ) ทดสอบแล้วเฉพาะ script ยังไม่เคยใช้ใน session จริงกับรายงานจาก AI ภายนอก และ mflow ไม่รัน AI อื่นให้เอง | ครั้งแรกให้ดูว่าสรุปเก็บความเห็นต่างและ finding ที่ถูกปฏิเสธไว้ครบ ถ้า AI ตัวไหนไม่ได้รัน สั่งสรุปแบบ partial ได้เลย งานหลักไม่ต้องรอ |

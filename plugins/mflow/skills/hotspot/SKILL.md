@@ -87,7 +87,7 @@ Resolve one ticket per session by default (research tickets excepted): a fuzzy r
 
 1. Show the user the readiness checklist with evidence for each item.
 2. After the user's yes (an instruction to graduate is one), propose the OpenSpec change. A graduation that stopped partway resumes instead of starting over: if `openspec list --json` already has the change, validate it and carry on from step 3. Otherwise run `/opsx:propose <change-name>` with `rules.md` as the input. Each distinct outcome row becomes a Scenario; each invariant becomes a requirement.
-3. Put the golden examples where tests can read them, in the Golden data folder of AGENTS.md `## Stack` (for example `tests/<Context>.Domain.Tests/Golden/<slug>.json` or `.csv`), and reference that path in the change's tasks.
+3. Put the golden examples where tests can read them, in the Golden data folder of AGENTS.md `## Stack` (for example `tests/<ProjectName>.Domain.Tests/Golden/<slug>.json` or `.csv`), and reference that path in the change's tasks.
 4. Set map.md frontmatter `status: graduated` and `change: <change-name>`; add at the top of `rules.md`: "Frozen. Source of truth after archive: `openspec/specs/<domain>/spec.md`." Update the INDEX.md row and STATUS.md.
 5. **What comes next.** `/opsx:apply <change-name>` (or `/mflow:delegate <change-name> --mode code` for another tool), then `/mflow:review`, then `/opsx:archive` and `git diff --stat openspec/specs`. Write it into STATUS.md `## Now`.
 

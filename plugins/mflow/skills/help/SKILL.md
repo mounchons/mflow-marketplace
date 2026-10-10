@@ -18,6 +18,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 |---|---|
 | New repo, or first time using mflow here (it asks which stack first) | `/mflow:init` |
 | Check the setup, after an mflow upgrade, or when the briefing calls a CLI unavailable | `/mflow:help check setup` (runs the read-only doctor), then usually `/mflow:init` to take the changed templates |
+| `## Stack` has no `Project name (code)` (set up before 0.22), or the apps should follow the `<ProjectName>.Web.Frontend` / `.Web.Backend` / `.Api` naming | rerun `/mflow:init` (asks only the name), then `/mflow:discuss code-structure`; renaming an existing solution is a new code-structure doc and an OpenSpec change |
 | Change the stack before `/mflow:theme` has built the kit | edit AGENTS.md `## Stack`, or rerun `/mflow:init` to be asked again |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
 | Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |

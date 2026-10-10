@@ -7,7 +7,7 @@ Paths, C# and `Prototype:UseFakeData` below are the `mvc-htmx` form. Under anoth
 ## Location and shape
 
 ```
-src/<App>.Web/PrototypeData/
+src/<ProjectName>.Web.Backend/PrototypeData/      ← the Prototype data row of AGENTS.md `## Stack`
 ├─ README.md          ← data dictionary (per entity: field, Thai label, type, required, key/relation, example), deliberate edge cases
 ├─ customers.json     ← array of objects, camelCase fields, stable string/Guid ids
 ├─ drivers.json

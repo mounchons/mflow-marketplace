@@ -15,9 +15,9 @@ Two topics stand first on every agenda, because everything after them is built o
 Split it by app if it grows past ~200 lines, for example `tech-stack-web` and `tech-stack-mobile`.
 
 Checklist:
-- **Apps:** every deployable part and who uses it: web apps (back office, a portal for customers or suppliers…), the API, mobile, background workers, scheduled jobs. For each: users, reach (intranet or internet), devices, and whether it is in this release or later.
+- **Apps:** every deployable part and who uses it: web apps (back office, a portal for customers or suppliers…), the API, mobile, background workers, scheduled jobs. For each: users, reach (intranet or internet), devices, and whether it is in this release or later. Each app takes its name and folder from the app names in code-structure (`<ProjectName>.Web.Backend`, `<ProjectName>.Web.Frontend`, `<ProjectName>.Api`), so settle here whether a second web app or API is planned, even for later.
 - **Web front end, per app:** framework (MVC + Razor + HTMX, React + Vite, Next.js with static export or a server), TypeScript strictness, CSS (the kit's `tokens.css` with Bootstrap, or another base), components (the kit's contracts; a component library only if it can meet them), forms and validation, data fetching, tables with server paging, icons, languages (Thai only, or Thai and English), the kit's date format.
-- **Several web apps:** mflow's `## Stack` seams (UI files, tokens, app shell, components, style guide) hold one path each, and `/mflow:theme` and `/mflow:screen` assume one UI app. Decide where the kit lives (one shared kit package, such as `packages/ui`, or one kit per app) and which app each screen belongs to. Building a kit per app is not automated yet; say so in the doc.
+- **Several web apps:** mflow's `## Stack` seams (UI files, tokens, app shell, components, style guide) hold one path each, and `/mflow:theme` and `/mflow:screen` assume one UI app. Decide where the kit lives (one shared kit package, such as `packages/ui`, or one kit per app) and which app each screen belongs to. Building a kit per app is not automated yet; say so in the doc. Until it is, the `## Stack` seams point at the app that hosts the prototype screens, usually `<ProjectName>.Web.Backend`.
 - **Mobile:** a responsive web app or PWA first, React Native (Expo), Flutter, or native; it calls the same API; offline use, push notifications, camera or GPS, store publishing.
 - **API:** the runtime (default .NET 10 LTS with C# 14), minimal APIs or controllers, versioning (`/api/v1`), the OpenAPI document and its UI, authentication (cookie session or JWT with refresh), validation, mapping (hand-written or a library), a mediator (none, or a library), error format (ProblemDetails), logging (for example Serilog), health checks, rate limiting.
 - **Data:** the database (default PostgreSQL 18) and access (EF Core 10 with the Npgsql provider), naming (for example snake_case), how migrations reach each environment, money and date types, soft delete and audit columns (details per aggregate in the data-model docs), one tenant or many, backups.
@@ -48,25 +48,51 @@ Visuals: a `flowchart LR` of the apps, the API, the database and the external sy
 ## code-structure: repository, solution and folders
 
 Checklist:
-- **Repository:** one repo for everything (the default: `src/` or `apps/`, `packages/`, `tests/`, `docs/`, `deploy/`) or one per app; the folder of each app from the tech-stack doc.
+- **Project name:** the name in code that every project, folder and namespace starts with: `Project name (code)` in AGENTS.md `## Stack`, chosen at `/mflow:init`. It is not the display name in the AGENTS.md title, which may be Thai. When it is missing or `TODO` (projects set up before mflow 0.22), it is a decision (D) with three suggestions, as "Project name" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes; at approval it is written to `## Stack`.
+- **App names:** every deployable app is `<ProjectName>.<Kind>` or `<ProjectName>.<Kind>.<Part>`, for its project, its folder and its root namespace alike.
+  - **Kind:** `Web` for a site people open in a browser, `Api` for an HTTP API. Other kinds follow the same pattern (`Worker`, `Mobile`).
+  - **Part:** which app of that kind. When a kind has more than one app, or the tech-stack doc plans another one later, every app of that kind carries a part from the first, so none is renamed later. `Frontend` is หน้าบ้าน, the site or API for customers or the public; `Backend` is หลังบ้าน, the back office for staff; another audience takes its own name (`Portal`, `Partner`). Frontend and Backend name the audience, not the browser and server tiers: a web app's server side is part of that app or of its `.Api`.
+  - **One app of a kind, none planned:** no part (`<ProjectName>.Api`).
+  - **Not .NET:** a React or other web app keeps the same folder name; its package name is the same in lowercase with hyphens (`schoolhr-web-frontend`).
+  - Example: `SchoolHr.Web.Backend` (หลังบ้าน for HR staff), `SchoolHr.Web.Frontend` (หน้าบ้าน for teachers), `SchoolHr.Api` (the only API).
+- **Repository:** one repo for everything (the default: every app and layer project under `src/`, then `tests/`, `docs/`, `deploy/` and `<ProjectName>.slnx` at the root; or `apps/` for the apps and `packages/` for the shared projects) or one per app; the folder of each app from the tech-stack doc, named as above.
 - **.NET solution, split by layer,** following the team's standard when the knowledge base has one:
-  - `<Product>.Domain`: entities, value objects, enums, domain services and domain rules; references nothing. Some teams call it `.Core`: choose one name (D). The golden-data folder in `## Stack` follows it (`tests/<Product>.Domain.Tests/Golden/`).
-  - `<Product>.Application`: use cases, DTOs, validation, and the interfaces the outer layers implement (repositories, file storage, e-mail).
-  - `<Product>.Infrastructure`: the EF Core DbContext, entity configurations and migrations, repositories, external services, Excel, PDF and file storage.
-  - `<Product>.Api` (and `<Product>.Web` for an MVC app): endpoints or controllers, authentication, middleware, and the composition root that wires the DI.
-  - References point inward only: Api and Web → Infrastructure → Application → Domain. An architecture test enforces it (NetArchTest or ArchUnitNET, both free).
+  - `<ProjectName>.Domain`: entities, value objects, enums, domain services and domain rules; references nothing. Some teams call it `.Core`: choose one name (D). The golden-data folder in `## Stack` follows it (`tests/<ProjectName>.Domain.Tests/Golden/`).
+  - `<ProjectName>.Application`: use cases, DTOs, validation, and the interfaces the outer layers implement (repositories, file storage, e-mail).
+  - `<ProjectName>.Infrastructure`: the EF Core DbContext, entity configurations and migrations, repositories, external services, Excel, PDF and file storage.
+  - The apps (`<ProjectName>.Api`, each `<ProjectName>.Web.<Part>` that is an MVC app): endpoints or controllers, authentication, middleware, and the composition root that wires the DI.
+  - References point inward only: the Api and Web apps → Infrastructure → Application → Domain. An architecture test enforces it (NetArchTest or ArchUnitNET, both free).
 - **Modules:** a folder per bounded context inside each layer (`Domain/<Module>/`), or a project per context only when separate teams or deployments need it; a shared building-blocks project only when two contexts truly share code.
 - **Inside Application:** folders by feature (`Features/<Module>/<UseCase>/`, recommended) or by kind (Commands, Queries, Dtos).
-- **Tests:** a project per layer (`<Product>.Domain.Tests` with its golden data, `<Product>.Application.Tests`, `<Product>.Api.Tests` for integration), `<Product>.ArchitectureTests`, and the E2E folder.
+- **Tests:** a test project per project it tests, named after it plus `.Tests` (`<ProjectName>.Domain.Tests` with its golden data, `<ProjectName>.Application.Tests`, `<ProjectName>.Api.Tests` for integration, `<ProjectName>.Web.Backend.Tests`), `<ProjectName>.ArchitectureTests`, and the E2E folder.
 - **Web and mobile apps:** the folder layout of each app (routes or pages, `features/<module>`, `components` for the kit, `lib` for the API client and the date and number formats), and shared packages (`packages/ui` for the kit, an API client generated from the OpenAPI document).
 - **Build settings:** `global.json` pins the SDK; `Directory.Build.props` holds the target framework, nullable and analyzer settings; `Directory.Packages.props` pins package versions in one place; `.editorconfig`; `.env.example` committed and `.env` ignored.
 - **Names:** namespaces follow folders; code names come from the Domain vocabulary in AGENTS.md.
 - **mflow's seams:** every row of `## Stack` (UI files, tokens, app shell, components, prototype data, prototype-mode flag, tests, golden data) points at a real path in this layout.
 
-Suggested shapes for section 3: the folder tree in a `text` block, and
+Suggested shapes for section 3: the folder tree in a `text` block, such as
+
+```text
+src/
+  SchoolHr.Domain/
+  SchoolHr.Application/
+  SchoolHr.Infrastructure/
+  SchoolHr.Api/
+  SchoolHr.Web.Backend/
+  SchoolHr.Web.Frontend/
+tests/
+  SchoolHr.Domain.Tests/
+  SchoolHr.Api.Tests/
+  SchoolHr.ArchitectureTests/
+SchoolHr.slnx
+```
+
+and
 
 | Project | Holds | References | Must not reference |
 |---|---|---|---|
+
+Decisions it usually needs: the project name when init did not settle it, whether a kind gets parts now (a second web app or API planned), `.Domain` or `.Core`, folders by feature or by kind.
 
 Creating the solution is work: at approval it becomes a Backlog task or an `/opsx:propose` change, never files written by the discussion.
 

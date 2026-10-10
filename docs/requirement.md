@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.21.0 |
+| เวอร์ชันที่อธิบาย | 0.22.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -103,6 +103,7 @@ flowchart TD
 | FR-07a | doctor (`scripts/doctor.mjs`, เรียกผ่าน `/mflow:help check setup` และท้าย `/mflow:init`) ตรวจแบบอ่านอย่างเดียว: รุ่น Node (ขั้นต่ำและวันหมดอายุ), git, รุ่น OpenSpec และ Backlog.md เทียบกับขั้นต่ำและรุ่นที่ทดสอบใน `compat.json`, JSON ที่ briefing อ่านจาก CLI, config (parse ได้ และไม่มีชื่อ setting ที่สะกดผิด), โฟลเดอร์, ทะเบียนเอกสาร, ค่า subagent, AGENTS.md และ STATUS.md, guidance ใน openspec/config.yaml, template ที่เก่ากว่า plugin, `.mflow/suggested/` ที่ค้าง, cache แบบเก่า, session ของ consultation ที่อ่านไม่ได้, golden data ที่ไฟล์ต้นทางเปลี่ยนหรือชี้ออกนอกโปรเจกต์ และโหมด prototype ที่ไม่มีการตรวจตอน start ทุกข้อที่เป็น warn หรือ fail มีวิธีแก้ | มีแล้ว |
 | FR-07b | เอกสารทั้งหมดที่ mflow เขียนอยู่ใต้ `docs/` ห้าหมวด (0.20): `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `change-requests/`), `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md` นอก `docs/` มีเฉพาะ AGENTS.md, CLAUDE.md, STATUS.md, `.mflow/`, `openspec/`, `backlog/` โปรเจกต์ที่สร้างก่อน 0.20 ใช้ต่อได้ด้วย path ใน `.mflow/config.json` (scaffold วาง template ลง folder ตามค่าตั้ง จึงไม่มีไฟล์ซ้ำสองที่ และ consultation เก่าอ่านจาก folder เดิมจนกว่าจะย้าย) doctor และ briefing เตือนว่าใช้โครงเก่า `/mflow:init` รัน `migrate-layout.mjs` แสดงแผน (ย้ายอะไรไปไหน, ค่าตั้งที่เปลี่ยน, ไฟล์ที่ต้องแก้ path) แล้วย้ายเมื่อผู้ใช้ตอบ yes: ย้าย folder, แก้ค่าตั้ง, แก้ path แบบเต็มในทุกไฟล์ข้อความ (รวม backlog, openspec, comment ในโค้ด, brief และ session ใน `.mflow/`) คำนวณ relative link ใน Markdown ใหม่ ไม่แตะเอกสารลูกค้าใน `docs/source/` folder ที่ชื่อทั่วไป (`analysis`, `design`, `challenge`, `change-requests`) ย้ายเฉพาะรายการที่ชื่อเป็นเลขของ mflow folder ที่ตั้งเองด้วยมือคงไว้ ส่วนที่ชนกับของที่มีอยู่แล้วแสดงเป็น conflict ไม่ย้าย รันซ้ำได้ ไม่ commit ให้ | มีแล้ว |
 | FR-08 | ถามเลือก stack หลังสำรวจ repo และก่อนเขียนไฟล์ใดๆ ถามทุกครั้งแม้เดาจาก repo ได้ (ตัวเลือก `a)` `b)` `c)` พร้อมคำแนะนำและหลักฐาน) บันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว (profile + ตาราง seam → path/เทคโนโลยี) และ `theme` `screen` `golden` `review` อ่านจากตรงนั้น โปรเจกต์ที่ยังไม่มี section นี้ ให้ถามเมื่อคำสั่งเหล่านั้นต้องใช้ครั้งแรก | มีแล้ว |
+| FR-193 | ถามชื่อโปรเจกต์ในโค้ดในข้อความเดียวกับ stack: ชื่อที่ทุก project, folder และ namespace ขึ้นต้นด้วย (ไม่ใช่ชื่อที่แสดงในหัว AGENTS.md) เสนอสามชื่อพร้อมชื่อที่แนะนำ (จากชื่อที่ลูกค้าเรียกระบบ, จากชื่อโปรเจกต์หรือโฟลเดอร์แบบ PascalCase, ชื่อสั้นแบบแบรนด์) ตอบเป็นตัวอักษรหรือพิมพ์เอง ชื่อต้องเป็น PascalCase ASCII ขึ้นต้นด้วยตัวอักษร ไม่มีช่องว่าง ขีด หรือ underscore มีชื่อบริษัทนำหน้าได้แบบ `Company.Product` ไม่เกินราว 20 ตัวอักษร ไม่ชนกับ .NET หรือชื่อ layer/ชนิด (`System`, `Microsoft`, `App`, `Web`, `Api`, `Core`, `Domain`) ชื่อที่พิมพ์ผิดกฎได้รูปที่ถูกที่ใกล้ที่สุดเสนอกลับ บันทึกเป็น `Project name (code)` ใน `## Stack` และใช้แทน `<ProjectName>` ในทุก path ของ `## Stack` init ซ้ำกับโปรเจกต์ที่ยังไม่มีบรรทัดนี้ถามเฉพาะชื่อ (solution ที่มีอยู่แล้วใช้ prefix เดิมเป็นชื่อแนะนำ) เปลี่ยนชื่อหลังสร้าง solution แล้วต้องผ่านเอกสาร `code-structure` ฉบับใหม่และ OpenSpec change ไม่ใช่ผลของการรัน init ซ้ำ | มีแล้ว |
 
 ### 6.2 ความจำข้าม session (hooks + ไฟล์)
 
@@ -296,7 +297,8 @@ flowchart TD
 | FR-165 | สถานะมาจาก script (`discuss.mjs agenda`): เอกสารล่าสุดของ slug นั้นชนะ ถ้าไม่มีเอกสารเก็บสถานะที่เขียนเอง แก้เฉพาะช่องสถานะและคงทุก byte อื่น (รวม CRLF) แถวที่จำนวนช่องไม่ตรงหรือไม่มี slug ถูกเตือนและไม่แตะ `new` ซิงก์ให้เอง approve และ drop เรียกซิงก์ `list` และ briefing คำนวณสดโดยไม่เขียนไฟล์ | มีแล้ว |
 | FR-167 | `/mflow:init` สร้าง AGENDA.md ทันทีหลัง scaffold และสองแถวแรกมีเสมอ: `tech-stack` และ `code-structure` (ก่อน `/mflow:theme`) ไม่ต้องรอเอกสารลูกค้า `/mflow:theme` เตือนครั้งเดียวถ้ายังไม่อนุมัติ แต่ไม่ขวาง | มีแล้ว |
 | FR-168 | Checklist ของ `tech-stack`: แอปทุกตัว (web แต่ละตัว, API, mobile, worker), front end ต่อแอป, หลาย web app ต้องตัดสินว่า kit อยู่ที่ไหน, mobile, API (.NET 10 + C# 14 เป็นค่าแนะนำ), ข้อมูล (PostgreSQL 18 + EF Core 10), ไฟล์และเอกสาร, Docker และ environment, test, การตรวจ licence ของทุก package และ image ตามเวอร์ชันที่เลือก (ของที่ต้องจ่ายเป็นข้อตัดสินใจของผู้ใช้), และตัวเสริมแต่ละตัวได้ผลเดียว: ใช้เลย (มีหลักฐาน) / ภายหลัง (มีเงื่อนไขและสิ่งที่เตรียมไว้) / ไม่ต้องใช้ ถ้าเกิน ~200 บรรทัดแยกตามแอป | มีแล้ว |
-| FR-169 | Checklist ของ `code-structure`: repo, solution แยก layer (Domain หรือ Core ให้เลือกชื่อเดียว, Application, Infrastructure, Api/Web) อ้างอิงเข้าด้านในและมี architecture test, module, โฟลเดอร์ตาม feature, test project, โฟลเดอร์ของ web/mobile และ package ที่ใช้ร่วม, build settings, path ของ `## Stack` ชี้ที่โฟลเดอร์จริง การสร้าง solution เป็น task หรือ `/opsx:propose` | มีแล้ว |
+| FR-194 | ชื่อแอปที่ deploy ทุกตัวเป็น `<ProjectName>.<Kind>` หรือ `<ProjectName>.<Kind>.<Part>` ทั้งชื่อ project โฟลเดอร์ และ namespace: Kind คือ `Web` หรือ `Api` (ชนิดอื่นเช่น `Worker`, `Mobile` ใช้รูปแบบเดียวกัน) Part บอกกลุ่มผู้ใช้ `Frontend` = หน้าบ้าน (ลูกค้าหรือคนทั่วไป) `Backend` = หลังบ้าน (เจ้าหน้าที่) หรือชื่ออื่น (`Portal`, `Partner`) ไม่ได้หมายถึงฝั่ง browser กับ server ชนิดที่มีหรือ `tech-stack` วางแผนว่าจะมีมากกว่าหนึ่งแอป ทุกแอปของชนิดนั้นมี Part ตั้งแต่แอปแรก ชนิดที่มีแอปเดียวและไม่มีแผนเพิ่มไม่มี Part (`<ProjectName>.Api`) layer เป็น `<ProjectName>.Domain` `.Application` `.Infrastructure` test เป็นชื่อ project ที่ทดสอบต่อด้วย `.Tests` แอปที่ไม่ใช่ .NET ใช้ชื่อโฟลเดอร์เดียวกันและชื่อ package ตัวเล็กคั่นด้วยขีด seam ใน `## Stack` ชี้ที่แอปที่มีหน้าจอ prototype (ปกติ `.Web.Backend`) เอกสาร `code-structure` ที่อนุมัติก่อน 0.22 ไม่ถูกเปลี่ยนชื่อเอง | มีแล้ว |
+| FR-169 | Checklist ของ `code-structure`: ชื่อโปรเจกต์ในโค้ด (ถ้า init ยังไม่ได้ตั้ง) และชื่อแอปตาม FR-194, repo, solution แยก layer (Domain หรือ Core ให้เลือกชื่อเดียว, Application, Infrastructure, แอป Api/Web) อ้างอิงเข้าด้านในและมี architecture test, module, โฟลเดอร์ตาม feature, test project, โฟลเดอร์ของ web/mobile และ package ที่ใช้ร่วม, build settings, path ของ `## Stack` ชี้ที่โฟลเดอร์จริง การสร้าง solution เป็น task หรือ `/opsx:propose` | มีแล้ว |
 | FR-170 | ลำดับที่มาของสองหัวข้อนี้: เอกสารลูกค้าและคำของผู้ใช้ → มาตรฐานของทีมใน knowledge base ที่เชื่อมไว้ (เช่น Graph Brain) ติด `[ที่มา: brain <ชื่อโน้ต>]` → ข้อเสนอของ Claude โน้ตของโปรเจกต์เก่าเป็นตัวอย่าง ที่ขัดกันเป็นข้อตัดสินใจ | มีแล้ว |
 | FR-171 | ตอนอนุมัติ: แอป library พร้อม licence และตัวเสริมภายหลังไปที่ `## Stack` ของ AGENTS.md (ตาราง Apps, Libraries และบรรทัด Later ใน template) profile และ path ถูกปรับถ้าต่างจากตอน init และ `## Commands` ติด `(unverified)` จนกว่าจะรันใหม่ โครง solution และกฎการอ้างอิงไปที่ `## Architecture` | มีแล้ว |
 | FR-172 | ทุกคำสั่งที่ทำงานจบ (hotspot ทุกโหมด, golden, screen, theme และ preview/port, discuss approve, assess, review-notes, review) บอกผู้ใช้ว่าอะไรเปลี่ยนและคำสั่งถัดไปหนึ่งคำสั่งที่พิมพ์ได้ทันที พร้อมเหตุผลหนึ่งบรรทัดว่าทำไมจึงถัดไป และเขียนคำสั่งนั้นลง `## Now` ของ STATUS.md hotspot บอก readiness bar, ตั๋วที่หยิบได้ต่อไป และตั๋วที่ติดรอ ตั๋วถัดไปเริ่มใน session ใหม่ (ยกเว้นผู้ใช้ตอบตั๋วง่ายที่เกี่ยวกันหลายใบพร้อมกัน ซึ่งปิดได้ในรอบเดียวถ้าแต่ละคำตอบเป็นตัวเลือกตรงๆ ที่ไม่กระทบตั๋วอื่น) help แสดงเส้นทางเริ่มต้นสองแบบ: อยากเห็นหน้าจอเร็ว และกฎซับซ้อนหรือผิดแล้วแพง และตั๋ว `ask` ตอบในคำสั่งได้ (`/mflow:hotspot <slug> <TASK-ID> <คำตอบ>`) | มีแล้ว |
@@ -357,8 +359,8 @@ repo/
 │   └─ ai-inbox/             ← รายงานจาก AI อื่น + .assessment.md
 ├─ openspec/                 ← specs/ (ความจริงปัจจุบัน), changes/ (สิ่งที่จะเปลี่ยน)
 ├─ backlog/                  ← task, decision, milestone
-├─ src/<App>.Web/PrototypeData/*.json   ← รวม users.json, roles.json สำหรับปุ่มสลับ role
-└─ tests/<Context>.Domain.Tests/Golden/*.json
+├─ src/<ProjectName>.Web.Backend/PrototypeData/*.json   ← รวม users.json, roles.json สำหรับปุ่มสลับ role
+└─ tests/<ProjectName>.Domain.Tests/Golden/*.json
 ```
 
 ## 9. โครงสร้าง plugin
@@ -489,7 +491,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (18 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.21)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.22)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -528,6 +530,7 @@ mflow-marketplace/
 | ย้ายสำเนา (git clone) ของโปรเจกต์จริงที่ใช้ mflow 0.19 (เอกสาร discuss 11 ฉบับ, hotspot 2 ตัว, CR 1 ใบ): ย้าย 4 รายการ แก้ path 210 ไฟล์ git เห็น 19 การเปลี่ยนชื่อ รันซ้ำไม่มีงาน `discuss.mjs list`, `source-index.mjs scan` และ briefing อ่านโครงใหม่ได้ | ผ่าน |
 | ขั้นย้ายเอกสารใน `/mflow:init` (แสดงแผน ถาม yes แล้ว `--apply`) และคู่มือทางลัด `docs/manual-fast-track.md` | ยังไม่ได้รันใน session จริง (R-03) |
 | Visual direction (ใช้ `frontend-design` และแบบไม่มี skill), `QuickView` และคอลัมน์ไอคอน (0.21) ผ่าน `/mflow:theme`, `update look`, `update components` และ `/mflow:screen` | ยังไม่ได้รันใน session จริง (R-03) |
+| ชื่อโปรเจกต์ในโค้ดและชื่อแอป (0.22): `/mflow:init` ถามพร้อม stack และเสนอสามชื่อ, init ซ้ำถามเฉพาะชื่อ, `/mflow:discuss code-structure` ใช้รูปแบบ `<ProjectName>.<Kind>[.<Part>]` | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

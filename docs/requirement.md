@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.20.0 |
+| เวอร์ชันที่อธิบาย | 0.21.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -138,7 +138,7 @@ flowchart TD
 | FR-30 | สร้าง UI kit ก่อนหน้าจอแรก ให้ทุกหน้าจอใช้สี input และ component ชุดเดียวกัน | มีแล้ว |
 | FR-31 | Tokens (`tokens.css`) เป็นที่เดียวของสี ฟอนต์ radius ระยะห่าง พร้อม bridge ไปตัวแปร Bootstrap 5.3 และฟอนต์ไทยเป็นค่าเริ่มต้น | มีแล้ว |
 | FR-32 | App shell: sidebar, top bar, page header, toast, prototype banner | มีแล้ว |
-| FR-33 | Component ตามสัญญา: DataTable, FilterPanel, FormField, DatePicker, DateRangeField, PageHeader, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView, StatusBadge, EmptyState, ConfirmDialog (สร้างบน Dialog), Toast, SidebarMenu, PrototypeBanner ทุกตัวมี Input, สถานะ, พฤติกรรม และบรรทัด Narrow และสำหรับ `mvc-htmx` สร้างบน component ของ Bootstrap | มีแล้ว |
+| FR-33 | Component ตามสัญญา: DataTable, FilterPanel, FormField, DatePicker, DateRangeField, PageHeader, Button, Card, Dialog, SidePanel, QuickView, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView, StatusBadge, EmptyState, ConfirmDialog (สร้างบน Dialog), Toast, SidebarMenu, PrototypeBanner ทุกตัวมี Input, สถานะ, พฤติกรรม และบรรทัด Narrow และสำหรับ `mvc-htmx` สร้างบน component ของ Bootstrap | มีแล้ว |
 | FR-34 | DataTable: แบ่งหน้าที่ server ใน query ของ database (กรอง เรียง แล้ว skip/take และนับด้วยเงื่อนไขเดียวกัน), filter panel แยกอยู่เหนือตาราง, sort, เลือกจำนวนต่อหน้า, สถานะอยู่ใน URL | มีแล้ว |
 | FR-35 | หน้า `/_styleguide` แสดงทุก component ทุกสถานะ ให้ผู้ใช้อนุมัติหน้าตาครั้งเดียว | มีแล้ว |
 | FR-36 | กฎสำหรับ AI: `docs/ui/design-system.md` และ `.claude/rules/ui.md` (โหลดเฉพาะตอนเปิดไฟล์ UI) ห้าม hex และ inline style | มีแล้ว |
@@ -159,6 +159,10 @@ flowchart TD
 | FR-159 | รูปแบบวันที่ตั้งครั้งเดียว (ถามใน theme ขั้น 1): `DD/MM/YYYY` (แนะนำ), `DD-MM-YYYY`, `DD.MM.YYYY`, `YYYY-MM-DD` และปี ค.ศ. (แนะนำ) หรือ พ.ศ. บันทึกใน design-system.md และ config เดียวใน format module ที่ช่องวันที่ ตาราง และทุกการแสดงวันที่อ่าน ค่าที่เก็บและส่งเป็น ค.ศ. เสมอ ตัวแปลงวันที่มีตารางตัวอย่างในสัญญาซึ่งแต่ละ stack ทำเป็น unit test | มีแล้ว |
 | FR-160 | `DateRangeField` (To ก่อน From ไม่ได้ วันเดียวกันได้) และ FilterPanel ไม่ส่งค้นหาเมื่อมีช่องที่ผิดอยู่ โฟกัสไปช่องแรกที่ผิด | มีแล้ว |
 | FR-161 | `/mflow:theme update components` เพิ่มสัญญาของ 0.14 ให้ kit เดิม และ `update date-picker` ถามรูปแบบวันที่แล้วสร้างเฉพาะส่วนวันที่ ทั้งสองเทียบก่อนและแสดงเฉพาะส่วนที่ขาด ปรับ `.claude/rules/ui.md` และ `design-system.md` ให้ด้วย และตั้ง `searchable` ให้คอลัมน์ที่มี header search อยู่แล้วก่อนเปลี่ยนค่าเริ่มต้น `/mflow:review` ตรวจว่าไม่มี `<input type="date">` และไม่มีการจัดรูปแบบวันที่ในหน้าจอ | มีแล้ว |
+| FR-188 | หน้าตาของ kit (visual direction) ตัดสินในขั้น 1 ของ theme: ค่าเริ่มต้นเป็นแบบ admin หรือ back-office template สมัยใหม่ที่ทำมาเพื่อลูกค้าและเรื่องของระบบนั้น ถามหน้าตาที่ต้องการในคำของผู้ใช้ในชุดเดียวกับแบรนด์ ถ้า session มี skill `frontend-design` ให้เรียกพร้อม brief ที่กรอกครบจากคำตอบขั้น 1 (เรื่อง ผู้ใช้ งานหลัก หน้าตา แบรนด์ ฟอนต์ที่มีอักษรไทย และสิ่งที่ห้ามเปลี่ยน: CSS base, ชื่อ token, สัญญา component, AppShell, contrast AA) ถ้าไม่มี (หรือใช้ Codex) ใช้ขั้นตอนเดียวกันจาก `visual-direction.md` คำถามที่เหลือเป็นข้อเลือกของผู้ใช้ ไม่รอถามลูกค้า ผลลงที่ tokens และ stylesheet ของ kit เท่านั้น: ชุดสี ฟอนต์ ความแน่น radius ตามระดับพื้นผิว เงาเฉพาะสิ่งที่ลอย จุดเด่นหนึ่งจุด และ motion เฉพาะตอบการกระทำ ตรวจกับรายการหน้าตาสำเร็จรูปก่อนสร้าง และถ่ายภาพหน้าจอตรวจที่ขนาดจอตรวจรับหลังสร้าง บันทึกเป็นบรรทัด `Look:` ใน design-system.md ถ้าไม่มี CI เสนอสามแนวทางแทนสามชุดสี | มีแล้ว |
+| FR-189 | `QuickView`: ดูรายละเอียดของแถวโดยไม่ออกจากหน้ารายการ เปิดจากไอคอนในคอลัมน์ไอคอน (ส่วนนั้น) ปุ่มรูปตา หรือลิงก์ในเซลล์ (ทั้งรายการ) รายการหนึ่งมี `RowUrl` หรือ `QuickView` อย่างใดอย่างหนึ่ง ไม่มีทั้งสอง หน้าเต็มเข้าผ่านปุ่ม "เปิดหน้าเต็ม" ใน panel ส่วนเดียวหรือสรุปสั้นเปิดใน `Dialog` ทั้งรายการหรือเนื้อหาที่มีตาราง Tabs หรือฟอร์มเปิดใน `SidePanel` (เลือกอีกแบบได้ถ้าเขียนเหตุผลใน screens.md) เนื้อหาโหลดจาก endpoint ของหน้ารายการที่ตรวจ permission และ data scope เดียวกับรายการ ส่วนที่ห้ามเห็นไม่มีไอคอนและได้ 403 มี skeleton ระหว่างโหลด error เป็น Alert พร้อมลองใหม่ในตัว panel ตารางด้านหลังคงสถานะ โฟกัสกลับที่ปุ่มที่เปิด SidePanel ใส่ `?view=<id>` (และ `&section=`) ใน URL | มีแล้ว |
+| FR-190 | คอลัมน์ไอคอนของ DataTable (format `icons`): icon set กลางหนึ่งชุดต่อชนิด (key → ไอคอน ป้ายไทย และคำของสามสถานะ) สถานะ `yes` `partial` `no` ต่างกันทั้งรูปทรงและสี ทุกแถวเรียง key ตำแหน่งเดียวกัน มี `aria-label` และ Tooltip เมื่อมี quick view ไอคอนเป็นปุ่มที่เปิดส่วนนั้น และคลิกไอคอนไม่ไปตาม `RowUrl` บนจอสัมผัส quick view คือทางเข้าถึงข้อความของ tooltip | มีแล้ว |
+| FR-191 | `/mflow:theme update look` ทำ visual direction ใหม่ให้ kit เดิม แก้เฉพาะ tokens และ stylesheet ของ kit เพิ่ม token ที่ kit ก่อน 0.21 ไม่มี และแสดง style guide ก่อนและหลังก่อนผู้ใช้ตอบ yes ส่วน `update components` เพิ่ม `QuickView` และคอลัมน์ไอคอนให้ kit ก่อน 0.21 (เฉพาะ kit หน้าจอเดิมรับไปผ่าน `/mflow:screen`) | มีแล้ว |
 
 ### 6.5 หน้าจอ prototype (`/mflow:screen`)
 
@@ -173,6 +177,7 @@ flowchart TD
 | FR-46 | ปรับหน้าจอได้ด้วยคำสั่งภาษาคน ถ้าสิ่งที่ขอเกิน kit ให้เสนอ `/mflow:theme update` แทน | มีแล้ว |
 | FR-47 | ข้อมูลตัวอย่างสมจริง (≥200 แถวต่อ entity ในรายการ, ครบทุกสถานะ, edge case) และไม่มีข้อมูลส่วนบุคคลจริง | มีแล้ว |
 | FR-48 | ทุกหน้าจอประกาศ permission ของการดูและแต่ละ action, fake repository ใช้ data scope ของผู้ใช้ก่อนแบ่งหน้า, ซ่อน field ใน ViewModel และข้อมูลกระจายหลายสาขา/เจ้าของจนแต่ละ role เห็นต่างกันจริง | มีแล้ว |
+| FR-192 | หน้ารายการของ `/mflow:screen` เปิดรายละเอียดของแถวใน `QuickView` เป็นค่าเริ่มต้น `inventory` เขียนในช่อง Shows ว่าแถวเปิดอะไรแบบไหน ขั้นตรวจเปิดทุก quick view ด้วยทุก role ปรับหน้าจอด้วยคำว่า "ดูโดยไม่เปลี่ยนหน้า" ได้ QuickView ถ้า session มี `frontend-design` ใช้ช่วยเฉพาะการจัดวางข้อมูลและถ้อยคำของหน้าจอ ไม่เพิ่มสไตล์ให้หน้าจอ สิ่งที่ kit ทำไม่ได้ไปที่ `/mflow:theme update` | มีแล้ว |
 | FR-49 | ตรวจหน้าจอด้วยการสลับเป็นผู้ใช้ทุก role ที่เข้าได้ และหนึ่ง role ที่เข้าไม่ได้ (ไม่มีเมนู และเปิด URL ตรงได้ 403) ถ้ายังไม่มีเอกสาร access-control ที่อนุมัติ ให้ประกาศ permission ไว้ตามปกติ แล้วบันทึก `access not confirmed` ใน screens.md | มีแล้ว |
 
 ### 6.6 ทดสอบใช้งานและรีวิว (`/mflow:review-notes`)
@@ -396,7 +401,7 @@ mflow-marketplace/
 | `/mflow:help [สถานการณ์]` | ไม่แน่ใจว่าใช้คำสั่งไหน |
 | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลูกค้าส่งเอกสารหรือฉบับใหม่ |
 | `/mflow:discuss [<หัวข้อ> [@ไฟล์] \| <NN> [สิ่งที่อยากแก้] \| <NN> approve \| <NN> drop]` | ยืนยันว่าความเข้าใจหรือแบบที่เสนอตรงกับที่ผู้ใช้คิด ก่อนสร้างหน้าจอ |
-| `/mflow:theme [แบรนด์]` / `update <อะไร>` | ก่อนหน้าจอแรก / เปลี่ยนหน้าตาทั้งระบบ |
+| `/mflow:theme [แบรนด์]` / `update <อะไร>` | ก่อนหน้าจอแรก / เปลี่ยนหน้าตาทั้งระบบ (`update look` ทำ visual direction ใหม่) |
 | `/mflow:screen inventory` | ทำรายการหน้าจอของ release |
 | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้างหรือปรับหน้าจอ |
 | `/mflow:review-notes @โน้ต` | หลังทดสอบใช้งานหรือประชุมรีวิว |
@@ -484,7 +489,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (18 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.20)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.21)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -522,6 +527,7 @@ mflow-marketplace/
 | migrate-layout.mjs (0.20): แผนไม่เขียนอะไร, `--apply` ย้าย folder ค่าตั้ง และ path ในทุกไฟล์ (AGENTS.md, backlog, openspec, comment ในโค้ด, summary, session ของ consultation) แต่ไม่แตะ `docs/source/`, relative link สามแบบ (จากไฟล์ที่ย้ายไปไฟล์ที่ไม่ย้าย, ระหว่างไฟล์ที่ย้าย, เข้าไฟล์ที่ย้าย), pin ของ consultation ได้ hash ใหม่, รันซ้ำไม่มีงาน, conflict ไม่ย้ายและคงค่าตั้งเดิม, ค่าตั้งที่ตั้งเองคงไว้, ไฟล์ที่ git ignore ไม่แตะ, doctor และ briefing เตือนจนกว่าจะย้าย, scaffold วางลง folder เดิมตามค่าตั้ง, consultation เก่าอ่าน summary จาก folder เดิม | ผ่าน |
 | ย้ายสำเนา (git clone) ของโปรเจกต์จริงที่ใช้ mflow 0.19 (เอกสาร discuss 11 ฉบับ, hotspot 2 ตัว, CR 1 ใบ): ย้าย 4 รายการ แก้ path 210 ไฟล์ git เห็น 19 การเปลี่ยนชื่อ รันซ้ำไม่มีงาน `discuss.mjs list`, `source-index.mjs scan` และ briefing อ่านโครงใหม่ได้ | ผ่าน |
 | ขั้นย้ายเอกสารใน `/mflow:init` (แสดงแผน ถาม yes แล้ว `--apply`) และคู่มือทางลัด `docs/manual-fast-track.md` | ยังไม่ได้รันใน session จริง (R-03) |
+| Visual direction (ใช้ `frontend-design` และแบบไม่มี skill), `QuickView` และคอลัมน์ไอคอน (0.21) ผ่าน `/mflow:theme`, `update look`, `update components` และ `/mflow:screen` | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

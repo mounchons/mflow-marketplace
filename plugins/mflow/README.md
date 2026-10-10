@@ -25,9 +25,11 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 /plugin install mflow@mflow-marketplace
 ```
 
+แนะนำให้ติดตั้งคู่กัน (ไม่บังคับ): `/plugin install frontend-design@claude-plugins-official` ถ้ามี `/mflow:theme` จะใช้ช่วยกำหนดหน้าตาของ kit (สี ฟอนต์ ความแน่น รูปทรง) ให้เป็นแบบ back-office สมัยใหม่ที่ทำมาเพื่อลูกค้ารายนั้น และ `/mflow:screen` ใช้ช่วยจัดวางข้อมูลและถ้อยคำบนหน้าจอ ถ้าไม่ได้ติดตั้ง (หรือใช้ Codex) mflow ทำตามขั้นตอนเดียวกันจาก `skills/theme/references/visual-direction.md`
+
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.20)
+## คำสั่ง (v0.21)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -40,10 +42,10 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | | `/mflow:discuss tech-stack` / `code-structure` | สองหัวข้อแรกของทุกโปรเจกต์ (ก่อน `/mflow:theme`): แยก web / API / mobile, framework, library ที่เป็น open source และตรวจ licence แล้ว, PostgreSQL + EF Core, Docker, ตัวเสริมที่ใส่ภายหลัง (Redis, queue) และโครง solution แยก layer ตามมาตรฐานของทีม (อ่านจาก knowledge base เช่น Graph Brain ถ้าเชื่อมไว้) |
 | | `/mflow:discuss agenda [skip <slug> <เหตุผล>]` | สร้างหรือเรียง `docs/decisions/discuss/AGENDA.md` ใหม่: หัวข้อที่ควร discuss พร้อมเหตุผล ที่มา และควรคุยก่อนขั้นไหน (capture และ screen inventory เพิ่มให้เอง สถานะอัปเดตเอง) เป็นคำแนะนำ ไม่บังคับ |
-| หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้า style guide, กฎ UI สำหรับ agent; `update responsive` สำหรับ kit ก่อน 0.11, `update components` สำหรับ kit ก่อน 0.14 |
+| หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, คอลัมน์ไอคอนที่เทียบกันระหว่างแถว, `QuickView` ดูรายละเอียดใน Dialog หรือ SidePanel โดยไม่เปลี่ยนหน้า, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้าตาแบบ back-office สมัยใหม่ (ใช้ skill `frontend-design` ถ้าติดตั้งไว้), หน้า style guide, กฎ UI สำหรับ agent; `update look` ทำหน้าตาใหม่, `update responsive` สำหรับ kit ก่อน 0.11, `update components` สำหรับ kit ก่อน 0.14 และก่อน 0.21 |
 | | `/mflow:theme preview` / `port` | ทำ kit เป็น static preview (HTML/CSS/JS) ใน `docs/ui/theme/` ให้อนุมัติก่อนมีโค้ดแอป แล้ว `port` เข้า stack จริงและ freeze preview ไว้เป็นหลักฐาน |
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
-| | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง |
+| | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง รายการเปิดรายละเอียดของแถวใน `QuickView` (Dialog หรือ SidePanel) โดยไม่เปลี่ยนหน้า |
 | | `/mflow:review-notes @โน้ต` | คัดแยกผลทดสอบหรือรีวิว + สรุปสิ่งที่ตกลง (+ ร่างอีเมลแจ้งผู้เกี่ยวข้องถ้าต้องการ) |
 | โลจิก | `/mflow:hotspot [<ไอเดีย> \| <slug> [TASK-ID [คำตอบ]]]` | chart และแก้กฎใหญ่ทีละตั๋ว → graduate เป็น OpenSpec change จบแต่ละตั๋วบอก readiness bar ตั๋วถัดไป และคำสั่งถัดไป ตั๋ว `ask` ตอบในคำสั่งได้ |
 | | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + unit test ตาม stack (xUnit สำหรับ .NET) |

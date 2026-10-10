@@ -21,8 +21,8 @@ Use it when the app is not scaffolded yet, when the stack is `custom`, or when t
 | `tokens.css` | every color, font, radius, space and layout size, from [../assets/tokens.css](../assets/tokens.css) | copied unchanged to the Tokens file of `## Stack` |
 | `app.css` | component and shell styles that read tokens only, with the breakpoints of [responsive.md](responsive.md) §2 | copied unchanged next to the tokens |
 | `assets/` | logo and images | copied unchanged |
-| `shell.js` | `AppShell` behaviour (three sidebar states, ☰, drawer, remembered choice), `Toast`, `Dialog`, `SidePanel`, `Dropdown`, `Tabs`, `Tooltip`, permission gates, `StatusBadge` dictionary | a behaviour spec: rebuilt per profile to the contracts |
-| `datatable.js` | `DataTable` on sample rows: sort, header search on the columns marked searchable, the pager, URL state, every state | a behaviour spec only. It pages in the browser; the stack's DataTable pages on the server, as its contract says |
+| `shell.js` | `AppShell` behaviour (three sidebar states, ☰, drawer, remembered choice), `Toast`, `Dialog`, `SidePanel`, `QuickView`, `Dropdown`, `Tabs`, `Tooltip`, permission gates, `StatusBadge` dictionary and the icon sets | a behaviour spec: rebuilt per profile to the contracts |
+| `datatable.js` | `DataTable` on sample rows: sort, header search on the columns marked searchable, the icon column, the pager, URL state, every state | a behaviour spec only. It pages in the browser; the stack's DataTable pages on the server, as its contract says |
 | `datepicker.js` | `DatePicker` and `DateRangeField` with the date format config and the parser | a behaviour spec: rebuilt per profile, and its parser table becomes the stack's unit test |
 | `index.html` | the style guide of theme step 5, with the same two opening sections | rebuilt as the stack's style guide, then compared with it |
 | `list.html`, `form.html` (`dashboard.html` if the product has a home dashboard) | sample pages built only from the kit | rebuilt as the stack's sample pages |
@@ -49,7 +49,7 @@ Then browse to `http://127.0.0.1:8810/`. Fonts and Bootstrap from a CDN need int
 Theme steps 1 to 6 run as usual, with these differences:
 - **Step 2:** `tokens.css` goes in `docs/ui/theme/`.
 - **Step 3:** the shell is `shell.js` plus the page skeleton every preview page shares. The access seams (`ICurrentUser`, endpoint checks, `MenuDefinition` in code) cannot exist in static files. Write `PrototypeData/users.json` and `roles.json` from the approved access-control discussion doc as usual, copy what the preview needs into `shell.js`, and let port build the seams. The role switcher in the preview's banner changes the menu, buttons and fields the same way.
-- **Steps 4 and 5:** the components in `app.css` and the scripts; the style guide is `index.html`, with the sample pages. `form.html` uses a `DatePicker` and a `DateRangeField`, and `list.html` a `FilterPanel` with a date range above a `DataTable` with the pager.
+- **Steps 4 and 5:** the components in `app.css` and the scripts; the style guide is `index.html`, with the sample pages. `form.html` uses a `DatePicker` and a `DateRangeField`, and `list.html` a `FilterPanel` with a date range above a `DataTable` with the pager and an icon column, whose icons open a section in a `Dialog` while the eye action opens the record in a `SidePanel`. The look follows [visual-direction.md](visual-direction.md), with the `frontend-design` skill when it is listed.
 - **Step 6:** `docs/ui/design-system.md` says the kit lives in `docs/ui/theme/` until port. `.claude/rules/ui.md` takes its paths from `## Stack` as usual.
 - **Verify** at the acceptance sizes as [responsive.md](responsive.md) §5 describes, on the served preview.
 

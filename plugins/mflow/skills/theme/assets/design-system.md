@@ -4,12 +4,15 @@
      Change the kit with /mflow:theme update; screens follow automatically. -->
 
 ## Decisions
+- Look: TODO (the visual direction: its name, the one bold place, what it chose instead of the stock look; skills/theme/references/visual-direction.md)
 - Palette: TODO (tokens in the Tokens file of AGENTS.md `## Stack`)
 - Font: TODO
 - Density: TODO
 - Devices: TODO (desktop and laptop only / plus tablet / every size including phones); acceptance sizes: TODO (e.g. 1366×768, 1920×1080)
 - Breakpoints: TODO (default: ≥ 1280 px expanded menu · 768–1279 px icon rail · < 768 px drawer opened by ☰)
 - Layout: fills the window; sidebar and content scroll separately; the top bar stays on top
+- Quick view: a section (one icon, a short summary) in a `Dialog`; a whole record in a `SidePanel`
+- Icon sets: (none yet) <!-- one line per set when a screen adds one: its keys, icons and Thai state words, e.g. coverages: คุ้มครอง / คุ้มครองบางส่วน / ไม่คุ้มครอง -->
 - Date format: TODO (default `DD/MM/YYYY`, ค.ศ., today in Asia/Bangkok). One setting in the kit's format module drives the DatePicker, table columns and every displayed date; values sent to the server are ISO `YYYY-MM-DD`
 - Style guide: `/_styleguide` (dev/prototype only)
 - Kit lives in: TODO (the paths in AGENTS.md `## Stack`; `docs/ui/theme/` while the kit is a static preview, and a pointer to the frozen preview after port)
@@ -20,6 +23,8 @@
 | Page frame, ☰ menu toggle, top bar | `AppShell` | in the layout only; screens fill the main area |
 | Page title, breadcrumb, main actions | `PageHeader` | one per page |
 | Filters above a list | `FilterPanel` | a panel of its own, never inside the table; collapsible; refreshes only the list, no full page reload |
+| See a row's details without leaving the list | `QuickView` | an icon or the eye action opens a `Dialog` (one section) or a `SidePanel` (the whole record); endpoint checks the list's permission and scope |
+| Features people compare across rows (coverages, options, documents) | `DataTable` column format `icons` | icons from one icon set; state by shape and color; each icon can open its section in a `QuickView` |
 | Any list of records | `DataTable` | server-side paging in the database, pager ‹ 1 … 4 5 6 … 20 ›, sort, page size; header search only on columns marked searchable (none: no search row); wide tables scroll inside their own box |
 | Any input with label + validation | `FormField` | text, number, money, date, select, multiselect, textarea, checkbox, switch, file |
 | One date | `FormField` type `date` | the kit `DatePicker`: typed in the project date format or picked from an English and Thai calendar; value ISO |
@@ -41,7 +46,16 @@
 | Side navigation | `SidebarMenu` | items from `MenuDefinition`; visibility by permission only |
 | Prototype marker | `PrototypeBanner` | automatic in layout while using fake data; holds the role switcher |
 
+## Page patterns
+| Page | Built from |
+|---|---|
+| List | `PageHeader` · optional KPI `Card`s · `FilterPanel` · `DataTable` (icons where rows are compared) · `QuickView` for details |
+| Detail (when a quick view cannot hold it) | `PageHeader` with actions · `Tabs` · `DetailView` in `Card`s |
+| Form | `PageHeader` · `Card` per section · `FormField`s in the form grid · one primary `Button` |
+| Dashboard | KPI `Card`s · `Card`s holding short `DataTable`s |
+
 ## Do / don't
+- Do show a row's details in place with `QuickView` before building a separate detail page.
 - Do build new needs as a component first, add it to the style guide, then use it.
 - Do keep Thai text in ViewModels/resources.
 - Don't put hex colors, inline styles or page-level CSS in views.

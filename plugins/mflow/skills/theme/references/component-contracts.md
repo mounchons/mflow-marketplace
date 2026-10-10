@@ -1,6 +1,6 @@
 # Component contracts
 
-Each component is built once and reused everywhere. A contract says what the component takes, which states it must show, and how it behaves. Implement for the profile in AGENTS.md `## Stack`. The Razor and HTMX details below are the `mvc-htmx` form; `react-vite` keeps the same inputs, states and URL state with React components that call the API. How the kit behaves at each width, and which sizes it is checked at, is in [responsive.md](responsive.md); the "Narrow" lines below are each component's part of it.
+Each component is built once and reused everywhere. A contract says what the component takes, which states it must show, and how it behaves. How it looks (colors, type, shape, the icon library) is the kit's visual direction, decided in [visual-direction.md](visual-direction.md) and held in the tokens and the kit's stylesheet; no contract fixes it. Implement for the profile in AGENTS.md `## Stack`. The Razor and HTMX details below are the `mvc-htmx` form; `react-vite` keeps the same inputs, states and URL state with React components that call the API. How the kit behaves at each width, and which sizes it is checked at, is in [responsive.md](responsive.md); the "Narrow" lines below are each component's part of it.
 
 ## AppShell
 
@@ -21,12 +21,17 @@ The frame every page sits in. It is built once in the layout; screens only fill 
 
 The most important component; most back-office screens are a DataTable plus a FilterPanel.
 
-- **Input:** a `DataTableModel<TRow>` with `Columns` (key, Thai header, width, align, sortable, searchable (default off), format: text/number/money/date/status), `Rows`, `Page`, `PageSize`, `TotalCount`, `Sort`, `ColumnFilters`, `RowUrl` (optional), `RowActions` (optional).
+- **Input:** a `DataTableModel<TRow>` with `Columns` (key, Thai header, width, align, sortable, searchable (default off), format: text/number/money/date/status/icons), `Rows`, `Page`, `PageSize`, `TotalCount`, `Sort`, `ColumnFilters`, `RowUrl` (optional), `RowActions` (optional), `QuickView` (optional: what a row and its icons open, see `QuickView`). A list has `RowUrl` or `QuickView`, never both: `RowUrl` goes to another page, `QuickView` opens in place, and a list with a quick view reaches a full page only through the panel's "เปิดหน้าเต็ม".
 - **Paging:** server-side only, to keep database load and page weight low. The controller receives `page`, `pageSize` (10/25/50/100), `sort`, `dir`, and filters. The repository applies the filters and the sort, then skips and takes one page inside the database query (`IQueryable` in EF Core, `OFFSET … FETCH` in SQL), counts with the same filters, and returns `PagedResult<T>` with `TotalCount`. Never load all rows into memory or to the browser.
 - **Search:** both server-side. `FilterPanel` is a separate panel above the table, for structured filters; it is never inside the table. The header search is optional: a search input under the header of each column marked `searchable` (debounced 400 ms, `hx-trigger="keyup changed delay:400ms"`). A screen marks some columns, or none; with none, the search row is not rendered at all.
 - **State in the URL:** every filter, sort and page value is a query-string parameter (`hx-push-url="true"`), so a filtered view can be bookmarked, shared and reloaded.
 - **HTMX:** the table body + pager is a partial; filters, column search, sort and paging swap only that partial (`hx-target`, `hx-indicator`).
-- **Formats:** money right-aligned with 2 decimals and thousands separators; dates in the project date format (see `DatePicker`), never formatted by a screen; status via `StatusBadge`.
+- **Formats:** money right-aligned with 2 decimals and thousands separators; dates in the project date format (see `DatePicker`), never formatted by a screen; status via `StatusBadge`; icons as below.
+- **Icon column** (format `icons`): a row of small icons for the features people compare across rows, such as the coverages of an insurance package. The column names an icon set; the row gives each key's state.
+  - **Icon set:** one dictionary per kind, in one place like `StatusBadge`: each key has an icon from the kit's icon library, a Thai label, and the Thai words for its three states (for coverages: คุ้มครอง, คุ้มครองบางส่วน, ไม่คุ้มครอง). Screens pass keys and states, never icons or colors.
+  - **States:** `yes`, `partial` and `no`, told apart by shape as well as color, never by color alone: `yes` filled in `--app-primary`, `partial` outlined with a small mark in `--app-warning`, `no` outlined, struck through and in `--app-text-muted`. Every key of the set keeps its place on every row, so the eye can run down one coverage; a `no` stays in place, muted.
+  - **Each icon** carries `aria-label` and a `Tooltip` of "<label>: <state words>". When the column has a quick view, each icon is a `<button>` that opens it on that key's section; otherwise it is `role="img"`. A click on an icon opens only its own section, never the row's whole-record quick view.
+  - **Narrow:** the icons wrap inside their cell; on tablet and phone sizes each one keeps a tap area of `--app-touch-target`. The quick view is how touch reaches the tooltip's text.
 - **States:** loading (indicator on the table, not the page), empty (`EmptyState`), no results for filter (message + "clear filters"), error (inline alert with retry).
 - **Footer:** "แสดง 1–25 จาก 1,234 รายการ" + pager + page-size select.
 - **Pager:** ‹ and › around the page numbers. Up to 7 pages, every number shows. Beyond that it shows the first page, the last page, the current page and one page on each side of it; each gap becomes `…`, except that a gap of a single page shows that page's number instead.
@@ -160,11 +165,23 @@ A modal with content: a short form, a detail view, a picker. `ConfirmDialog` is 
 
 ## SidePanel
 
-A panel that slides in from the right over the page: a record's details, or a form that keeps the list in view. It is called SidePanel so that "drawer" keeps meaning the sidebar's state in `AppShell`.
+A panel that slides in from the right over the page: a record's details, or a form that keeps the list in view. It is called SidePanel so that "drawer" keeps meaning the sidebar's state in `AppShell`. A row's details on a list open in it through `QuickView`.
 - **Input:** title, body, footer actions, width (`md` about 480 px, `lg` about 720 px).
 - **Behaviour:** a backdrop; ×, Esc and Cancel close it; focus goes in and back to the opener. A panel with unsaved changes asks before closing, through `ConfirmDialog`. It may put the open record in the URL (`?view=JOB-0012`) so a reload reopens it.
 - **Narrow:** full width below the drawer breakpoint.
 - In `mvc-htmx`, Bootstrap's offcanvas (`offcanvas-end`), with its content loaded through HTMX.
+
+## QuickView
+
+A record, or one section of it, shown over the page the user is on, so a list keeps its place while its details are read. On a list page it is the default way to see a row's details. A separate detail page is for what a panel cannot hold, a link to share, or printing.
+
+- **Openers:** an icon in an `icons` cell (opens that key's section), the row action "ดูรายละเอียด" with an eye icon (the whole record), or a link in a cell such as the record's name. A click elsewhere on the row may open the record too (the list then has no `RowUrl`), but the link or the eye action is always there, because a row is not a keyboard target.
+- **Where it opens:** one section or a short summary (a coverage's limit and conditions; about six facts, no table) opens in a `Dialog` (`sm` or default). The whole record, or content with a table, `Tabs` or a form, opens in a `SidePanel` (`md`, or `lg` with a table). A screen may choose the other one for a reason it writes in its row of `docs/ui/screens.md`.
+- **Content:** a partial from an endpoint of the list's screen, one per opener kind (`GET <route>/<id>/quick` for the record, `GET <route>/<id>/quick/<section>` for a section). It is built from the kit: `DetailView`, and inside a `SidePanel` also `Tabs` or a small `DataTable`. The endpoint checks the list's view permission and applies the same data scope, so a typed URL for a row outside the scope gets 403. A section the user may not see has no icon, and its endpoint returns 403; restricted fields are left out, as `DetailView` says.
+- **Behaviour:** the body shows a `Loading` skeleton, then the content. A load error shows an `Alert` with "ลองใหม่" inside the Dialog or SidePanel, never a `Toast`. The list behind keeps its filters, sort, page and scroll, and closing returns focus to the opener. The title repeats what was opened ("ความคุ้มครองอุบัติเหตุ · แพกเกจ PKG-0012") and, for an icon, its state. The footer holds the record's main action when the user `Can` it (such as "แก้ไข" or "เลือกแพกเกจนี้") and, in a SidePanel, "เปิดหน้าเต็ม" when a detail page exists. A SidePanel quick view puts the record in the URL (`?view=<id>`, plus `&section=<key>` when opened on a section) so a reload or a shared link reopens it; a Dialog quick view adds nothing to the URL.
+- **States:** loading, content, load error with retry, and an empty section ("—" values, or `EmptyState` for a section with nothing in it).
+- **Narrow:** as `Dialog` and `SidePanel`.
+- **Per profile:** in `mvc-htmx`, the layout holds one empty Dialog and one empty SidePanel; an opener carries `hx-get` to its quick endpoint and `data-quickview="dialog"` or `"panel"`, and the kit script opens the right one with the skeleton and swaps the partial into its body. In `react-vite`, a `QuickView` component with the same inputs that fetches from the API. In the static preview, `shell.js` opens it with sample content.
 
 ## Alert
 
@@ -192,7 +209,7 @@ An inline message in a page or a section.
 
 ## Tooltip
 
-A short label on hover and on keyboard focus: an icon-only button, the sidebar rail, a cut-off cell. It is never the only place important information lives, and never sits on a disabled element (wrap it). Screen readers get the same text through `aria-label` or `aria-describedby`. **Narrow:** touch has no hover, so the information must also be reachable another way (the full text on the detail page). In `mvc-htmx`, Bootstrap's tooltip, initialised by the kit script on load and after every HTMX swap.
+A short label on hover and on keyboard focus: an icon-only button, the sidebar rail, a cut-off cell. It is never the only place important information lives, and never sits on a disabled element (wrap it). Screen readers get the same text through `aria-label` or `aria-describedby`. **Narrow:** touch has no hover, so the information must also be reachable another way (a `QuickView`, or the full text on the detail page). In `mvc-htmx`, Bootstrap's tooltip, initialised by the kit script on load and after every HTMX swap.
 
 ## Loading
 

@@ -1,6 +1,7 @@
 /* tokens.css — the only place colors, fonts, radius and spacing are defined.
    Screens and components use var(--app-*) or Bootstrap classes; never hex values.
-   Load after bootstrap.min.css. Replace the brand values; keep the names. */
+   Load after bootstrap.min.css. Replace the brand values; keep the names.
+   The values come from the kit's visual direction (skills/theme/references/visual-direction.md). */
 
 :root {
   /* Brand */
@@ -30,15 +31,27 @@
   --app-focus-ring: rgba(var(--app-primary-rgb), .25);
   --app-backdrop: rgba(29, 35, 48, .42);   /* behind the drawer and dialogs */
 
+  /* Sidebar: often the one bold place of the direction; the content area stays quiet */
+  --app-sidebar-bg: var(--app-surface);
+  --app-sidebar-text: var(--app-text);
+  --app-sidebar-muted: var(--app-text-muted);         /* group headings */
+  --app-sidebar-active-bg: var(--app-primary-subtle);
+  --app-sidebar-active-text: var(--app-primary-emphasis);
+
   /* Type (Thai-first stack) */
   --app-font: "IBM Plex Sans Thai", "Sarabun", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --app-font-heading: var(--app-font);   /* a second family only if the direction picks one; it must cover Thai */
   --app-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
   --app-font-size: 0.9375rem;      /* dense back-office: 15px */
   --app-line-height: 1.6;          /* Thai vowels and tone marks need room */
 
   /* Shape and rhythm */
-  --app-radius: 0.5rem;
-  --app-radius-sm: 0.375rem;
+  --app-radius: 0.5rem;            /* buttons, inputs */
+  --app-radius-sm: 0.375rem;       /* small controls, table cells */
+  --app-radius-lg: 0.75rem;        /* cards, dialogs, side panels: the radius grows with the surface */
+  --app-radius-pill: 50rem;        /* badges, chips */
+  --app-shadow-float: 0 0.5rem 1.5rem rgba(29, 35, 48, .16);   /* only what floats: dropdowns, dialogs, side panels */
+  --app-motion: 180ms;             /* opening and closing only; the kit drops it under prefers-reduced-motion */
   --app-space-1: 0.25rem; --app-space-2: 0.5rem; --app-space-3: 1rem; --app-space-4: 1.5rem; --app-space-5: 2rem;
   --app-table-row-height: 2.75rem;
 
@@ -71,6 +84,10 @@
   --bs-body-line-height: var(--app-line-height);
   --bs-border-radius: var(--app-radius);
   --bs-border-radius-sm: var(--app-radius-sm);
+  --bs-border-radius-lg: var(--app-radius-lg);
+  --bs-border-radius-pill: var(--app-radius-pill);
+  --bs-box-shadow: var(--app-shadow-float);
+  --bs-box-shadow-lg: var(--app-shadow-float);
   --bs-link-color: var(--app-primary);     --bs-link-color-rgb: var(--app-primary-rgb);
   --bs-link-hover-color: var(--app-primary-hover);
   --bs-focus-ring-color: var(--app-focus-ring);

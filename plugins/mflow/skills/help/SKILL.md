@@ -30,10 +30,12 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |
 | The kit has no ☰ menu, or pages do not reflow on small windows (kits built before 0.11) | `/mflow:theme update responsive` |
 | Which topics should be discussed before building? | `/mflow:discuss` shows the agenda; `/mflow:discuss agenda` builds or refreshes it |
-| The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView (kits built before 0.14) | `/mflow:theme update components` |
+| The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView (kits built before 0.14), or QuickView and the table icon column (before 0.21) | `/mflow:theme update components` |
+| Give the kit a modern back-office look made for this customer (with the frontend-design skill when installed), or redo it | `/mflow:theme update look` |
 | Change the date format (pattern or ค.ศ./พ.ศ.) or get the English and Thai date picker | `/mflow:theme update date-picker` |
 | List the screens for a release | `/mflow:screen inventory` |
 | Build or change a prototype screen | `/mflow:screen <name> <what>` |
+| Let people see a row's details without leaving the list (icons that open a dialog, a side panel for the record) | `/mflow:screen <name> <what to show in place>` |
 | Just met the customer about the prototype | `/mflow:review-notes @notes` |
 | A rule crosses screens or is costly if wrong | `/mflow:hotspot <idea> [@files]` |
 | Continue working out a rule | `/mflow:hotspot <slug>` |

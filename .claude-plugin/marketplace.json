@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "mflow",
-      "version": "0.25.0",
+      "version": "0.25.1",
       "source": "./plugins/mflow",
       "description": "Screen-first, spec-driven workflow: AGENTS.md + OpenSpec + Backlog.md + tests, with session memory hooks and hotspot charting for big business logic."
     },

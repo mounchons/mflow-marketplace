@@ -1,11 +1,11 @@
 ---
 name: test
-description: Run the whole test suite and the project's checks once per change, when the user calls it, in foreground parts, and record the result against the commit so /mflow:review reuses it instead of running it again.
+description: Run the whole test suite and the project's checks once per change, when the user calls it, in foreground parts, and record the result against the commit; `since` proves a later commit from that record with only the tests its changes need, so /mflow:review does not run everything again.
 disable-model-invocation: true
-argument-hint: "[unit | e2e | <part> | <test filter>] [--change <name>]"
+argument-hint: "[since | unit | e2e | <part> | <test filter>] [--change <name>]"
 ---
 
-The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed, and `/mflow:review` reuses the run recorded here when it is at the commit it reviews. This command is the gate that a change's last task used to be. It runs on this machine: mflow sets up no CI pipeline (GitHub Actions or another) until the user asks for one in the project.
+The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed. A later commit, such as a fix after review, is proven with `since`: the whole-suite record of an earlier commit plus the tests its changes need. `/mflow:review` reuses these records. This command is the gate that a change's last task used to be. It runs on this machine: mflow sets up no CI pipeline (GitHub Actions or another) until the user asks for one in the project.
 
 ## 1. Plan the run
 
@@ -18,10 +18,23 @@ The whole suite runs once per change, when the user has the time and the machine
   3. Format in its check-only form (`dotnet format --verify-no-changes` in the .NET profiles) and lint, when `## Commands` lists them.
   4. `openspec validate <change> --strict` when there is a change.
 
-  An argument runs only that: `unit`, `e2e`, a part name from `Test parts:`, or a test filter. Its record names it as the scope, and review never counts it as the whole suite.
+  `since` runs what "Since the last whole run" below decides. Any other argument runs only that: `unit`, `e2e`, a part name from `Test parts:`, or a test filter. Its record names it as the scope, and review never counts it as the whole suite.
 - Parts: use the `- Test parts:` line under `## Commands` when there is one. Otherwise one test project per part, and a project that takes longer than about 8 minutes is split by namespace or class filter. When the parts differ from one per project, write them as `- Test parts: <name>: <command>; …` under `## Commands`, so the next run does not have to find them again.
 
 Tell the user in one line what will run and how long the newest record in `docs/reviews/tests/` took. Then run it: the user's call is the go-ahead.
+
+In the same message, tell the user how to keep working while it runs. This session is busy until the run ends, so open a second Claude Code session in the same project folder (a new terminal, then `claude`) for work that only writes documents: `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore` or `/opsx:propose`. Leave `/opsx:apply`, `/mflow:screen`, `/mflow:theme` and `/mflow:golden` until the run ends: they change and build code in this checkout, which breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`).
+
+## Since the last whole run
+
+A commit made after a whole-suite run is proven without running everything again:
+
+1. **Base:** the newest record in `docs/reviews/tests/` with `Scope: whole suite` and no "with uncommitted changes" whose commit is an ancestor of the target (`git merge-base --is-ancestor <base> HEAD`). Its result may be pass or fail. No base: run the whole suite.
+2. **What changed:** `git diff --name-only <base>..HEAD`, plus the uncommitted files when there are any.
+   - Documents only (Markdown, `openspec/`, `backlog/`, `docs/`, `STATUS.md`): nothing to run.
+   - Migrations, startup or dependency wiring (`Program.cs` in the .NET profiles), build or package files (project files, `Directory.*.props`, `package.json`, lock files) or shared test infrastructure (fixtures, factories, test helpers): the whole suite, because their effect is not local.
+   - Otherwise: the build; every part or test that failed in the base; the changed test files; the test classes that cover the changed code (filtered); format, lint and validate as in the whole suite.
+3. **Record** it as below with `Scope: since <base short commit>` and `Base: <base record path>`. A passing `since` record on a clean tree counts as the whole suite at its commit.
 
 ## 2. Run
 
@@ -37,7 +50,8 @@ Write `docs/reviews/tests/<date>-<short commit>.md`, with `-2`, `-3` for another
 
 ```
 Tested: <branch> at <full commit>[ with uncommitted changes]
-Scope: whole suite | <what the argument named>
+Scope: whole suite | since <base short commit> | <what the argument named>
+Base: <base record path, for since>
 Change: <name or none>
 Result: pass | fail
 Duration: <total>
@@ -49,10 +63,12 @@ Duration: <total>
 <test name: first line of its message>, or none
 ```
 
+For `since`, add the changed files that decided the scope, in one line.
+
 `Result: pass` needs every step of the scope to pass: tests without failures, the build without errors, format and lint without changes, validate without errors.
 
-When the scope was the whole suite, the result is pass, there were no uncommitted changes and the change's `tasks.md` has a gate task (a task whose only work is running the build, the suites or the checks), tick it `- [x]` and add `Done: <record path>` to it.
+When the scope was the whole suite or `since`, the result is pass, there were no uncommitted changes and the change's `tasks.md` has a gate task (a task whose only work is running the build, the suites or the checks), tick it `- [x]` and add `Done: <record path>` to it.
 
-**What comes next:** on pass, `/mflow:review <branch>`, which reuses this run at this commit. On fail, the failing tests by part; once they are fixed, `/mflow:test <part>` for each failing part first, then `/mflow:test` at the commit that will be reviewed. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
+**What comes next:** on pass, `/mflow:review <branch>`, which reuses this run. On fail, the failing tests by part; once they are fixed and committed, `/mflow:test since`, which reruns the failed parts and the tests of what the fix changed. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 
 Done when: the record exists, STATUS.md has the result, and the user has the next command.

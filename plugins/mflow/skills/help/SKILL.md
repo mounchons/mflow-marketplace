@@ -44,7 +44,8 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Continue working out a rule | `/mflow:hotspot <slug>` |
 | Customer's spreadsheet should prove a rule | `/mflow:golden @file.xlsx <slug>` |
 | Clear, small change to build | `/opsx:propose` → `/opsx:apply` → `/mflow:test` → `/opsx:archive` |
-| Run the whole suite and the checks once, when there is time (apply runs only each task's test and the test classes of the code it changed; review reuses this run at the same commit) | `/mflow:test` (`/mflow:test <part>` for one part or a filter) |
+| Run the whole suite and the checks once, when there is time (apply runs only each task's test and the test classes of the code it changed; review reuses this run; open a second session meanwhile for discussions and proposals) | `/mflow:test` (`/mflow:test <part>` for one part or a filter) |
+| Prove a commit made after a whole run (a fix after review) without running everything again | `/mflow:test since` (documents only: nothing to run; code: the failed parts and the tests of what changed; migrations, startup or build files: the whole suite) |
 | Have apply hand its code changes to the Sonnet 5.5 subagent (`mflow:dev`, off by default), or stop it | `/mflow:subagent on` then `/clear` / `off` (`--shared` for the whole team, `status` to check); while on, skip it for one run by saying so in the `/opsx:apply` message |
 | Customer asks for a change after approval | `/mflow:change-request <request>` |
 | Hand work, analysis or review to another AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` |
@@ -52,5 +53,5 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Optional: have several AI tools analyze the system, a part of it or a document, then merge their checked findings | `/mflow:analyze <system \| "topic" \| @file> [--focus …] [--to …]`, then `/mflow:analyze <AN-NNN>` when reports are in |
 | Optional: have several AI tools propose a design for a module, API, data model or workflow, then merge them with their alternatives | `/mflow:design "topic" [--from @file] [--focus …] [--to …]`, then `/mflow:design <DS-NNN>` when reports are in |
 | Optional: have several AI tools try to break a design or document before it is built | `/mflow:challenge @file [--focus …] [--to …]`, then `/mflow:challenge <CH-NNN>` when reports are in |
-| Check code before merging | `/mflow:review <branch>` (reuses a `/mflow:test` run at the same commit; otherwise asks whether to run the tests now) |
+| Check code before merging | `/mflow:review <branch>` (reuses a `/mflow:test` record at the reviewed commit, or runs `/mflow:test since` on an earlier whole run; asks only when the whole suite is needed) |
 | End of day, or switching to another tool | `/mflow:handoff [--for <tool>]` |

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.25.0 |
+| เวอร์ชัน plugin | 0.25.1 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -408,8 +408,10 @@ docs/
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
 2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ test ของตัวเองและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change ที่ทำไว้ก่อน 0.25 มีอยู่ apply ปล่อยไว้ไม่ติ๊ก
-3. `/mflow:test` เมื่อเครื่องว่าง: รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md, format และ lint แบบตรวจอย่างเดียว และ `openspec validate <change> --strict` ครั้งเดียวต่อ change รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude ติ๊ก gate task ให้ ถ้าล้ม แก้แล้วรันเฉพาะส่วนนั้นก่อนด้วย `/mflow:test <ส่วน>` แล้วค่อยรันทั้งชุดอีกครั้งที่ commit ที่จะให้ review
-4. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit เดียวกัน (ถ้าไม่มี Claude ถามครั้งเดียวว่าจะรัน test ทั้งชุดเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
+3. `/mflow:test` เมื่อเครื่องว่าง: รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md, format และ lint แบบตรวจอย่างเดียว และ `openspec validate <change> --strict` ครั้งเดียวต่อ change รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude ติ๊ก gate task ให้ ถ้าล้ม แก้แล้ว commit แล้วสั่ง `/mflow:test since` ซึ่งรันส่วนที่ล้มกับ test ของสิ่งที่แก้ ไม่ต้องรันทั้งชุดใหม่
+   - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
+   - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
+4. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า Claude รัน `since` เอง (ถ้าต้องรันทั้งชุด Claude ถามครั้งเดียวว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
    - (ไม่บังคับ) ก่อน apply ของที่ผิดแล้วแพง ให้ AI หลายตัวหาจุดที่แบบจะพังได้ด้วย `/mflow:challenge @openspec/changes/<ชื่อ change>/proposal.md` ต่างจาก review ที่ตรวจโค้ดซึ่งเขียนแล้ว
 5. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 6. กลับไปขั้น 4 สำหรับ slice ถัดไป
@@ -763,11 +765,12 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
 | ผลจาก AI ตัวอื่นกลับมาแล้ว | `/mflow:assess @docs/ai/inbox/<ไฟล์>` |
-| ตรวจโค้ดก่อน merge | `/mflow:review <branch>` (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) |
+| ตรวจโค้ดก่อน merge | `/mflow:review <branch>` (ใช้ผล `/mflow:test` หรือรัน `since` ต่อจากการรันทั้งชุดครั้งก่อน) |
+| แก้ตาม review แล้ว อยากพิสูจน์ commit ใหม่โดยไม่รันทั้งชุด | `/mflow:test since` |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.25.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.25.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -796,7 +799,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
 | โปรเจกต์ที่ init ก่อน 0.16 ยังไม่มี `operations.apply.guidance` ใน `openspec/config.yaml` ตอน `/opsx:apply` Claude จึงเขียนโค้ดเองบนโมเดลของ session | อัปเดต plugin เป็น 0.16 ก่อน (subagent `mflow:dev` มากับ plugin ไม่ต้องสร้างไฟล์ในโปรเจกต์) แล้วรัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
 | โปรเจกต์ที่ init ก่อน 0.25 ยังไม่มีกฎ `/mflow:test` ใน `openspec/config.yaml` change ใหม่จึงอาจยังมี gate task และ apply อาจรัน test ทั้งชุด (`/mflow:help check setup` เตือนให้) | รัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ change ที่เปิดอยู่และมี gate task อยู่แล้ว บอกในข้อความ `/opsx:apply` ว่าข้าม gate task ไว้ แล้วสั่ง `/mflow:test` เมื่อพร้อม |
-| `/mflow:test` และการใช้ผลซ้ำใน `/mflow:review` ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude แบ่งส่วนให้แต่ละส่วนจบในเวลาที่ shell รอได้ และ review อ้างไฟล์ใน `docs/reviews/tests/` ที่ commit ตรงกันจริง |
+| `/mflow:test`, `since` และการใช้ผลซ้ำใน `/mflow:review` ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude แบ่งส่วนให้แต่ละส่วนจบในเวลาที่ shell รอได้, `since` เลือกฐานเป็น commit ก่อนหน้าบน branch เดียวกันและบอกไฟล์ที่ทำให้เลือกขอบเขตนั้น, และ review อ้างไฟล์ใน `docs/reviews/tests/` ที่ commit ตรงกันจริง |
 | ตั้งแต่ 0.17 subagent `mflow:dev` ปิดเป็นค่าเริ่มต้น ตอน `/opsx:apply` Claude ทำเองทุก task จนกว่าจะเปิด | `/mflow:subagent on` แล้ว `/clear` (เปิดมีผลเมื่อ briefing ของ session ใหม่มีบรรทัด "is ON" ส่วนปิดมีผลทันที) |
 | การส่งงานให้ `mflow:dev` ตอนเปิดเป็นคำแนะนำที่ OpenSpec ส่งให้ AI ส่วนตอนปิด hook บังคับจริง และยังไม่เคยรัน `/opsx:apply` แบบนี้ใน session จริง | ครั้งแรกหลังเปิด ให้ดูว่า Claude เรียก `mflow:dev` จริง ถ้าทำเองให้บอกในแชต |
 | hook ที่ปิด `mflow:dev` ทำงานในทุกโปรเจกต์ที่เปิด plugin mflow ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้ | ตั้งใจไว้แบบนี้ เพราะ subagent ตัวนี้มีไว้สำหรับ `/opsx:apply` ของ mflow |

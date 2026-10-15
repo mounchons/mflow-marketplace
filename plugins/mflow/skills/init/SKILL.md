@@ -68,14 +68,14 @@ rules:
     - Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.
   tasks:
     - Every task ends with the test that proves it (a unit test for rules, an E2E test for user flows; frameworks as in AGENTS.md Stack).
-    - A task's test runs alone (the test command filtered to it) with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
+    - A task runs its own test and the test classes that cover the code it changed (the test command filtered to them), with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
     - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
 operations:
   apply:
     guidance:
       - Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.
       - When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
-      - Run only each task's own test (filtered to it), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
+      - Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
 ```
 
 `operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`) and stays off until the user runs `/mflow:subagent on`; do not switch it on during init.

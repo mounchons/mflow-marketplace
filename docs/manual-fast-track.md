@@ -139,7 +139,7 @@ flowchart TD
 - **ถ้ายังคิดไม่ชัด:** ใช้ `/opsx:explore <เรื่อง>` ก่อน propose
 - **ให้ AI ตัวอื่นเขียนโค้ดแทน:** `/mflow:delegate <ชื่อ change> --mode code --to codex` แล้วตรวจด้วย `/mflow:review agent/codex/<ชื่อ change>` ก่อน merge
 - **ให้ Claude ส่งงานแต่ละ task ให้ subagent (Sonnet) เขียน:** `/mflow:subagent on` แล้ว `/clear` ก่อน `/opsx:apply`
-- **test ทั้งชุด:** `/opsx:apply` รันเฉพาะ test ของแต่ละ task ส่วน test ทั้งชุดรันครั้งเดียวด้วย `/mflow:test` เมื่อเครื่องว่าง (ผลอยู่ที่ `docs/reviews/tests/` และ `/mflow:review` ใช้ผลนี้ถ้า commit ตรงกัน)
+- **test ทั้งชุด:** `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้ ส่วน test ทั้งชุดรันครั้งเดียวด้วย `/mflow:test` เมื่อเครื่องว่าง (ผลอยู่ที่ `docs/reviews/tests/` และ `/mflow:review` ใช้ผลนี้ถ้า commit ตรงกัน)
 - **หลัง archive:** `git diff --stat openspec/specs` ต้องเห็นว่า spec หลักเปลี่ยน
 - **ต่อไป:** module ถัดไป จนครบทุก module ที่ลูกค้าต้องเห็น แล้วไปหัวข้อ 5
 

@@ -57,7 +57,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit เดียวกัน (ถ้าไม่มี ถามว่าจะรัน test เลยหรือไว้ทีหลัง) |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
-| | `/mflow:test [unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุดพร้อม build, format, lint และ `openspec validate` ครั้งเดียวต่อ change เมื่อคุณสั่ง รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task) |
+| | `/mflow:test [unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุดพร้อม build, format, lint และ `openspec validate` ครั้งเดียวต่อ change เมื่อคุณสั่ง รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -106,7 +106,7 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 
 test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดแค่ครั้งเดียวต่อ change และรันตอนที่คุณสั่ง (ตั้งแต่ 0.25)
 
-- `/opsx:apply` รันเฉพาะ test ของ task นั้น (filter ไปที่ test นั้น) กับ build ไม่รันทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
+- `/opsx:apply` รันเฉพาะ test ของ task นั้นและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รันทั้งชุด สิ่งที่พังจึงเจอตั้งแต่ task ที่ทำให้พัง และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - `/mflow:test` รัน build, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว และ `openspec validate --strict` รันทีละส่วนให้จบในเวลาที่ shell รอได้ ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะเคยทำให้หน่วยความจำไม่พอจนถูกหยุดกลางทาง ส่วนที่แบ่งไว้บันทึกเป็นบรรทัด `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ
 - ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Result:`, เวลาของแต่ละส่วน) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง จะติ๊ก gate task ของ change ให้
 - `/mflow:review` ใช้ผลนี้ถ้าเป็นการรันทั้งชุดที่ commit เดียวกับที่ตรวจ ถ้าไม่มี จะถามว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง (คำตัดสิน `none` จนกว่าจะมีผล test) `approve` ต้องมีผลรันทั้งชุดที่ผ่านที่ commit ที่ตรวจเสมอ

@@ -218,7 +218,7 @@ flowchart TD
 | FR-71 | หลัง graduate: rules.md ถูก freeze และชี้ไปยัง `openspec/specs/` เป็นความจริงหลังจากนั้น | มีแล้ว |
 | FR-72 | `openspec validate <change>` ต้องผ่านก่อนถือว่า graduate เสร็จ | มีแล้ว |
 | FR-73 | เตือนให้เช็ก `git diff --stat openspec/specs` หลัง archive | มีแล้ว (ใน README) |
-| FR-199 | ระหว่าง `/opsx:apply` แต่ละ task รันเฉพาะ test ของตัวเอง (filter ไปที่ test นั้น) กับ build ไม่รัน test ทั้งชุด กฎใน `openspec/config.yaml` ไม่ให้ `tasks.md` มี gate task (task ที่มีแต่การรัน build, test ทุกชุด, format, lint หรือ validate) และ apply guidance ปล่อย gate task ที่มีอยู่แล้วไว้ไม่ติ๊ก จบแล้วให้ `/mflow:test` เป็นคำสั่งถัดไป `mflow:dev` รันเฉพาะ test ของ task เช่นกัน doctor เตือนโปรเจกต์ที่ `config.yaml` ยังไม่มีกฎนี้ (init ก่อน 0.25) (0.25: test ทั้งชุดของโปรเจกต์จริงใช้ราว 40 นาที และถูกรันซ้ำทั้งตอนจบ apply และตอน review) | มีแล้ว |
+| FR-199 | ระหว่าง `/opsx:apply` แต่ละ task รันเฉพาะ test ของตัวเองและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build เจอสิ่งที่พังตั้งแต่ task ที่ทำให้พัง ไม่รัน test ทั้งชุด กฎใน `openspec/config.yaml` ไม่ให้ `tasks.md` มี gate task (task ที่มีแต่การรัน build, test ทุกชุด, format, lint หรือ validate) และ apply guidance ปล่อย gate task ที่มีอยู่แล้วไว้ไม่ติ๊ก จบแล้วให้ `/mflow:test` เป็นคำสั่งถัดไป `mflow:dev` รันแบบเดียวกัน doctor เตือนโปรเจกต์ที่ `config.yaml` ยังไม่มีกฎนี้ (init ก่อน 0.25) (0.25: test ทั้งชุดของโปรเจกต์จริงใช้ราว 40 นาที และถูกรันซ้ำทั้งตอนจบ apply และตอน review) | มีแล้ว |
 
 ### 6.9 ขอบเขตและการเปลี่ยนแปลง (`/mflow:change-request`)
 
@@ -421,7 +421,7 @@ mflow-marketplace/
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
 | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
-| `/mflow:test [unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุดครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task) |
+| `/mflow:test [unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุดครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่แก้) |
 | `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |

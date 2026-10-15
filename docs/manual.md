@@ -407,7 +407,7 @@ docs/
 ### ขั้น 6: สร้างของจริงทีละ slice
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
-2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ test ของตัวเอง (filter ไปที่ test นั้น) กับ build ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change ที่ทำไว้ก่อน 0.25 มีอยู่ apply ปล่อยไว้ไม่ติ๊ก
+2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ test ของตัวเองและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change ที่ทำไว้ก่อน 0.25 มีอยู่ apply ปล่อยไว้ไม่ติ๊ก
 3. `/mflow:test` เมื่อเครื่องว่าง: รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md, format และ lint แบบตรวจอย่างเดียว และ `openspec validate <change> --strict` ครั้งเดียวต่อ change รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude ติ๊ก gate task ให้ ถ้าล้ม แก้แล้วรันเฉพาะส่วนนั้นก่อนด้วย `/mflow:test <ส่วน>` แล้วค่อยรันทั้งชุดอีกครั้งที่ commit ที่จะให้ review
 4. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit เดียวกัน (ถ้าไม่มี Claude ถามครั้งเดียวว่าจะรัน test ทั้งชุดเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
    - (ไม่บังคับ) ก่อน apply ของที่ผิดแล้วแพง ให้ AI หลายตัวหาจุดที่แบบจะพังได้ด้วย `/mflow:challenge @openspec/changes/<ชื่อ change>/proposal.md` ต่างจาก review ที่ตรวจโค้ดซึ่งเขียนแล้ว
@@ -758,7 +758,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
 | มี Excel จริงที่ใช้พิสูจน์กฎได้ | `/mflow:golden @ไฟล์.xlsx <slug>` |
 | งานเล็กที่ชัดแล้ว | `/opsx:propose` → `/opsx:apply` → `/mflow:test` → `/opsx:archive` |
-| test ทั้งชุดใช้เวลานาน อยากรันครั้งเดียวตอนเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task) | `/mflow:test` (`/mflow:test <ส่วน>` สำหรับบางส่วน) |
+| test ทั้งชุดใช้เวลานาน อยากรันครั้งเดียวตอนเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่แก้) | `/mflow:test` (`/mflow:test <ส่วน>` สำหรับบางส่วน) |
 | อยากให้ apply ส่งงานเขียนโค้ดให้ subagent บน Sonnet 5.5 (ค่าเริ่มต้นปิด) หรือจะปิดกลับ | `/mflow:subagent on` แล้ว `/clear` / `off` (`--shared` ให้ทั้งทีม, `status` ดูสถานะ) ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียวให้บอกในข้อความ `/opsx:apply` |
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
@@ -851,9 +851,9 @@ operations:
 ```yaml
 rules:
   tasks:
-    - A task's test runs alone (the test command filtered to it) with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
+    - A task runs its own test and the test classes that cover the code it changed (the test command filtered to them), with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
 operations:
   apply:
     guidance:
-      - Run only each task's own test (filtered to it), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
+      - Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
 ```

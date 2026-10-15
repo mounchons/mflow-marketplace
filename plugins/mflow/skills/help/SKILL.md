@@ -44,7 +44,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Continue working out a rule | `/mflow:hotspot <slug>` |
 | Customer's spreadsheet should prove a rule | `/mflow:golden @file.xlsx <slug>` |
 | Clear, small change to build | `/opsx:propose` → `/opsx:apply` → `/mflow:test` → `/opsx:archive` |
-| Run the whole suite and the checks once, when there is time (apply runs only each task's test; review reuses this run at the same commit) | `/mflow:test` (`/mflow:test <part>` for one part or a filter) |
+| Run the whole suite and the checks once, when there is time (apply runs only each task's test and the test classes of the code it changed; review reuses this run at the same commit) | `/mflow:test` (`/mflow:test <part>` for one part or a filter) |
 | Have apply hand its code changes to the Sonnet 5.5 subagent (`mflow:dev`, off by default), or stop it | `/mflow:subagent on` then `/clear` / `off` (`--shared` for the whole team, `status` to check); while on, skip it for one run by saying so in the `/opsx:apply` message |
 | Customer asks for a change after approval | `/mflow:change-request <request>` |
 | Hand work, analysis or review to another AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` |

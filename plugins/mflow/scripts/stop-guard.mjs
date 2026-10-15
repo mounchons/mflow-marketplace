@@ -5,39 +5,46 @@
 // the uncommitted changes it started from).
 // Throttled: not in the first `graceMinutes` of a session, then at most once per `repeatMinutes`.
 // Never loops: respects stop_hook_active.
+// Every way of letting the stop through is silent; with MFLOW_DEBUG set it names its reason on stderr
+// (the tests read it; Claude Code does not show a hook's stderr when it exits 0).
 import fs from "node:fs";
 import path from "node:path";
 import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile, gitStatus } from "./lib.mjs";
 
+const pass = (why) => {
+  if (process.env.MFLOW_DEBUG) process.stderr.write(`stop-guard: ${why}\n`);
+  process.exit(0);
+};
+
 const input = readStdinJson();
-if (input.stop_hook_active) process.exit(0);
+if (input.stop_hook_active) pass("stop_hook_active");
 
 const root = findRoot(process.env.CLAUDE_PROJECT_DIR || input.cwd);
-if (!root) process.exit(0);
+if (!root) pass("not an mflow project");
 let guard;
 try {
   guard = loadConfig(root).stopGuard;
 } catch {
-  process.exit(0); // config.json is broken: the session briefing says so, and a reminder cannot help
+  pass("config unreadable"); // the session briefing says so, and a reminder cannot help
 }
-if (!guard.enabled) process.exit(0);
+if (!guard.enabled) pass("disabled");
 
 const stateFile = sessionStateFile(input.session_id);
 let state;
 try {
   state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
 } catch {
-  process.exit(0); // no SessionStart record: nothing to compare against
+  pass(`no session record at ${stateFile}`); // nothing to compare against
 }
 const nowMs = Date.now();
-if (nowMs - state.startedAt < guard.graceMinutes * 60_000) process.exit(0);
-if (state.lastBlockAt && nowMs - state.lastBlockAt < guard.repeatMinutes * 60_000) process.exit(0);
+if (nowMs - state.startedAt < guard.graceMinutes * 60_000) pass("grace period");
+if (state.lastBlockAt && nowMs - state.lastBlockAt < guard.repeatMinutes * 60_000) pass("asked recently");
 const statusMtime = mtimeMs(path.join(root, "STATUS.md"));
 const since = Math.max(state.startedAt, statusMtime);
 
 // Paths are limited to this project (`-- .`), which may sit below the git top level in a monorepo.
 const git = gitStatus(root);
-if (!git) process.exit(0); // not a git repo, or git missing
+if (!git) pass("git status unavailable (not a repo, git missing, or it timed out)");
 
 const ignored = (p) =>
   p === "STATUS.md" || p.startsWith(".mflow/") || p.startsWith(".claude/") || p.startsWith(".agents/");
@@ -67,7 +74,7 @@ if (head && head !== state.head) {
 }
 
 const changedThisSession = [...changed];
-if (changedThisSession.length === 0) process.exit(0);
+if (changedThisSession.length === 0) pass(`nothing changed since ${new Date(since).toISOString()} (${git.entries.length} entries in git status)`);
 
 state.lastBlockAt = nowMs;
 try { fs.writeFileSync(stateFile, JSON.stringify(state)); } catch { /* best effort */ }

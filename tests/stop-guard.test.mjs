@@ -27,21 +27,32 @@ function start() {
   const r = run(p, "session-start.mjs", [], { input: { session_id: "t-stop", cwd: p.root, source: "startup" } });
   assert.equal(r.status, 0, r.stderr);
 }
+/**
+ * The guard's decision. With MFLOW_DEBUG it names why it let a stop through, and the assertion carries
+ * that reason. A git command that times out on a loaded machine lets the stop through on purpose (a
+ * reminder is best effort), so that one reason gets a second try; any other reason is the result.
+ */
+let why = "";
 const stop = () => {
-  const r = run(p, "stop-guard.mjs", [], { input: { session_id: "t-stop", cwd: p.root, stop_hook_active: false } });
-  assert.equal(r.status, 0, r.stderr);
-  return r.json?.decision ?? "pass";
+  for (let attempt = 1; ; attempt++) {
+    const r = run(p, "stop-guard.mjs", [], { input: { session_id: "t-stop", cwd: p.root, stop_hook_active: false }, env: { MFLOW_DEBUG: "1" } });
+    assert.equal(r.status, 0, r.stderr);
+    why = r.stderr.trim() || "blocked";
+    if (attempt === 1 && /git status unavailable/.test(why)) continue;
+    return r.json?.decision ?? "pass";
+  }
 };
+const expectStop = (decision) => assert.equal(stop(), decision, why);
 
 test("an edited file asks for the handoff", needsGit, () => {
   repo(); start();
   p.write("src/a.txt", "changed\n");
-  assert.equal(stop(), "block");
+  expectStop("block");
 });
 
 test("nothing changed: no handoff", needsGit, () => {
   repo(); start();
-  assert.equal(stop(), "pass");
+  expectStop("pass");
 });
 
 test("stop_hook_active never blocks again", needsGit, () => {
@@ -54,27 +65,27 @@ test("stop_hook_active never blocks again", needsGit, () => {
 test("a deleted file asks for the handoff (T06)", needsGit, () => {
   repo(); start();
   fs.rmSync(p.file("src/b.txt"));
-  assert.equal(stop(), "block");
+  expectStop("block");
 });
 
 test("a file deleted before the session started does not", needsGit, () => {
   repo();
   fs.rmSync(p.file("src/b.txt"));
   start();
-  assert.equal(stop(), "pass");
+  expectStop("pass");
 });
 
 test("a renamed file asks for the handoff, though it keeps its old mtime", needsGit, () => {
   repo(); start();
   git(p, "mv", "src/a.txt", "src/c.txt");
-  assert.equal(stop(), "block");
+  expectStop("block");
 });
 
 test("work committed during the session asks for the handoff", needsGit, () => {
   repo(); start();
   p.write("src/a.txt", "changed\n");
   git(p, "commit", "-q", "-am", "work");
-  assert.equal(stop(), "block");
+  expectStop("block");
 });
 
 test("work committed before STATUS.md was updated does not", needsGit, () => {
@@ -83,7 +94,7 @@ test("work committed before STATUS.md was updated does not", needsGit, () => {
   git(p, "commit", "-q", "-am", "work");
   const later = new Date(Date.now() + 5000);
   fs.utimesSync(p.file("STATUS.md"), later, later);
-  assert.equal(stop(), "pass");
+  expectStop("pass");
 });
 
 test("a session record from an older mflow, with no baseline, still catches a deletion", needsGit, () => {
@@ -92,7 +103,7 @@ test("a session record from an older mflow, with no baseline, still catches a de
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "t-stop.json"), JSON.stringify({ root: p.root, startedAt: Date.now() - 1_800_000, lastBlockAt: 0 }));
   fs.rmSync(p.file("src/b.txt"));
-  assert.equal(stop(), "block");
+  expectStop("block");
 });
 
 test("a long STATUS.md is shortened in the briefing, and what is waiting and the ritual still arrive", () => {

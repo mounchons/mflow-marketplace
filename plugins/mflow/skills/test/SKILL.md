@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "[unit | e2e | <part> | <test filter>] [--change <name>]"
 ---
 
-The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed, and `/mflow:review` reuses the run recorded here when it is at the commit it reviews. This command is the gate that a change's last task used to be.
+The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed, and `/mflow:review` reuses the run recorded here when it is at the commit it reviews. This command is the gate that a change's last task used to be. It runs on this machine: mflow sets up no CI pipeline (GitHub Actions or another) until the user asks for one in the project.
 
 ## 1. Plan the run
 

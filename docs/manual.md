@@ -156,7 +156,7 @@ docs/
   - **API:** .NET 10 LTS + C# 14 (ค่าแนะนำ), minimal API หรือ controller, versioning, OpenAPI, auth, validation, mapping, mediator, logging, health check
   - **ข้อมูล:** PostgreSQL 18 + EF Core 10 (Npgsql), การตั้งชื่อ, migration, tenant, backup
   - **ไฟล์และเอกสาร:** ที่เก็บไฟล์, Excel, PDF, e-mail
-  - **Docker:** docker-compose สำหรับเครื่อง dev (ฐานข้อมูลใช้พอร์ตว่าง ไม่ใช่พอร์ตมาตรฐาน), Dockerfile แบบ multi-stage, environment (dev/UAT/production), reverse proxy, secret, CI/CD
+  - **Docker:** docker-compose สำหรับเครื่อง dev (ฐานข้อมูลใช้พอร์ตว่าง ไม่ใช่พอร์ตมาตรฐาน), Dockerfile แบบ multi-stage, environment (dev/UAT/production), reverse proxy, secret, CI/CD (เฉพาะเมื่อคุณสั่งในโปรเจกต์นั้น จนกว่าจะสั่ง test ทั้งชุดรันในเครื่องด้วย `/mflow:test`)
   - **test:** xUnit, Testcontainers, Playwright, Vitest
   - **licence:** เน้น open source และฟรี **ต้องตรวจ licence จริงของเวอร์ชันที่เลือกทุกตัว** เพราะบาง library เปลี่ยนเป็น commercial แล้ว (เช่น MediatR, AutoMapper, FluentAssertions 8, EPPlus, QuestPDF ฟรีเฉพาะตามเงื่อนไข community, Redis เปลี่ยน licence และมี Valkey เป็นตัวแทน) ตัวที่ต้องเสียเงินต้องให้คุณตัดสินเอง
   - **ตัวเสริม (Redis/Valkey, queue, job scheduler, search, real-time, object storage, observability):** แต่ละตัวได้ผลเดียว คือ **ใช้เลย** เมื่อมีเหตุผลจากเอกสาร (ปริมาณข้อมูล, เวลาตอบสนอง, job ที่อยู่ในขอบเขต) **ภายหลัง** พร้อมเงื่อนไขว่าจะเพิ่มเมื่อไร และสิ่งที่เตรียมไว้ตอนนี้ให้เพิ่มง่าย หรือ **ไม่ต้องใช้** ไม่เพิ่มแบบเผื่อไว้

@@ -10,7 +10,7 @@ You implement one task of an OpenSpec change. The caller gives you the change na
 
 1. Read AGENTS.md (stack, commands, architecture), every context file you were given, and the earlier reports before editing anything. Build on what the earlier tasks changed; do not redo or undo it.
 2. Make the code changes the task describes, including the test the task ends with. Keep them minimal and inside the task.
-3. Run that test, and the build when the task touched compiled code, with the commands in AGENTS.md.
+3. Run that test alone, with the test command in AGENTS.md filtered to it (`dotnet test <project> --filter <name>` in the .NET profiles), and the build when the task touched compiled code. Never the whole suite: the user runs it with `/mflow:test`.
 
 Do not:
 - edit `tasks.md`, the change's proposal, specs or design, or anything else under `openspec/`;

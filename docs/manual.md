@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.24.0 |
+| เวอร์ชัน plugin | 0.25.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -45,7 +45,8 @@ flowchart TD
     Q -->|ไม่| P
     H --> P["6. /opsx:propose"]
     P --> A["/opsx:apply<br/>หรือ /mflow:delegate --mode code"]
-    A --> V["/mflow:review<br/>(+ /mflow:assess ถ้า tool อื่นทำ)"]
+    A --> T["/mflow:test<br/>(test ทั้งชุด เมื่อเครื่องว่าง)"]
+    T --> V["/mflow:review<br/>(+ /mflow:assess ถ้า tool อื่นทำ)"]
     V --> AR["/opsx:archive"]
     AR -->|slice ถัดไป| S4
 ```
@@ -63,7 +64,7 @@ flowchart TD
 | 3.5 | `/mflow:discuss <กลุ่มข้อมูล> data model` | ก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน | ต่อกลุ่มข้อมูล (ไม่บังคับ) |
 | 4 | `/mflow:screen <ชื่อ> …` → `/mflow:review-notes` | สร้างหรือปรับหน้าจอ แล้วทดสอบใช้งานหรือรีวิว | วนหลายรอบ |
 | 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session (ตอบตั๋วง่ายหลายใบพร้อมกันได้) |
-| 6 | `/opsx:propose` → `/opsx:apply` → `/mflow:review` → `/opsx:archive` | สร้างของจริงทีละ slice | ต่อ slice |
+| 6 | `/opsx:propose` → `/opsx:apply` → `/mflow:test` → `/mflow:review` → `/opsx:archive` | สร้างของจริงทีละ slice | ต่อ slice |
 | เหตุการณ์ | `/mflow:change-request` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | เมื่อเกิดขึ้น |
 | เหตุการณ์ | `/mflow:delegate` → `/mflow:assess` | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | เมื่อต้องการ |
 | ไม่บังคับ | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` | อยากได้ความเห็นจาก AI หลายตัวพร้อมกัน: วิเคราะห์ระบบ เสนอแบบ หรือหาจุดที่แบบจะพัง | เมื่อต้องการ ไม่มีขั้นไหนรอ |
@@ -406,11 +407,12 @@ docs/
 ### ขั้น 6: สร้างของจริงทีละ slice
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
-2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply`
-3. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec แล้วรัน test จริง และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
+2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ test ของตัวเอง (filter ไปที่ test นั้น) กับ build ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change ที่ทำไว้ก่อน 0.25 มีอยู่ apply ปล่อยไว้ไม่ติ๊ก
+3. `/mflow:test` เมื่อเครื่องว่าง: รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md, format และ lint แบบตรวจอย่างเดียว และ `openspec validate <change> --strict` ครั้งเดียวต่อ change รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude ติ๊ก gate task ให้ ถ้าล้ม แก้แล้วรันเฉพาะส่วนนั้นก่อนด้วย `/mflow:test <ส่วน>` แล้วค่อยรันทั้งชุดอีกครั้งที่ commit ที่จะให้ review
+4. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit เดียวกัน (ถ้าไม่มี Claude ถามครั้งเดียวว่าจะรัน test ทั้งชุดเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
    - (ไม่บังคับ) ก่อน apply ของที่ผิดแล้วแพง ให้ AI หลายตัวหาจุดที่แบบจะพังได้ด้วย `/mflow:challenge @openspec/changes/<ชื่อ change>/proposal.md` ต่างจาก review ที่ตรวจโค้ดซึ่งเขียนแล้ว
-4. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
-5. กลับไปขั้น 4 สำหรับ slice ถัดไป
+5. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
+6. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
 ### เมื่อมีเหตุการณ์
 
@@ -531,6 +533,7 @@ git init
   (คุณรันคำสั่ง PowerShell ที่ได้)
 /mflow:assess @docs/ai/inbox/2026-10-20-codex-freight-rate-calculation.md
 /mflow:review agent/codex/freight-rate-calculation
+  (ยังไม่มีผล /mflow:test ที่ commit นี้ Claude ถามก่อนว่าจะรัน test ทั้งชุดเลยไหม ตอบ a)
   → Reviewed: agent/codex/freight-rate-calculation at 4f2a9c1 … approve
   (merge ได้เพราะ branch ยังชี้ 4f2a9c1 ถ้ามี commit เพิ่ม Claude ตรวจส่วนนั้นก่อน)
 /opsx:archive
@@ -754,16 +757,17 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | พร้อมตอบตั๋ว `ask` หรือได้คำตอบจากคนที่ไปถามมาแล้ว | `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` |
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
 | มี Excel จริงที่ใช้พิสูจน์กฎได้ | `/mflow:golden @ไฟล์.xlsx <slug>` |
-| งานเล็กที่ชัดแล้ว | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` |
+| งานเล็กที่ชัดแล้ว | `/opsx:propose` → `/opsx:apply` → `/mflow:test` → `/opsx:archive` |
+| test ทั้งชุดใช้เวลานาน อยากรันครั้งเดียวตอนเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task) | `/mflow:test` (`/mflow:test <ส่วน>` สำหรับบางส่วน) |
 | อยากให้ apply ส่งงานเขียนโค้ดให้ subagent บน Sonnet 5.5 (ค่าเริ่มต้นปิด) หรือจะปิดกลับ | `/mflow:subagent on` แล้ว `/clear` / `off` (`--shared` ให้ทั้งทีม, `status` ดูสถานะ) ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียวให้บอกในข้อความ `/opsx:apply` |
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
 | ผลจาก AI ตัวอื่นกลับมาแล้ว | `/mflow:assess @docs/ai/inbox/<ไฟล์>` |
-| ตรวจโค้ดก่อน merge | `/mflow:review <branch>` |
+| ตรวจโค้ดก่อน merge | `/mflow:review <branch>` (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.24.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.25.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -774,7 +778,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | `/mflow:review <branch>` เทียบกับ `main` | repo ที่ใช้ `master` หรือ `develop` ให้บอกชื่อ branch หลักตอนสั่ง |
 | golden JSON ต้องถูก copy ไปโฟลเดอร์ output ของ test | ตั้ง `CopyToOutputDirectory` ใน test project |
 | คำสั่ง gemini และ opencode ยังไม่ได้รันกับโมเดลจริง | เช็ก `--help` ก่อนใช้ครั้งแรก |
-| skill ทั้ง 18 ตัวยังไม่เคยรันครบวงจรใน session จริง (script ทุกตัวมีชุด test ที่รันใน CI แล้ว แต่ยังไม่ได้ยืนยันว่า Claude ทำตามข้อความใน skill ถูกทุกขั้น) | ใช้ครั้งแรกแบบนั่งดูทีละขั้น ถ้าทำไม่ตรงคู่มือให้บอกในแชต |
+| skill ทั้ง 19 ตัวยังไม่เคยรันครบวงจรใน session จริง (script ทุกตัวมีชุด test ที่รันใน CI แล้ว แต่ยังไม่ได้ยืนยันว่า Claude ทำตามข้อความใน skill ถูกทุกขั้น) | ใช้ครั้งแรกแบบนั่งดูทีละขั้น ถ้าทำไม่ตรงคู่มือให้บอกในแชต |
 | หลัง `resume` Stop hook นับเป็น session ใหม่ | งานจาก session ก่อนที่ยังไม่ได้ลง log ให้สั่ง `/mflow:handoff` เอง |
 | wireframe ตัวอักษรที่มีภาษาไทย ขอบขวาไม่ตรงกัน เพราะสระบน/ล่างและวรรณยุกต์ไม่กินช่องในฟอนต์ความกว้างคงที่ | Claude จะวาดกล่องแบบเปิดด้านขวา หรือวางข้อความไทยไว้ท้ายบรรทัด ถ้ามีหน้าจอจริงแล้วจะใช้ภาพหน้าจอแทน |
 | mindmap, timeline และ journey ของ Mermaid เป็นชนิดใหม่ บาง preview ยังแสดงไม่ได้ | Claude ใช้ flowchart, sequence, state และ ER เป็นหลัก การเตือน label ที่จะพังตรวจเฉพาะ flowchart |
@@ -791,6 +795,8 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | โปรเจกต์ที่ init ก่อน 0.15 ยังไม่มี `docs/decisions/discuss/AGENDA.md` (capture อ่านเฉพาะไฟล์ใหม่หรือที่เปลี่ยน จึงไม่สร้างจากเอกสารเดิมให้) และ AGENTS.md ยังไม่มีตาราง Apps, Libraries และบรรทัด Later ใน `## Stack` | สั่ง `/mflow:discuss agenda` ครั้งเดียว ได้รายการที่มี `tech-stack` และ `code-structure` นำหน้า ส่วน AGENTS.md รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือให้การอนุมัติ `tech-stack` เติมให้ |
 | โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
 | โปรเจกต์ที่ init ก่อน 0.16 ยังไม่มี `operations.apply.guidance` ใน `openspec/config.yaml` ตอน `/opsx:apply` Claude จึงเขียนโค้ดเองบนโมเดลของ session | อัปเดต plugin เป็น 0.16 ก่อน (subagent `mflow:dev` มากับ plugin ไม่ต้องสร้างไฟล์ในโปรเจกต์) แล้วรัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
+| โปรเจกต์ที่ init ก่อน 0.25 ยังไม่มีกฎ `/mflow:test` ใน `openspec/config.yaml` change ใหม่จึงอาจยังมี gate task และ apply อาจรัน test ทั้งชุด (`/mflow:help check setup` เตือนให้) | รัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ change ที่เปิดอยู่และมี gate task อยู่แล้ว บอกในข้อความ `/opsx:apply` ว่าข้าม gate task ไว้ แล้วสั่ง `/mflow:test` เมื่อพร้อม |
+| `/mflow:test` และการใช้ผลซ้ำใน `/mflow:review` ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude แบ่งส่วนให้แต่ละส่วนจบในเวลาที่ shell รอได้ และ review อ้างไฟล์ใน `docs/reviews/tests/` ที่ commit ตรงกันจริง |
 | ตั้งแต่ 0.17 subagent `mflow:dev` ปิดเป็นค่าเริ่มต้น ตอน `/opsx:apply` Claude ทำเองทุก task จนกว่าจะเปิด | `/mflow:subagent on` แล้ว `/clear` (เปิดมีผลเมื่อ briefing ของ session ใหม่มีบรรทัด "is ON" ส่วนปิดมีผลทันที) |
 | การส่งงานให้ `mflow:dev` ตอนเปิดเป็นคำแนะนำที่ OpenSpec ส่งให้ AI ส่วนตอนปิด hook บังคับจริง และยังไม่เคยรัน `/opsx:apply` แบบนี้ใน session จริง | ครั้งแรกหลังเปิด ให้ดูว่า Claude เรียก `mflow:dev` จริง ถ้าทำเองให้บอกในแชต |
 | hook ที่ปิด `mflow:dev` ทำงานในทุกโปรเจกต์ที่เปิด plugin mflow ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้ | ตั้งใจไว้แบบนี้ เพราะ subagent ตัวนี้มีไว้สำหรับ `/opsx:apply` ของ mflow |
@@ -838,4 +844,16 @@ operations:
     guidance:
       - Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.
       - When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
+```
+
+โปรเจกต์ที่ init ก่อน 0.25: เพิ่มบรรทัดแรกต่อท้าย `rules.tasks` และบรรทัดที่สองต่อท้าย `operations.apply.guidance` ใน `openspec/config.yaml` โดยไม่ต้องลบบรรทัดเดิม แล้วตรวจด้วย `openspec instructions apply --change <ชื่อ change> --json` ว่า `operationGuidance` มีบรรทัดใหม่
+
+```yaml
+rules:
+  tasks:
+    - A task's test runs alone (the test command filtered to it) with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
+operations:
+  apply:
+    guidance:
+      - Run only each task's own test (filtered to it), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
 ```

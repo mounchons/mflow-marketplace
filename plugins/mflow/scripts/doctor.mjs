@@ -133,6 +133,7 @@ function projectChecks() {
       else add("openspec-project", "warn", "openspec list --json gave output mflow cannot read, so the briefing shows OpenSpec as unavailable", `Compare openspec ${openspec} with the tested ${compat.testedWith.openspec}`);
       const yaml = readText(path.join(root, "openspec", "config.yaml")) ?? readText(path.join(root, "openspec", "config.yml"));
       if (yaml !== null && !yaml.includes("mflow:dev")) add("openspec-guidance", "warn", "openspec/config.yaml has no apply guidance naming mflow:dev (set up before 0.16)", "Run /mflow:init: it merges the guidance");
+      else if (yaml !== null && !yaml.includes("/mflow:test")) add("openspec-guidance", "warn", "openspec/config.yaml has no rule naming /mflow:test (set up before 0.25), so changes may still end with a gate task and apply may run the whole suite", "Run /mflow:init: it merges the rule and the guidance");
     }
   }
   if (backlog) {

@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review code (from Claude, Codex, or the user) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, run the tests, and give a verdict with findings.
+description: Review code (from Claude, Codex, or the user) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, reuse the /mflow:test run at the same commit or run the tests, and give a verdict with findings.
 disable-model-invocation: true
 argument-hint: "[<branch> | --uncommitted | <change-name> | <TASK-ID>]"
 ---
@@ -15,7 +15,7 @@ A review answers one question: does this diff do what the spec says, the way thi
 ## 2. Check
 
 1. **Spec coverage:** each Scenario in the delta specs and each acceptance criterion has a test that exercises it. List any without one.
-2. **Tests:** run the test command from AGENTS.md; report the actual output summary.
+2. **Tests:** the whole suite, as `/mflow:test` runs it, at the reviewed commit. When the newest record in `docs/reviews/tests/` with `Tested: … at <the reviewed commit>`, no "with uncommitted changes" and `Scope: whole suite` exists, cite it (file, result, counts) and do not run it again. Otherwise ask once, unless the review message already says which: a) run the whole suite now, the way `/mflow:test` does and recorded the same way (say how long the newest record took), or b) review the rest now and leave the tests to `/mflow:test`. `--uncommitted` has no record to reuse. Report the actual output summary.
 3. **Domain placement:** business rules live in the domain layer (aggregates, value objects, domain services); controllers, views and repositories do not re-implement them. Invariants from rules.md are enforced where their owning aggregate is.
 4. **UI kit:** views use kit components and tokens only; lists use DataTable with paging in the database query, the FilterPanel above the table, and header search only on columns marked searchable; a row's details open through `QuickView` and compared features through the icon column with a kit icon set; statuses, avatars, KPI tiles and category icons take their hues from the kit, never from the screen; dates go through `FormField` type `date` or `DateRangeField` (no `<input type="date">`, no date formatting in a screen) and reach the server as ISO `YYYY-MM-DD`; screen files hold no media or container queries, fixed widths or page-level grids; the changed pages pass at the acceptance sizes in `docs/ui/design-system.md` (§5 of `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/responsive.md`: screenshots or an E2E run at those sizes).
 5. **Data access:** queries page and filter in the database, no N+1 in lists, migrations reversible. Entities, columns, types, precision and nullability match `PrototypeData/README.md` and the approved data-model doc, or the change states the difference; the indexes the doc lists for screen filters exist.
@@ -26,10 +26,10 @@ Done when: every check has a result, with file:line for each problem.
 
 ## 3. Report
 
-Write `docs/reviews/code/<date>-<target>.md`: the commit reviewed (`Reviewed: <target> at <git rev-parse of it>`, plus "with uncommitted changes" for `--uncommitted`), verdict (`approve` / `changes-requested`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization or data scope, prototype user switching reachable outside prototype mode, a prototype-mode flag that production could turn on without the app refusing to start.
+Write `docs/reviews/code/<date>-<target>.md`: the commit reviewed (`Reviewed: <target> at <git rev-parse of it>`, plus "with uncommitted changes" for `--uncommitted`), the test run it relies on (record path, or "run by this review"), verdict (`approve` / `changes-requested` / `none`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. `approve` needs a passing whole-suite run at the reviewed commit; when the tests were left for later and nothing else blocks, the verdict is `none (tests not run at <commit>)`. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization or data scope, prototype user switching reachable outside prototype mode, a prototype-mode flag that production could turn on without the app refusing to start.
 
 For a second opinion, offer `/mflow:delegate <target> --to <tool> --mode review`; when it returns, `/mflow:assess` checks its findings against this report.
 
-**What comes next:** on `approve`, merge after the user's yes, then `/opsx:archive` and `git diff --stat openspec/specs`; on `changes-requested`, the blockers to fix, then `/mflow:review` again. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
+**What comes next:** on `approve`, merge after the user's yes, then `/opsx:archive` and `git diff --stat openspec/specs`; on `changes-requested`, the blockers to fix, then `/mflow:review` again; on `none`, `/mflow:test`, then `/mflow:review` again, which reuses that run. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 
 Done when: the report exists, STATUS.md records the verdict, and the user has the next command. Merge only on `approve` and the user's yes, and only while the target still points at the reviewed commit: an approval covers what was reviewed, so commits added since are reviewed first (`git diff <reviewed commit>..<target>`).

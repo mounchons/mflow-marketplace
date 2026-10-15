@@ -43,7 +43,8 @@ Profile: TODO
 Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a cache when …, a queue when …)
 
 ## Commands
-<!-- Fill during /mflow:init from the Stack profile. Append `(unverified)` to any command that was not actually run. -->
+<!-- Fill during /mflow:init from the Stack profile. Append `(unverified)` to any command that was not actually run.
+     /mflow:test adds `- Test parts:` when the suite has to run in parts of under about 8 minutes. -->
 - Build: `TODO`
 - Unit + domain tests: `TODO`
 - E2E: `TODO`
@@ -75,6 +76,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 | UI kit: tokens, components, which to use | `docs/ui/design-system.md` | `/mflow:theme` |
 | Screen list and prototype data | `docs/ui/screens.md`, `PrototypeData/*.json` | `/mflow:screen` |
 | What a test or review agreed; code review verdicts | `docs/reviews/<date>-<topic>-summary.md`, `docs/reviews/code/` | `/mflow:review-notes`, `/mflow:review` |
+| Runs of the whole suite (commit, parts, counts) | `docs/reviews/tests/` | `/mflow:test` |
 | Change requests after approval | `docs/reviews/change-requests/` | `/mflow:change-request` |
 | Briefs for other AI tools / their results | `.mflow/briefs/`, `docs/ai/inbox/` | `/mflow:delegate`, `/mflow:assess` |
 | Analyses, designs and challenges from several AI tools (optional) | `docs/ai/analysis/`, `docs/ai/design/`, `docs/ai/challenge/` | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` |
@@ -93,7 +95,7 @@ If you were given a brief in `.mflow/briefs/`, it is your contract: stay in its 
 A task or change is done when its acceptance criteria are covered by tests that pass:
 - Business rules: data-driven unit tests in the domain test project (Unit tests in Stack), one case per example-table row.
 - User flows: an E2E test (E2E tests in Stack) for each acceptance scenario that crosses the UI.
-- The Build and test commands above are green. Report the command output, not a claim.
+- A task runs only its own test. The whole suite, with the Build, Format and test commands above, runs once per change through `/mflow:test` when the user calls it (by hand with the commands above in other tools), and is green at the commit that is merged (`/mflow:review` reuses that run). Report the command output, not a claim.
 
 ## Conventions
 <!-- Only what differs from the stack's defaults or cannot be inferred from the code. -->

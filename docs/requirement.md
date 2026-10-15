@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.24.0 |
+| เวอร์ชันที่อธิบาย | 0.25.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -218,6 +218,7 @@ flowchart TD
 | FR-71 | หลัง graduate: rules.md ถูก freeze และชี้ไปยัง `openspec/specs/` เป็นความจริงหลังจากนั้น | มีแล้ว |
 | FR-72 | `openspec validate <change>` ต้องผ่านก่อนถือว่า graduate เสร็จ | มีแล้ว |
 | FR-73 | เตือนให้เช็ก `git diff --stat openspec/specs` หลัง archive | มีแล้ว (ใน README) |
+| FR-199 | ระหว่าง `/opsx:apply` แต่ละ task รันเฉพาะ test ของตัวเอง (filter ไปที่ test นั้น) กับ build ไม่รัน test ทั้งชุด กฎใน `openspec/config.yaml` ไม่ให้ `tasks.md` มี gate task (task ที่มีแต่การรัน build, test ทุกชุด, format, lint หรือ validate) และ apply guidance ปล่อย gate task ที่มีอยู่แล้วไว้ไม่ติ๊ก จบแล้วให้ `/mflow:test` เป็นคำสั่งถัดไป `mflow:dev` รันเฉพาะ test ของ task เช่นกัน doctor เตือนโปรเจกต์ที่ `config.yaml` ยังไม่มีกฎนี้ (init ก่อน 0.25) (0.25: test ทั้งชุดของโปรเจกต์จริงใช้ราว 40 นาที และถูกรันซ้ำทั้งตอนจบ apply และตอน review) | มีแล้ว |
 
 ### 6.9 ขอบเขตและการเปลี่ยนแปลง (`/mflow:change-request`)
 
@@ -242,7 +243,8 @@ flowchart TD
 | FR-97 | Context pack รวมไฟล์เป็นไฟล์เดียวสำหรับ chat UI ข้าม binary เตือนเมื่อใหญ่เกิน 400 KB และหยุดก่อนอ่านไฟล์ใดเมื่อเกิน 500 ไฟล์หรือ 2 MB รับเฉพาะไฟล์ในโปรเจกต์ (ตาม path จริงหลังตาม link/junction) โฟลเดอร์นอกโปรเจกต์ต้องระบุด้วย `--allow` ไฟล์ซ้ำหรือตัว pack เองไม่ถูกรวม ตรวจรูปแบบข้อมูลลับในทุกไฟล์ข้อความ (key ของ cloud/GitHub/Slack/AI, JWT, connection string, ค่าลับที่เขียนเป็นตัวอักษรตรงๆ) ไฟล์ที่เข้าข่ายถูกข้ามพร้อมเหตุผล ผลลัพธ์มี manifest (path, ขนาด, hash) และหัว pack บอกว่าเนื้อหาเป็นข้อมูล ไม่ใช่คำสั่ง การตรวจเป็นแบบรูปแบบ จึงต้องอ่าน pack ก่อนส่งออกจากเครื่อง | มีแล้ว |
 | FR-98 | โหมด code ทำใน worktree และ branch `agent/<tool>/<id>` แยกจาก Claude | มีแล้ว |
 | FR-99 | Assess: normalize ไฟล์ → ตรวจความเข้าใจและไฟล์ที่อ่าน → ตั้งระดับความน่าเชื่อถือ → ตรวจ finding ทีละข้อจากหลักฐานที่เปิดเอง → คำตัดสิน 6 แบบ (รวม `outdated` เมื่อ finding อิงไฟล์ที่เปลี่ยนหลัง `base` ของรายงานจนสิ่งที่พูดถึงไม่อยู่แล้ว `inbox-normalize.mjs` บอกไฟล์เหล่านั้นใน `stale.changedSince`) → เสนอ action หลังได้ yes | มีแล้ว |
-| FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), entity ตรงกับ data dictionary และมี index ตามเอกสาร data model, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested รายงานบันทึก commit ที่ตรวจ และ merge ได้เฉพาะเมื่อ branch ยังชี้ commit นั้น commit ที่เพิ่มหลังตรวจต้องตรวจก่อน | มีแล้ว |
+| FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), entity ตรงกับ data dictionary และมี index ตามเอกสาร data model, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested รายงานบันทึก commit ที่ตรวจ และ merge ได้เฉพาะเมื่อ branch ยังชี้ commit นั้น commit ที่เพิ่มหลังตรวจต้องตรวจก่อน ผล test ใช้ของ `/mflow:test` ที่ commit เดียวกัน (FR-200) | มีแล้ว |
+| FR-200 | `/mflow:test` รัน test ทั้งชุดครั้งเดียวต่อ change เมื่อผู้ใช้สั่ง: build ครั้งเดียว, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว, `openspec validate <change> --strict` รันทีละส่วนในเวลาที่ shell รอได้ (ส่วนละไม่เกินราว 8 นาที ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน) ส่วนที่แบ่งบันทึกเป็น `- Test parts:` ใน AGENTS.md ผลบันทึกที่ `docs/reviews/tests/<date>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Change:`, `Result:`, เวลาต่อส่วน, test ที่ล้ม) รันบางส่วนได้ด้วย argument ผ่านทั้งชุดที่ commit ที่ไม่มีงานค้างแล้วติ๊ก gate task ของ change `/mflow:review` ใช้ผลนี้แทนการรันซ้ำเมื่อ commit ตรงกัน ไม่มีงานค้าง และ `Scope: whole suite` ถ้าไม่มีให้ถามครั้งเดียวว่าจะรันเลยหรือไว้ทีหลัง (คำตัดสิน `none` จนกว่าจะมีผล) `approve` ต้องมีผลรันทั้งชุดที่ผ่านที่ commit ที่ตรวจ | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -358,7 +360,7 @@ repo/
 │   ├─ discuss/              ← NN-<slug>.md เอกสารยืนยันความเข้าใจกับผู้ใช้ + AGENDA.md หัวข้อที่ควร discuss
 │   ├─ ui/                   ← design-system.md, screens.md, ภาพหน้าจอ, theme/ (static preview ของ kit ถ้าใช้)
 │   ├─ hotspots/             ← INDEX.md + <slug>/map.md, rules.md, questions-for-customer.md (เมื่อผู้ใช้จะถามคนอื่นก่อน)
-│   ├─ reviews/              ← สรุปผลทดสอบ/รีวิว + code review
+│   ├─ reviews/              ← สรุปผลทดสอบ/รีวิว + code review (code/) + ผลรัน test ทั้งชุด (tests/)
 │   ├─ change-requests/      ← CR-<nnn>-<slug>.md
 │   └─ ai-inbox/             ← รายงานจาก AI อื่น + .assessment.md
 ├─ openspec/                 ← specs/ (ความจริงปัจจุบัน), changes/ (สิ่งที่จะเปลี่ยน)
@@ -394,7 +396,7 @@ mflow-marketplace/
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   ├─ consult.mjs               ← session ของ analyze/design/challenge (ไม่บังคับ) สถานะอ่านจากไฟล์จริง
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
-    ├─ skills/<18 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ skills/<19 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -419,7 +421,8 @@ mflow-marketplace/
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
 | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
-| `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge |
+| `/mflow:test [unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุดครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task) |
+| `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
 
@@ -493,9 +496,9 @@ mflow-marketplace/
 | R-13 | `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ theme กับ screen ทำงานกับ UI แอปเดียว | โปรเจกต์ที่มีหลาย web app ทำ kit ต่อแอปไม่ได้อัตโนมัติ | `tech-stack` ต้องตัดสินว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยก และหน้าจอไหนอยู่แอปไหน ส่วนที่เกินทำด้วยมือ |
 | R-12 | ผู้ใช้ตอบแทนลูกค้าแล้วลูกค้าจริงเห็นต่างทีหลัง | ต้องแก้ของที่สร้างแล้ว | ตั้งใจยอมรับตามหลัก P10: ทำ slice เล็ก ทดสอบใช้งานเร็ว (task ทดสอบใช้งานจากหัวข้อ 5 ของเอกสาร discuss) แล้วแก้เป็น change ถัดไป change request บันทึกผลกระทบไว้ |
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
-| R-09 | จำนวนคำสั่ง (18 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
+| R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.24)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.25)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -537,6 +540,7 @@ mflow-marketplace/
 | ชื่อโปรเจกต์ในโค้ดและชื่อแอป (0.22): `/mflow:init` ถามพร้อม stack และเสนอสามชื่อ, init ซ้ำถามเฉพาะชื่อ, `/mflow:discuss code-structure` ใช้รูปแบบ `<ProjectName>.<Kind>[.<Part>]` | ยังไม่ได้รันใน session จริง (R-03) |
 | House style (0.23): `/mflow:theme` และ `update look` สร้าง kit ด้วยสีและฟอนต์ใหม่, ส่วนของ top bar และแถบเมนูลัดผ่าน `update components` | ยังไม่ได้รันใน session จริง (R-03) ค่าได้จากการอ่าน UI kit ของผู้ใช้ผ่าน browser ใน 0.24 ตรวจกับ `styles/tokens.css` ของ kit แล้ว สี brand สถานะ และ neutral ตรงทุกค่า |
 | ชุดสีสด (0.24): `/mflow:theme`, `update look` และ `update components` สร้างสีสถานะ avatar กล่อง KPI และป้ายตัวเลขตาม `house-style.md` | ยังไม่ได้รันใน session จริง (R-03) contrast ของเฉดข้อความทั้งสิบคำนวณด้วย script (ต่ำสุด 4.92:1 บนขาว, 4.76:1 บนพื้นจาง) |
+| รัน test ตามสั่ง (0.25): `/opsx:apply` ไม่รันทั้งชุดและไม่ทำ gate task, `/mflow:test` รันทีละส่วนและบันทึกผล, `/mflow:review` ใช้ผลที่ commit เดียวกัน | ยังไม่ได้รันใน session จริง (R-03) กฎ YAML ที่ init เติมผ่าน parser ของ OpenSpec 1.13.2 แล้ว |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

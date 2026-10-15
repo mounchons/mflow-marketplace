@@ -22,6 +22,7 @@ export const PATHS = {
   theme: "mreq/ui/theme",
   themeReadme: "mreq/ui/theme/README.md",
   data: "mreq/ui/data",
+  contracts: "mreq/ui/contracts",
   designSystem: "mreq/ui/design-system.md",
 };
 
@@ -80,14 +81,15 @@ export function realInside(root, target) {
 
 /**
  * Project settings: .mreq/config.json over the defaults. Throws when the file exists but cannot be
- * read, is not valid JSON or a setting has the wrong type, or when .mreq or mreq/ leads outside the
- * project through a link: scripts write there, so they stop rather than guess.
+ * read, is not valid JSON or a setting has the wrong type, or when .mreq, or any folder or file of
+ * PATHS, leads outside the project through a link at any level: scripts write and serve there, so they
+ * stop rather than guess.
  */
 export function loadConfig(root) {
   const defaults = { version: 1, statusLogEntriesInContext: 2 };
   const label = MARKER.split(path.sep).join("/");
   const stop = (what) => new Error(`${what}; fix it by hand, mreq stops until it does`);
-  for (const dir of [".mreq", PATHS.content]) {
+  for (const dir of [".mreq", ...Object.values(PATHS)]) {
     if (!realInside(root, dir)) throw stop(`${dir} leads outside the project through a link`);
   }
   let user;

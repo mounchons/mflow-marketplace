@@ -1,6 +1,10 @@
 // serve.mjs serves mreq/ui/ on 127.0.0.1 only: pages, JSON and folders' index.html, never a file
-// outside the folder (encoded traversal included), and nothing but GET and HEAD.
+// outside the folder (encoded traversal included), nothing but GET and HEAD, and only to requests that
+// name 127.0.0.1 or localhost with its port.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
 import { after, before, test } from "node:test";
 import { project, run, start } from "./mreq-helpers.mjs";
 
@@ -70,6 +74,36 @@ test("a project without mreq/ui is refused with a hint", () => {
     const r = run(q, "serve.mjs", ["--port", "0"]);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /\/mreq:theme/);
+  } finally {
+    q.cleanup();
+  }
+});
+
+test("a request that names another host is refused, so a rebound name cannot read the kit", async () => {
+  const { port } = new URL(base);
+  const status = (host) => new Promise((resolve, reject) => {
+    http.get({ host: "127.0.0.1", port, path: "/theme/", headers: { Host: host } }, (res) => {
+      res.resume();
+      resolve(res.statusCode);
+    }).on("error", reject);
+  });
+  assert.equal(await status(`attacker.example:${port}`), 403);
+  assert.equal(await status("attacker.example"), 403);
+  assert.equal(await status(`localhost:${port}`), 200);
+  assert.equal(await status(`127.0.0.1:${port}`), 200);
+});
+
+test("an mreq/ui that leads outside the project through a link is refused", () => {
+  const q = project();
+  try {
+    const outside = path.join(q.base, "outside");
+    fs.mkdirSync(path.join(outside, "theme"), { recursive: true });
+    fs.writeFileSync(path.join(outside, "theme", "index.html"), "outside the project");
+    fs.mkdirSync(q.file("mreq"));
+    fs.symlinkSync(outside, q.file("mreq/ui"), "junction");
+    const r = run(q, "serve.mjs", ["--port", "0"]);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /mreq\/ui leads outside the project through a link/);
   } finally {
     q.cleanup();
   }

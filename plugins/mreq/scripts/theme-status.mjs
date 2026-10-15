@@ -23,7 +23,7 @@ const TEMPLATE = path.join(here, "..", "skills", "theme", "assets", "theme-readm
 const REFERENCES = path.join(here, "..", "skills", "theme", "references");
 /** The references a builder needs beside the kit; links to the other references become plain names. */
 export const CONTRACTS = ["component-contracts.md", "responsive.md", "access-data.md"];
-const CONTRACTS_DIR = `${PATHS.ui}/contracts`;
+const CONTRACTS_DIR = PATHS.contracts;
 const LOG_HEADING = "## บันทึกการแก้ไข";
 const STATUS_RE = /^Status:[ \t]*(draft|approved)(?:[ \t]+(\d{4}-\d{2}-\d{2}))?[ \t]*\r?$/m;
 const REVISION_RE = /^Revision:[ \t]*(\d+)[ \t]*\r?$/m;

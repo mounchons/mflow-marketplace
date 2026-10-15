@@ -1,6 +1,8 @@
 // The UI kit's Status and Revision lines change only through theme-status.mjs: init never overwrites,
 // approve dates the status, and bump adds a revision with its reason while the status stays.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, test } from "node:test";
 import { project, run } from "./mreq-helpers.mjs";
 
@@ -97,4 +99,16 @@ test("a README without its Status line is reported and left alone", () => {
   const before = p.read(README);
   assert.equal(ts("approve").status, 1);
   assert.equal(p.read(README), before);
+});
+
+test("contracts refuse a contracts folder that leads outside the project through a link", () => {
+  p = project();
+  const outside = path.join(p.base, "outside");
+  fs.mkdirSync(outside);
+  fs.mkdirSync(p.file("mreq/ui"), { recursive: true });
+  fs.symlinkSync(outside, p.file("mreq/ui/contracts"), "junction");
+  const r = run(p, "theme-status.mjs", ["contracts"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /mreq\/ui\/contracts leads outside the project through a link/);
+  assert.deepEqual(fs.readdirSync(outside), []);
 });

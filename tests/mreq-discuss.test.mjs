@@ -1,6 +1,8 @@
 // mreq discussion docs: the registry lives in mreq/discuss/, the agenda starts with the four foundation
 // topics, `readyToApprove` gates approve, and `cited` finds what an approve already wrote.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, test } from "node:test";
 import { project, run } from "./mreq-helpers.mjs";
 
@@ -126,4 +128,16 @@ test("outside an mreq project the script refuses", () => {
   const r = run(p, "discuss.mjs", ["list"]);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /\/mreq:init/);
+});
+
+test("a discuss folder that leads outside the project through a link is refused, and nothing is written there", () => {
+  p = project();
+  const outside = path.join(p.base, "outside");
+  fs.mkdirSync(outside);
+  fs.mkdirSync(p.file("mreq"));
+  fs.symlinkSync(outside, p.file("mreq/discuss"), "junction");
+  const r = run(p, "discuss.mjs", ["new", "tech-stack"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /mreq\/discuss leads outside the project through a link/);
+  assert.deepEqual(fs.readdirSync(outside), []);
 });

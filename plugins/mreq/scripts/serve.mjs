@@ -5,11 +5,13 @@
 //   node serve.mjs [--port 8810] [--root <folder>]
 // Prints one JSON line {url, port, root} once listening, then serves until stopped. --port 0 takes any
 // free port. GET and HEAD only; a folder serves its index.html; nothing outside the root is served, a
-// link that leads out included; no folder listings.
+// link that leads out included, and mreq/ui itself must not lead out; no folder listings. A request
+// must name 127.0.0.1 or localhost with this port in its Host header, so a page on another site cannot
+// read the kit by pointing its own name at 127.0.0.1 (DNS rebinding).
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { PATHS, findRoot, realInside } from "./lib.mjs";
+import { PATHS, findRoot, loadConfig, realInside } from "./lib.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (name) => {
@@ -25,6 +27,11 @@ let root = opt("--root");
 if (!root) {
   const project = findRoot(process.env.CLAUDE_PROJECT_DIR || process.cwd());
   if (!project) fail("not an mreq project (no .mreq/config.json above this folder): run /mreq:init first, or give --root");
+  try {
+    loadConfig(project);
+  } catch (err) {
+    fail(String(err.message || err));
+  }
   root = path.join(project, PATHS.ui);
 }
 root = path.resolve(root);
@@ -57,8 +64,12 @@ function send(res, code, body, type = "text/plain; charset=utf-8", head = false)
   res.end(head ? undefined : body);
 }
 
+// Filled once listening, when the port is known (--port 0 takes any free one).
+const hosts = new Set();
+
 const server = http.createServer((req, res) => {
   const head = req.method === "HEAD";
+  if (!hosts.has(String(req.headers.host || "").toLowerCase())) return send(res, 403, "host not allowed");
   if (req.method !== "GET" && !head) return send(res, 405, "method not allowed");
   let rel;
   try {
@@ -95,5 +106,6 @@ server.on("error", (err) => {
 });
 server.listen(port, "127.0.0.1", () => {
   const actual = server.address().port;
+  hosts.add(`127.0.0.1:${actual}`).add(`localhost:${actual}`);
   process.stdout.write(JSON.stringify({ url: `http://127.0.0.1:${actual}/`, port: actual, root }) + "\n");
 });

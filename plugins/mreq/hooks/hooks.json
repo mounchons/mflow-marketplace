@@ -1,0 +1,12 @@
+{
+  "description": "mreq: inject the state of the requirement set (mreq/project/STATUS.md, discussion docs, agenda, UI kit) at session start.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start.mjs\"", "timeout": 30 }
+        ]
+      }
+    ]
+  }
+}

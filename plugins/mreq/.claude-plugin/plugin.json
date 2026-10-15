@@ -1,0 +1,8 @@
+{
+  "name": "mreq",
+  "version": "0.1.0",
+  "description": "Requirements before the build: discussion docs for the stack, the code structure and each topic, a static UI kit and prototype screens, kept in mreq/ for any builder or tool to take.",
+  "author": { "name": "Mounchon" },
+  "license": "MIT",
+  "keywords": ["requirements", "discussion", "ui-kit", "prototype", "workflow"]
+}

@@ -1,0 +1,4 @@
+# Written by /mreq:init. Scratch files mreq makes and deletes again: text versions of customer
+# documents and diagram renders (cache/), and template copies waiting to be merged (suggested/).
+cache/
+suggested/

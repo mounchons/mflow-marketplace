@@ -77,16 +77,27 @@ test("prototype mode without the startup check is a warning; with it, ok", () =>
   assert.equal(doctor()["prototype-mode"].status, "ok");
 });
 
-test("config.yaml set up before 0.26 is a warning until it names /mflow:e2e; the current one is ok", () => {
+test("config.yaml with an earlier mflow's wording is a warning until the merge has run; then ok", () => {
   initialised();
-  const old = "rules:\n  tasks:\n    - Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).\n    - tasks.md has no gate task; /mflow:test runs the whole suite.\noperations:\n  apply:\n    guidance:\n      - hand each task to mflow:dev when it is on.\n";
-  p.write("openspec/config.yaml", old);
+  p.write("openspec/config.yaml", "schema: spec-driven\nrules:\n  tasks:\n    - Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).\n    - Keep tasks small.\n");
   const c = doctor();
   assert.equal(c["openspec-guidance"].status, "warn");
-  assert.match(c["openspec-guidance"].detail, /0\.26/);
+  assert.match(c["openspec-guidance"].detail, /earlier mflow wrote, such as "Every task ends with the test that proves it \(xUnit/);
   assert.match(c["openspec-guidance"].fix, /\/mflow:init/);
-  p.write("openspec/config.yaml", old.replace("Playwright for user flows).", "no E2E; /mflow:e2e <screen> writes them)."));
+  assert.equal(run(p, "openspec-config.mjs").status, 0);
   assert.equal(doctor()["openspec-guidance"].status, "ok");
+  assert.match(p.read("openspec/config.yaml"), /Keep tasks small/);
+});
+
+test("config.yaml with mflow's lines but no markers, or an item YAML misreads, is a warning", () => {
+  initialised();
+  p.write("openspec/config.yaml", "schema: spec-driven\n");
+  assert.equal(run(p, "openspec-config.mjs").status, 0);
+  p.write("openspec/config.yaml", p.read("openspec/config.yaml").replace(/^[ \t]*# mflow:(begin|end).*\n/gm, ""));
+  assert.match(doctor()["openspec-guidance"].detail, /without the # mflow:begin/);
+  assert.equal(run(p, "openspec-config.mjs").status, 0);
+  p.write("openspec/config.yaml", p.read("openspec/config.yaml").replace("  proposal:\n", "  proposal:\n    - Note: keep it short.\n"));
+  assert.match(doctor()["openspec-guidance"].detail, /double quotes/);
 });
 
 test("a Playwright config with no top-level workers is a warning; a project's own workers does not count", () => {

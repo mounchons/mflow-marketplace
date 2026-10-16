@@ -41,7 +41,7 @@ A commit made after a whole-suite run is proven without running everything again
 ## 2. Run
 
 - In the foreground, one part at a time, each within the shell's time limit. A whole suite in the background, or parts in parallel, can run the machine out of memory and be stopped halfway.
-- E2E, when the argument names it: the build the E2E command needs, then one E2E project at a time with at most 2 browsers at a time (`--workers=2` for Playwright Test, or the number the user gives). Playwright's default is half the CPU threads, 10 on a 20-thread laptop; that many browsers at once has crashed a laptop's graphics driver and restarted the machine.
+- E2E, when the argument names it: the build the E2E command needs, then one E2E project at a time with at most 2 browsers at a time (`--workers=2` for Playwright Test; `e2eMaxWorkers` in `.mflow/config.json` raises the cap, and mflow's hook refuses a Playwright run above it or without `--workers`). Playwright's default is half the CPU threads, 10 on a 20-thread laptop; that many browsers at once has crashed a laptop's graphics driver and restarted the machine.
 - Carry on after a failing part, so one run shows every failure. Stop only when the build fails.
 - For each part keep the command, the passed / failed / skipped counts, the duration and, for each failure, the test name and the first line of its message.
 
@@ -72,6 +72,6 @@ For `since`, add the changed files that decided the scope, in one line.
 
 When the scope was the whole suite or `since`, the result is pass, there were no uncommitted changes and the change's `tasks.md` has a gate task (a task whose only work is running the build, the suites or the checks), tick it `- [x]` and add `Done: <record path>` to it. When the gate task also names E2E, add `E2E not run: /mflow:e2e` too, so the tick does not claim a run that did not happen.
 
-**What comes next:** on pass, `/mflow:review <branch>`, which reuses this run. On fail, the failing tests by part; once they are fixed and committed, `/mflow:test since`, which reruns the failed parts and the tests of what the fix changed. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
+**What comes next:** on pass, the review the change needs by the files it touched, as "Levels" in `/mflow:review` says: `/mflow:review <branch>`, `/mflow:review <branch> --short`, or no review (merge on the user's yes); a review reuses this run. On fail, the failing tests by part; once they are fixed and committed, `/mflow:test since`, which reruns the failed parts and the tests of what the fix changed. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 
 Done when: the record exists, STATUS.md has the result, and the user has the next command.

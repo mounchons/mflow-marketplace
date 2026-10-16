@@ -146,6 +146,8 @@ export function loadConfig(root) {
     stopGuard: { enabled: true, graceMinutes: 10, repeatMinutes: 30 },
     // The apply subagent (mflow:dev) is off until switched on; .mflow/local.json overrides per machine.
     applySubagent: { enabled: false },
+    // Browsers a Playwright run may start at once (e2e-guard.mjs); more has crashed a laptop's graphics driver.
+    e2eMaxWorkers: 2,
   };
   const label = MARKER.split(path.sep).join("/");
   const stop = (what) => new Error(`${what}; fix it by hand, mflow stops until it does`);
@@ -170,6 +172,9 @@ export function loadConfig(root) {
   }
   if ("statusLogEntriesInContext" in user && !Number.isInteger(user.statusLogEntriesInContext)) {
     wrong("statusLogEntriesInContext", "a whole number");
+  }
+  if ("e2eMaxWorkers" in user && (!Number.isInteger(user.e2eMaxWorkers) || user.e2eMaxWorkers < 1)) {
+    wrong("e2eMaxWorkers", "a whole number of 1 or more");
   }
   if ("stopGuard" in user && typeof user.stopGuard !== "boolean" && !isObject(user.stopGuard)) {
     wrong("stopGuard", "true, false or an object");

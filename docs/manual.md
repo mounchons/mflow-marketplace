@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.26.0 |
+| เวอร์ชัน plugin | 0.27.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -414,6 +414,7 @@ docs/
    - E2E test ไม่อยู่ในการรันทั้งชุด เมื่อหน้าจอนิ่งแล้วสั่ง `/mflow:e2e <หน้าจอ>` ให้ Claude เขียนหรือปรับ test ของหน้านั้นตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น (ไม่ใส่ชื่อหน้าจอ Claude บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด) อยากรัน E2E ทั้งหมดสั่ง `/mflow:test e2e` ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) เพราะค่าเริ่มต้นของ Playwright คือครึ่งหนึ่งของ CPU thread (10 ตัวบนเครื่อง 20 thread) ซึ่งเคยทำให้ driver การ์ดจอล่มจนเครื่อง restart test ที่ล้มเพราะหน้าจอผิด spec ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
    - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
 4. `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า Claude รัน `since` เอง (ถ้าต้องรันทั้งชุด Claude ถามครั้งเดียวว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
+   - ระดับของ review ดูจากไฟล์ที่ change แตะ (0.27) apply และ `/mflow:test` บอกให้เมื่อจบ: **เต็ม** (`/mflow:review <branch>`) เมื่อแตะกฎธุรกิจ สิทธิ์หรือ data scope, query, migration, การเชื่อมระบบอื่น หรือ startup; **สั้น** (`--short`) สำหรับโค้ดอื่น เช่นหน้าจอที่แค่แสดงสิ่งที่ API ส่งมา และรอบแก้หลัง review ซึ่งตรวจเฉพาะส่วนที่เปลี่ยนตั้งแต่ commit ที่ review ล่าสุดและดูว่า finding เดิมแก้แล้วหรือยัง; **ข้าม** เมื่อแก้แค่เอกสาร style/token หรือข้อความ label (merge ได้เมื่อคุณตกลง โดยต้องมีผล `/mflow:test` ที่ commit นั้นถ้าไม่ได้แก้แค่เอกสาร) คุณเลือกระดับเองได้เสมอ
    - (ไม่บังคับ) ก่อน apply ของที่ผิดแล้วแพง ให้ AI หลายตัวหาจุดที่แบบจะพังได้ด้วย `/mflow:challenge @openspec/changes/<ชื่อ change>/proposal.md` ต่างจาก review ที่ตรวจโค้ดซึ่งเขียนแล้ว
 5. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 6. กลับไปขั้น 4 สำหรับ slice ถัดไป
@@ -768,12 +769,13 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
 | ผลจาก AI ตัวอื่นกลับมาแล้ว | `/mflow:assess @docs/ai/inbox/<ไฟล์>` |
-| ตรวจโค้ดก่อน merge | `/mflow:review <branch>` (ใช้ผล `/mflow:test` หรือรัน `since` ต่อจากการรันทั้งชุดครั้งก่อน) |
+| ตรวจโค้ดก่อน merge | `/mflow:review <branch>` เต็ม สำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ข้ามได้ถ้าแก้แค่เอกสาร style หรือข้อความ label (ใช้ผล `/mflow:test` หรือรัน `since` ต่อจากการรันทั้งชุดครั้งก่อน) |
+| hook ของ mflow ปฏิเสธการรัน Playwright | รันใหม่ด้วย `--workers=2` จาก `/mflow:e2e` หรือ `/mflow:test e2e` อยากเปิด browser มากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | แก้ตาม review แล้ว อยากพิสูจน์ commit ใหม่โดยไม่รันทั้งชุด | `/mflow:test since` |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.26.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.27.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -789,7 +791,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | wireframe ตัวอักษรที่มีภาษาไทย ขอบขวาไม่ตรงกัน เพราะสระบน/ล่างและวรรณยุกต์ไม่กินช่องในฟอนต์ความกว้างคงที่ | Claude จะวาดกล่องแบบเปิดด้านขวา หรือวางข้อความไทยไว้ท้ายบรรทัด ถ้ามีหน้าจอจริงแล้วจะใช้ภาพหน้าจอแทน |
 | mindmap, timeline และ journey ของ Mermaid เป็นชนิดใหม่ บาง preview ยังแสดงไม่ได้ | Claude ใช้ flowchart, sequence, state และ ER เป็นหลัก การเตือน label ที่จะพังตรวจเฉพาะ flowchart |
 | ตั้งแต่ 0.8 คำสั่ง `/mflow:source` เปลี่ยนชื่อเป็น `/mflow:capture` แต่โฟลเดอร์ `docs/source/`, `source-index.mjs` และ `sourceDir` ยังชื่อเดิม | โปรเจกต์ที่ init ก่อน 0.8 ยังมี `/mflow:source` เขียนอยู่ใน `AGENTS.md` (ตาราง Where things live) และ `docs/source/README.md` ให้แก้สองจุดนี้เป็น `/mflow:capture` เอง หรือรัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ |
-| โปรเจกต์ที่ `init` ก่อน 0.7 ไม่มีบรรทัดเรื่องเอกสาร discuss และ data dictionary ใน `openspec/config.yaml` | เพิ่มเองตามตัวอย่างด้านล่าง |
+| โปรเจกต์ที่ `init` ก่อน 0.7 ไม่มีบรรทัดเรื่องเอกสาร discuss และ data dictionary ใน `openspec/config.yaml` | รัน `openspec-config.mjs` ตามท้ายหัวข้อนี้ |
 | คำสั่งแปลงเอกสารลูกค้าเป็นข้อความก่อน `consult` ต้องมี pandoc หรือ python (python-docx, openpyxl, pypdf) | ติดตั้งตามหัวข้อ 3 ถ้าแปลงไม่ได้ brief จะบอก AI ตัวอื่นว่าไฟล์นั้นอ่านไม่ได้ |
 | โปรเจกต์ที่ init ก่อน 0.10 ไม่มี `## Stack` ใน AGENTS.md | คำสั่งแรกที่ต้องใช้ (`theme`, `screen`, `golden`, `review`) จะเดา stack จาก repo แล้วถามก่อน จากนั้นเพิ่ม section ให้ หรือรัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ |
 | kit ที่ทำ theme ไว้ก่อน 0.11 ไม่มีเมนูสามสถานะ ปุ่ม ☰ และ grid ที่จัดตามความกว้าง | รัน `/mflow:theme update responsive` ก่อนสร้างหน้าจอถัดไป แล้วเติม "อุปกรณ์ที่ต้องรองรับ" และ "ขนาดจอตรวจรับ" ใน `docs/ui/design-system.md` |
@@ -799,10 +801,12 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | เอกสาร discuss ที่เขียนก่อน 0.13 ใช้ `**พี่ปูเลือก:**`, `> พี่ปู:` และป้าย `[พี่ปู]` | ยังใช้ได้ `check` อ่าน marker เดิมเหมือนเดิม รอบแก้ถัดไป Claude เปลี่ยนเฉพาะบรรทัดคำตอบที่ยังเปิดเป็น `**เลือก:**` ส่วนที่ตอบแล้วคงไว้ |
 | มีหลาย web app (เช่น back office กับ portal): `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ `/mflow:theme` กับ `/mflow:screen` ยังทำงานกับ UI แอปเดียว | ตัดสินใน `tech-stack` ว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยกต่อแอป และหน้าจอไหนอยู่แอปไหน การทำ kit แยกต่อแอปยังต้องทำด้วยมือ |
 | โปรเจกต์ที่ init ก่อน 0.15 ยังไม่มี `docs/decisions/discuss/AGENDA.md` (capture อ่านเฉพาะไฟล์ใหม่หรือที่เปลี่ยน จึงไม่สร้างจากเอกสารเดิมให้) และ AGENTS.md ยังไม่มีตาราง Apps, Libraries และบรรทัด Later ใน `## Stack` | สั่ง `/mflow:discuss agenda` ครั้งเดียว ได้รายการที่มี `tech-stack` และ `code-structure` นำหน้า ส่วน AGENTS.md รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือให้การอนุมัติ `tech-stack` เติมให้ |
-| โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
-| โปรเจกต์ที่ init ก่อน 0.16 ยังไม่มี `operations.apply.guidance` ใน `openspec/config.yaml` ตอน `/opsx:apply` Claude จึงเขียนโค้ดเองบนโมเดลของ session | อัปเดต plugin เป็น 0.16 ก่อน (subagent `mflow:dev` มากับ plugin ไม่ต้องสร้างไฟล์ในโปรเจกต์) แล้วรัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ |
-| โปรเจกต์ที่ init ก่อน 0.25 ยังไม่มีกฎ `/mflow:test` ใน `openspec/config.yaml` change ใหม่จึงอาจยังมี gate task และ apply อาจรัน test ทั้งชุด (`/mflow:help check setup` เตือนให้) | รัน `/mflow:init` ซ้ำเพื่อ merge หรือเพิ่มเองตามตัวอย่างท้ายหัวข้อนี้ change ที่เปิดอยู่และมี gate task อยู่แล้ว บอกในข้อความ `/opsx:apply` ว่าข้าม gate task ไว้ แล้วสั่ง `/mflow:test` เมื่อพร้อม |
-| โปรเจกต์ที่ init ก่อน 0.26 ยังมีกฎ "E2E test for user flows" (หรือ "Playwright for user flows") ใน `openspec/config.yaml` และ Definition of done ใน AGENTS.md ที่ขอ E2E ทุก user flow change ใหม่จึงอาจมี task ที่เขียนหรือรัน Playwright ทั้งชุด (`/mflow:help check setup` เตือนให้ และเตือนเมื่อ `playwright.config` ไม่ได้ตั้ง `workers`) | รัน `/mflow:init` ซ้ำ: แทนบรรทัดเรื่อง test ใน `openspec/config.yaml` และเสนอ Definition of done ใหม่ หรือแก้เองตามตัวอย่างท้ายหัวข้อนี้ ตั้ง `workers: 2` ใน `playwright.config` ด้วย ระหว่างนี้ change ที่เปิดอยู่ บอกในข้อความ `/opsx:apply` ว่าห้ามรัน Playwright |
+| โปรเจกต์ที่ init ก่อน 0.13 ยังไม่มีหัวข้อ `## Who decides` ใน AGENTS.md และบรรทัดหลัก "ทำก่อน ทดสอบ แล้วปรับ" ใน `openspec/config.yaml` | รัน `/mflow:init` ซ้ำเพื่อ merge template ใหม่ หรือรัน `openspec-config.mjs` ตามท้ายหัวข้อนี้ |
+| โปรเจกต์ที่ init ก่อน 0.16 ยังไม่มี `operations.apply.guidance` ใน `openspec/config.yaml` ตอน `/opsx:apply` Claude จึงเขียนโค้ดเองบนโมเดลของ session | อัปเดต plugin เป็น 0.16 ก่อน (subagent `mflow:dev` มากับ plugin ไม่ต้องสร้างไฟล์ในโปรเจกต์) แล้วรัน `/mflow:init` ซ้ำเพื่อ merge หรือรัน `openspec-config.mjs` ตามท้ายหัวข้อนี้ |
+| โปรเจกต์ที่ init ก่อน 0.25 ยังไม่มีกฎ `/mflow:test` ใน `openspec/config.yaml` change ใหม่จึงอาจยังมี gate task และ apply อาจรัน test ทั้งชุด (`/mflow:help check setup` เตือนให้) | รัน `/mflow:init` ซ้ำเพื่อ merge หรือรัน `openspec-config.mjs` ตามท้ายหัวข้อนี้ change ที่เปิดอยู่และมี gate task อยู่แล้ว บอกในข้อความ `/opsx:apply` ว่าข้าม gate task ไว้ แล้วสั่ง `/mflow:test` เมื่อพร้อม |
+| โปรเจกต์ที่ init ก่อน 0.26 ยังมีกฎ "E2E test for user flows" (หรือ "Playwright for user flows") ใน `openspec/config.yaml` และ Definition of done ใน AGENTS.md ที่ขอ E2E ทุก user flow change ใหม่จึงอาจมี task ที่เขียนหรือรัน Playwright ทั้งชุด (`/mflow:help check setup` เตือนให้ และเตือนเมื่อ `playwright.config` ไม่ได้ตั้ง `workers`) | รัน `/mflow:init` ซ้ำ: แทนบรรทัดเรื่อง test ใน `openspec/config.yaml` และเสนอ Definition of done ใหม่ หรือรัน `openspec-config.mjs` ตามท้ายหัวข้อนี้ ตั้ง `workers: 2` ใน `playwright.config` ด้วย ระหว่างนี้ change ที่เปิดอยู่ บอกในข้อความ `/opsx:apply` ว่าห้ามรัน Playwright |
+| hook `e2e-guard` (0.27) ปฏิเสธ `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกิน `e2eMaxWorkers` (ค่าเริ่มต้น 2) ดูเฉพาะคำสั่งที่เรียก Playwright ตรงๆ ไม่เห็น npm script ที่ห่อ Playwright หรือ Microsoft.Playwright ใต้ `dotnet test` | ตั้ง `workers: 2` ใน `playwright.config` ด้วย (`/mflow:help check setup` เตือนให้) อยากให้เปิด browser พร้อมกันมากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
+| `openspec-config.mjs` (0.27) แก้ `config.yaml` ทีละบรรทัด ไม่ได้อ่าน YAML ทุกรูปแบบ: `context` ที่เขียนบรรทัดเดียวหรือแบบ `>` และ key ที่ไม่ใช่ list จะถูกรายงานใน `problems` และไม่แตะ | แก้ส่วนนั้นเอง แล้วรัน script อีกครั้ง |
 | `/mflow:e2e` และกฎ E2E ของ apply ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude รันเฉพาะไฟล์ของหน้าจอนั้นด้วย `--workers=2` และ apply ไม่แตะไฟล์ใน E2E folder |
 | `/mflow:test`, `since` และการใช้ผลซ้ำใน `/mflow:review` ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude แบ่งส่วนให้แต่ละส่วนจบในเวลาที่ shell รอได้, `since` เลือกฐานเป็น commit ก่อนหน้าบน branch เดียวกันและบอกไฟล์ที่ทำให้เลือกขอบเขตนั้น, และ review อ้างไฟล์ใน `docs/reviews/tests/` ที่ commit ตรงกันจริง |
 | ตั้งแต่ 0.17 subagent `mflow:dev` ปิดเป็นค่าเริ่มต้น ตอน `/opsx:apply` Claude ทำเองทุก task จนกว่าจะเปิด | `/mflow:subagent on` แล้ว `/clear` (เปิดมีผลเมื่อ briefing ของ session ใหม่มีบรรทัด "is ON" ส่วนปิดมีผลทันที) |
@@ -824,56 +828,4 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` ได้เลย |
 | stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |
 
-โปรเจกต์ที่ init ก่อน 0.7: เพิ่มบรรทัดเหล่านี้ต่อท้ายใต้ key เดียวกันใน `openspec/config.yaml` โดยไม่ต้องลบบรรทัดเดิม:
-
-```yaml
-context: |
-  Designs agreed before building (roles, data models, ...) are in docs/decisions/discuss/NN-*.md with status approved.
-  The current data dictionary is PrototypeData/README.md until a change builds the entity.
-rules:
-  proposal:
-    - If the change adds or alters tables, link the approved data-model doc in docs/decisions/discuss/ and follow PrototypeData/README.md; state any difference.
-  tasks:
-    - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
-```
-
-โปรเจกต์ที่ init ก่อน 0.13: เพิ่มบรรทัดนี้ใต้ `context:` ใน `openspec/config.yaml` และคัดลอกหัวข้อ `## Who decides` จาก template ของ AGENTS.md ไปใส่ต่อจาก `## Purpose`
-
-```yaml
-context: |
-  The user's answers and instructions are the customer's: build first, test in use, then refine through follow-up changes.
-```
-
-โปรเจกต์ที่ init ก่อน 0.16: เพิ่ม key นี้ระดับบนสุดใน `openspec/config.yaml` (ถ้ามี `operations:` อยู่แล้วให้เติมใต้ `apply.guidance` เดิม) แล้วตรวจด้วย `openspec instructions apply --change <ชื่อ change> --json` ว่ามี `operationGuidance`
-
-```yaml
-operations:
-  apply:
-    guidance:
-      - Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.
-      - When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
-```
-
-โปรเจกต์ที่ init ก่อน 0.25: เพิ่มบรรทัดแรกต่อท้าย `rules.tasks` และบรรทัดที่สองต่อท้าย `operations.apply.guidance` ใน `openspec/config.yaml` โดยไม่ต้องลบบรรทัดเดิม แล้วตรวจด้วย `openspec instructions apply --change <ชื่อ change> --json` ว่า `operationGuidance` มีบรรทัดใหม่
-
-```yaml
-rules:
-  tasks:
-    - A task runs its own test and the test classes that cover the code it changed (the test command filtered to them), with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
-operations:
-  apply:
-    guidance:
-      - Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
-```
-
-โปรเจกต์ที่ init ก่อน 0.26: แทนบรรทัดแรกของ `rules.tasks` (บรรทัด "Every task ends with the test that proves it …") ด้วยบรรทัดแรกข้างล่าง และเพิ่มบรรทัดที่สองต่อท้าย `operations.apply.guidance` แล้วตรวจด้วย `openspec instructions apply --change <ชื่อ change> --json` ว่า `operationGuidance` มีบรรทัดใหม่ ใน AGENTS.md แก้บรรทัด User flows ของ `## Definition of done` ตาม template ของ 0.26
-
-```yaml
-rules:
-  tasks:
-    - Every task ends with the unit test that proves it (framework as in AGENTS.md Stack); a user flow is proven by unit tests of the rules and services behind it. No task writes, changes or runs E2E tests; /mflow:e2e <screen> does that one screen at a time when the user calls it.
-operations:
-  apply:
-    guidance:
-      - Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it. Do the rest of the task, prove it with unit tests and the build, and add `E2E on request (/mflow:e2e <screen>)` to the task. A task whose only work is E2E stays unticked. When the change touched screens, name them to the user as screens whose E2E tests /mflow:e2e can write or update.
-```
+โปรเจกต์ที่ init ก่อน 0.27 (ทุกรุ่น): ไม่ต้องแก้ `openspec/config.yaml` เอง รัน `/mflow:init` ซ้ำ หรือรัน `node "<โฟลเดอร์ plugin>/scripts/openspec-config.mjs" --dry-run` ดูว่าจะลบและเพิ่มบรรทัดไหน แล้วรันอีกครั้งโดยไม่ใส่ `--dry-run` script แทนบรรทัดที่ mflow ทุกรุ่นเคยเขียน (จำจากถ้อยคำ) ด้วยบรรทัดปัจจุบันที่อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` เก็บบรรทัดของคุณเองและ comment ของ OpenSpec ไว้ และใช้ path ตาม folder ใน `.mflow/config.json` แล้วตรวจด้วย `openspec instructions apply --change <ชื่อ change> --json` ว่า `operationGuidance` มีบรรทัดครบและไม่มีคำเตือน `could not parse` ส่วน AGENTS.md (เช่นหัวข้อ `## Who decides` ของ 0.13 และ Definition of done ของ 0.26) รับจาก template ที่ `/mflow:init` เสนอ

@@ -1,11 +1,18 @@
 ---
 name: review
-description: Review code (from Claude, Codex, or the user) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, prove the tests from /mflow:test records (a whole run, or a since run on an earlier whole run), and give a verdict with findings.
+description: Review code (from Claude, Codex, or the user) against the OpenSpec change, AGENTS.md conventions, the design system and the domain rules, in full or short as the change needs, prove the tests from /mflow:test records (a whole run, or a since run on an earlier whole run), and give a verdict with findings.
 disable-model-invocation: true
-argument-hint: "[<branch> | --uncommitted | <change-name> | <TASK-ID>]"
+argument-hint: "[<branch> | --uncommitted | <change-name> | <TASK-ID>] [--short]"
 ---
 
 A review answers one question: does this diff do what the spec says, the way this project does things, with proof? It reports; it fixes nothing unless asked afterwards.
+
+## Levels
+
+How much review a change needs follows from the files it touched (`git diff --name-only` of the target). `/opsx:apply` and `/mflow:test` name the level as the next step; the user's word decides.
+- **full** (the default): the change touches business rules (domain or application code), permissions or data scope, queries, migrations or the data model, an integration with another system, or startup and dependency wiring. Every check below.
+- **short** (`--short`): any other code change, such as a screen that only shows what the API sends, and a fix after a review, whose diff then starts at the commit the last report of the target reviewed (`Reviewed: … at <commit>`). Checks 1 and 2 for what changed, each finding of that report marked fixed or still open, and checks 3–7 only on the changed lines.
+- **skip**: only documents (Markdown, `openspec/`, `backlog/`, `docs/`, `STATUS.md`), stylesheets and tokens, or the text of labels (the diff changes no condition, query or data shape). No review: merge on the user's yes, with a passing `/mflow:test` record at the commit when anything but documents changed.
 
 ## 1. Scope the diff
 
@@ -26,7 +33,7 @@ Done when: every check has a result, with file:line for each problem.
 
 ## 3. Report
 
-Write `docs/reviews/code/<date>-<target>.md`: the commit reviewed (`Reviewed: <target> at <git rev-parse of it>`, plus "with uncommitted changes" for `--uncommitted`), the test run it relies on (record path, or "run by this review"), verdict (`approve` / `changes-requested` / `none`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. `approve` needs passing proof of the whole suite at the reviewed commit (a whole run there, or a `since` run there); when the tests were left for later and nothing else blocks, the verdict is `none (tests not run at <commit>)`. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization or data scope, prototype user switching reachable outside prototype mode, a prototype-mode flag that production could turn on without the app refusing to start.
+Write `docs/reviews/code/<date>-<target>.md`: the commit reviewed (`Reviewed: <target> at <git rev-parse of it>`, plus "with uncommitted changes" for `--uncommitted`), the level (`Level: full` or `Level: short`, with the earlier report a short one follows), the test run it relies on (record path, or "run by this review"), verdict (`approve` / `changes-requested` / `none`), findings by severity (blocker, major, minor, nit) with location, problem, and fix. `approve` needs passing proof of the whole suite at the reviewed commit (a whole run there, or a `since` run there); when the tests were left for later and nothing else blocks, the verdict is `none (tests not run at <commit>)`. Blockers: failing tests, a scenario with wrong behaviour, a domain rule implemented outside the domain, missing authorization or data scope, prototype user switching reachable outside prototype mode, a prototype-mode flag that production could turn on without the app refusing to start.
 
 For a second opinion, offer `/mflow:delegate <target> --to <tool> --mode review`; when it returns, `/mflow:assess` checks its findings against this report.
 

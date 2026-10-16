@@ -51,39 +51,17 @@ Both write into the repo and into agent files, so show each command and get a ye
 - OpenSpec already initialised: `openspec update`.
 - Backlog.md not initialised: `backlog init "<project name>" --defaults --integration-mode cli --agent-instructions agents` (AGENTS.md only; CLAUDE.md already imports it). If the repo has no git remote, also `backlog config set remoteOperations false`.
 
-Then add to `openspec/config.yaml` (edit YAML, keep existing keys, show the diff):
+Then write mflow's lines into `openspec/config.yaml`: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/openspec-config.mjs" --dry-run`, show what it would remove and add, then run it without `--dry-run`. The lines are, in short:
+- `context`: read AGENTS.md; the user's word is the customer's (build first, test in use, refine); hotspot rules, approved discussion docs and the data dictionary, in the folders `.mflow/config.json` names.
+- `rules.proposal`: link the hotspot's `rules.md` and the data-model doc. `rules.specs`: a Scenario per requirement and per outcome row.
+- `rules.tasks`: a task that changes code ends with its unit test; no task writes or runs E2E (`/mflow:e2e`); a task runs only its own tests and the test classes of its code, with no gate task (`/mflow:test`); an aggregate's README section becomes a pointer.
+- `operations.apply.guidance`: the `mflow:dev` subagent only when it is on, and the diff check after it; each task's own tests only; never E2E; at the end `/mflow:test` and the review the change needs.
 
-```yaml
-context: |
-  Read AGENTS.md for stack, commands, architecture and domain vocabulary.
-  The user's answers and instructions are the customer's: build first, test in use, then refine through follow-up changes.
-  Business rules for fuzzy areas are worked out first in docs/decisions/hotspots/<slug>/rules.md.
-  Designs agreed before building (roles, data models, ...) are in docs/decisions/discuss/NN-*.md with status approved.
-  The current data dictionary is PrototypeData/README.md until a change builds the entity.
-rules:
-  proposal:
-    - If the change implements a hotspot, link docs/decisions/hotspots/<slug>/rules.md in the proposal.
-    - If the change adds or alters tables, link the approved data-model doc in docs/decisions/discuss/ and follow PrototypeData/README.md; state any difference.
-  specs:
-    - Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.
-  tasks:
-    - Every task ends with the unit test that proves it (framework as in AGENTS.md Stack); a user flow is proven by unit tests of the rules and services behind it. No task writes, changes or runs E2E tests; /mflow:e2e <screen> does that one screen at a time when the user calls it.
-    - A task runs its own test and the test classes that cover the code it changed (the test command filtered to them), with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
-    - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
-operations:
-  apply:
-    guidance:
-      - Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.
-      - When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
-      - Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
-      - Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it. Do the rest of the task, prove it with unit tests and the build, and add `E2E on request (/mflow:e2e <screen>)` to the task. A task whose only work is E2E stays unticked. When the change touched screens, name them to the user as screens whose E2E tests /mflow:e2e can write or update.
-```
-
-On a rerun, replace the lines an earlier mflow wrote under `rules.tasks` and `operations.apply.guidance` (the ones on tests, gate tasks, E2E and the apply subagent, in whatever wording that version used, such as "xUnit for rules, Playwright for user flows") with these, keep the project's own lines, and show the diff.
+The script puts mflow's list items between `# mflow:begin <version>` and `# mflow:end`, replaces whatever an earlier mflow wrote (with markers, or recognised by its wording), keeps the project's own lines and OpenSpec's comments, and quotes any line YAML would misread: OpenSpec ignores a `config.yaml` it cannot parse. What it reports under `problems` (a context on one line, a key that is not a list, a line of the project's own that YAML misreads) is fixed by hand; then run it again.
 
 `operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`) and stays off until the user runs `/mflow:subagent on`; do not switch it on during init.
 
-Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo.
+Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo, and `openspec-config.mjs --dry-run` reports `changed: false` with no problems.
 
 ## 5. Fill AGENTS.md from facts
 

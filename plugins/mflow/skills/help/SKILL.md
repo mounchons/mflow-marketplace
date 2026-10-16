@@ -18,7 +18,8 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 |---|---|
 | New repo, or first time using mflow here (it asks which stack first) | `/mflow:init` |
 | Check the setup, after an mflow upgrade, or when the briefing calls a CLI unavailable | `/mflow:help check setup` (runs the read-only doctor), then usually `/mflow:init` to take the changed templates |
-| Apply or a gate task still runs Playwright, or tasks still end with E2E tests (set up before 0.26) | rerun `/mflow:init`: it replaces the old test lines in `openspec/config.yaml`; apply then skips the E2E steps of an open change and leaves an E2E-only task unticked |
+| Apply or a gate task still runs Playwright, tasks still end with E2E tests, or doctor says `openspec/config.yaml` has an earlier mflow's lines or no markers | rerun `/mflow:init`: `openspec-config.mjs` replaces mflow's lines and keeps yours; apply then skips the E2E steps of an open change and leaves an E2E-only task unticked |
+| mflow's hook refused a Playwright run | run it again with `--workers=2`, and only from `/mflow:e2e` or `/mflow:test e2e`; to allow more browsers at once, set `e2eMaxWorkers` in `.mflow/config.json` |
 | `## Stack` has no `Project name (code)` (set up before 0.22), or the apps should follow the `<ProjectName>.Web.Frontend` / `.Web.Backend` / `.Api` naming | rerun `/mflow:init` (asks only the name), then `/mflow:discuss code-structure`; renaming an existing solution is a new code-structure doc and an OpenSpec change |
 | Change the stack before `/mflow:theme` has built the kit | edit AGENTS.md `## Stack`, or rerun `/mflow:init` to be asked again |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
@@ -55,5 +56,5 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Optional: have several AI tools analyze the system, a part of it or a document, then merge their checked findings | `/mflow:analyze <system \| "topic" \| @file> [--focus …] [--to …]`, then `/mflow:analyze <AN-NNN>` when reports are in |
 | Optional: have several AI tools propose a design for a module, API, data model or workflow, then merge them with their alternatives | `/mflow:design "topic" [--from @file] [--focus …] [--to …]`, then `/mflow:design <DS-NNN>` when reports are in |
 | Optional: have several AI tools try to break a design or document before it is built | `/mflow:challenge @file [--focus …] [--to …]`, then `/mflow:challenge <CH-NNN>` when reports are in |
-| Check code before merging | `/mflow:review <branch>` (reuses a `/mflow:test` record at the reviewed commit, or runs `/mflow:test since` on an earlier whole run; asks only when the whole suite is needed) |
+| Check code before merging | `/mflow:review <branch>` in full for business rules, permissions or data scope, queries, migrations, integrations or startup; `--short` for other code and for a fix after a review; no review for documents, styles or label text only (reuses a `/mflow:test` record at the reviewed commit, or runs `/mflow:test since` on an earlier whole run; asks only when the whole suite is needed) |
 | End of day, or switching to another tool | `/mflow:handoff [--for <tool>]` |

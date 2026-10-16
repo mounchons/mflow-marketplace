@@ -25,7 +25,7 @@ Done when: every scenario of the screen has a test, or the user narrowed the sco
 
 ## 3. Run
 
-- Only this screen's test files, in the foreground, after the build the E2E command needs (AGENTS.md `## Commands`), with at most 2 browsers at a time: `--workers=2` for Playwright Test, or the number the user gives. Playwright's default is half the CPU threads, 10 on a 20-thread laptop; that many browsers at once has crashed a laptop's graphics driver and restarted the machine.
+- Only this screen's test files, in the foreground, after the build the E2E command needs (AGENTS.md `## Commands`), with at most 2 browsers at a time: `--workers=2` for Playwright Test. `e2eMaxWorkers` in `.mflow/config.json` raises the cap when the user wants more, and mflow's hook refuses a Playwright run above it or without `--workers`. Playwright's default is half the CPU threads, 10 on a 20-thread laptop; that many browsers at once has crashed a laptop's graphics driver and restarted the machine.
 - Never the whole E2E suite here: that is `/mflow:test e2e`.
 - When AGENTS.md marks the E2E command `(unverified)` and this run worked, remove the mark.
 

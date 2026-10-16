@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.26)
+## คำสั่ง (v0.27)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -55,7 +55,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
-| | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) |
+| | `/mflow:review [branch] [--short]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) เต็มสำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ไม่ต้อง review ถ้าแก้แค่เอกสาร style หรือข้อความ label |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` ครั้งเดียวต่อ change เมื่อคุณสั่ง รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]]` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียวแล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
@@ -83,6 +83,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 ```
 
 - **PreToolUse** (เครื่องมือ Agent): ปฏิเสธการเรียก subagent `mflow:dev` เมื่อโปรเจกต์ยังไม่ได้เปิดด้วย `/mflow:subagent on` (ค่าเริ่มต้นคือปิด) subagent ตัวอื่นผ่านตามปกติ ถ้าอ่านค่าไม่ได้จะปฏิเสธไว้ก่อน และ hook นี้ทำงานในทุกโปรเจกต์ที่เปิด plugin ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้เลย
+- **PreToolUse** (Bash และ PowerShell): ปฏิเสธการรัน `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกินเพดาน (`e2eMaxWorkers` ใน `.mflow/config.json` ค่าเริ่มต้น 2) เพราะค่าเริ่มต้นของ Playwright เปิด browser เท่าครึ่งหนึ่งของ CPU thread จนเคยทำให้เครื่อง restart ดูเฉพาะคำสั่งที่ขึ้นต้นด้วย Playwright (หลัง `cd`, ตัวแปร env, `timeout`) การค้นข้อความอย่าง `grep "playwright test"` ผ่านได้ `--list` ผ่านได้ ถ้าอ่านค่าตั้งไม่ได้ hook ปล่อยผ่าน ไม่บล็อกคำสั่งอื่น
 
 Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน AGENTS.md แทน
 
@@ -126,6 +127,17 @@ E2E test ที่เขียนตอนหน้าจอยังเปล�
 - `/mflow:review` ไม่นับการไม่มี E2E test เป็นข้อบกพร่อง แค่บอกหน้าจอที่ยังรอ (`E2E on request`)
 - โปรเจกต์ที่ init ก่อน 0.26: รัน `/mflow:init` ซ้ำเพื่อแทนบรรทัดเรื่อง test ใน `openspec/config.yaml` และรับ Definition of done ใหม่ใน AGENTS.md `/mflow:help check setup` เตือนให้ และเตือนเมื่อ `playwright.config` ไม่ได้ตั้ง `workers` ไว้ (ควรตั้ง `workers: 2`)
 
+## mflow เขียนอะไรลง OpenSpec
+
+mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เดียว (OpenSpec ส่งไฟล์นี้ให้ AI ทุกครั้ง และ `openspec update` ไม่เขียนทับ) ไม่แก้ skill, command หรือ schema ของ OpenSpec
+
+- `scripts/openspec-config.mjs` เขียนบรรทัดของ mflow ใน `context`, `rules.proposal`, `rules.specs`, `rules.tasks` และ `operations.apply.guidance` (ตั้งแต่ 0.27) `/mflow:init` รันแบบ `--dry-run` ให้ดูว่าจะลบและเพิ่มอะไรก่อน แล้วจึงเขียน
+- บรรทัดของ mflow ใน list อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` รุ่นถัดไปแทนเฉพาะช่วงนั้น บรรทัดที่ mflow ก่อน 0.27 เขียนไว้ (ไม่มี marker) script จำได้จากถ้อยคำทุกรุ่น ส่วน `context` เป็นข้อความก้อนเดียว (comment จะกลายเป็นเนื้อหา) จึงจำจากถ้อยคำเสมอ บรรทัดของโปรเจกต์เองและ comment ของ OpenSpec คงไว้ path ตาม folder ใน `.mflow/config.json`
+- OpenSpec ทิ้ง `config.yaml` ทั้งไฟล์เมื่อ parse ไม่ได้ (เช่นมี `: ` ในบรรทัดของ list) script จึงใส่เครื่องหมายคำพูดให้บรรทัดที่ YAML จะอ่านผิด และรายงานบรรทัดของโปรเจกต์ที่เป็นแบบนั้น
+- `/mflow:help check setup` เตือนเมื่อ `config.yaml` ยังมีบรรทัดรุ่นเก่า ขาดบรรทัดปัจจุบัน หรือยังไม่มี marker
+- นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate และ `migrate-layout.mjs` แก้ path ใน `openspec/` ตอนย้าย layout
+
+
 ## Flow ประจำวัน
 
 1. ครั้งแรก: `/mflow:init` → `/mflow:discuss tech-stack` → `/mflow:discuss code-structure` (แนะนำก่อน theme ไม่บังคับ)
@@ -159,6 +171,8 @@ mflow/
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool
 │   ├─ apply-subagent.mjs  ← เปิด/ปิด mflow:dev (ค่าใน .mflow/, ค่าเริ่มต้นปิด)
 │   ├─ subagent-guard.mjs  ← hook PreToolUse ที่ปฏิเสธ mflow:dev เมื่อปิดอยู่
+│   ├─ e2e-guard.mjs       ← hook PreToolUse ที่ปฏิเสธ Playwright ที่ไม่จำกัดจำนวน browser
+│   ├─ openspec-config.mjs ← เขียนบรรทัดของ mflow ลง openspec/config.yaml (marker, แทนถ้อยคำรุ่นเก่า)
 │   ├─ doctor.mjs          ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ (อ่านอย่างเดียว)
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   ├─ consult.mjs         ← สถานะของ analyze/design/challenge (ไม่บังคับ) อ่านจากไฟล์จริง

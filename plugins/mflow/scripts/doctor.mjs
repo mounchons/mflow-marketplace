@@ -15,12 +15,13 @@ import { fileHash, scan } from "./source-index.mjs";
 import { list as listConsultations } from "./consult.mjs";
 import { projectDir, status as subagentStatus } from "./apply-subagent.mjs";
 import { plan as layoutPlan } from "./migrate-layout.mjs";
+import { plan as openspecConfigPlan } from "./openspec-config.mjs";
 
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const plugin = JSON.parse(fs.readFileSync(path.join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).version;
 const compat = JSON.parse(fs.readFileSync(path.join(PLUGIN, "compat.json"), "utf8"));
 const today = new Date().toISOString().slice(0, 10);
-const KNOWN_SETTINGS = ["version", "hotspotsDir", "sourceDir", "inboxDir", "discussDir", "statusLogEntriesInContext", "stopGuard", "applySubagent", "tools"];
+const KNOWN_SETTINGS = ["version", "hotspotsDir", "sourceDir", "inboxDir", "discussDir", "statusLogEntriesInContext", "stopGuard", "applySubagent", "tools", "e2eMaxWorkers"];
 
 const checks = [];
 const add = (id, status, detail, fix) => checks.push({ id, status, detail, ...(fix ? { fix } : {}) });
@@ -133,13 +134,21 @@ function projectChecks() {
       else add("openspec-project", "warn", "openspec list --json gave output mflow cannot read, so the briefing shows OpenSpec as unavailable", `Compare openspec ${openspec} with the tested ${compat.testedWith.openspec}`);
     }
   }
-  // The rules and guidance /mflow:init writes into openspec/config.yaml; reading them needs no CLI.
-  const yaml = exists(root, "openspec") ? readText(path.join(root, "openspec", "config.yaml")) ?? readText(path.join(root, "openspec", "config.yml")) : null;
-  if (yaml !== null) {
-    if (!yaml.includes("mflow:dev")) add("openspec-guidance", "warn", "openspec/config.yaml has no apply guidance naming mflow:dev (set up before 0.16)", "Run /mflow:init: it merges the guidance");
-    else if (!yaml.includes("/mflow:test")) add("openspec-guidance", "warn", "openspec/config.yaml has no rule naming /mflow:test (set up before 0.25), so changes may still end with a gate task and apply may run the whole suite", "Run /mflow:init: it merges the rule and the guidance");
-    else if (!yaml.includes("/mflow:e2e")) add("openspec-guidance", "warn", "openspec/config.yaml has no rule naming /mflow:e2e (set up before 0.26), so tasks may still end with E2E tests and apply may run the whole E2E suite", "Run /mflow:init: it replaces the old test lines");
-    else add("openspec-guidance", "ok", "openspec/config.yaml has the current rules and apply guidance");
+  // The lines /mflow:init writes into openspec/config.yaml (openspec-config.mjs); reading them needs no CLI.
+  if (exists(root, "openspec")) {
+    const merge = `node "${path.join(PLUGIN, "scripts", "openspec-config.mjs")}" --dry-run, then without --dry-run`;
+    try {
+      const p = openspecConfigPlan(root);
+      const name = p.file;
+      if (p.problems.length) add("openspec-guidance", "warn", `${name}: ${p.problems.join("; ")}`, `Fix those lines by hand, then run /mflow:init, or ${merge}`);
+      else if (p.created) add("openspec-guidance", "warn", `${name} is missing, so /opsx:* runs without mflow's context, rules and apply guidance`, `Run /mflow:init, or ${merge}`);
+      else if (p.removed.length) add("openspec-guidance", "warn", `${name} still has ${p.removed.length} line(s) an earlier mflow wrote, such as "${p.removed[0].slice(0, 80)}"${p.added.length ? `, and lacks ${p.added.length} of mflow ${plugin}'s` : ""}`, `Run /mflow:init: it replaces them and keeps your own lines. Or ${merge}`);
+      else if (p.added.length) add("openspec-guidance", "warn", `${name} lacks ${p.added.length} of mflow ${plugin}'s lines, such as "${p.added[0].slice(0, 80)}"`, `Run /mflow:init, or ${merge}`);
+      else if (p.changed) add("openspec-guidance", "warn", `${name} has mflow's lines without the # mflow:begin / # mflow:end markers (written before 0.27), so a later mflow cannot replace them exactly`, `Run /mflow:init, or ${merge}`);
+      else add("openspec-guidance", "ok", `${name} has mflow ${plugin}'s context, rules and apply guidance`);
+    } catch (err) {
+      add("openspec-guidance", "warn", `openspec/config.yaml could not be checked: ${err.message}`, "Fix it by hand, then run /mflow:help check setup again");
+    }
   }
 
   // E2E with no cap on browsers: Playwright then starts one per two CPU threads.

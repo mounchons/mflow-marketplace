@@ -9,6 +9,8 @@
 // they are recognised by their text (every wording any version wrote) and replaced too. The context is one
 // YAML string, where a comment would be text, so its lines are always recognised by their text. Folder names
 // follow .mflow/config.json: a project still in the layout before 0.20 keeps docs/hotspots and docs/discuss.
+// A line of the project's own that says one of mflow's lines in its own words (its own path to the data
+// dictionary, a note in brackets) stands in for it: mflow's wording is then left out, never set beside it.
 //
 // OpenSpec ignores the whole file when it cannot parse it, so an item YAML would misread (a ": " or " #"
 // inside, a leading indicator) is written in double quotes, and such an item of the project's own is
@@ -106,6 +108,15 @@ function normalise(text, dirs) {
     for (const name of [...new Set(names)].sort((a, b) => b.length - a.length)) t = t.split(name).join(`{${key}}`);
   }
   return t;
+}
+
+/** Two lines that differ only in the data dictionary's path or in notes in brackets say the same thing. */
+function variantKey(text, dirs) {
+  return normalise(text, dirs)
+    .replace(/(?:[\w.-]+\/)*PrototypeData\/README\.md/g, "{data}")
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/[.\s]+$/, "");
 }
 
 const render = (line, dirs) => line.replaceAll("{hotspots}", dirs.hotspots).replaceAll("{discuss}", dirs.discuss);
@@ -226,8 +237,9 @@ function mergeList(lines, key, dirs, report) {
   if (open) report.problems.push(`${key}: "# mflow:begin" without "# mflow:end"; only mflow's known lines were replaced`);
 
   const removedText = remove.filter((el) => el.kind === "item").map((el) => unquote(el.text));
-  const fresh = LINES[key].map((l) => render(l, dirs));
-  const block = [`${pad}# mflow:begin ${VERSION}`, ...fresh.map((l) => `${pad}- ${yamlItem(l)}`), `${pad}# mflow:end`];
+  const own = elements.filter((el) => el.kind === "item" && !remove.includes(el)).map((el) => variantKey(el.text, dirs));
+  const fresh = LINES[key].filter((l) => !own.includes(variantKey(l, dirs))).map((l) => render(l, dirs));
+  const block = fresh.length ? [`${pad}# mflow:begin ${VERSION}`, ...fresh.map((l) => `${pad}- ${yamlItem(l)}`), `${pad}# mflow:end`] : [];
   const drop = new Set(remove.flatMap((el) => Array.from({ length: el.to - el.from }, (_, n) => el.from + n)));
   const at = remove.length ? Math.min(...remove.map((el) => el.from)) : k + 1;
   const out = [];
@@ -241,8 +253,8 @@ function mergeList(lines, key, dirs, report) {
 
 /** Merge the context block: mflow's lines first, the project's own kept. */
 function mergeContext(lines, dirs, report) {
-  const fresh = LINES.context.map((l) => render(l, dirs));
-  let k = findKey(lines, 0, lines.length, 0, "context");
+  let fresh = LINES.context.map((l) => render(l, dirs));
+  const k = findKey(lines, 0, lines.length, 0, "context");
   if (k < 0) {
     const schema = findKey(lines, 0, lines.length, 0, "schema");
     const at = schema >= 0 ? blockOf(lines, schema, lines.length).last + 1 : 0;
@@ -256,6 +268,8 @@ function mergeContext(lines, dirs, report) {
   const firstLine = lines.slice(k + 1, end).find((l) => !blank(l) && indentOf(l) > 0);
   const pad = " ".repeat(firstLine ? indentOf(firstLine) : 2);
   const known = new Set(LINES.context.map((l) => normalise(l, dirs)));
+  const own = lines.slice(k + 1, end).filter((l) => !blank(l) && indentOf(l) > 0 && !known.has(normalise(l, dirs))).map((l) => variantKey(l, dirs));
+  fresh = LINES.context.filter((l) => !own.includes(variantKey(l, dirs))).map((l) => render(l, dirs));
   const removed = [];
   let at = -1;
   const out = [];

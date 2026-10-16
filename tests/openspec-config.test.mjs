@@ -108,6 +108,30 @@ test("an old config loses mflow's earlier wording, keeps the project's own lines
   assert.equal(merge().changed, false);
 });
 
+test("a project's own wording of an mflow line stands in for it, so the two never sit side by side", () => {
+  p = project();
+  p.write("openspec/config.yaml", `schema: spec-driven
+context: |
+  Read AGENTS.md for stack, commands, architecture and domain vocabulary.
+  The current data dictionary is apps/ThawSi.Api/PrototypeData/README.md until a change builds the entity (location from docs/decisions/discuss/02-code-structure.md).
+rules:
+  proposal:
+    - If the change adds or alters tables, link the approved data-model doc in docs/decisions/discuss/ and follow apps/ThawSi.Api/PrototypeData/README.md; state any difference.
+  tasks:
+    - Every task ends with the test that proves it (a unit test for rules, an E2E test for user flows; frameworks as in AGENTS.md Stack).
+    - A change that builds an aggregate ends by replacing its section in apps/ThawSi.Api/PrototypeData/README.md with a pointer to the entity and migration.
+`);
+  const r = merge();
+  const text = p.read("openspec/config.yaml");
+  assert.equal(text.match(/current data dictionary/g).length, 1, "one data dictionary line in the context");
+  assert.equal(text.match(/alters tables/g).length, 1);
+  assert.equal(text.match(/builds an aggregate/g).length, 1);
+  assert.match(text, /apps\/ThawSi\.Api\/PrototypeData\/README\.md with a pointer/, "the project's wording stays");
+  assert.doesNotMatch(text, /an E2E test for user flows/);
+  assert.ok(!r.added.some((l) => /data dictionary|alters tables|builds an aggregate/.test(l)), JSON.stringify(r.added));
+  assert.equal(merge().changed, false);
+});
+
 test("a later version replaces exactly what sits between the markers", () => {
   p = project();
   p.write("openspec/config.yaml", "schema: spec-driven\nrules:\n  tasks:\n    # mflow:begin 0.27.0\n    - Some wording mflow will never write again.\n    # mflow:end\n    - Keep the tasks small.\n");

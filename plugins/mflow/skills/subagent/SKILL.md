@@ -17,7 +17,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/apply-subagent.mjs" <on|off|status> [--
 Tell the user, in one or two lines: on or off now, which file decided it (`source`: local, shared or default), and every entry under `warnings`. The ones that matter:
 - a permission rule blocks it: a Claude Code deny rule (for example `Agent(mflow:dev)` in `~/.claude/settings.json`) keeps it off whatever mflow says; say which file, to be removed by hand.
 - local overrides shared: after `--shared`, this machine's `.mflow/local.json` still decides here.
-- no apply guidance: the project was initialised before 0.16, so `/opsx:apply` will not use the subagent even when on. Point to the 0.16 row of the manual's known issues, or `/mflow:init` to merge it.
+- no apply guidance in `openspec/config.yaml`, so `/opsx:apply` will not use the subagent even when on: `/mflow:init` writes it.
 
 Off takes effect at once: the hook checks the setting on every call. On takes effect from the next session or after `/clear`, when the briefing line that the apply guidance reads appears. To skip the subagent for one run only while it is on, no command is needed: say so in the `/opsx:apply` message.
 

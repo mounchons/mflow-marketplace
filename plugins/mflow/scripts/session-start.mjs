@@ -241,7 +241,7 @@ try {
   const offered = readJsonFile(path.join(root, ".mflow", "templates.json"))?.pluginVersion;
   const upgrade = [];
   if (!offered || compareVersions(offered, pluginVersion) < 0) {
-    upgrade.push(`- mflow ${pluginVersion} has templates newer than this project's (${offered ? `from ${offered}` : "set up before 0.18.0"}) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check`);
+    upgrade.push(`- mflow ${pluginVersion} has templates newer than this project's (${offered ? `from ${offered}` : "no record yet"}) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check`);
   }
   // Documents still in the layout before 0.20.0. The plan only looks at folders here; it reads no file.
   if (cfg && layoutPlan(root, { rewrites: false }).layout === "legacy") {

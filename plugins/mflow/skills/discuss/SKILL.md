@@ -81,7 +81,7 @@ Done when: the brief exists, every tool has a command with its own output path, 
      - **A tool's pick on an open decision:** one line per tool under `**Claude แนะนำ:**`, in the form `- **<tool> เลือก:** <option letter> — <reason> (<finding id>)`. An option a tool adds takes the next free letter. If the tools' reasons change Claude's view, update the recommendation and say why in the revision log.
      - **A fact or gap backed by evidence, with no trade-off:** revise the doc, and tag the new text `[เสนอ: <tool>]`. It stays a proposal until the user approves the doc.
      - **An alternative or a risk, or tools disagreeing with each other or with the doc:** a new `### D<n>` with each position as an attributed option, Claude's recommendation, and an empty `**เลือก:**`.
-     - **A question the sources cannot settle** (type `question`, or `customer-question` from briefs before 0.13): a new `### D<n>` for the user, with options and the tool named.
+     - **A question the sources cannot settle** (type `question`): a new `### D<n>` for the user, with options and the tool named.
      - **Something to watch when testing:** a line in section 5, attributed to the tool.
      - **Wrong on evidence, or already covered:** not used, with the reason.
    - Every finding, used or not, gets one row in section 8. That table is the assessment; write no `.assessment.md`. Then set each report's frontmatter to `status: assessed`.
@@ -139,7 +139,7 @@ Done when: every agreed item exists at its destination, the doc is frozen, STATU
 
 ## Mode: agenda (`agenda`, `agenda <feedback>`, `agenda skip <slug> <reason>`)
 
-`docs/decisions/discuss/AGENDA.md` recommends the topics worth a discussion doc, with the reason for each and when to have it. It is advice, never a gate: no skill waits for it, and the user may take any topic in any order, or none. `/mflow:capture` and `/mflow:screen inventory` add rows as documents and screens arrive. This mode builds it from everything at once, which is how a project captured before mflow 0.15 gets one, and how the user asks for a fresh look.
+`docs/decisions/discuss/AGENDA.md` recommends the topics worth a discussion doc, with the reason for each and when to have it. It is advice, never a gate: no skill waits for it, and the user may take any topic in any order, or none. `/mflow:capture` and `/mflow:screen inventory` add rows as documents and screens arrive. This mode builds it from everything at once, which is how a project without one gets it, and how the user asks for a fresh look.
 
 1. Run `agenda init`. It creates the file from [assets/agenda.md](assets/agenda.md) if it is missing and never overwrites it.
 2. **Gather.** The active files in `docs/source/INDEX.md` (never superseded ones), `docs/vision.md`, the Domain vocabulary in AGENTS.md, `docs/decisions/hotspots/INDEX.md`, `docs/ui/screens.md` if it exists, and the docs in `list`. Read only the sections a topic needs.

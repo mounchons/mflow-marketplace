@@ -6,8 +6,7 @@
 // .mflow/templates.json records each template offered (a hash of the plugin's template text) and the
 // plugin version that offered it. A rerun, such as /mflow:init after an upgrade, offers only the
 // templates that changed since: one the user already merged, or chose to keep their own version of,
-// is listed under `kept` and not offered again. A project set up before the record existed gets every
-// differing template once, as before.
+// is listed under `kept` and not offered again.
 //
 // Usage: node scaffold.mjs [--root <dir>] [--name <project name>] [--dry-run]
 import crypto from "node:crypto";

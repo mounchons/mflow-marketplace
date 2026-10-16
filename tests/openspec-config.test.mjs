@@ -27,8 +27,8 @@ const OPENSPEC_TEMPLATE = `schema: spec-driven
 #         - Keep test summaries concise
 `;
 
-// A project set up by mflow 0.1 to 0.24 in the layout before 0.20, with lines of its own.
-const OLD = `schema: spec-driven
+// mflow's lines without markers (copied by hand), in the layout before 0.20, with lines of the project's own.
+const UNMARKED = `schema: spec-driven
 
 context: |
   Read AGENTS.md for stack, commands, architecture and domain vocabulary.
@@ -44,7 +44,6 @@ rules:
   specs:
     - Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.
   tasks:
-    - Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).
     - Name tests after the UAT step.
     - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
 operations:
@@ -92,14 +91,15 @@ test("a new project gets every line between markers, keeps OpenSpec's comments, 
   assert.equal(merge().changed, false, "a rerun changes nothing");
 });
 
-test("an old config loses mflow's earlier wording, keeps the project's own lines and its folders", () => {
+test("mflow's lines without markers are taken in, the missing ones added; the project's own lines and folders stay", () => {
   p = project({ hotspotsDir: "docs/hotspots", discussDir: "docs/discuss" });
-  p.write("openspec/config.yaml", OLD);
+  p.write("openspec/config.yaml", UNMARKED);
   const r = merge();
-  assert.deepEqual(r.removed, ["Every task ends with the test that proves it (xUnit for rules, Playwright for user flows)."]);
+  assert.deepEqual(r.removed, []);
   assert.ok(r.added.some((l) => l.startsWith("Never run E2E tests")));
+  assert.ok(!r.added.some((l) => l.startsWith("Only when this session")), "a line already there is not added again");
   const text = p.read("openspec/config.yaml");
-  assert.doesNotMatch(text, /Playwright for user flows/);
+  assert.equal(text.match(/Only when this session/g).length, 1);
   assert.match(text, /    - Name tests after the UAT step\./, "the project's own task rule stays");
   assert.match(text, /  Dates are shown in Asia\/Bangkok\./, "the project's own context line stays");
   assert.match(text, /docs\/hotspots\/<slug>\/rules\.md in the proposal/);
@@ -118,7 +118,6 @@ rules:
   proposal:
     - If the change adds or alters tables, link the approved data-model doc in docs/decisions/discuss/ and follow apps/ThawSi.Api/PrototypeData/README.md; state any difference.
   tasks:
-    - Every task ends with the test that proves it (a unit test for rules, an E2E test for user flows; frameworks as in AGENTS.md Stack).
     - A change that builds an aggregate ends by replacing its section in apps/ThawSi.Api/PrototypeData/README.md with a pointer to the entity and migration.
 `);
   const r = merge();
@@ -127,7 +126,6 @@ rules:
   assert.equal(text.match(/alters tables/g).length, 1);
   assert.equal(text.match(/builds an aggregate/g).length, 1);
   assert.match(text, /apps\/ThawSi\.Api\/PrototypeData\/README\.md with a pointer/, "the project's wording stays");
-  assert.doesNotMatch(text, /an E2E test for user flows/);
   assert.ok(!r.added.some((l) => /data dictionary|alters tables|builds an aggregate/.test(l)), JSON.stringify(r.added));
   assert.equal(merge().changed, false);
 });
@@ -171,7 +169,7 @@ test("--dry-run writes nothing, line endings are kept, and a missing file is cre
 const openspec = spawnSync("openspec", ["--version"], { encoding: "utf8", shell: true });
 test("OpenSpec reads the merged file: the context, the task rules and every apply guidance line", { skip: openspec.status !== 0 && "the openspec CLI is not installed" }, () => {
   p = project({ hotspotsDir: "docs/hotspots", discussDir: "docs/discuss" });
-  p.write("openspec/config.yaml", OLD);
+  p.write("openspec/config.yaml", UNMARKED);
   p.write("openspec/changes/demo/.openspec.yaml", "schema: spec-driven\n");
   p.write("openspec/changes/demo/proposal.md", "## Why\nx\n\n## What Changes\n- x\n");
   p.write("openspec/changes/demo/tasks.md", "## 1. A\n- [ ] 1.1 do\n");

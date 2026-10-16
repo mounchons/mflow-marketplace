@@ -117,7 +117,6 @@ function projectChecks() {
   else {
     const gaps = [];
     if (!/^## Stack\b/m.test(agents) || /^Profile:\s*TODO\s*$/m.test(agents)) gaps.push("no stack profile in ## Stack");
-    if (!/^## Who decides\b/m.test(agents)) gaps.push("no ## Who decides section (older template)");
     if (gaps.length) add("agents", "warn", `AGENTS.md: ${gaps.join("; ")}`, "Run /mflow:init: it keeps your text and merges the missing parts");
     else add("agents", "ok", "AGENTS.md has a stack profile and the current sections");
   }
@@ -144,7 +143,7 @@ function projectChecks() {
       else if (p.created) add("openspec-guidance", "warn", `${name} is missing, so /opsx:* runs without mflow's context, rules and apply guidance`, `Run /mflow:init, or ${merge}`);
       else if (p.removed.length) add("openspec-guidance", "warn", `${name} still has ${p.removed.length} line(s) an earlier mflow wrote, such as "${p.removed[0].slice(0, 80)}"${p.added.length ? `, and lacks ${p.added.length} of mflow ${plugin}'s` : ""}`, `Run /mflow:init: it replaces them and keeps your own lines. Or ${merge}`);
       else if (p.added.length) add("openspec-guidance", "warn", `${name} lacks ${p.added.length} of mflow ${plugin}'s lines, such as "${p.added[0].slice(0, 80)}"`, `Run /mflow:init, or ${merge}`);
-      else if (p.changed) add("openspec-guidance", "warn", `${name} has mflow's lines without the # mflow:begin / # mflow:end markers (written before 0.27), so a later mflow cannot replace them exactly`, `Run /mflow:init, or ${merge}`);
+      else if (p.changed) add("openspec-guidance", "warn", `${name} has mflow's lines without the # mflow:begin / # mflow:end markers, so a later mflow cannot replace them exactly`, `Run /mflow:init, or ${merge}`);
       else add("openspec-guidance", "ok", `${name} has mflow ${plugin}'s context, rules and apply guidance`);
     } catch (err) {
       add("openspec-guidance", "warn", `openspec/config.yaml could not be checked: ${err.message}`, "Fix it by hand, then run /mflow:help check setup again");
@@ -166,16 +165,13 @@ function projectChecks() {
     }
   }
 
-  // Upgrades: which plugin version last offered its templates, and leftovers of older versions.
+  // Upgrades: which plugin version last offered its templates.
   let record = null;
-  try { record = readJsonFile(path.join(root, ".mflow", "templates.json")); } catch { /* reported below as unknown */ }
-  if (!record?.pluginVersion) add("templates", "info", "set up before mflow 0.18.0, which started recording the templates it offers", "The next /mflow:init offers the templates that differ, once");
+  try { record = readJsonFile(path.join(root, ".mflow", "templates.json")); } catch { /* reported below as missing */ }
+  if (!record?.pluginVersion) add("templates", "warn", ".mflow/templates.json is missing, so mflow cannot tell which templates this project took", "Run /mflow:init: it offers the templates that differ, once");
   else if (cmp(record.pluginVersion, plugin) < 0) add("templates", "warn", `templates last offered by mflow ${record.pluginVersion}; this is ${plugin}`, "Run /mflow:init: it offers only the templates that changed");
   else add("templates", "ok", `templates offered by mflow ${record.pluginVersion}`);
   if (exists(root, ".mflow", "suggested")) add("suggested", "warn", ".mflow/suggested/ still holds templates to merge", "Finish /mflow:init step 3: merge each one, show the diff, then delete the folder");
-  const cacheDir = path.join(root, ".mflow", "cache");
-  const oldCache = fs.existsSync(cacheDir) ? fs.readdirSync(cacheDir).filter((f) => f.endsWith(".md") && fs.statSync(path.join(cacheDir, f)).isFile()) : [];
-  if (oldCache.length) add("cache", "warn", `${oldCache.length} text version(s) in the pre-0.17.2 layout .mflow/cache/<name>.md, no longer read`, "Delete them; capture and consult convert again under .mflow/cache/<path>.<hash>.md");
 
   // Consultations (optional): a session file that cannot be read hides nothing, but should be fixed.
   try {
@@ -201,7 +197,7 @@ function projectChecks() {
     } else add("golden", "ok", `${meta} matches the current ${info.source}`);
   }
 
-  // Prototype mode that production could turn on (kits built before 0.17.1).
+  // Prototype mode that production could turn on: the flag is read, but no startup check refuses it.
   const cs = codeFiles(root, ".cs");
   const flagged = cs.filter((f) => (readText(path.join(root, f)) || "").includes("Prototype:UseFakeData"));
   if (flagged.length) {

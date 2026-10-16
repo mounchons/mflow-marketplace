@@ -18,9 +18,9 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 |---|---|
 | New repo, or first time using mflow here (it asks which stack first) | `/mflow:init` |
 | Check the setup, after an mflow upgrade, or when the briefing calls a CLI unavailable | `/mflow:help check setup` (runs the read-only doctor), then usually `/mflow:init` to take the changed templates |
-| Apply or a gate task still runs Playwright, tasks still end with E2E tests, or doctor says `openspec/config.yaml` has an earlier mflow's lines or no markers | rerun `/mflow:init`: `openspec-config.mjs` replaces mflow's lines and keeps yours; apply then skips the E2E steps of an open change and leaves an E2E-only task unticked |
+| Doctor says `openspec/config.yaml` lacks mflow's lines or their markers | rerun `/mflow:init`: `openspec-config.mjs` writes mflow's lines between the markers and keeps yours |
 | mflow's hook refused a Playwright run | run it again with `--workers=2`, and only from `/mflow:e2e` or `/mflow:test e2e`; to allow more browsers at once, set `e2eMaxWorkers` in `.mflow/config.json` |
-| `## Stack` has no `Project name (code)` (set up before 0.22), or the apps should follow the `<ProjectName>.Web.Frontend` / `.Web.Backend` / `.Api` naming | rerun `/mflow:init` (asks only the name), then `/mflow:discuss code-structure`; renaming an existing solution is a new code-structure doc and an OpenSpec change |
+| `## Stack` has no `Project name (code)`, or the apps should follow the `<ProjectName>.Web.Frontend` / `.Web.Backend` / `.Api` naming | rerun `/mflow:init` (asks only the name), then `/mflow:discuss code-structure`; renaming an existing solution is a new code-structure doc and an OpenSpec change |
 | Change the stack before `/mflow:theme` has built the kit | edit AGENTS.md `## Stack`, or rerun `/mflow:init` to be asked again |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
 | Check that Claude's understanding or design of a topic matches yours (roles, permissions, menus, data visibility…) before screens depend on it | `/mflow:discuss <topic> [@files]` |
@@ -31,12 +31,12 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Before building any screen | `/mflow:theme` |
 | Agree the look and the responsive menu before the app exists | `/mflow:theme preview` → approve → `/mflow:theme port` (inside the change that scaffolds the app) |
 | Change colors, fonts or a shared component | `/mflow:theme update <what>` |
-| The kit has no ☰ menu, or pages do not reflow on small windows (kits built before 0.11) | `/mflow:theme update responsive` |
+| The kit has no ☰ menu, or pages do not reflow on small windows | `/mflow:theme update responsive` |
 | Which topics should be discussed before building? | `/mflow:discuss` shows the agenda; `/mflow:discuss agenda` builds or refreshes it |
-| The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView (kits built before 0.14), or QuickView and the table icon column (before 0.21) | `/mflow:theme update components` |
+| The kit lacks the pager, optional header search, date picker, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading or DetailView, or QuickView and the table icon column | `/mflow:theme update components` |
 | Give the kit mflow's house style (navy sidebar, white top bar, sky blue, Inter + Noto Sans Thai, Font Awesome) with the customer's colors, or redo the look (with the frontend-design skill when installed) | `/mflow:theme update look` |
-| The top bar lacks search, the scope chip or the user block, or phones need a bottom tab bar (kits built before 0.23) | `/mflow:theme update components` |
-| The kit looks grey: statuses share one color, no colored avatars or KPI icon tiles (kits built before 0.24) | `/mflow:theme update look` for the bright hues, then `/mflow:theme update components` for the status colors, avatars and KPI tiles |
+| The top bar lacks search, the scope chip or the user block, or phones need a bottom tab bar | `/mflow:theme update components` |
+| The kit looks grey: statuses share one color, no colored avatars or KPI icon tiles | `/mflow:theme update look` for the bright hues, then `/mflow:theme update components` for the status colors, avatars and KPI tiles |
 | Change the date format (pattern or ค.ศ./พ.ศ.) or get the English and Thai date picker | `/mflow:theme update date-picker` |
 | List the screens for a release | `/mflow:screen inventory` |
 | Build or change a prototype screen | `/mflow:screen <name> <what>` |

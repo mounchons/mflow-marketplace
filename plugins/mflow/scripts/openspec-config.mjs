@@ -5,9 +5,9 @@
 // OpenSpec's skills, commands or schema.
 //
 // mflow's list items sit between `# mflow:begin <version>` and `# mflow:end`, so a later version replaces
-// exactly them and leaves the project's own items alone. Items an mflow before 0.27 wrote have no markers:
-// they are recognised by their text (every wording any version wrote) and replaced too. The context is one
-// YAML string, where a comment would be text, so its lines are always recognised by their text. Folder names
+// exactly them and leaves the project's own items alone; an item with mflow's exact wording outside them is
+// taken in too. The context is one YAML string, where a comment would be text, so its lines are recognised
+// by their text. Folder names
 // follow .mflow/config.json: a project still in the layout before 0.20 keeps docs/hotspots and docs/discuss.
 // A line of the project's own that says one of mflow's lines in its own words (its own path to the data
 // dictionary, a note in brackets) stands in for it: mflow's wording is then left out, never set beside it.
@@ -52,24 +52,6 @@ export const LINES = {
     "Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.",
     "When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).",
     "Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command, and name the review that follows from the files the change touched (a full /mflow:review for business rules, permissions or data scope, queries, migrations, integrations or startup wiring; no review for documents, styles or label text only; /mflow:review --short for anything else).",
-    "Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it. Do the rest of the task, prove it with unit tests and the build, and add `E2E on request (/mflow:e2e <screen>)` to the task. A task whose only work is E2E stays unticked. When the change touched screens, name them to the user as screens whose E2E tests /mflow:e2e can write or update.",
-  ],
-};
-
-// The other wordings an earlier mflow wrote under each key (from 0.1 on), so a rerun recognises and replaces them.
-const EARLIER = {
-  "rules.tasks": [
-    "Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).",
-    "Every task ends with the test that proves it (a unit test for rules, an E2E test for user flows; frameworks as in AGENTS.md Stack).",
-    "Every task ends with the unit test that proves it (framework as in AGENTS.md Stack); a user flow is proven by unit tests of the rules and services behind it. No task writes, changes or runs E2E tests; /mflow:e2e <screen> does that one screen at a time when the user calls it.",
-    "A task's test runs alone (the test command filtered to it) with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.",
-  ],
-  "operations.apply.guidance": [
-    "In Claude Code, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). Whether it is on is decided only by this session's agent list and permission rules (/mflow:subagent on|off), never by notes or memories from earlier sessions. Where it is not available, or a permission rule denies the call, implement every task yourself without pausing to ask.",
-    "Before marking a task `- [x]` and starting the next one, check the subagent's diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).",
-    "Run only each task's own test (filtered to it), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.",
-    "Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.",
-    "Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it: do the rest of the task, prove it with unit tests and the build, and add `E2E: /mflow:e2e <screen>` to the task. A task whose only work is E2E stays unticked. When the change touched screens, name them to the user as screens whose E2E tests /mflow:e2e can write or update.",
     "Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it. Do the rest of the task, prove it with unit tests and the build, and add `E2E on request (/mflow:e2e <screen>)` to the task. A task whose only work is E2E stays unticked. When the change touched screens, name them to the user as screens whose E2E tests /mflow:e2e can write or update.",
   ],
 };
@@ -219,7 +201,7 @@ function mergeList(lines, key, dirs, report) {
     i++;
   }
 
-  const known = new Set([...(LINES[key] || []), ...(EARLIER[key] || [])].map((l) => normalise(l, dirs)));
+  const known = new Set(LINES[key].map((l) => normalise(l, dirs)));
   const remove = [];
   let open = null;
   for (const el of elements) {

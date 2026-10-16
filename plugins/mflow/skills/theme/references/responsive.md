@@ -56,7 +56,7 @@ A drawer's open state is never remembered.
 
 ## 5. Verify at the acceptance sizes
 
-No acceptance sizes in `docs/ui/design-system.md` yet (a kit built before mflow 0.11): ask for them as §1 describes, write the Devices and acceptance-size lines, then check.
+No acceptance sizes in `docs/ui/design-system.md` yet: ask for them as §1 describes, write the Devices and acceptance-size lines, then check.
 
 How to check: when the E2E framework is set up, open the page at each size through its viewport setting and look at the screenshots. Without one, report each size check as `(unverified)` in the report and STATUS.md, the way `/mflow:init` marks commands it could not run. A size check is never claimed without having been looked at.
 

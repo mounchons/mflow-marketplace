@@ -12,7 +12,7 @@ Use it when the app is not scaffolded yet, when the stack is `custom`, or when t
 | Approved, not ported | the preview | `approved <date>` | the preview |
 | Ported | the stack (paths in AGENTS.md `## Stack`) | `frozen <date>, kit in <path>` | the stack kit only; the frozen preview is never edited again |
 
-`docs/ui/design-system.md` Decisions names where the kit lives now, and port changes that line. `/mflow:screen` builds no screen while the status is `draft` or `approved`. A README with no status line comes from a kit made before mflow 0.12, and the older check applies.
+`docs/ui/design-system.md` Decisions names where the kit lives now, and port changes that line. `/mflow:screen` builds no screen while the status is `draft` or `approved`. A README with no status line counts as a kit already in the stack.
 
 ## What the preview holds
 

@@ -32,7 +32,7 @@ For `custom`, fill every row for the named stack. The prototype-mode flag row mu
 
 ## Asking
 
-`/mflow:init` asks this right after its inventory report. Any other skill that finds no `## Stack`, or `Profile: TODO`, asks it before doing anything else. That covers projects set up before mflow 0.10.
+`/mflow:init` asks this right after its inventory report. Any other skill that finds no `## Stack`, or `Profile: TODO`, asks it before doing anything else.
 
 1. **Infer.** Take the evidence from the repo: `*.csproj` with `Views/` points to a); `package.json` with `vite` beside an ASP.NET Core Web API points to b); anything else points to c), naming what was found. In an empty repo, recommend a), the fully supported profile.
 2. **Ask, always**, while `## Stack` has no profile, even when the evidence is clear (a profile already chosen is kept on a rerun, as `/mflow:init` step 2 says). Show the options `a)` `b)` `c)`, one line each, with the recommendation and its evidence. A letter is a full answer. For c), ask which stack.
@@ -44,7 +44,7 @@ Done when: AGENTS.md has `## Stack` with a project name and a profile, and every
 
 The name in code that every project, folder and namespace starts with: `<ProjectName>.Domain`, `<ProjectName>.Api`, `<ProjectName>.Web.Backend` (the app names are in code-structure, `${CLAUDE_PLUGIN_ROOT}/skills/discuss/references/topics.md`). It is not the display name of the AGENTS.md title or `backlog init`, which may be Thai.
 
-`/mflow:init` asks it in the same message as the stack. A skill or discussion that needs it and finds `Project name (code)` missing or `TODO` (projects set up before mflow 0.22) asks it first, the same way; a repo whose solution already exists offers its current prefix as the recommendation.
+`/mflow:init` asks it in the same message as the stack. A skill or discussion that needs it and finds `Project name (code)` missing or `TODO` asks it first, the same way; a repo whose solution already exists offers its current prefix as the recommendation.
 
 - **Suggest three, recommend one,** then "or type your own": a) what the customer calls the system, in English or transliterated (ระบบบริหารบุคลากรโรงเรียน → `SchoolHr`); b) the display name or folder name in PascalCase (`school-hr-system` → `SchoolHrSystem`); c) a short brand-like name (`KruHub`). A letter or a typed name is a full answer.
 - **Rules for any name, suggested or typed:** ASCII letters and digits in PascalCase, starting with a letter; no spaces, hyphens or underscores; a company prefix only as `Company.Product` (`Acme.SchoolHr`); about 20 characters at most, so `<ProjectName>.Web.Frontend.Tests` stays readable; never a name that clashes with .NET or reads as a layer or a kind (`System`, `Microsoft`, `App`, `Web`, `Api`, `Core`, `Domain`). A typed name that breaks a rule gets the nearest valid form offered back.

@@ -13,7 +13,7 @@ These apply to creating and adjusting a screen. `inventory` needs none of them: 
 
 - AGENTS.md has `## Stack` with a profile. If it is missing or its profile is `TODO`, ask first, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write the section before anything else. Names below (controller, ViewModel, `PrototypeDataStore`, `Prototype:UseFakeData`) are the `mvc-htmx` form; under another profile, build the equivalents at the paths `## Stack` gives.
 - `docs/ui/design-system.md` exists. If not, stop and ask the user to run `/mflow:theme` first; screens without the kit drift apart.
-- The kit is in the stack, not only in a static preview. If `docs/ui/theme/README.md` says `Status: draft` or `Status: approved`, stop and suggest `/mflow:theme port`, or first an `/opsx:propose` change that scaffolds the app if it does not exist yet. A README with no status line predates mflow 0.12; the check above is enough.
+- The kit is in the stack, not only in a static preview. If `docs/ui/theme/README.md` says `Status: draft` or `Status: approved`, stop and suggest `/mflow:theme port`, or first an `/opsx:propose` change that scaffolds the app if it does not exist yet. A README with no status line counts as a kit already in the stack.
 - Data follows [references/prototype-data.md](references/prototype-data.md).
 - The access seams exist (`Permissions`, `ICurrentUser`, `MenuDefinition`, `FakeCurrentUser`, `users.json`, `roles.json`; see "Current user, permissions and the role switcher" in that file). A kit built before them needs `/mflow:theme update access` first.
 

@@ -26,7 +26,7 @@ Ask two things in one message, right after the inventory and before any file is 
 1. Which stack this project uses, as "Asking" in [references/stacks.md](references/stacks.md) describes: options `a)` `b)` `c)`, a recommendation with its evidence from step 1.
 2. The project name in code, which every project, folder and namespace starts with (`<ProjectName>.Api`, `<ProjectName>.Web.Backend`), as "Project name" in the same file describes: three suggestions with one recommended, or a name of the user's own.
 
-A letter for each, or a typed name, is a full answer. When AGENTS.md already has a filled `## Stack` (a rerun, such as after an mflow upgrade), show it and carry on with it: a rerun to take new templates is not a stack change, and the user changes it by saying so. If that `## Stack` has no `Project name (code)` yet (set up before mflow 0.22), ask only the name.
+A letter for each, or a typed name, is a full answer. When AGENTS.md already has a filled `## Stack` (a rerun, such as after an mflow upgrade), show it and carry on with it: a rerun to take new templates is not a stack change, and the user changes it by saying so. If that `## Stack` has no `Project name (code)` yet, ask only the name.
 
 Done when: the profile and the project name are chosen or kept, and for c) the filled rows are written and shown.
 

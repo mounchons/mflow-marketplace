@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.27)
+## คำสั่ง (v0.28)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -42,7 +42,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | | `/mflow:discuss tech-stack` / `code-structure` | สองหัวข้อแรกของทุกโปรเจกต์ (ก่อน `/mflow:theme`): แยก web / API / mobile, framework, library ที่เป็น open source และตรวจ licence แล้ว, PostgreSQL + EF Core, Docker, ตัวเสริมที่ใส่ภายหลัง (Redis, queue) และโครง solution แยก layer ตามมาตรฐานของทีม (อ่านจาก knowledge base เช่น Graph Brain ถ้าเชื่อมไว้) |
 | | `/mflow:discuss agenda [skip <slug> <เหตุผล>]` | สร้างหรือเรียง `docs/decisions/discuss/AGENDA.md` ใหม่: หัวข้อที่ควร discuss พร้อมเหตุผล ที่มา และควรคุยก่อนขั้นไหน (capture และ screen inventory เพิ่มให้เอง สถานะอัปเดตเอง) เป็นคำแนะนำ ไม่บังคับ |
-| หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, คอลัมน์ไอคอนที่เทียบกันระหว่างแถว, `QuickView` ดูรายละเอียดใน Dialog หรือ SidePanel โดยไม่เปลี่ยนหน้า, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้าตามาตรฐานของ mflow (house style: sidebar สีกรมท่า, top bar สีขาวมีช่องค้นหา กระดิ่ง ป้ายสาขา และผู้ใช้, สีฟ้า `#0ea5e9`, ชุดสีสด 10 เฉดให้สถานะ avatar การ์ด KPI และไอคอนประเภท, ฟอนต์ Inter + Noto Sans Thai, ไอคอน Font Awesome 6) ปรับสีตาม CI ของลูกค้าได้ (ใช้ skill `frontend-design` ช่วยถ้าติดตั้งไว้), หน้า style guide, กฎ UI สำหรับ agent; `update look` ทำหน้าตาใหม่, `update responsive` สำหรับ kit ก่อน 0.11, `update components` สำหรับ kit ก่อน 0.14, 0.21, 0.23 และ 0.24 |
+| หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, คอลัมน์ไอคอนที่เทียบกันระหว่างแถว, `QuickView` ดูรายละเอียดใน Dialog หรือ SidePanel โดยไม่เปลี่ยนหน้า, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้าตามาตรฐานของ mflow (house style: sidebar สีกรมท่า, top bar สีขาวมีช่องค้นหา กระดิ่ง ป้ายสาขา และผู้ใช้, สีฟ้า `#0ea5e9`, ชุดสีสด 10 เฉดให้สถานะ avatar การ์ด KPI และไอคอนประเภท, ฟอนต์ Inter + Noto Sans Thai, ไอคอน Font Awesome 6) ปรับสีตาม CI ของลูกค้าได้ (ใช้ skill `frontend-design` ช่วยถ้าติดตั้งไว้), หน้า style guide, กฎ UI สำหรับ agent; `update look` ทำหน้าตาใหม่, `update responsive` และ `update components` เติมส่วนที่ kit ยังไม่มี |
 | | `/mflow:theme preview` / `port` | ทำ kit เป็น static preview (HTML/CSS/JS) ใน `docs/ui/theme/` ให้อนุมัติก่อนมีโค้ดแอป แล้ว `port` เข้า stack จริงและ freeze preview ไว้เป็นหลักฐาน |
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
 | | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง รายการเปิดรายละเอียดของแถวใน `QuickView` (Dialog หรือ SidePanel) โดยไม่เปลี่ยนหน้า |
@@ -71,7 +71,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | b) | `react-vite`: React + Vite + ASP.NET Core Web API | contract เดียวกันในรูป React component |
 | c) | `custom`: stack อื่น เช่น Next.js, Laravel, Django | Claude เติมตาราง mapping ให้ยืนยันก่อน ยังไม่ได้ทดสอบกับ mflow |
 
-คำตอบบันทึกไว้ที่ `## Stack` ใน AGENTS.md ที่เดียว แล้ว `theme`, `screen`, `golden`, `review` อ่าน path และชื่อจากตรงนั้น profile นี้เป็นแค่จุดเริ่ม: หัวข้อ `tech-stack` (หัวข้อแรกใน AGENDA.md) ตกลงรายละเอียดทั้งแอป library ที่ตรวจ licence ฐานข้อมูล Docker และตัวเสริมที่ใส่ภายหลัง แล้วเติมตาราง Apps, Libraries และบรรทัด Later ใน `## Stack` โปรเจกต์ที่ init ก่อน 0.10 จะถูกถามเมื่อใช้คำสั่งเหล่านี้ครั้งแรก รายละเอียดอยู่ใน `skills/init/references/stacks.md`
+คำตอบบันทึกไว้ที่ `## Stack` ใน AGENTS.md ที่เดียว แล้ว `theme`, `screen`, `golden`, `review` อ่าน path และชื่อจากตรงนั้น profile นี้เป็นแค่จุดเริ่ม: หัวข้อ `tech-stack` (หัวข้อแรกใน AGENDA.md) ตกลงรายละเอียดทั้งแอป library ที่ตรวจ licence ฐานข้อมูล Docker และตัวเสริมที่ใส่ภายหลัง แล้วเติมตาราง Apps, Libraries และบรรทัด Later ใน `## Stack` รายละเอียดอยู่ใน `skills/init/references/stacks.md`
 
 ## Hooks (ทำงานเฉพาะ repo ที่มี `.mflow/config.json`)
 
@@ -106,17 +106,16 @@ Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน 
 
 ## Test ระหว่าง apply และ `/mflow:test`
 
-test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดแค่ครั้งเดียวต่อ change และรันตอนที่คุณสั่ง (ตั้งแต่ 0.25)
+test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดแค่ครั้งเดียวต่อ change และรันตอนที่คุณสั่ง
 
 - `/opsx:apply` รันเฉพาะ test ของ task นั้นและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รันทั้งชุด สิ่งที่พังจึงเจอตั้งแต่ task ที่ทำให้พัง และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - `/mflow:test` รัน build, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว และ `openspec validate --strict` รันทีละส่วนให้จบในเวลาที่ shell รอได้ ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะเคยทำให้หน่วยความจำไม่พอจนถูกหยุดกลางทาง ส่วนที่แบ่งไว้บันทึกเป็นบรรทัด `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ
 - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
-- commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่ (0.25.1)
+- commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
 - ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Result:`, เวลาของแต่ละส่วน) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง จะติ๊ก gate task ของ change ให้
 - `/mflow:review` ใช้ผลรันทั้งชุดหรือ `since` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า จะรัน `since` เอง (ปกติไม่กี่นาที) ถามเฉพาะเมื่อต้องรันทั้งชุด ว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง (คำตัดสิน `none` จนกว่าจะมีผล test) `approve` ต้องมีหลักฐานว่าทั้งชุดผ่านที่ commit ที่ตรวจเสมอ (รันทั้งชุดที่นั่น หรือ `since` ต่อจากการรันทั้งชุดครั้งก่อน)
-- โปรเจกต์ที่ init ก่อน 0.25: รัน `/mflow:init` ซ้ำเพื่อ merge กฎใน `openspec/config.yaml` (`/mflow:help check setup` เตือนให้)
 
-## E2E test เขียนและรันเมื่อคุณสั่งเท่านั้น (ตั้งแต่ 0.26)
+## E2E test เขียนและรันเมื่อคุณสั่งเท่านั้น
 
 E2E test ที่เขียนตอนหน้าจอยังเปลี่ยนอยู่ต้องตามแก้ทุกครั้งที่หน้าจอเปลี่ยน และการรันทั้งชุดเปิด browser หลายตัวพร้อมกัน ในโปรเจกต์จริง Playwright รัน 472 test ด้วย 10 workers (ค่าเริ่มต้นคือครึ่งหนึ่งของ CPU thread) แล้ว driver การ์ดจอของ notebook ล่มจนเครื่อง restart สองครั้งในวันเดียว
 
@@ -125,14 +124,13 @@ E2E test ที่เขียนตอนหน้าจอยังเปล�
 - `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
 - test ที่ล้มเพราะหน้าจอเปลี่ยนโดยตั้งใจถูกปรับตามของใหม่ ถ้าล้มเพราะหน้าจอผิด spec test ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
 - `/mflow:review` ไม่นับการไม่มี E2E test เป็นข้อบกพร่อง แค่บอกหน้าจอที่ยังรอ (`E2E on request`)
-- โปรเจกต์ที่ init ก่อน 0.26: รัน `/mflow:init` ซ้ำเพื่อแทนบรรทัดเรื่อง test ใน `openspec/config.yaml` และรับ Definition of done ใหม่ใน AGENTS.md `/mflow:help check setup` เตือนให้ และเตือนเมื่อ `playwright.config` ไม่ได้ตั้ง `workers` ไว้ (ควรตั้ง `workers: 2`)
 
 ## mflow เขียนอะไรลง OpenSpec
 
 mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เดียว (OpenSpec ส่งไฟล์นี้ให้ AI ทุกครั้ง และ `openspec update` ไม่เขียนทับ) ไม่แก้ skill, command หรือ schema ของ OpenSpec
 
-- `scripts/openspec-config.mjs` เขียนบรรทัดของ mflow ใน `context`, `rules.proposal`, `rules.specs`, `rules.tasks` และ `operations.apply.guidance` (ตั้งแต่ 0.27) `/mflow:init` รันแบบ `--dry-run` ให้ดูว่าจะลบและเพิ่มอะไรก่อน แล้วจึงเขียน
-- บรรทัดของ mflow ใน list อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` รุ่นถัดไปแทนเฉพาะช่วงนั้น บรรทัดที่ mflow ก่อน 0.27 เขียนไว้ (ไม่มี marker) script จำได้จากถ้อยคำทุกรุ่น ส่วน `context` เป็นข้อความก้อนเดียว (comment จะกลายเป็นเนื้อหา) จึงจำจากถ้อยคำเสมอ บรรทัดของโปรเจกต์เองและ comment ของ OpenSpec คงไว้ path ตาม folder ใน `.mflow/config.json`
+- `scripts/openspec-config.mjs` เขียนบรรทัดของ mflow ใน `context`, `rules.proposal`, `rules.specs`, `rules.tasks` และ `operations.apply.guidance` `/mflow:init` รันแบบ `--dry-run` ให้ดูว่าจะลบและเพิ่มอะไรก่อน แล้วจึงเขียน
+- บรรทัดของ mflow ใน list อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` รุ่นถัดไปแทนเฉพาะช่วงนั้น บรรทัดที่มีถ้อยคำตรงกับของ mflow แต่อยู่นอก marker ถูกรวมเข้ามาด้วย บรรทัดที่โปรเจกต์ดัดแปลงเอง (path ของ data dictionary หรือหมายเหตุในวงเล็บ) นับเป็นของโปรเจกต์และ mflow ไม่เพิ่มของตัวเองซ้ำ ส่วน `context` เป็นข้อความก้อนเดียว (comment จะกลายเป็นเนื้อหา) จึงจำจากถ้อยคำเสมอ บรรทัดของโปรเจกต์เองและ comment ของ OpenSpec คงไว้ path ตาม folder ใน `.mflow/config.json`
 - OpenSpec ทิ้ง `config.yaml` ทั้งไฟล์เมื่อ parse ไม่ได้ (เช่นมี `: ` ในบรรทัดของ list) script จึงใส่เครื่องหมายคำพูดให้บรรทัดที่ YAML จะอ่านผิด และรายงานบรรทัดของโปรเจกต์ที่เป็นแบบนั้น
 - `/mflow:help check setup` เตือนเมื่อ `config.yaml` ยังมีบรรทัดรุ่นเก่า ขาดบรรทัดปัจจุบัน หรือยังไม่มี marker
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate และ `migrate-layout.mjs` แก้ path ใน `openspec/` ตอนย้าย layout

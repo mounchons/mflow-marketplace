@@ -50,23 +50,22 @@ test("an unknown setting is named as a likely typo", () => {
   assert.match(c.config.detail, /sourcedir/);
 });
 
-test("templates from an older plugin, pending merges and old caches are upgrade warnings", () => {
+test("templates from an older plugin and pending merges are upgrade warnings", () => {
   initialised();
   const rec = JSON.parse(p.read(".mflow/templates.json"));
   p.write(".mflow/templates.json", JSON.stringify({ ...rec, pluginVersion: "0.1.0" }));
   p.write(".mflow/suggested/AGENTS.md", "# template\n");
-  p.write(".mflow/cache/tor.md", "old text version\n");
   const c = doctor();
   assert.equal(c.templates.status, "warn");
   assert.match(c.templates.fix, /\/mflow:init/);
   assert.equal(c.suggested.status, "warn");
-  assert.equal(c.cache.status, "warn");
 });
 
-test("a project set up before the record is reported, not failed", () => {
+test("a project without the templates record is told to run init", () => {
   initialised();
   fs.rmSync(p.file(".mflow/templates.json"));
-  assert.equal(doctor().templates.status, "info");
+  assert.equal(doctor().templates.status, "warn");
+  assert.match(doctor().templates.fix, /\/mflow:init/);
 });
 
 test("prototype mode without the startup check is a warning; with it, ok", () => {
@@ -77,12 +76,12 @@ test("prototype mode without the startup check is a warning; with it, ok", () =>
   assert.equal(doctor()["prototype-mode"].status, "ok");
 });
 
-test("config.yaml with an earlier mflow's wording is a warning until the merge has run; then ok", () => {
+test("config.yaml without mflow's lines is a warning until the merge has run; then ok", () => {
   initialised();
-  p.write("openspec/config.yaml", "schema: spec-driven\nrules:\n  tasks:\n    - Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).\n    - Keep tasks small.\n");
+  p.write("openspec/config.yaml", "schema: spec-driven\nrules:\n  tasks:\n    - Keep tasks small.\n");
   const c = doctor();
   assert.equal(c["openspec-guidance"].status, "warn");
-  assert.match(c["openspec-guidance"].detail, /earlier mflow wrote, such as "Every task ends with the test that proves it \(xUnit/);
+  assert.match(c["openspec-guidance"].detail, /lacks \d+ of mflow [\d.]+'s lines/);
   assert.match(c["openspec-guidance"].fix, /\/mflow:init/);
   assert.equal(run(p, "openspec-config.mjs").status, 0);
   assert.equal(doctor()["openspec-guidance"].status, "ok");

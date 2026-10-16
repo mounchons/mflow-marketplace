@@ -112,7 +112,7 @@ export function status(root, dir = root) {
   }
   result.guidance = guidancePresent(root);
   if (enabled && !result.guidance) {
-    warnings.push(`openspec/config.yaml has no apply guidance naming ${AGENT}: /opsx:apply will not hand tasks to it (see the mflow manual, projects initialised before 0.16)`);
+    warnings.push(`openspec/config.yaml has no apply guidance naming ${AGENT}: /opsx:apply will not hand tasks to it (/mflow:init writes it)`);
   }
   result.warnings = warnings;
   return result;

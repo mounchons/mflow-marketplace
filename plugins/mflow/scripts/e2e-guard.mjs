@@ -30,7 +30,8 @@ export function playwrightRuns(command) {
         .replace(/^(timeout|gtimeout)\s+(-\S+\s+)*\d+[smh]?\s+/, "")
         .replace(/^(time|env|nice|command)\s+/, "");
     }
-    const m = /^(?:(?:npx|bunx)(?:\s+(?:--yes|-y))?\s+|(?:pnpm|yarn)\s+(?:exec\s+|dlx\s+)?)?(?:\S*[\\/])?playwright(?:\.cmd)?\s+test\b(.*)$/i.exec(segment);
+    // A package runner may carry its own options first: `pnpm --filter web exec playwright test`, `npx -y playwright test`.
+    const m = /^(?:(?:npx|bunx|pnpm|yarn|npm)\b(?:\s+\S+)*?\s+)?(?:\S*[\\/])?playwright(?:\.cmd)?\s+test\b(.*)$/i.exec(segment);
     if (m) runs.push(m[1]);
   }
   return runs;

@@ -27,6 +27,8 @@ test("the uncapped runs that restarted the machine are refused, with the way to 
     "cd /d/GitHub/StemHub/tests/e2e; npx playwright test --project=buyer --project=supplier --reporter=line 2>&1 | grep -v \"^\\[\" | tail -60",
     "SUPPLIER_URL=http://localhost:8090 BUYER_URL=http://localhost:8091 npx playwright test --project=stack --reporter=line",
     "pnpm exec playwright test",
+    "pnpm --filter web-backoffice exec playwright test",
+    "npm exec -- playwright test --project=chromium",
     "node_modules/.bin/playwright test buyer/round-detail.spec.ts",
   ]) {
     const reason = decide(command);

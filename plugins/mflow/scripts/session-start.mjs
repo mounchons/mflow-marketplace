@@ -234,8 +234,8 @@ if (cfg) {
   }
 }
 
-// An mflow upgrade: the project's templates came from an older plugin version (or from before the
-// record existed), so /mflow:init has template changes to offer.
+// An mflow upgrade: the project's templates came from an older plugin version, or there is no record
+// of them, so /mflow:init has template changes to offer.
 try {
   const pluginVersion = JSON.parse(readText(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".claude-plugin", "plugin.json"))).version;
   const offered = readJsonFile(path.join(root, ".mflow", "templates.json"))?.pluginVersion;

@@ -51,8 +51,8 @@ const ignored = (p) =>
 const changed = new Set();
 
 // Uncommitted: an edit since `since` shows in the file's mtime. A deleted file has none, and a renamed
-// one keeps its old mtime, so those count when the session did not start with them. A record from an
-// older mflow has no baseline: they count then, which can ask once too often but never misses one.
+// one keeps its old mtime, so those count when the session did not start with them. A session record
+// without a baseline counts them all, which can ask once too often but never misses one.
 const baseline = new Set(state.dirty || []);
 for (const e of git.entries) {
   if (ignored(e.rel)) continue;

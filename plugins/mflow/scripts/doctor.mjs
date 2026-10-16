@@ -90,7 +90,7 @@ function projectChecks() {
       const moving = [...new Set([...lp.moves.map((m) => m.from.split("/").slice(0, 2).join("/")), ...lp.settings.map((s) => s.from)])];
       if (lp.layout === "legacy") add("layout", "warn", `documents in the layout before 0.20.0: ${moving.join(", ")}`, `Run /mflow:init: it shows the move plan (docs/decisions, docs/ai, docs/reviews/change-requests) and moves on your yes. Or node "${path.join(PLUGIN, "scripts", "migrate-layout.mjs")}", then --apply`);
       else if (lp.conflicts.length) add("layout", "warn", `the 0.20 layout is half done: ${lp.conflicts.map((c) => c.from).join(", ")} also exist at the new place`, "Merge each pair by hand, then run migrate-layout.mjs again");
-      else add("layout", "ok", "documents in the 0.20 layout (docs/decisions, docs/ai, docs/reviews)");
+      else add("layout", "ok", "documents in the grouped layout (docs/decisions, docs/ai, docs/reviews)");
     } catch (err) {
       add("layout", "warn", `layout check failed: ${err.message}`);
     }

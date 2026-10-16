@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.28)
+## คำสั่ง (v0.29)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -133,7 +133,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - บรรทัดของ mflow ใน list อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` รุ่นถัดไปแทนเฉพาะช่วงนั้น บรรทัดที่มีถ้อยคำตรงกับของ mflow แต่อยู่นอก marker ถูกรวมเข้ามาด้วย บรรทัดที่โปรเจกต์ดัดแปลงเอง (path ของ data dictionary หรือหมายเหตุในวงเล็บ) นับเป็นของโปรเจกต์และ mflow ไม่เพิ่มของตัวเองซ้ำ ส่วน `context` เป็นข้อความก้อนเดียว (comment จะกลายเป็นเนื้อหา) จึงจำจากถ้อยคำเสมอ บรรทัดของโปรเจกต์เองและ comment ของ OpenSpec คงไว้ path ตาม folder ใน `.mflow/config.json`
 - OpenSpec ทิ้ง `config.yaml` ทั้งไฟล์เมื่อ parse ไม่ได้ (เช่นมี `: ` ในบรรทัดของ list) script จึงใส่เครื่องหมายคำพูดให้บรรทัดที่ YAML จะอ่านผิด และรายงานบรรทัดของโปรเจกต์ที่เป็นแบบนั้น
 - `/mflow:help check setup` เตือนเมื่อ `config.yaml` ยังมีบรรทัดรุ่นเก่า ขาดบรรทัดปัจจุบัน หรือยังไม่มี marker
-- นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate และ `migrate-layout.mjs` แก้ path ใน `openspec/` ตอนย้าย layout
+- นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
 
 ## Flow ประจำวัน
@@ -161,7 +161,6 @@ mflow/
 ├─ scripts/                ← Node ล้วน ไม่มี dependency (Windows/Linux)
 │   ├─ lib.mjs             ← config + ทะเบียน tool ค่าเริ่มต้น
 │   ├─ scaffold.mjs        ← วาง template ลงโปรเจกต์ (ลง folder ตามค่าตั้งใน .mflow/config.json)
-│   ├─ migrate-layout.mjs  ← ย้ายเอกสารจากโครงก่อน 0.20 เข้าหมวด docs/decisions, docs/ai, docs/reviews
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
 │   ├─ stop-guard.mjs
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
@@ -179,7 +178,7 @@ mflow/
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์
 ```
 
-เอกสารที่ mflow เขียนลงโปรเจกต์ (ตั้งแต่ 0.20.0) อยู่ใต้ `docs/` ห้าหมวด: `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `tests/`, `change-requests/`) และ `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md` โปรเจกต์ที่สร้างก่อนนั้นย้ายด้วย `/mflow:init` ซึ่งแสดงแผนจาก `migrate-layout.mjs` ก่อน และย้ายเมื่อคุณตอบ yes
+เอกสารที่ mflow เขียนลงโปรเจกต์อยู่ใต้ `docs/` ห้าหมวด: `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `tests/`, `change-requests/`) และ `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md`
 
 ## เพิ่มคำสั่งใหม่
 

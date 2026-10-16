@@ -27,7 +27,7 @@ Reply markers, explained to the user at the top of every doc:
 - **Decision answer:** text after `**เลือก:**` under a `### D<n>: ...` heading. An empty answer means the decision is open.
 - **Note:** a line starting with `> ความเห็น:`. It stays pending until a revision processes it.
 
-Only the user writes these markers. Docs written before mflow 0.13 use `**พี่ปูเลือก:**`, `> พี่ปู:` and the tag `[พี่ปู]`; `check` reads the markers the same way. In such a doc, relabel only the open answer lines to `**เลือก:**` in the next revision and log it; leave answered lines, old tags and earlier log entries as written.
+Only the user writes these markers.
 
 The doc is written in Thai for the user and addresses them as คุณ. Status lives only in its frontmatter: `draft`, `approved`, `superseded` or `dropped`.
 
@@ -93,7 +93,7 @@ Done when: the brief exists, every tool has a command with its own output path, 
    - An answered decision keeps its answer line as the record. Reflect the chosen option in sections 2, 3 and 7.
    - A new question the sources cannot settle becomes a new `### D<n>` with an empty answer.
    - A draft written before options used `a)`–`d)` still labels them ก ข ค ง. Read an answer by position, either way round and in either case (`a` = ก, `b` = ข …). In this revision relabel only the open decisions (their options, recommendation and tool-pick lines) to letters, and log it. Leave answered decisions, filled answer lines and earlier log entries as written.
-4. Delete the processed `> ความเห็น:` lines (and legacy `> พี่ปู:` lines). Increase `revision`, set `updated`, and add one line to `บันทึกการแก้ไข`: `rev N (<date>): <what changed, and which note, decision or tool finding caused it>`.
+4. Delete the processed `> ความเห็น:` lines. Increase `revision`, set `updated`, and add one line to `บันทึกการแก้ไข`: `rev N (<date>): <what changed, and which note, decision or tool finding caused it>`.
 5. Run `check <NN>` again. Report the changes in three to six lines, plus what is still open. After tool reports, add one line per tool (findings used, new decisions, not used) and name the points where the tools disagree. If nothing is open, say the doc can be approved with `/mflow:discuss <NN> approve`.
 
 Done when: `check` shows no pending notes or reports, every feedback item and tool finding is in the revision log or section 8, and the user has the list of remaining open items.

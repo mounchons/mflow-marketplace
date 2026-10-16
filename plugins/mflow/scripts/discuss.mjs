@@ -13,7 +13,6 @@
 //   decision answer   a line `**เลือก:** <answer>` under a `### D<n>: ...` heading; empty = open
 //   note              a line starting with `> ความเห็น:`; every such line is pending until Claude processes it
 //   placeholder       Thai text in angle brackets left from the template, e.g. <คำถาม>
-// Docs written before 0.13 use `**พี่ปูเลือก:**` and `> พี่ปู:`; both are still read the same way.
 // Tool picks (`- **codex เลือก:** b`) are not answers: the marker must open the bold span.
 // HTML comments and fenced code blocks are ignored, so examples of the markers there do not count. A fence
 // closes only on the same character repeated at least as often, so a ```` block can show ``` examples.
@@ -48,8 +47,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(here, "..", "skills", "discuss", "assets", "discussion.md");
 const FILE_RE = /^(\d{2,})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*(?:พี่ปู)?เลือก:\*\*(.*)$/;
-const NOTE_RE = /^\s*>\s*(?:ความเห็น|พี่ปู)\s*:(.*)$/;
+const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*เลือก:\*\*(.*)$/;
+const NOTE_RE = /^\s*>\s*ความเห็น\s*:(.*)$/;
 const HEADING_RE = /^###\s+(D\d+\b.*)$/;
 const ANY_HEADING_RE = /^#{1,6}\s/;
 const SECTION_RE = /^##\s+(\d+)\./;

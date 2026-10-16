@@ -27,7 +27,7 @@ const OPENSPEC_TEMPLATE = `schema: spec-driven
 #         - Keep test summaries concise
 `;
 
-// mflow's lines without markers (copied by hand), in the layout before 0.20, with lines of the project's own.
+// mflow's lines without markers (copied by hand), in folders the project named itself, with lines of its own.
 const UNMARKED = `schema: spec-driven
 
 context: |

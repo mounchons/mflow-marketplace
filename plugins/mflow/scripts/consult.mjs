@@ -25,18 +25,15 @@ import { fileURLToPath } from "node:url";
 import { findRoot, frontmatter, gitStatus, loadConfig, readJsonFile, readText, run, writeFileAtomic } from "./lib.mjs";
 import { fileHash } from "./source-index.mjs";
 
-// `legacy` is the folder before 0.20.0: a session written there and not moved yet by migrate-layout.mjs
-// keeps its summary there, so a project that has not moved still reads its sessions.
 export const INTENTS = {
-  analyze: { prefix: "AN", dir: "docs/ai/analysis", legacy: "docs/analysis", summary: "summary.md" },
-  design: { prefix: "DS", dir: "docs/ai/design", legacy: "docs/design", summary: "proposal.md" },
-  challenge: { prefix: "CH", dir: "docs/ai/challenge", legacy: "docs/challenge", summary: "summary.md" },
+  analyze: { prefix: "AN", dir: "docs/ai/analysis", summary: "summary.md" },
+  design: { prefix: "DS", dir: "docs/ai/design", summary: "proposal.md" },
+  challenge: { prefix: "CH", dir: "docs/ai/challenge", summary: "summary.md" },
 };
 
-/** The folder of one session's documents: the current one, or the legacy one while only that holds it. */
+/** The folder of one session's documents. */
 function docsDir(root, s) {
-  const { dir, legacy } = INTENTS[s.intent];
-  return !fs.existsSync(path.join(root, dir, s.id)) && fs.existsSync(path.join(root, legacy, s.id)) ? legacy : dir;
+  return INTENTS[s.intent].dir;
 }
 const ID_RE = /^(AN|DS|CH)-\d{3,}$/;
 const REPORT_RE = /(?:^|[^A-Za-z0-9])((?:AN|DS|CH)-\d{3,})-r(\d+)(?![0-9])/;

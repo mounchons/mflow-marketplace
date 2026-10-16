@@ -7,8 +7,7 @@
 // mflow's list items sit between `# mflow:begin <version>` and `# mflow:end`, so a later version replaces
 // exactly them and leaves the project's own items alone; an item with mflow's exact wording outside them is
 // taken in too. The context is one YAML string, where a comment would be text, so its lines are recognised
-// by their text. Folder names
-// follow .mflow/config.json: a project still in the layout before 0.20 keeps docs/hotspots and docs/discuss.
+// by their text. Folder names follow .mflow/config.json.
 // A line of the project's own that says one of mflow's lines in its own words (its own path to the data
 // dictionary, a note in brackets) stands in for it: mflow's wording is then left out, never set beside it.
 //
@@ -86,7 +85,7 @@ function folders(cfg) {
 /** The text as mflow compares it: whitespace collapsed, folder names as {hotspots} and {discuss}. */
 function normalise(text, dirs) {
   let t = unquote(text).replace(/\s+/g, " ").trim();
-  for (const [key, names] of [["hotspots", [dirs.hotspots, "docs/decisions/hotspots", "docs/hotspots"]], ["discuss", [dirs.discuss, "docs/decisions/discuss", "docs/discuss"]]]) {
+  for (const [key, names] of [["hotspots", [dirs.hotspots, "docs/decisions/hotspots"]], ["discuss", [dirs.discuss, "docs/decisions/discuss"]]]) {
     for (const name of [...new Set(names)].sort((a, b) => b.length - a.length)) t = t.split(name).join(`{${key}}`);
   }
   return t;

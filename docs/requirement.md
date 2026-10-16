@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.28.0 |
+| เวอร์ชันที่อธิบาย | 0.29.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -101,7 +101,7 @@ flowchart TD
 | FR-06 | เขียนคำสั่ง build/test ลง AGENTS.md เฉพาะที่รันผ่านจริง ที่รันไม่ได้ติด `(unverified)` | มีแล้ว |
 | FR-07 | เรียกซ้ำได้อย่างปลอดภัยเพื่อรับ template ใหม่เมื่ออัปเกรด plugin: `.mflow/templates.json` บันทึก hash ของ template ที่เคยเสนอและรุ่น plugin ที่เสนอ รอบถัดไปเสนอเฉพาะ template ที่เปลี่ยน ไฟล์ที่ผู้ใช้ merge หรือเลือกเก็บของตัวเองไว้แล้วไม่ถูกเสนอซ้ำ (`kept`) และ stack ที่เลือกไว้แล้วถูกใช้ต่อโดยไม่ถามใหม่ briefing บอกเมื่อ template ของโปรเจกต์เก่ากว่า plugin | มีแล้ว |
 | FR-07a | doctor (`scripts/doctor.mjs`, เรียกผ่าน `/mflow:help check setup` และท้าย `/mflow:init`) ตรวจแบบอ่านอย่างเดียว: รุ่น Node (ขั้นต่ำและวันหมดอายุ), git, รุ่น OpenSpec และ Backlog.md เทียบกับขั้นต่ำและรุ่นที่ทดสอบใน `compat.json`, JSON ที่ briefing อ่านจาก CLI, config (parse ได้ และไม่มีชื่อ setting ที่สะกดผิด), โฟลเดอร์, ทะเบียนเอกสาร, ค่า subagent, AGENTS.md และ STATUS.md, guidance ใน openspec/config.yaml, template ที่เก่ากว่า plugin, `.mflow/suggested/` ที่ค้าง, cache แบบเก่า, session ของ consultation ที่อ่านไม่ได้, golden data ที่ไฟล์ต้นทางเปลี่ยนหรือชี้ออกนอกโปรเจกต์ และโหมด prototype ที่ไม่มีการตรวจตอน start ทุกข้อที่เป็น warn หรือ fail มีวิธีแก้ | มีแล้ว |
-| FR-07b | เอกสารทั้งหมดที่ mflow เขียนอยู่ใต้ `docs/` ห้าหมวด (0.20): `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `change-requests/`), `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md` นอก `docs/` มีเฉพาะ AGENTS.md, CLAUDE.md, STATUS.md, `.mflow/`, `openspec/`, `backlog/` โปรเจกต์ที่สร้างก่อน 0.20 ใช้ต่อได้ด้วย path ใน `.mflow/config.json` (scaffold วาง template ลง folder ตามค่าตั้ง จึงไม่มีไฟล์ซ้ำสองที่ และ consultation เก่าอ่านจาก folder เดิมจนกว่าจะย้าย) doctor และ briefing เตือนว่าใช้โครงเก่า `/mflow:init` รัน `migrate-layout.mjs` แสดงแผน (ย้ายอะไรไปไหน, ค่าตั้งที่เปลี่ยน, ไฟล์ที่ต้องแก้ path) แล้วย้ายเมื่อผู้ใช้ตอบ yes: ย้าย folder, แก้ค่าตั้ง, แก้ path แบบเต็มในทุกไฟล์ข้อความ (รวม backlog, openspec, comment ในโค้ด, brief และ session ใน `.mflow/`) คำนวณ relative link ใน Markdown ใหม่ ไม่แตะเอกสารลูกค้าใน `docs/source/` folder ที่ชื่อทั่วไป (`analysis`, `design`, `challenge`, `change-requests`) ย้ายเฉพาะรายการที่ชื่อเป็นเลขของ mflow folder ที่ตั้งเองด้วยมือคงไว้ ส่วนที่ชนกับของที่มีอยู่แล้วแสดงเป็น conflict ไม่ย้าย รันซ้ำได้ ไม่ commit ให้ | มีแล้ว |
+| FR-07b | เอกสารทั้งหมดที่ mflow เขียนอยู่ใต้ `docs/` ห้าหมวด (0.20): `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `change-requests/`), `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md` นอก `docs/` มีเฉพาะ AGENTS.md, CLAUDE.md, STATUS.md, `.mflow/`, `openspec/`, `backlog/` ชื่อ folder ของ discuss, hotspots, inbox และ source ตั้งใน `.mflow/config.json` ได้ (scaffold วาง template ลง folder ตามค่าตั้ง จึงไม่มีไฟล์ซ้ำสองที่) | มีแล้ว |
 | FR-08 | ถามเลือก stack หลังสำรวจ repo และก่อนเขียนไฟล์ใดๆ ถามทุกครั้งแม้เดาจาก repo ได้ (ตัวเลือก `a)` `b)` `c)` พร้อมคำแนะนำและหลักฐาน) บันทึกที่ `## Stack` ใน AGENTS.md ที่เดียว (profile + ตาราง seam → path/เทคโนโลยี) และ `theme` `screen` `golden` `review` อ่านจากตรงนั้น โปรเจกต์ที่ยังไม่มี section นี้ ให้ถามเมื่อคำสั่งเหล่านั้นต้องใช้ครั้งแรก | มีแล้ว |
 | FR-193 | ถามชื่อโปรเจกต์ในโค้ดในข้อความเดียวกับ stack: ชื่อที่ทุก project, folder และ namespace ขึ้นต้นด้วย (ไม่ใช่ชื่อที่แสดงในหัว AGENTS.md) เสนอสามชื่อพร้อมชื่อที่แนะนำ (จากชื่อที่ลูกค้าเรียกระบบ, จากชื่อโปรเจกต์หรือโฟลเดอร์แบบ PascalCase, ชื่อสั้นแบบแบรนด์) ตอบเป็นตัวอักษรหรือพิมพ์เอง ชื่อต้องเป็น PascalCase ASCII ขึ้นต้นด้วยตัวอักษร ไม่มีช่องว่าง ขีด หรือ underscore มีชื่อบริษัทนำหน้าได้แบบ `Company.Product` ไม่เกินราว 20 ตัวอักษร ไม่ชนกับ .NET หรือชื่อ layer/ชนิด (`System`, `Microsoft`, `App`, `Web`, `Api`, `Core`, `Domain`) ชื่อที่พิมพ์ผิดกฎได้รูปที่ถูกที่ใกล้ที่สุดเสนอกลับ บันทึกเป็น `Project name (code)` ใน `## Stack` และใช้แทน `<ProjectName>` ในทุก path ของ `## Stack` init ซ้ำกับโปรเจกต์ที่ยังไม่มีบรรทัดนี้ถามเฉพาะชื่อ (solution ที่มีอยู่แล้วใช้ prefix เดิมเป็นชื่อแนะนำ) เปลี่ยนชื่อหลังสร้าง solution แล้วต้องผ่านเอกสาร `code-structure` ฉบับใหม่และ OpenSpec change ไม่ใช่ผลของการรัน init ซ้ำ | มีแล้ว |
 
@@ -254,6 +254,7 @@ flowchart TD
 | FR-207 | `rules.tasks` (0.27): task ที่แก้โค้ดจบด้วย unit test, task ที่แก้แค่เอกสารไม่ต้องมี test | มีแล้ว |
 | FR-208 | ระดับของ review (0.27): **full** เมื่อ change แตะกฎธุรกิจ (domain/application) สิทธิ์หรือ data scope query migration/data model การเชื่อมระบบอื่น หรือ startup/DI, **short** (`/mflow:review --short`) สำหรับโค้ดอื่นและรอบแก้หลัง review (diff ตั้งแต่ commit ใน `Reviewed:` ของรายงานล่าสุด ตรวจข้อ 1, 2 กับสิ่งที่เปลี่ยน ทุก finding เดิมบอกว่าแก้แล้วหรือยังเปิด และข้อ 3–7 เฉพาะบรรทัดที่เปลี่ยน), **skip** เมื่อแก้แค่เอกสาร style/token หรือข้อความ label (merge เมื่อผู้ใช้ตกลง ต้องมีผล `/mflow:test` ที่ commit นั้นถ้าแก้มากกว่าเอกสาร) apply guidance และ `/mflow:test` บอกระดับเป็นขั้นถัดไป รายงานบันทึก `Level:` ผู้ใช้เลือกเองได้เสมอ | มีแล้ว |
 | FR-209 | mflow แบบ clean (0.28): เลิกรองรับสิ่งที่มีไว้ให้โปรเจกต์ก่อน 0.27 หลังจาก StemHub, BunTukTransport และ ThawSi ได้ config และ AGENTS.md ใหม่แล้ว ได้แก่ ถ้อยคำเก่าของ `config.yaml`, doctor ที่ตรวจ `## Who decides`, cache รุ่นก่อน 0.17.2 และข้อความ "set up before 0.18" (ไม่มี `templates.json` = warn ให้รัน init), ป้ายรุ่นใน help, theme และ manual §8 ที่เป็นของรุ่นเก่า ยังเก็บ: ค่าตั้ง folder และ `migrate-layout.mjs` (StemHub ยังใช้ layout ก่อน 0.20), การอ่าน marker ของเอกสาร discuss แบบเก่า (StemHub, BunTukTransport ยังมี), การถามเฉพาะ `Project name (code)` เมื่อยังไม่มี (ThawSi), และ `update responsive`/`update components`/`update look` ที่เติมส่วนที่ kit ยังไม่มี | มีแล้ว |
+| FR-210 | mflow แบบ clean (0.29): StemHub ย้ายเป็น layout แบบหมวดแล้ว (branch `chore/mflow-grouped-layout`) mflow จึงลบ `migrate-layout.mjs` และ test ของมัน, การตรวจ layout ใน doctor และ briefing, การอ่าน consultation จาก folder เก่า (`docs/analysis`, `docs/design`, `docs/challenge`), เลข CR ใน `docs/change-requests/`, ขั้นย้ายเอกสารของ `/mflow:init` และชื่อ folder เก่าใน `openspec-config.mjs` และเลิกอ่าน marker ของเอกสาร discuss แบบก่อน 0.13 (`**พี่ปูเลือก:**`, `> พี่ปู:`) เพราะเอกสารที่ยังใช้ marker นั้นใน StemHub และ BunTukTransport approve แล้วทั้งหมด (`check` ใช้กับ draft) ค่าตั้ง folder ใน `.mflow/config.json` ยังใช้ได้ | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -393,7 +394,6 @@ mflow-marketplace/
     ├─ scripts/
     │   ├─ lib.mjs                   ← config + ทะเบียน tool ค่าเริ่มต้น
     │   ├─ scaffold.mjs              ← สร้างไฟล์จาก template ไม่ทับของเดิม (ลง folder ตามค่าตั้ง)
-    │   ├─ migrate-layout.mjs        ← ย้ายเอกสารจากโครงก่อน 0.20 เข้าหมวด (แสดงแผนก่อน ย้ายเมื่อ --apply)
     │   ├─ session-start.mjs         ← briefing
     │   ├─ stop-guard.mjs            ← เตือน STATUS.md
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
@@ -467,9 +467,9 @@ mflow-marketplace/
 
 `{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ครอบ single quote ตามกฎของแต่ละ shell (Bash และ PowerShell) `$` backtick ช่องว่าง และ `'` ใน path จึงไม่ถูกตีความ ใน template ไม่ต้องใส่เครื่องหมายคำพูดเอง และ cmdlet ของ PowerShell ให้รับ path ผ่าน `-LiteralPath` เพราะ `[ ]` ใน `-Path` เป็น wildcard script ไม่ยอมสร้างคำสั่งถ้าไม่มี `--brief` หรือ `--out` หรือไม่มี `--worktree` ใน mode code
 
-ค่าของ folder ข้างบนเป็นค่าเริ่มต้นตั้งแต่ 0.20 โปรเจกต์ที่สร้างก่อนนั้นมี `docs/hotspots`, `docs/ai-inbox` และ `docs/discuss` เขียนไว้ในไฟล์นี้ จึงยังทำงานกับ folder เดิมได้ จนกว่า `migrate-layout.mjs --apply` จะย้ายและแก้ค่าให้ (FR-07b)
+ค่าของ folder ข้างบนเป็นค่าเริ่มต้น โปรเจกต์ตั้งชื่ออื่นได้ (FR-07b)
 
-ไฟล์นี้ parse ไม่ได้ ค่าผิดชนิด (เช่น `sourceDir` ไม่ใช่ข้อความ) หรือ folder ที่ออกนอกโปรเจกต์ (path แบบ absolute, ขึ้นต้นด้วยชื่อไดรฟ์, ใช้ `..` จนพ้น root หรือผ่าน symlink/junction ที่ชี้ออกไป รวมถึง `.mflow/` เอง: ไฟล์นี้และลิงก์มากับ repo และ script เขียนลง folder เหล่านี้) คำสั่ง mflow จะหยุดและบอกสาเหตุ scaffold ตรวจทุกไฟล์ที่จะเขียนก่อนเริ่ม (ลิงก์ที่ชี้ไปไฟล์ที่ยังไม่มีก็นับเป็นออกนอก) และ migrate-layout ไม่ย้าย folder ที่ชี้ออกไปและไม่แก้ไฟล์ที่เป็นลิงก์ แทนการใช้ค่าเริ่มต้นเงียบๆ (NFR-11) ไฟล์ว่างใช้ค่าเริ่มต้น
+ไฟล์นี้ parse ไม่ได้ ค่าผิดชนิด (เช่น `sourceDir` ไม่ใช่ข้อความ) หรือ folder ที่ออกนอกโปรเจกต์ (path แบบ absolute, ขึ้นต้นด้วยชื่อไดรฟ์, ใช้ `..` จนพ้น root หรือผ่าน symlink/junction ที่ชี้ออกไป รวมถึง `.mflow/` เอง: ไฟล์นี้และลิงก์มากับ repo และ script เขียนลง folder เหล่านี้) คำสั่ง mflow จะหยุดและบอกสาเหตุ scaffold ตรวจทุกไฟล์ที่จะเขียนก่อนเริ่ม (ลิงก์ที่ชี้ไปไฟล์ที่ยังไม่มีก็นับเป็นออกนอก) แทนการใช้ค่าเริ่มต้นเงียบๆ (NFR-11) ไฟล์ว่างใช้ค่าเริ่มต้น
 
 `applySubagent` ตั้งด้วย `/mflow:subagent on --shared` ส่วนค่าเฉพาะเครื่องอยู่ใน `.mflow/local.json` (รูปแบบเดียวกัน ไม่ commit) และทับค่าในไฟล์นี้
 
@@ -511,7 +511,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.28)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.29)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 

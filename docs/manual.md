@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.28.0 |
+| เวอร์ชัน plugin | 0.29.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -84,7 +84,7 @@ flowchart TD
 
 ### เอกสารอยู่ที่ไหน
 
-ตั้งแต่ 0.20.0 mflow เขียนเอกสารทั้งหมดไว้ใต้ `docs/` โดยแบ่งเป็นห้าหมวด เอกสารของโปรเจกต์เอง เช่น คู่มือผู้ใช้ วางข้างๆ ได้ตามปกติ
+mflow เขียนเอกสารทั้งหมดไว้ใต้ `docs/` โดยแบ่งเป็นห้าหมวด เอกสารของโปรเจกต์เอง เช่น คู่มือผู้ใช้ วางข้างๆ ได้ตามปกติ
 
 ```text
 docs/
@@ -98,7 +98,7 @@ docs/
 └── ai/                    งานของ AI ตัวอื่น: inbox/, analysis/, design/, challenge/
 ```
 
-นอก `docs/` มีเฉพาะสิ่งที่ต้องอยู่ที่ root: `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `.mflow/`, `openspec/` และ `backlog/` ส่วน test อยู่ที่ `tests/` ระดับเดียวกับ `src/` หรือ `apps/` (ดู `docs/manual-fast-track.md` หัวข้อ 8) โปรเจกต์ที่สร้างก่อน 0.20.0 ย้ายด้วย `/mflow:init` (หัวข้อ 6.2 "อัปเกรด mflow")
+นอก `docs/` มีเฉพาะสิ่งที่ต้องอยู่ที่ root: `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `.mflow/`, `openspec/` และ `backlog/` ส่วน test อยู่ที่ `tests/` ระดับเดียวกับ `src/` หรือ `apps/` (ดู `docs/manual-fast-track.md` หัวข้อ 8)
 
 ## 3. ก่อนเริ่ม
 
@@ -560,32 +560,20 @@ git diff --stat openspec/specs
 
 ```text
 ## mflow upgrade
-- mflow 0.20.0 has templates newer than this project's (from 0.19.0) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check
-- documents are in the layout before 0.20.0 (docs/discuss, docs/hotspots, docs/ai-inbox …) → /mflow:init shows the move plan and moves them on the user's yes
+- mflow 0.29.0 has templates newer than this project's (from 0.28.0) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check
 ```
 
 ```text
 /mflow:help check setup
-  → warn  layout     documents in the layout before 0.20.0: docs/discuss, docs/hotspots, docs/ai-inbox, docs/change-requests
-                     แก้: Run /mflow:init: it shows the move plan … and moves on your yes
-  → warn  agents     AGENTS.md: no ## Who decides section (older template)
-                     แก้: Run /mflow:init: it keeps your text and merges the missing parts
-  → warn  cache      3 text version(s) in the pre-0.17.2 layout .mflow/cache/<name>.md, no longer read
-                     แก้: Delete them; capture and consult convert again under .mflow/cache/<path>.<hash>.md
+  → warn  templates          templates last offered by mflow 0.28.0; this is 0.29.0
+                             แก้: Run /mflow:init: it offers only the templates that changed
+  → warn  openspec-guidance  openspec/config.yaml lacks 1 of mflow 0.29.0's lines, such as "…"
+                             แก้: Run /mflow:init, or node "…/openspec-config.mjs" --dry-run, then without --dry-run
 /mflow:init
   → Stack: a) mvc-htmx  (ใช้ต่อ ไม่ถามใหม่)
-  → แผนย้ายเอกสาร (ยังไม่ย้ายจนกว่าคุณตอบ yes):
-      docs/discuss   → docs/decisions/discuss     docs/hotspots → docs/decisions/hotspots
-      docs/ai-inbox  → docs/ai/inbox              docs/change-requests/CR-001-… → docs/reviews/change-requests/
-      แก้ path ใน 212 ไฟล์: backlog 123, docs 33, code 29, openspec 18, อื่นๆ 9 (AGENTS.md, STATUS.md …)
-      ไม่แตะเอกสารลูกค้าใน docs/source
-  (ตอบ yes)
-  → ย้ายแล้ว ดู git status แล้ว commit ด้วย git add -A (git เห็นเป็นการเปลี่ยนชื่อไฟล์)
-  → suggested: AGENTS.md, CLAUDE.md, STATUS.md, docs/vision.md   unchanged: 5
-    ครั้งแรกหลังอัปเกรด ไฟล์ที่คุณเคยแก้ทุกไฟล์ถูกเสนอเทียบหนึ่งครั้ง Claude merge ให้
-    โดยคงทุกอย่างที่คุณเขียน เติมเฉพาะส่วนที่ขาด แล้วแสดง diff
-/mflow:init        (รุ่นถัดไป ที่ไม่ได้เปลี่ยน template ของไฟล์เหล่านี้)
-  → suggested: ไม่มี   kept: AGENTS.md, CLAUDE.md, STATUS.md, docs/vision.md
+  → openspec/config.yaml (--dry-run): เพิ่ม 1 บรรทัด ลบ 0 ไม่มี problems (ตอบ yes แล้วจึงเขียน)
+  → suggested: AGENTS.md   kept: CLAUDE.md, STATUS.md, docs/vision.md
+    เติมเฉพาะส่วนที่ template เปลี่ยน คงทุกอย่างที่คุณเขียน แล้วแสดง diff ให้ดูก่อน
 ```
 
 - doctor อ่านอย่างเดียว ไม่แก้อะไร ทุกข้อที่เป็น `warn` หรือ `fail` มีวิธีแก้บอกไว้
@@ -729,7 +717,6 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | repo ใหม่ | `/mflow:init` (ถามเลือก stack และชื่อโปรเจกต์ในโค้ดก่อน) |
 | ไม่รู้จะเริ่มทางไหน | `/mflow:help` (แสดงสองทาง: อยากเห็นหน้าจอเร็ว หรือกฎซับซ้อนผิดแล้วแพง) |
 | เพิ่งอัปเกรด plugin หรือ briefing มีบรรทัด "mflow upgrade" | `/mflow:help check setup` แล้ว `/mflow:init` (ใช้ stack เดิม เสนอเฉพาะ template ที่เปลี่ยน) |
-| briefing บอกว่าเอกสารอยู่ในโครงก่อน 0.20.0 | commit งานที่ค้างก่อน แล้ว `/mflow:init` ดูแผนย้าย ตอบ yes แล้ว commit การย้ายแยกเป็นหนึ่ง commit |
 | briefing บอกว่า CLI ใช้ไม่ได้ config อ่านไม่ได้ หรือรู้สึกว่ามีอะไรผิด | `/mflow:help check setup` (ตรวจอย่างเดียว บอกวิธีแก้ทุกข้อ) |
 | จะเปลี่ยน stack ก่อน `/mflow:theme` (หลังจากนั้นต้องสร้าง kit และหน้าจอใหม่) | แก้ `## Stack` ใน AGENTS.md หรือรัน `/mflow:init` ซ้ำให้ถามใหม่ |
 | ลูกค้าส่งเอกสารหรือฉบับใหม่ | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` |
@@ -775,7 +762,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.28.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.29.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -793,7 +780,6 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | คำสั่งแปลงเอกสารลูกค้าเป็นข้อความก่อน `consult` ต้องมี pandoc หรือ python (python-docx, openpyxl, pypdf) | ติดตั้งตามหัวข้อ 3 ถ้าแปลงไม่ได้ brief จะบอก AI ตัวอื่นว่าไฟล์นั้นอ่านไม่ได้ |
 | โหมด `preview` และ `port` ยังไม่เคยรันผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้มาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูทีละขั้น โดยเฉพาะตอน port ที่ต้องเทียบ style guide กับ preview |
 | เมนูสามสถานะ ปุ่ม ☰ และการตรวจตามขนาดจอยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้เป็นตัวอย่างมาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูหน้า style guide ที่ทุกขนาดจอตรวจรับ |
-| เอกสาร discuss ที่เขียนก่อน 0.13 ใช้ `**พี่ปูเลือก:**`, `> พี่ปู:` และป้าย `[พี่ปู]` | ยังใช้ได้ `check` อ่าน marker เดิมเหมือนเดิม รอบแก้ถัดไป Claude เปลี่ยนเฉพาะบรรทัดคำตอบที่ยังเปิดเป็น `**เลือก:**` ส่วนที่ตอบแล้วคงไว้ |
 | มีหลาย web app (เช่น back office กับ portal): `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ `/mflow:theme` กับ `/mflow:screen` ยังทำงานกับ UI แอปเดียว | ตัดสินใน `tech-stack` ว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยกต่อแอป และหน้าจอไหนอยู่แอปไหน การทำ kit แยกต่อแอปยังต้องทำด้วยมือ |
 | hook `e2e-guard` ปฏิเสธ `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกิน `e2eMaxWorkers` (ค่าเริ่มต้น 2) ดูเฉพาะคำสั่งที่เรียก Playwright ตรงๆ ไม่เห็น npm script ที่ห่อ Playwright หรือ Microsoft.Playwright ใต้ `dotnet test` | ตั้ง `workers: 2` ใน `playwright.config` ด้วย (`/mflow:help check setup` เตือนให้) อยากให้เปิด browser พร้อมกันมากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | `openspec-config.mjs` แก้ `config.yaml` ทีละบรรทัด ไม่ได้อ่าน YAML ทุกรูปแบบ: `context` ที่เขียนบรรทัดเดียวหรือแบบ `>` และ key ที่ไม่ใช่ list จะถูกรายงานใน `problems` และไม่แตะ | แก้ส่วนนั้นเอง แล้วรัน script อีกครั้ง |
@@ -806,7 +792,6 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | visual direction, `QuickView` และคอลัมน์ไอคอน ยังไม่เคยสร้างผ่าน `/mflow:theme` และ `/mflow:screen` ใน session จริง และ `frontend-design` เป็น plugin แยกที่ mflow ไม่ได้ติดตั้งให้ | ครั้งแรกให้ดูหน้า style guide ที่เปิด quick view ทั้งแบบ Dialog และ SidePanel และลองพิมพ์ URL ของ quick endpoint ด้วย role ที่ไม่มีสิทธิ์ (ต้องได้ 403) ถ้าไม่ได้ติดตั้ง `frontend-design` Claude ใช้ขั้นตอนใน `visual-direction.md` แทน |
 | DatePicker, pager และ component ใหม่ ยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบมาจากโปรเจกต์ที่ใช้งานจริงซึ่งเป็น Next.js) | ครั้งแรกให้นั่งดูหน้า style guide โดยเฉพาะปฏิทินสามมุมมอง และให้ unit test ของตัวแปลงวันที่ผ่านก่อน |
 | `/mflow:analyze`, `/mflow:design` และ `/mflow:challenge` (ไม่บังคับ) ทดสอบแล้วเฉพาะ script ยังไม่เคยใช้ใน session จริงกับรายงานจาก AI ภายนอก และ mflow ไม่รัน AI อื่นให้เอง | ครั้งแรกให้ดูว่าสรุปเก็บความเห็นต่างและ finding ที่ถูกปฏิเสธไว้ครบ ถ้า AI ตัวไหนไม่ได้รัน สั่งสรุปแบบ partial ได้เลย งานหลักไม่ต้องรอ |
-| ตั้งแต่ 0.20 เอกสารจัดเป็นหมวด (`docs/decisions/`, `docs/ai/`, `docs/reviews/change-requests/`) โปรเจกต์ที่สร้างก่อนนั้นยังใช้โครงเดิมได้ เพราะ folder ที่ตั้งค่าได้อยู่ใน `.mflow/config.json` แต่ skill อ้างโครงใหม่เป็นหลัก | รัน `/mflow:init` แล้วตอบ yes ที่แผนย้าย script ย้าย folder, แก้ค่าตั้ง, แก้ path แบบเต็ม (`docs/…`) ในทุกไฟล์ข้อความ และคำนวณ relative link ใน Markdown ใหม่ ส่วนลิงก์ในรูปแบบอื่น (เช่น `href` ใน HTML หรือ path ที่ประกอบขึ้นในโค้ด) ไม่ถูกแก้ ให้ค้นหาเองหลังย้าย ถ้า folder ใหม่มีไฟล์อยู่แล้ว script จะไม่ย้ายส่วนนั้น และแสดงไว้ใน `conflicts` ให้รวมเอง |
 | ถ้า `.mflow/config.json` หรือ `.mflow/sources.json` อ่านไม่ได้ (เช่น merge conflict ค้าง พิมพ์ JSON ผิด) คำสั่ง mflow จะหยุดพร้อมบอกไฟล์และสาเหตุ และ briefing บอกว่าส่วนไหนไม่แสดง แทนที่จะใช้ค่าเริ่มต้นหรือทะเบียนว่างเงียบๆ | แก้ไฟล์ด้วยมือ หรือเอาฉบับดีล่าสุดจาก git อย่าลบแล้วให้ mflow สร้างใหม่ เพราะทะเบียนเป็นที่เดียวที่บันทึกว่าไฟล์ไหนแทนไฟล์ไหนและใครใช้ |
 | ตั๋ว `ask` เก่าที่ติด label `waiting-customer` | ถ้าคุณตอบเองได้ พิมพ์ `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` ได้เลย |
 | stack แบบ `c)` ยังไม่เคยทดสอบกับ mflow: skill เขียนชื่อแบบ `mvc-htmx` (ViewModel, `Prototype:UseFakeData` …) แล้วให้ Claude แปลงตามตาราง `## Stack` | ตรวจตาราง `## Stack` ให้ครบก่อน `/mflow:theme` โดยเฉพาะแถวสวิตช์โหมด prototype และนั่งดูหน้าจอแรกทีละขั้น |

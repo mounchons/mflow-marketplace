@@ -134,8 +134,7 @@ export function realInside(root, target) {
  * wrong type: every folder could then be wrong, so callers stop or say so instead of guessing.
  */
 export function loadConfig(root) {
-  // The grouped layout of 0.20.0 (docs/decisions, docs/ai); projects set up earlier name their folders
-  // in config.json, and migrate-layout.mjs moves them.
+  // Documents are grouped under docs/decisions, docs/ai and docs/reviews; config.json may name other folders.
   const defaults = {
     version: 1,
     hotspotsDir: "docs/decisions/hotspots",

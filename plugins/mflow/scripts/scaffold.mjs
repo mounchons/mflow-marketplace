@@ -53,9 +53,8 @@ try {
 }
 record.files ??= {};
 
-// The templates of the folders a project may move (.mflow/config.json) land where its settings say, so a
-// project still in the layout before 0.20.0 gets them in its own folders, never as a second copy. A new
-// project has no settings yet and gets the defaults, the same paths as the templates.
+// The templates of the folders a project may name (.mflow/config.json) land where its settings say, never
+// as a second copy. A new project has no settings yet and gets the defaults, the same paths as the templates.
 let cfg;
 try {
   cfg = loadConfig(root);

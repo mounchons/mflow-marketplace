@@ -32,15 +32,13 @@ Done when: the profile and the project name are chosen or kept, and for c) the f
 
 ## 3. Scaffold
 
-**On a rerun, move the documents first.** When `.mflow/config.json` already exists, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/migrate-layout.mjs"` (read-only). If it reports `layout: legacy`, or any `rewrites`, the project still keeps its documents in the layout before 0.20.0 (`docs/discuss`, `docs/hotspots`, `docs/ai-inbox`, `docs/analysis`, `docs/design`, `docs/challenge`, `docs/change-requests`). Show the plan in one compact table: each move (from → to), the settings it changes, how many files get the new paths (grouped by top folder: docs, backlog, openspec, code), and anything under `kept` or `conflicts`. On a yes, run it again with `--apply`, then tell the user to look at `git status` and commit with `git add -A` (git shows the moves as renames). A no is fine: the folder settings keep the old paths working, and the scaffold below writes its templates into the folders the settings name. Conflicts are for the user to merge by hand; they never hold up the rest of init.
-
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.mjs" --root . --name "<project name>" --dry-run`, show the planned result, then run it without `--dry-run`.
 
 The script never overwrites. For every entry under `suggested`, a template copy sits in `.mflow/suggested/`: merge it into the existing file by hand (keep everything the user wrote, add the missing mflow sections), show the diff, then delete `.mflow/suggested/`. `.mflow/templates.json` records each template offered and the plugin version that offered it, so a rerun after an upgrade suggests only the templates that changed; `kept` lists the files whose template was offered before, where the project's version stands. Commit `.mflow/templates.json` with the rest of `.mflow/`.
 
 Then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/discuss.mjs" agenda init`. It creates `docs/decisions/discuss/AGENDA.md`, which starts with the `tech-stack` and `code-structure` topics, and never overwrites an existing one.
 
-Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/decisions/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai/inbox/README.md`, `docs/decisions/discuss/README.md` and `docs/decisions/discuss/AGENDA.md` exist (or the same files in the folders `.mflow/config.json` names, when the user kept the old layout) and `.mflow/suggested/` is gone.
+Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vision.md`, `docs/decisions/hotspots/INDEX.md`, `docs/source/README.md`, `docs/ai/inbox/README.md`, `docs/decisions/discuss/README.md` and `docs/decisions/discuss/AGENDA.md` exist (or the same files in the folders `.mflow/config.json` names) and `.mflow/suggested/` is gone.
 
 ## 4. Wire OpenSpec and Backlog.md
 

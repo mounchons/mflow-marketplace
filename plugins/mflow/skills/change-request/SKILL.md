@@ -24,7 +24,7 @@ Done when: the class is backed by at least one cited source, or the ambiguity is
 
 ## 3. For new scope: impact and estimate
 
-Write `docs/reviews/change-requests/CR-<nnn>-<slug>.md` (`<nnn>` follows the highest number there, and in `docs/change-requests/` while a project from before 0.20.0 still has it): request, reason for classification, impact (screens, specs, hotspots, data migration, tests), risk, estimate as a range in hours with the assumptions that drive it, effect on the delivery date, and an `Approved:` line. Create a Backlog task with label `change-request`.
+Write `docs/reviews/change-requests/CR-<nnn>-<slug>.md` (`<nnn>` follows the highest number there): request, reason for classification, impact (screens, specs, hotspots, data migration, tests), risk, estimate as a range in hours with the assumptions that drive it, effect on the delivery date, and an `Approved:` line. Create a Backlog task with label `change-request`.
 
 ## 4. Go ahead on the user's instruction
 

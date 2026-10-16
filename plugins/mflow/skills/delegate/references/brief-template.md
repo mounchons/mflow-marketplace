@@ -91,7 +91,7 @@ Used by `/mflow:discuss <NN> consult`. The brief's mode stays `analyze` (read-on
 
 Instructions that go into the brief's Goal:
 - Read the sources first and the discussion doc second. Test every statement tagged `[อนุมาน]` or `[เสนอ]` against a source.
-- For every open decision (`### D<n>` with an empty `**เลือก:**` line, or `**พี่ปูเลือก:**` in docs written before mflow 0.13), give your own pick and reason, even when it matches Claude's recommendation. You may add an option.
+- For every open decision (`### D<n>` with an empty `**เลือก:**` line), give your own pick and reason, even when it matches Claude's recommendation. You may add an option.
 - Check the topic checklist pasted into the brief. Report every item the doc neither answers nor lists as out of scope.
 - Write the findings in Thai; keep paths and identifiers as they are. Edit no files.
 - A diagram, wireframe or screenshot that contradicts the text or a source is a `challenge` targeting that picture's caption; the Suggestion may include a corrected mermaid block.

@@ -18,6 +18,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 |---|---|
 | New repo, or first time using mflow here (it asks which stack first) | `/mflow:init` |
 | Check the setup, after an mflow upgrade, or when the briefing calls a CLI unavailable | `/mflow:help check setup` (runs the read-only doctor), then usually `/mflow:init` to take the changed templates |
+| Apply or a gate task still runs Playwright, or tasks still end with E2E tests (set up before 0.26) | rerun `/mflow:init`: it replaces the old test lines in `openspec/config.yaml`; apply then skips the E2E steps of an open change and leaves an E2E-only task unticked |
 | `## Stack` has no `Project name (code)` (set up before 0.22), or the apps should follow the `<ProjectName>.Web.Frontend` / `.Web.Backend` / `.Api` naming | rerun `/mflow:init` (asks only the name), then `/mflow:discuss code-structure`; renaming an existing solution is a new code-structure doc and an OpenSpec change |
 | Change the stack before `/mflow:theme` has built the kit | edit AGENTS.md `## Stack`, or rerun `/mflow:init` to be asked again |
 | Customer sent a document or a new version (TOR, Excel, Word) | `/mflow:capture @file` |
@@ -44,7 +45,8 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Continue working out a rule | `/mflow:hotspot <slug>` |
 | Customer's spreadsheet should prove a rule | `/mflow:golden @file.xlsx <slug>` |
 | Clear, small change to build | `/opsx:propose` → `/opsx:apply` → `/mflow:test` → `/opsx:archive` |
-| Run the whole suite and the checks once, when there is time (apply runs only each task's test and the test classes of the code it changed; review reuses this run; open a second session meanwhile for discussions and proposals) | `/mflow:test` (`/mflow:test <part>` for one part or a filter) |
+| Run the whole suite and the checks once, when there is time (apply runs only each task's test and the test classes of the code it changed; review reuses this run; open a second session meanwhile for discussions and proposals) | `/mflow:test` (`/mflow:test <part>` for one part or a filter); E2E is left out |
+| Write or update the E2E tests of one screen once it has settled, and run only them (nothing else writes or runs E2E tests) | `/mflow:e2e <screen>` (no argument: which screens have no tests or changed after them); every E2E test: `/mflow:test e2e` |
 | Prove a commit made after a whole run (a fix after review) without running everything again | `/mflow:test since` (documents only: nothing to run; code: the failed parts and the tests of what changed; migrations, startup or build files: the whole suite) |
 | Have apply hand its code changes to the Sonnet 5.5 subagent (`mflow:dev`, off by default), or stop it | `/mflow:subagent on` then `/clear` / `off` (`--shared` for the whole team, `status` to check); while on, skip it for one run by saying so in the `/opsx:apply` message |
 | Customer asks for a change after approval | `/mflow:change-request <request>` |

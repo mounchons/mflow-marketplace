@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.25.1 |
+| เวอร์ชันที่อธิบาย | 0.26.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -246,6 +246,8 @@ flowchart TD
 | FR-100 | Review: ตรวจ diff กับ scenario, test จริง, ตำแหน่ง domain rule, UI kit, data access, security พื้นฐาน (permission ที่ endpoint, data scope ใน query, การสลับผู้ใช้จำลองต้องไม่หลุดออกนอกโหมด prototype), entity ตรงกับ data dictionary และมี index ตามเอกสาร data model, `PROTOTYPE:` ที่ค้าง แล้วให้ approve / changes-requested รายงานบันทึก commit ที่ตรวจ และ merge ได้เฉพาะเมื่อ branch ยังชี้ commit นั้น commit ที่เพิ่มหลังตรวจต้องตรวจก่อน ผล test ใช้ของ `/mflow:test` ที่ commit เดียวกัน (FR-200) | มีแล้ว |
 | FR-200 | `/mflow:test` รัน test ทั้งชุดครั้งเดียวต่อ change เมื่อผู้ใช้สั่ง: build ครั้งเดียว, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว, `openspec validate <change> --strict` รันทีละส่วนในเวลาที่ shell รอได้ (ส่วนละไม่เกินราว 8 นาที ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน) ส่วนที่แบ่งบันทึกเป็น `- Test parts:` ใน AGENTS.md ผลบันทึกที่ `docs/reviews/tests/<date>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Change:`, `Result:`, เวลาต่อส่วน, test ที่ล้ม) รันบางส่วนได้ด้วย argument ผ่านทั้งชุดที่ commit ที่ไม่มีงานค้างแล้วติ๊ก gate task ของ change `/mflow:review` ใช้ผลนี้แทนการรันซ้ำเมื่อ commit ตรงกัน ไม่มีงานค้าง และ `Scope` เป็น `whole suite` หรือ `since` ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า review รัน `since` เอง ถามครั้งเดียวเฉพาะเมื่อต้องรันทั้งชุดว่าจะรันเลยหรือไว้ทีหลัง (คำตัดสิน `none` จนกว่าจะมีผล) `approve` ต้องมีหลักฐานว่าทั้งชุดผ่านที่ commit ที่ตรวจ (FR-201) ตอนเริ่มรัน Claude แนะนำให้เปิดอีก session ไว้ทำงานที่เขียนแค่เอกสาร และให้รอคำสั่งที่แก้หรือ build โค้ดจนรันจบ test รันในเครื่องของผู้ใช้ mflow ไม่ตั้งและไม่เสนอ CI (GitHub Actions หรืออื่น) จนกว่าผู้ใช้สั่งในโปรเจกต์นั้น รวมถึงหัวข้อ CI/CD ใน `tech-stack` | มีแล้ว |
 | FR-201 | `/mflow:test since` (0.25.1) พิสูจน์ commit ที่ตามมาหลังการรันทั้งชุดโดยไม่รันทั้งชุดใหม่: ฐานคือผลรันทั้งชุดล่าสุดที่ไม่มีงานค้างของ commit ที่เป็นบรรพบุรุษ ดูไฟล์ที่เปลี่ยนตั้งแต่ฐาน แก้แค่เอกสาร (Markdown, `openspec/`, `backlog/`, `docs/`, `STATUS.md`) ไม่ต้องรันอะไร แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุด นอกนั้นรัน build, ส่วนที่ล้มในฐาน, ไฟล์ test ที่แก้, test class ของโค้ดที่แก้ และ format, lint, validate บันทึกเป็น `Scope: since <commit>` พร้อม `Base:` ผลที่ผ่านบน tree ที่ไม่มีงานค้างนับเป็นทั้งชุดที่ commit นั้น (ผู้ใช้พบว่า review รอบสองตรวจที่ commit ที่ต่างจากตอนรันเพียง comment ใน test แต่ 0.25.0 ต้องรันทั้งชุดใหม่) | มีแล้ว |
+| FR-202 | E2E test เขียนและรันเมื่อผู้ใช้สั่งเท่านั้น (0.26, Playwright ชุดเต็ม 472 test ด้วย 10 workers ที่ apply สั่งจาก gate task ทำให้ driver การ์ดจอของ notebook ล่มจนเครื่อง restart สองครั้ง และหน้าจอที่ยังไม่เสร็จทำให้ต้องตามแก้ test ทุกครั้ง): กฎใน `openspec/config.yaml` ให้ task จบด้วย unit test และ user flow พิสูจน์ด้วย unit test ของกฎและ service เบื้องหลัง ไม่มี task ที่เขียน แก้ หรือรัน E2E apply guidance ไม่รัน E2E หรือ build ที่มีไว้ให้ E2E เท่านั้น ไม่แตะไฟล์ E2E แม้ task เก่าจะสั่ง (ทำส่วนอื่น เขียน `E2E: /mflow:e2e <screen>` ต่อท้าย task ที่มีแค่ E2E ปล่อยไม่ติ๊ก บอกหน้าจอที่ change แตะ) `mflow:dev`, `/mflow:screen` (ภาพหน้าจอใช้ browser เดียวแบบครั้งเดียว ไม่เขียนไฟล์ test) และ `/mflow:test` แบบทั้งชุดหรือ `since` ไม่เขียนหรือรัน E2E `/mflow:review` ไม่นับ E2E ที่ยังไม่มีเป็น finding (บอกเป็น `E2E on request`) และไม่รัน E2E init เขียนคำสั่ง E2E ใน AGENTS.md แต่ไม่รัน (`(unverified)` จนกว่า `/mflow:e2e` หรือ `/mflow:test e2e` รันผ่าน) init ซ้ำแทนบรรทัดเรื่อง test ที่ mflow รุ่นก่อนเขียนไว้ | มีแล้ว |
+| FR-203 | `/mflow:e2e [<screen> [what to cover]]` (0.26) เขียนหรือปรับ E2E test ของหน้าจอเดียวเมื่อผู้ใช้สั่ง ไม่ใส่ชื่อ: รายการหน้าจอใน `docs/ui/screens.md` พร้อมไฟล์ test และวันที่แก้ล่าสุดของ test กับไฟล์ UI ใส่ชื่อ: อ่าน route, role, action จาก `screens.md` และ scenario ใน `openspec/specs/` กับ change ที่เปิดอยู่ เขียนตาม convention ของโปรเจกต์ (ชื่อตาม UAT ID ถ้า AGENTS.md กำหนด) ครอบคลุมการเปิดหน้าของแต่ละ role, action และ scenario ที่ผ่านหน้านี้ test ที่ล้มเพราะหน้าจอเปลี่ยนโดยตั้งใจปรับตามของใหม่ ล้มเพราะหน้าจอผิด spec ยังยึด spec และรายงานเป็น defect แก้แค่ไฟล์ test รันเฉพาะไฟล์ของหน้านั้นใน foreground หลัง build ที่ E2E ต้องใช้ เปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2` หรือจำนวนที่ผู้ใช้บอก) ไม่รัน E2E ทั้งชุด (ทั้งชุดคือ `/mflow:test e2e` ใช้เพดานเดียวกัน ทีละ project) บันทึกผลเป็น `Scope: e2e <screen>` ซึ่งไม่นับเป็นการรันทั้งชุด doctor เตือนเมื่อ `openspec/config.yaml` ไม่มี `/mflow:e2e` (ก่อน 0.26) และเมื่อ `playwright.config.*` ไม่ได้ตั้ง `workers` ระดับบนสุด (`workers` ของ project เดียวไม่นับ) | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -397,7 +399,7 @@ mflow-marketplace/
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   ├─ consult.mjs               ← session ของ analyze/design/challenge (ไม่บังคับ) สถานะอ่านจากไฟล์จริง
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
-    ├─ skills/<19 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ skills/<20 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -422,7 +424,8 @@ mflow-marketplace/
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
 | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
-| `/mflow:test [unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุดครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่แก้) |
+| `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุด (ไม่รวม E2E) ครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่แก้) |
+| `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]]` | หน้าจอนิ่งแล้ว อยากได้ E2E test ของหน้านั้น (ไม่มีคำสั่งอื่นเขียนหรือรัน E2E) |
 | `/mflow:review [branch \| --uncommitted \| change \| TASK]` | ตรวจโค้ดก่อน merge (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
@@ -499,7 +502,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.25)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.26)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -542,6 +545,7 @@ mflow-marketplace/
 | House style (0.23): `/mflow:theme` และ `update look` สร้าง kit ด้วยสีและฟอนต์ใหม่, ส่วนของ top bar และแถบเมนูลัดผ่าน `update components` | ยังไม่ได้รันใน session จริง (R-03) ค่าได้จากการอ่าน UI kit ของผู้ใช้ผ่าน browser ใน 0.24 ตรวจกับ `styles/tokens.css` ของ kit แล้ว สี brand สถานะ และ neutral ตรงทุกค่า |
 | ชุดสีสด (0.24): `/mflow:theme`, `update look` และ `update components` สร้างสีสถานะ avatar กล่อง KPI และป้ายตัวเลขตาม `house-style.md` | ยังไม่ได้รันใน session จริง (R-03) contrast ของเฉดข้อความทั้งสิบคำนวณด้วย script (ต่ำสุด 4.92:1 บนขาว, 4.76:1 บนพื้นจาง) |
 | รัน test ตามสั่ง (0.25): `/opsx:apply` ไม่รันทั้งชุดและไม่ทำ gate task, `/mflow:test` รันทีละส่วนและบันทึกผล, `/mflow:review` ใช้ผลที่ commit เดียวกัน, `since` (0.25.1) พิสูจน์ commit ที่ตามมาจากผลรันทั้งชุดครั้งก่อน และคำแนะนำให้เปิดอีก session ระหว่างรัน | ยังไม่ได้รันใน session จริง (R-03) กฎ YAML ที่ init เติมผ่าน parser ของ OpenSpec 1.13.2 แล้ว |
+| E2E ตามสั่ง (0.26): `/mflow:e2e`, กฎ E2E ใน `openspec/config.yaml` และ AGENTS.md, apply ข้ามขั้น E2E ของ task เก่า | ยังไม่ได้รันใน session จริง (R-03) doctor ตรวจกับ `openspec/config.yaml` และ `tests/e2e/playwright.config.ts` ของโปรเจกต์จริงแบบอ่านอย่างเดียวแล้ว เตือนถูกทั้งสองข้อ (`workers: 1` ของ project stack ไม่นับ) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

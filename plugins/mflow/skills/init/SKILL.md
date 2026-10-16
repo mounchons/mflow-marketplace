@@ -67,7 +67,7 @@ rules:
   specs:
     - Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.
   tasks:
-    - Every task ends with the test that proves it (a unit test for rules, an E2E test for user flows; frameworks as in AGENTS.md Stack).
+    - Every task ends with the unit test that proves it (framework as in AGENTS.md Stack); a user flow is proven by unit tests of the rules and services behind it. No task writes, changes or runs E2E tests; /mflow:e2e <screen> does that one screen at a time when the user calls it.
     - A task runs its own test and the test classes that cover the code it changed (the test command filtered to them), with the build. tasks.md has no gate task that runs the whole suite, format, lint or validate; /mflow:test runs those once per change when the user calls it, and /mflow:review reuses its run.
     - A change that builds an aggregate ends by replacing its section in PrototypeData/README.md with a pointer to the entity and migration.
 operations:
@@ -76,7 +76,10 @@ operations:
       - Only when this session's mflow briefing says the apply subagent mflow:dev is ON, hand the code changes of each task to a fresh `mflow:dev` subagent, which runs on Sonnet 5.5, one task at a time in tasks.md order. Give it the change name, the task text, the contextFiles paths and the reports of the tasks already done in this session (files changed, tests). It is off until switched on with /mflow:subagent on; decide from this session only, never from notes or memories of earlier sessions. When it is off, not available, or the call is denied, implement every task yourself without pausing to ask.
       - When the subagent did a task, before marking it `- [x]` and starting the next one, check its diff against the task and its specs, and confirm the task's test passes (rerun it when the report shows no passing run).
       - Run each task's own test and the test classes that cover the code it changed (filtered to them), with the build when the task touched compiled code, never the whole suite. Leave a gate task (one whose only work is running the build, the suites or the checks) unticked; /mflow:test ticks it when the whole suite passes. When the other tasks are done, give the user /mflow:test as the next command.
+      - Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it: do the rest of the task, prove it with unit tests and the build, and add `E2E: /mflow:e2e <screen>` to the task. A task whose only work is E2E stays unticked. When the change touched screens, name them to the user as screens whose E2E tests /mflow:e2e can write or update.
 ```
+
+On a rerun, replace the lines an earlier mflow wrote under `rules.tasks` and `operations.apply.guidance` (the ones on tests, gate tasks, E2E and the apply subagent, in whatever wording that version used, such as "xUnit for rules, Playwright for user flows") with these, keep the project's own lines, and show the diff.
 
 `operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`) and stays off until the user runs `/mflow:subagent on`; do not switch it on during init.
 
@@ -86,7 +89,7 @@ Done when: `openspec list --json` and `backlog task list --json` both return JSO
 
 Replace TODOs only with things you verified:
 - Stack: write `## Stack` with the project name and the profile chosen in step 2 and its rows, as "Record" in [references/stacks.md](references/stacks.md) describes.
-- Commands: run the build and test commands of that profile (`dotnet build` and `dotnet test` for a); for b) also the front end's build and test) and the E2E command if one exists. Write the exact command that worked. Anything you could not run gets `(unverified)`.
+- Commands: run the build and test commands of that profile (`dotnet build` and `dotnet test` for a); for b) also the front end's build and test). Write the exact command that worked. Anything you could not run gets `(unverified)`. Write the E2E command if one exists, but do not run it: E2E runs only when the user calls `/mflow:e2e` or `/mflow:test e2e`, so it carries `(unverified)` until one of them has run it.
 - Architecture: from the actual project layout.
 - Domain vocabulary, bounded contexts, purpose: ask the user in one batch of at most three questions; leave `TODO` for anything not answered. A TODO is honest, a guess looks authoritative.
 - Delete template sections that stay empty after this step, except `Domain vocabulary` and `Stack`.

@@ -1,11 +1,13 @@
 ---
 name: test
-description: Run the whole test suite and the project's checks once per change, when the user calls it, in foreground parts, and record the result against the commit; `since` proves a later commit from that record with only the tests its changes need, so /mflow:review does not run everything again.
+description: Run the whole test suite (without E2E) and the project's checks once per change, when the user calls it, in foreground parts, and record the result against the commit; `since` proves a later commit from that record with only the tests its changes need, so /mflow:review does not run everything again; `e2e` runs the E2E tests only when named.
 disable-model-invocation: true
 argument-hint: "[since | unit | e2e | <part> | <test filter>] [--change <name>]"
 ---
 
 The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed. A later commit, such as a fix after review, is proven with `since`: the whole-suite record of an earlier commit plus the tests its changes need. `/mflow:review` reuses these records. This command is the gate that a change's last task used to be. It runs on this machine: mflow sets up no CI pipeline (GitHub Actions or another) until the user asks for one in the project.
+
+E2E tests are not part of the whole suite. They run only when the user names them: `/mflow:test e2e` for all of them, `/mflow:e2e <screen>` to write and run one screen's.
 
 ## 1. Plan the run
 
@@ -14,7 +16,7 @@ The whole suite runs once per change, when the user has the time and the machine
 - Change: `--change <name>`, else the one open change in `openspec list --json` that this branch implements; none is fine.
 - Scope: with no argument, the whole suite, in this order:
   1. Build, once, so later steps reuse it (`--no-build` in the .NET profiles). Without errors, and without warnings when AGENTS.md asks for that.
-  2. Every test command in `## Commands` (unit and domain, integration, architecture, E2E with whatever AGENTS.md says it needs running), part by part.
+  2. Every test command in `## Commands` except E2E (unit and domain, integration, architecture), part by part.
   3. Format in its check-only form (`dotnet format --verify-no-changes` in the .NET profiles) and lint, when `## Commands` lists them.
   4. `openspec validate <change> --strict` when there is a change.
 
@@ -23,7 +25,7 @@ The whole suite runs once per change, when the user has the time and the machine
 
 Tell the user in one line what will run and how long the newest record in `docs/reviews/tests/` took. Then run it: the user's call is the go-ahead.
 
-In the same message, tell the user how to keep working while it runs. This session is busy until the run ends, so open a second Claude Code session in the same project folder (a new terminal, then `claude`) for work that only writes documents: `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore` or `/opsx:propose`. Leave `/opsx:apply`, `/mflow:screen`, `/mflow:theme` and `/mflow:golden` until the run ends: they change and build code in this checkout, which breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`).
+In the same message, tell the user how to keep working while it runs. This session is busy until the run ends, so open a second Claude Code session in the same project folder (a new terminal, then `claude`) for work that only writes documents: `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore` or `/opsx:propose`. Leave `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` and `/mflow:golden` until the run ends: they change and build code in this checkout, which breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`).
 
 ## Since the last whole run
 
@@ -33,12 +35,13 @@ A commit made after a whole-suite run is proven without running everything again
 2. **What changed:** `git diff --name-only <base>..HEAD`, plus the uncommitted files when there are any.
    - Documents only (Markdown, `openspec/`, `backlog/`, `docs/`, `STATUS.md`): nothing to run.
    - Migrations, startup or dependency wiring (`Program.cs` in the .NET profiles), build or package files (project files, `Directory.*.props`, `package.json`, lock files) or shared test infrastructure (fixtures, factories, test helpers): the whole suite, because their effect is not local.
-   - Otherwise: the build; every part or test that failed in the base; the changed test files; the test classes that cover the changed code (filtered); format, lint and validate as in the whole suite.
+   - Otherwise: the build; every part or test that failed in the base; the changed test files except E2E ones, which wait for `/mflow:e2e`; the test classes that cover the changed code (filtered); format, lint and validate as in the whole suite.
 3. **Record** it as below with `Scope: since <base short commit>` and `Base: <base record path>`. A passing `since` record on a clean tree counts as the whole suite at its commit.
 
 ## 2. Run
 
 - In the foreground, one part at a time, each within the shell's time limit. A whole suite in the background, or parts in parallel, can run the machine out of memory and be stopped halfway.
+- E2E, when the argument names it: the build the E2E command needs, then one E2E project at a time with at most 2 browsers at a time (`--workers=2` for Playwright Test, or the number the user gives). Playwright's default is half the CPU threads, 10 on a 20-thread laptop; that many browsers at once has crashed a laptop's graphics driver and restarted the machine.
 - Carry on after a failing part, so one run shows every failure. Stop only when the build fails.
 - For each part keep the command, the passed / failed / skipped counts, the duration and, for each failure, the test name and the first line of its message.
 

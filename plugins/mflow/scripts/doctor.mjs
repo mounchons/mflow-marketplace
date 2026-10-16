@@ -131,10 +131,22 @@ function projectChecks() {
       const list = parseJson(run("openspec list --json", root, 15000));
       if (list && Array.isArray(list.changes)) add("openspec-project", "ok", `openspec list --json reads: ${list.changes.length} change(s)`);
       else add("openspec-project", "warn", "openspec list --json gave output mflow cannot read, so the briefing shows OpenSpec as unavailable", `Compare openspec ${openspec} with the tested ${compat.testedWith.openspec}`);
-      const yaml = readText(path.join(root, "openspec", "config.yaml")) ?? readText(path.join(root, "openspec", "config.yml"));
-      if (yaml !== null && !yaml.includes("mflow:dev")) add("openspec-guidance", "warn", "openspec/config.yaml has no apply guidance naming mflow:dev (set up before 0.16)", "Run /mflow:init: it merges the guidance");
-      else if (yaml !== null && !yaml.includes("/mflow:test")) add("openspec-guidance", "warn", "openspec/config.yaml has no rule naming /mflow:test (set up before 0.25), so changes may still end with a gate task and apply may run the whole suite", "Run /mflow:init: it merges the rule and the guidance");
     }
+  }
+  // The rules and guidance /mflow:init writes into openspec/config.yaml; reading them needs no CLI.
+  const yaml = exists(root, "openspec") ? readText(path.join(root, "openspec", "config.yaml")) ?? readText(path.join(root, "openspec", "config.yml")) : null;
+  if (yaml !== null) {
+    if (!yaml.includes("mflow:dev")) add("openspec-guidance", "warn", "openspec/config.yaml has no apply guidance naming mflow:dev (set up before 0.16)", "Run /mflow:init: it merges the guidance");
+    else if (!yaml.includes("/mflow:test")) add("openspec-guidance", "warn", "openspec/config.yaml has no rule naming /mflow:test (set up before 0.25), so changes may still end with a gate task and apply may run the whole suite", "Run /mflow:init: it merges the rule and the guidance");
+    else if (!yaml.includes("/mflow:e2e")) add("openspec-guidance", "warn", "openspec/config.yaml has no rule naming /mflow:e2e (set up before 0.26), so tasks may still end with E2E tests and apply may run the whole E2E suite", "Run /mflow:init: it replaces the old test lines");
+    else add("openspec-guidance", "ok", "openspec/config.yaml has the current rules and apply guidance");
+  }
+
+  // E2E with no cap on browsers: Playwright then starts one per two CPU threads.
+  for (const file of codeFiles(root, "").filter((f) => /(^|\/)playwright\.config\.[cm]?[jt]s$/.test(f))) {
+    const workers = topLevelWorkers(readText(path.join(root, file)) || "");
+    if (workers === null) add("e2e-workers", "warn", `${file} sets no workers, so Playwright starts a browser per two CPU threads (10 on a 20-thread laptop); a whole run like that has crashed a laptop's graphics driver`, "Add `workers: 2` at the top level of the config. mflow passes --workers=2 itself; a run by hand or by another tool does not");
+    else add("e2e-workers", "ok", `${file} caps workers at ${workers}`);
   }
   if (backlog) {
     if (!exists(root, "backlog")) add("backlog-project", "warn", "Backlog.md is not initialised in this project", "Run /mflow:init (step 4)");
@@ -192,6 +204,21 @@ function projectChecks() {
 
 function parseJson(text) {
   try { return JSON.parse(text); } catch { return null; }
+}
+
+/** The `workers` a Playwright config sets for the whole run, or null. A project's own `workers` caps only that project. */
+function topLevelWorkers(source) {
+  let text = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+  for (let m; (m = /\bprojects\s*:\s*\[/.exec(text)); ) {
+    let depth = 0;
+    let end = m.index + m[0].length - 1;
+    for (; end < text.length; end++) {
+      if (text[end] === "[") depth++;
+      else if (text[end] === "]" && --depth === 0) break;
+    }
+    text = text.slice(0, m.index) + text.slice(end + 1);
+  }
+  return /\bworkers\s*:\s*([^,}\n]+)/.exec(text)?.[1].trim() ?? null;
 }
 
 /** Project files with one extension, from git's list (tracked and not ignored) or a bounded walk. */

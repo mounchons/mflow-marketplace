@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.25)
+## คำสั่ง (v0.26)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -57,7 +57,8 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
 | | `/mflow:review [branch]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
-| | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุดพร้อม build, format, lint และ `openspec validate` ครั้งเดียวต่อ change เมื่อคุณสั่ง รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) |
+| | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` ครั้งเดียวต่อ change เมื่อคุณสั่ง รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
+| | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]]` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียวแล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -108,11 +109,22 @@ test ทั้งชุดของบางโปรเจกต์ใช้เ
 
 - `/opsx:apply` รันเฉพาะ test ของ task นั้นและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รันทั้งชุด สิ่งที่พังจึงเจอตั้งแต่ task ที่ทำให้พัง และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - `/mflow:test` รัน build, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว และ `openspec validate --strict` รันทีละส่วนให้จบในเวลาที่ shell รอได้ ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะเคยทำให้หน่วยความจำไม่พอจนถูกหยุดกลางทาง ส่วนที่แบ่งไว้บันทึกเป็นบรรทัด `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ
-- ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
+- ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
 - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่ (0.25.1)
 - ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Result:`, เวลาของแต่ละส่วน) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง จะติ๊ก gate task ของ change ให้
 - `/mflow:review` ใช้ผลรันทั้งชุดหรือ `since` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า จะรัน `since` เอง (ปกติไม่กี่นาที) ถามเฉพาะเมื่อต้องรันทั้งชุด ว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง (คำตัดสิน `none` จนกว่าจะมีผล test) `approve` ต้องมีหลักฐานว่าทั้งชุดผ่านที่ commit ที่ตรวจเสมอ (รันทั้งชุดที่นั่น หรือ `since` ต่อจากการรันทั้งชุดครั้งก่อน)
 - โปรเจกต์ที่ init ก่อน 0.25: รัน `/mflow:init` ซ้ำเพื่อ merge กฎใน `openspec/config.yaml` (`/mflow:help check setup` เตือนให้)
+
+## E2E test เขียนและรันเมื่อคุณสั่งเท่านั้น (ตั้งแต่ 0.26)
+
+E2E test ที่เขียนตอนหน้าจอยังเปลี่ยนอยู่ต้องตามแก้ทุกครั้งที่หน้าจอเปลี่ยน และการรันทั้งชุดเปิด browser หลายตัวพร้อมกัน ในโปรเจกต์จริง Playwright รัน 472 test ด้วย 10 workers (ค่าเริ่มต้นคือครึ่งหนึ่งของ CPU thread) แล้ว driver การ์ดจอของ notebook ล่มจนเครื่อง restart สองครั้งในวันเดียว
+
+- task จบด้วย unit test เท่านั้น user flow พิสูจน์ด้วย unit test ของกฎและ service ที่อยู่เบื้องหลัง `/opsx:apply`, `mflow:dev`, `/mflow:screen` และ `/mflow:test` แบบทั้งชุดไม่เขียนและไม่รัน E2E test
+- task เก่าที่สั่งให้รัน Playwright: apply ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E: /mflow:e2e <หน้าจอ>` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และบอกชื่อหน้าจอที่ change แตะ
+- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
+- test ที่ล้มเพราะหน้าจอเปลี่ยนโดยตั้งใจถูกปรับตามของใหม่ ถ้าล้มเพราะหน้าจอผิด spec test ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
+- `/mflow:review` ไม่นับการไม่มี E2E test เป็นข้อบกพร่อง แค่บอกหน้าจอที่ยังรอ (`E2E on request`)
+- โปรเจกต์ที่ init ก่อน 0.26: รัน `/mflow:init` ซ้ำเพื่อแทนบรรทัดเรื่อง test ใน `openspec/config.yaml` และรับ Definition of done ใหม่ใน AGENTS.md `/mflow:help check setup` เตือนให้ และเตือนเมื่อ `playwright.config` ไม่ได้ตั้ง `workers` ไว้ (ควรตั้ง `workers: 2`)
 
 ## Flow ประจำวัน
 
@@ -122,7 +134,7 @@ test ทั้งชุดของบางโปรเจกต์ใช้เ
 4. ครั้งแรกของโปรเจกต์: `/mflow:theme` (หรือ `/mflow:theme preview` ถ้ายังไม่มีโค้ดแอป แล้ว `port` ใน change ที่ scaffold แอป) → `/mflow:screen inventory` (เพิ่มหัวข้อ `<กลุ่ม>-data` ลง AGENDA.md) → ออกแบบข้อมูลทีละกลุ่ม `/mflow:discuss <กลุ่ม>-data` (ไม่บังคับ)
 5. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → ทดสอบใช้งานหรือรีวิว (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 6. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` ทีละตั๋ว (`/clear` ระหว่างตั๋ว) (+ `/mflow:golden`) → graduate
-7. `/opsx:propose` → `/opsx:apply` (Claude ทำเอง หรือส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` บน Sonnet 5.5 เมื่อเปิดด้วย `/mflow:subagent on` หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:test` (เมื่อเครื่องว่าง) → `/mflow:review` → `/opsx:archive`
+7. `/opsx:propose` → `/opsx:apply` (Claude ทำเอง หรือส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` บน Sonnet 5.5 เมื่อเปิดด้วย `/mflow:subagent on` หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:test` (เมื่อเครื่องว่าง) → `/mflow:review` → `/opsx:archive` → เมื่อหน้าจอนิ่งแล้ว `/mflow:e2e <หน้าจอ>` ทีละหน้า
 8. ขอเปลี่ยนสิ่งที่สร้างแล้ว → `/mflow:change-request` (บันทึกผลกระทบ แล้วทำต่อตามที่คุณสั่ง)
 9. จบวัน → `/mflow:handoff`
 

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือทางลัด: ใช้ mflow เฉพาะส่วนตั้งต้น (stack และหน้าตา) แล้วสร้างทั้งระบบด้วย OpenSpec |
-| เวอร์ชัน plugin | 0.25.1 |
+| เวอร์ชัน plugin | 0.26.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/manual.md` (คู่มือหลัก ทางเต็มทีละหน้าจอ) |
 
@@ -139,7 +139,8 @@ flowchart TD
 - **ถ้ายังคิดไม่ชัด:** ใช้ `/opsx:explore <เรื่อง>` ก่อน propose
 - **ให้ AI ตัวอื่นเขียนโค้ดแทน:** `/mflow:delegate <ชื่อ change> --mode code --to codex` แล้วตรวจด้วย `/mflow:review agent/codex/<ชื่อ change>` ก่อน merge
 - **ให้ Claude ส่งงานแต่ละ task ให้ subagent (Sonnet) เขียน:** `/mflow:subagent on` แล้ว `/clear` ก่อน `/opsx:apply`
-- **test ทั้งชุด:** `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้ ส่วน test ทั้งชุดรันครั้งเดียวด้วย `/mflow:test` เมื่อเครื่องว่าง (ผลอยู่ที่ `docs/reviews/tests/` ระหว่างรันเปิดอีก session ไว้ discuss หรือ propose ได้ แก้ตาม review แล้วพิสูจน์ด้วย `/mflow:test since` และ `/mflow:review` ใช้ผลเหล่านี้)
+- **test ทั้งชุด:** `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้ ส่วน test ทั้งชุดรันครั้งเดียวด้วย `/mflow:test` เมื่อเครื่องว่าง (ผลอยู่ที่ `docs/reviews/tests/` ระหว่างรันเปิดอีก session ไว้ discuss หรือ propose ได้ แก้ตาม review แล้วพิสูจน์ด้วย `/mflow:test since` และ `/mflow:review` ใช้ผลเหล่านี้) การรันทั้งชุดไม่รวม E2E
+- **E2E test (Playwright):** ไม่มีคำสั่งไหนเขียนหรือรันเอง เมื่อหน้าจอนิ่งแล้วสั่ง `/mflow:e2e <หน้าจอ>` ทีละหน้า (เปิด browser พร้อมกันไม่เกิน 2 ตัว) อยากรันทั้งหมดสั่ง `/mflow:test e2e`
 - **หลัง archive:** `git diff --stat openspec/specs` ต้องเห็นว่า spec หลักเปลี่ยน
 - **ต่อไป:** module ถัดไป จนครบทุก module ที่ลูกค้าต้องเห็น แล้วไปหัวข้อ 5
 
@@ -175,7 +176,8 @@ flowchart TD
 | ต้องตกลงเรื่องที่ตีความได้หลายแบบ (สิทธิ์, เลขเอกสาร, data model) | `/mflow:discuss <หัวข้อ>` |
 | กฎคำนวณที่ซับซ้อนหรือผิดแล้วแพง | `/mflow:hotspot <กฎ>` แล้ว `/mflow:golden` |
 | เปลี่ยนหน้าตาทั้งระบบ (สี ฟอนต์ เมนู) | `/mflow:theme update <อะไร>` |
-| รัน test ทั้งชุดครั้งเดียวต่อ change | `/mflow:test` |
+| รัน test ทั้งชุดครั้งเดียวต่อ change (ไม่รวม E2E) | `/mflow:test` |
+| เขียนและรัน E2E test ของหน้าจอที่นิ่งแล้ว | `/mflow:e2e <หน้าจอ>` |
 | ตรวจโค้ดก่อน merge | `/mflow:review` |
 | คำขอนอกขอบเขต | `/mflow:change-request` |
 | จบวัน หรือส่งต่องานให้คนอื่น / tool อื่น | `/mflow:handoff` |

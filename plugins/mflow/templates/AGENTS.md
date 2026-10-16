@@ -44,10 +44,11 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 
 ## Commands
 <!-- Fill during /mflow:init from the Stack profile. Append `(unverified)` to any command that was not actually run.
-     /mflow:test adds `- Test parts:` when the suite has to run in parts of under about 8 minutes. -->
+     /mflow:test adds `- Test parts:` when the suite has to run in parts of under about 8 minutes.
+     E2E runs only when the user calls /mflow:e2e <screen> or /mflow:test e2e, with at most 2 browsers at a time. -->
 - Build: `TODO`
 - Unit + domain tests: `TODO`
-- E2E: `TODO`
+- E2E (only on the user's call): `TODO`
 - Run locally: `TODO`
 - Format: `TODO`
 
@@ -94,8 +95,8 @@ If you were given a brief in `.mflow/briefs/`, it is your contract: stay in its 
 ## Definition of done
 A task or change is done when its acceptance criteria are covered by tests that pass:
 - Business rules: data-driven unit tests in the domain test project (Unit tests in Stack), one case per example-table row.
-- User flows: an E2E test (E2E tests in Stack) for each acceptance scenario that crosses the UI.
-- A task runs its own test and the test classes that cover the code it changed. The whole suite, with the Build, Format and test commands above, runs once per change through `/mflow:test` when the user calls it (by hand with the commands above in other tools), and is green at the commit that is merged (`/mflow:review` reuses that run). Report the command output, not a claim.
+- User flows: unit tests of the rules and services behind each acceptance scenario that crosses the UI. E2E tests (E2E tests in Stack) are written and run one screen at a time with `/mflow:e2e <screen>` when the user calls it, once the screen has settled; tasks, `/opsx:apply` and the whole suite of `/mflow:test` neither write nor run them.
+- A task runs its own test and the test classes that cover the code it changed. The whole suite, with the Build, Format and test commands above except E2E, runs once per change through `/mflow:test` when the user calls it (by hand with the commands above in other tools), and is green at the commit that is merged (`/mflow:review` reuses that run). Report the command output, not a claim.
 
 ## Conventions
 <!-- Only what differs from the stack's defaults or cannot be inferred from the code. -->

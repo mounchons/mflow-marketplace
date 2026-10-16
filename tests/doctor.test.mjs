@@ -77,6 +77,42 @@ test("prototype mode without the startup check is a warning; with it, ok", () =>
   assert.equal(doctor()["prototype-mode"].status, "ok");
 });
 
+test("config.yaml set up before 0.26 is a warning until it names /mflow:e2e; the current one is ok", () => {
+  initialised();
+  const old = "rules:\n  tasks:\n    - Every task ends with the test that proves it (xUnit for rules, Playwright for user flows).\n    - tasks.md has no gate task; /mflow:test runs the whole suite.\noperations:\n  apply:\n    guidance:\n      - hand each task to mflow:dev when it is on.\n";
+  p.write("openspec/config.yaml", old);
+  const c = doctor();
+  assert.equal(c["openspec-guidance"].status, "warn");
+  assert.match(c["openspec-guidance"].detail, /0\.26/);
+  assert.match(c["openspec-guidance"].fix, /\/mflow:init/);
+  p.write("openspec/config.yaml", old.replace("Playwright for user flows).", "no E2E; /mflow:e2e <screen> writes them)."));
+  assert.equal(doctor()["openspec-guidance"].status, "ok");
+});
+
+test("a Playwright config with no top-level workers is a warning; a project's own workers does not count", () => {
+  initialised();
+  const config = (top) => `import { defineConfig } from "@playwright/test";
+// One worker for the stack project; the rest use the default.
+export default defineConfig({
+  timeout: 30_000,
+  fullyParallel: true,${top}
+  use: { baseURL: "http://localhost:4173" },
+  projects: [
+    { name: "buyer", testDir: "./buyer" },
+    { name: "stack", testDir: "./stack", dependencies: ["buyer"], fullyParallel: false, workers: 1 },
+  ],
+});
+`;
+  p.write("tests/e2e/playwright.config.ts", config(""));
+  const c = doctor();
+  assert.equal(c["e2e-workers"].status, "warn");
+  assert.match(c["e2e-workers"].detail, /tests\/e2e\/playwright\.config\.ts/);
+  assert.match(c["e2e-workers"].fix, /workers: 2/);
+  p.write("tests/e2e/playwright.config.ts", config("\n  workers: 2,"));
+  assert.equal(doctor()["e2e-workers"].status, "ok");
+  assert.match(doctor()["e2e-workers"].detail, /at 2$/);
+});
+
 test("missing CLIs are failures with the install line, not silence", () => {
   initialised();
   // PATH with only Node on it. Windows spells the variable Path, so both spellings get the same value.

@@ -21,7 +21,7 @@ E2E tests are not part of the whole suite. They run only when the user names the
   4. `openspec validate <change> --strict` when there is a change.
 
   `since` runs what "Since the last whole run" below decides. Any other argument runs only that: `unit`, `e2e`, a part name from `Test parts:`, or a test filter. Its record names it as the scope, and review never counts it as the whole suite.
-- Parts: use the `- Test parts:` line under `## Commands` when there is one. Otherwise one test project per part, and a project that takes longer than about 8 minutes is split by namespace or class filter. When the parts differ from one per project, write them as `- Test parts: <name>: <command>; …` under `## Commands`, so the next run does not have to find them again.
+- Parts: use the `- Test parts:` line under `## Commands` when there is one; an E2E part on it stays out of the whole suite. Otherwise one test project per part, and a project that takes longer than about 8 minutes is split by namespace or class filter. When the parts differ from one per project, write them as `- Test parts: <name>: <command>; …` under `## Commands`, so the next run does not have to find them again.
 
 Tell the user in one line what will run and how long the newest record in `docs/reviews/tests/` took. Then run it: the user's call is the go-ahead.
 
@@ -70,7 +70,7 @@ For `since`, add the changed files that decided the scope, in one line.
 
 `Result: pass` needs every step of the scope to pass: tests without failures, the build without errors, format and lint without changes, validate without errors.
 
-When the scope was the whole suite or `since`, the result is pass, there were no uncommitted changes and the change's `tasks.md` has a gate task (a task whose only work is running the build, the suites or the checks), tick it `- [x]` and add `Done: <record path>` to it.
+When the scope was the whole suite or `since`, the result is pass, there were no uncommitted changes and the change's `tasks.md` has a gate task (a task whose only work is running the build, the suites or the checks), tick it `- [x]` and add `Done: <record path>` to it. When the gate task also names E2E, add `E2E not run: /mflow:e2e` too, so the tick does not claim a run that did not happen.
 
 **What comes next:** on pass, `/mflow:review <branch>`, which reuses this run. On fail, the failing tests by part; once they are fixed and committed, `/mflow:test since`, which reruns the failed parts and the tests of what the fix changed. Write it into STATUS.md `## Now`. Add one line on why it is next: what it unblocks, or which risk it settles.
 

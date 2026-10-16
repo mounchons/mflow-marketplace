@@ -85,3 +85,14 @@ test("every marketplace entry states its plugin's version, the same as its plugi
     assert.equal(entry.version, manifest.version, `${entry.name}: marketplace.json says ${entry.version}, plugin.json says ${manifest.version}`);
   }
 });
+
+test("the config.yaml lines init writes are list items YAML reads as text (OpenSpec ignores a file it cannot parse)", () => {
+  const block = /Then add to `openspec\/config\.yaml`[\s\S]*?```yaml\n([\s\S]*?)```/.exec(read(`${PLUGIN}/skills/init/SKILL.md`))?.[1];
+  assert.ok(block, "init's config.yaml block");
+  const items = block.split("\n").filter((l) => /^\s+- /.test(l)).map((l) => l.replace(/^\s+- /, ""));
+  assert.ok(items.length >= 8, "the block has its list items");
+  for (const item of items) {
+    assert.doesNotMatch(item, /: | #|:$/, `a ": " or " #" turns this item into a mapping or a comment: ${item.slice(0, 80)}`);
+    assert.doesNotMatch(item, /^[-?:,[\]{}#&*!|>'"%@`]/, `this item starts with a YAML indicator: ${item.slice(0, 80)}`);
+  }
+});

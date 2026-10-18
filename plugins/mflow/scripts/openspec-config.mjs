@@ -38,6 +38,7 @@ export const LINES = {
   "rules.proposal": [
     "If the change implements a hotspot, link {hotspots}/<slug>/rules.md in the proposal.",
     "If the change adds or alters tables, link the approved data-model doc in {discuss}/ and follow PrototypeData/README.md; state any difference.",
+    "In the proposal, list every choice that the user's request, the customer documents, the approved designs in {discuss}/ and the hotspots leave open, with the option taken and why. Mark each one where a wrong choice changes a table or key, a permission or data scope, a write to an external system or something sent to the customer (an e-mail, an account, a password), or where the choice departs from a customer document. Ask the user about the marked ones before the proposal is final; the rest stay as questions for testing in use.",
   ],
   "rules.specs": [
     "Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.",

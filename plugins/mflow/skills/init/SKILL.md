@@ -51,7 +51,7 @@ Both write into the repo and into agent files, so show each command and get a ye
 
 Then write mflow's lines into `openspec/config.yaml`: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/openspec-config.mjs" --dry-run`, show what it would remove and add, then run it without `--dry-run`. The lines are, in short:
 - `context`: read AGENTS.md; the user's word is the customer's (build first, test in use, refine); hotspot rules, approved discussion docs and the data dictionary, in the folders `.mflow/config.json` names.
-- `rules.proposal`: link the hotspot's `rules.md` and the data-model doc. `rules.specs`: a Scenario per requirement and per outcome row.
+- `rules.proposal`: link the hotspot's `rules.md` and the data-model doc; list the choices nothing settles yet, and ask about the costly ones (tables, permissions, external writes, what reaches the customer, a departure from a customer document) before the proposal is final. `rules.specs`: a Scenario per requirement and per outcome row.
 - `rules.tasks`: a task that changes code ends with its unit test; no task writes or runs E2E (`/mflow:e2e`); a task runs only its own tests and the test classes of its code, with no gate task (`/mflow:test`); an aggregate's README section becomes a pointer.
 - `operations.apply.guidance`: the `mflow:dev` subagent only when it is on, and the diff check after it; each task's own tests only; never E2E; at the end `/mflow:test` and the review the change needs.
 

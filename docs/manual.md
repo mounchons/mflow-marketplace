@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.29.0 |
+| เวอร์ชัน plugin | 0.30.0 |
 | วันที่ | 2026-10-10 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -242,6 +242,8 @@ docs/
 - **วิธีตอบ:**
   - เขียนในไฟล์: พิมพ์ตัวอักษรของทางเลือก (`a` `b` `c` ไม่ต้องสลับภาษาแป้นพิมพ์) ต่อท้าย `**เลือก:**` ของแต่ละข้อตัดสินใจ เช่น `b` หรือ `b แต่ให้ผู้จัดการเขตเห็นด้วย` หรือเพิ่มบรรทัดที่ขึ้นต้นด้วย `> ความเห็น:` ใต้ข้อที่อยากแก้ แล้วสั่ง `/mflow:discuss 01`
   - หรือพิมพ์ในแชตพร้อมคำสั่ง เช่น `/mflow:discuss 01 D1 a, D2 b`
+  - **อ่านข้อไหนก่อน:** ทุกข้อตัดสินใจมีบรรทัด `**ถ้าผิด:**` บอกว่าตอบผิดแล้วต้องแก้อะไร `แก้ยาก` คือเรื่องที่ต้องแก้ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า (อีเมล บัญชี รหัสผ่าน) หรือเป็นคำตอบที่ใช้แทนข้อความในเอกสารลูกค้า ส่วน `แก้ทีหลังได้` แก้ใน OpenSpec change ถัดไปได้โดยไม่ต้อง migration ให้อ่านข้อแก้ยากให้ละเอียด
+  - **รับที่เหลือตามคำแนะนำ:** `/mflow:discuss 01 D1 d, ที่เหลือตามแนะนำ` Claude จะใส่ข้อที่แนะนำให้ทุกข้อที่ยังเปิดอยู่ ต่อท้ายว่า "(ตามคำแนะนำ)" ข้อแก้ยากที่รับตามคำแนะนำจะถูกใส่ในหัวข้อ 5 เพื่อดูตอนทดสอบใช้งาน และ Claude จะบอกชื่อข้อเหล่านั้นในรายงาน ข้อที่เพิ่งเกิดในรอบนั้น หรือคำแนะนำเพิ่งเปลี่ยนในรอบนั้น จะยังเปิดไว้ เพราะคุณยังไม่ได้เห็น
   - ยังไม่แน่ใจ: ตอบตามที่ Claude แนะนำไปก่อนได้ แล้วเพิ่มเรื่องที่อยากดูไว้ในหัวข้อ 5 "สิ่งที่จะดูตอนทดสอบใช้งาน"
   - ทุกรอบ Claude เพิ่มเลข revision และจดใน "บันทึกการแก้ไข" ว่าแก้อะไร เพราะข้อไหน
 - **ให้ AI หลายตัวช่วยคิด (คุณเป็นคนเลือก):**
@@ -408,6 +410,7 @@ docs/
 ### ขั้น 6: สร้างของจริงทีละ slice
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
+   - **สิ่งที่ Claude ตัดสินแทนคุณ:** proposal จะมีรายการทุกเรื่องที่คำสั่งของคุณ เอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว และ hotspot ยังไม่ได้ตัดสิน พร้อมทางที่เลือกและเหตุผล ข้อที่ถ้าเลือกผิดแล้วแก้ยาก (ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า เช่น อีเมล บัญชี รหัสผ่าน หรือทางที่ต่างจากเอกสารลูกค้า) Claude จะถามคุณก่อน proposal เสร็จ ข้ออื่นเก็บไว้เป็นคำถามตอนทดสอบใช้งาน ถามเฉพาะตอน propose เท่านั้น ระหว่าง `/opsx:apply` ไม่ถาม (ตั้งไว้ใน `rules.proposal` ของ `openspec/config.yaml`)
 2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ test ของตัวเองและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change มี gate task อยู่ apply ปล่อยไว้ไม่ติ๊ก apply ไม่เขียนและไม่รัน E2E test task จบด้วย unit test ส่วน task เก่าที่สั่งให้รัน Playwright Claude ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E on request (/mflow:e2e <หน้าจอ>)` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และบอกชื่อหน้าจอที่ change แตะไว้ให้สั่ง `/mflow:e2e` ทีหลัง
 3. `/mflow:test` เมื่อเครื่องว่าง: รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md ยกเว้น E2E, format และ lint แบบตรวจอย่างเดียว และ `openspec validate <change> --strict` ครั้งเดียวต่อ change รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude ติ๊ก gate task ให้ ถ้าล้ม แก้แล้ว commit แล้วสั่ง `/mflow:test since` ซึ่งรันส่วนที่ล้มกับ test ของสิ่งที่แก้ ไม่ต้องรันทั้งชุดใหม่
    - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
@@ -560,14 +563,14 @@ git diff --stat openspec/specs
 
 ```text
 ## mflow upgrade
-- mflow 0.29.0 has templates newer than this project's (from 0.28.0) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check
+- mflow 0.30.0 has templates newer than this project's (from 0.29.0) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check
 ```
 
 ```text
 /mflow:help check setup
-  → warn  templates          templates last offered by mflow 0.28.0; this is 0.29.0
+  → warn  templates          templates last offered by mflow 0.29.0; this is 0.30.0
                              แก้: Run /mflow:init: it offers only the templates that changed
-  → warn  openspec-guidance  openspec/config.yaml lacks 1 of mflow 0.29.0's lines, such as "…"
+  → warn  openspec-guidance  openspec/config.yaml lacks 1 of mflow 0.30.0's lines, such as "…"
                              แก้: Run /mflow:init, or node "…/openspec-config.mjs" --dry-run, then without --dry-run
 /mflow:init
   → Stack: a) mvc-htmx  (ใช้ต่อ ไม่ถามใหม่)
@@ -762,7 +765,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.29.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.30.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

@@ -24,6 +24,7 @@ superseded-by:
 
 - คำตอบของคุณถือเป็นคำสั่งของลูกค้าโดยตรง ไม่ต้องรอถามลูกค้าอีก ทำก่อน ทดสอบใช้งาน แล้วค่อยปรับเพิ่ม ถ้ายังไม่แน่ใจ เลือกข้อที่แนะนำไปก่อนได้ แล้วใส่เรื่องที่จะดูไว้ในหัวข้อ 5
 - ตอบข้อตัดสินใจในหัวข้อ 4: พิมพ์คำตอบต่อท้ายบรรทัด `**เลือก:**` ของข้อนั้น เช่น `b` หรือ `b แต่ให้ผู้จัดการเขตเห็นด้วย` ตอบในแชตหลายข้อพร้อมกันได้ เช่น `/mflow:discuss {{ID}} D1 a, D2 b`
+- อ่านละเอียดก่อนเฉพาะข้อที่บรรทัด `**ถ้าผิด:**` ขึ้นต้นว่า "แก้ยาก" ข้ออื่นรับตามที่ Claude แนะนำได้ในคำสั่งเดียว เช่น `/mflow:discuss {{ID}} D1 a, ที่เหลือตามแนะนำ` Claude จะใส่ข้อที่แนะนำให้ทุกข้อที่ยังไม่ได้ตอบ ต่อท้ายว่า "(ตามคำแนะนำ)" ข้อแก้ยากที่รับตามคำแนะนำจะถูกใส่ไว้ในหัวข้อ 5 เพื่อดูตอนทดสอบใช้งาน
 - แย้งหรือขอแก้ตรงไหนก็ได้: เพิ่มบรรทัดที่ขึ้นต้นด้วย `> ความเห็น:` ไว้ใต้ข้อนั้น แล้วสั่ง `/mflow:discuss {{ID}}`
 - หรือพิมพ์สิ่งที่อยากแก้ในแชตเลย: `/mflow:discuss {{ID}} <สิ่งที่อยากให้แก้>`
 - อยากให้ AI ตัวอื่น (Codex, OpenCode, Gemini …) ช่วยคิด: สั่ง `/mflow:discuss {{ID}} consult` แล้วรันคำสั่งที่ได้เอง ผลกลับมาแล้วสั่ง `/mflow:discuss {{ID}}` ความเห็นของทุกตัวจะอยู่ในหัวข้อ 8 และในแต่ละข้อตัดสินใจ คุณเป็นคนเลือกเอง
@@ -63,6 +64,8 @@ superseded-by:
 <!-- Options are labelled a) b) c) d), never ก ข ค, so the user answers without switching keyboard language. -->
 - a) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
 - b) <ทางเลือก>: <ข้อดี> / <ข้อเสีย>
+<!-- ถ้าผิด: "แก้ยาก — <what has to change>" when a wrong answer changes a table or key, a permission or data scope, a write to an external system, something sent to the customer (an e-mail, an account, a password), or the answer replaces a customer document's text; otherwise "แก้ทีหลังได้ — <how>". -->
+- **ถ้าผิด:** <แก้ยาก — สิ่งที่ต้องแก้ถ้าตอบผิด หรือ แก้ทีหลังได้ — แก้อย่างไร>
 - **Claude แนะนำ:** <ข้อไหน และเหตุผลหนึ่งประโยค>
 <!-- After other tools answer (consult), one line per tool above the answer line: "- **codex เลือก:** b — reason (C3)". Never fill the answer line from a tool's pick. -->
 - **เลือก:**

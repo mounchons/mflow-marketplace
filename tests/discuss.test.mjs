@@ -134,6 +134,26 @@ test("a free-text answer is not read as an option letter", () => {
   assert.equal(doc.readyToApprove, true);
 });
 
+test("a ถ้าผิด line is neither an answer nor an option, and an answer taken from the recommendation reads as its letter", () => {
+  p = project();
+  const costed = (answer) => D1(answer).replace("- **Claude แนะนำ:**", "- **ถ้าผิด:** แก้ยาก — ขอบเขตข้อมูลของทุกหน้าจอ\n- **Claude แนะนำ:**");
+  const doc = check(FRONT + body(costed(" a (ตามคำแนะนำ)") + costed(" a + b (ตามคำแนะนำ)").replace("D1", "D2")));
+  assert.deepEqual(doc.openDecisions, []);
+  assert.deepEqual(doc.decisionProblems, []);
+  assert.equal(doc.readyToApprove, true);
+  assert.equal(check(FRONT + body(costed(""))).openDecisions.length, 1);
+});
+
+test("a new doc's ถ้าผิด line stays a placeholder until it is filled", () => {
+  p = project();
+  const r = run(p, "discuss.mjs", ["new", "access-control", "--title", "สิทธิ์การใช้งาน"]);
+  assert.equal(r.status, 0, r.stderr);
+  const lines = p.read("docs/decisions/discuss/01-access-control.md").split(/\r?\n/);
+  const costLine = lines.findIndex((l) => l.startsWith("- **ถ้าผิด:**")) + 1;
+  assert.ok(costLine > 0, "the template has a ถ้าผิด line");
+  assert.ok(run(p, "discuss.mjs", ["check", "01"]).json.placeholderLines.includes(costLine));
+});
+
 test("a tilde fence closes only on tildes", () => {
   p = project();
   const example = "~~~text\n```\n### D9: ตัวอย่าง\n- **เลือก:**\n~~~\n";

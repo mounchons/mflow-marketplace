@@ -183,4 +183,6 @@ test("OpenSpec reads the merged file: the context, the task rules and every appl
   const tasks = JSON.parse(spawnSync("openspec instructions tasks --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
   assert.ok(tasks.rules.includes("Name tests after the UAT step."));
   assert.ok(tasks.rules.some((r) => r.startsWith("Every task that changes code")));
+  const proposal = JSON.parse(spawnSync("openspec instructions proposal --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
+  assert.ok(proposal.rules.some((r) => r.startsWith("In the proposal, list every choice") && r.includes("docs/discuss/")), JSON.stringify(proposal.rules));
 });

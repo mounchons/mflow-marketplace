@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.29.0 |
+| เวอร์ชันที่อธิบาย | 0.30.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -255,6 +255,7 @@ flowchart TD
 | FR-208 | ระดับของ review (0.27): **full** เมื่อ change แตะกฎธุรกิจ (domain/application) สิทธิ์หรือ data scope query migration/data model การเชื่อมระบบอื่น หรือ startup/DI, **short** (`/mflow:review --short`) สำหรับโค้ดอื่นและรอบแก้หลัง review (diff ตั้งแต่ commit ใน `Reviewed:` ของรายงานล่าสุด ตรวจข้อ 1, 2 กับสิ่งที่เปลี่ยน ทุก finding เดิมบอกว่าแก้แล้วหรือยังเปิด และข้อ 3–7 เฉพาะบรรทัดที่เปลี่ยน), **skip** เมื่อแก้แค่เอกสาร style/token หรือข้อความ label (merge เมื่อผู้ใช้ตกลง ต้องมีผล `/mflow:test` ที่ commit นั้นถ้าแก้มากกว่าเอกสาร) apply guidance และ `/mflow:test` บอกระดับเป็นขั้นถัดไป รายงานบันทึก `Level:` ผู้ใช้เลือกเองได้เสมอ | มีแล้ว |
 | FR-209 | mflow แบบ clean (0.28): เลิกรองรับสิ่งที่มีไว้ให้โปรเจกต์ก่อน 0.27 หลังจาก StemHub, BunTukTransport และ ThawSi ได้ config และ AGENTS.md ใหม่แล้ว ได้แก่ ถ้อยคำเก่าของ `config.yaml`, doctor ที่ตรวจ `## Who decides`, cache รุ่นก่อน 0.17.2 และข้อความ "set up before 0.18" (ไม่มี `templates.json` = warn ให้รัน init), ป้ายรุ่นใน help, theme และ manual §8 ที่เป็นของรุ่นเก่า ยังเก็บ: ค่าตั้ง folder และ `migrate-layout.mjs` (StemHub ยังใช้ layout ก่อน 0.20), การอ่าน marker ของเอกสาร discuss แบบเก่า (StemHub, BunTukTransport ยังมี), การถามเฉพาะ `Project name (code)` เมื่อยังไม่มี (ThawSi), และ `update responsive`/`update components`/`update look` ที่เติมส่วนที่ kit ยังไม่มี | มีแล้ว |
 | FR-210 | mflow แบบ clean (0.29): StemHub ย้ายเป็น layout แบบหมวดแล้ว (branch `chore/mflow-grouped-layout`) mflow จึงลบ `migrate-layout.mjs` และ test ของมัน, การตรวจ layout ใน doctor และ briefing, การอ่าน consultation จาก folder เก่า (`docs/analysis`, `docs/design`, `docs/challenge`), เลข CR ใน `docs/change-requests/`, ขั้นย้ายเอกสารของ `/mflow:init` และชื่อ folder เก่าใน `openspec-config.mjs` และเลิกอ่าน marker ของเอกสาร discuss แบบก่อน 0.13 (`**พี่ปูเลือก:**`, `> พี่ปู:`) เพราะเอกสารที่ยังใช้ marker นั้นใน StemHub และ BunTukTransport approve แล้วทั้งหมด (`check` ใช้กับ draft) ค่าตั้ง folder ใน `.mflow/config.json` ยังใช้ได้ | มีแล้ว |
+| FR-211 | `rules.proposal` (0.30): proposal มีรายการทุกเรื่องที่คำสั่งของผู้ใช้ เอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว และ hotspot ยังไม่ได้ตัดสิน พร้อมทางที่เลือกและเหตุผล ทำเครื่องหมายข้อที่ถ้าเลือกผิดจะต้องแก้ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า หรือเป็นทางที่ต่างจากเอกสารลูกค้า (เกณฑ์เดียวกับ `แก้ยาก` ของ FR-145) ถามผู้ใช้เฉพาะข้อที่ทำเครื่องหมายก่อน proposal เสร็จ ข้ออื่นเป็นคำถามตอนทดสอบใช้งาน ถามที่ propose เท่านั้น `operations.apply.guidance` ยังทำทุก task โดยไม่หยุดถาม ที่มา: `docs/discuss-usage-analysis-stemhub.md` P02 | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -294,6 +295,7 @@ flowchart TD
 | FR-142 | ใช้ภาพหน้าจอจริงจาก `docs/ui/screens/` เมื่อมีแล้ว wireframe ตัวอักษรใช้เฉพาะก่อนมีหน้าจอ | มีแล้ว |
 | FR-143 | `check` นับภาพ (mermaid, wireframe, ภาพหน้าจอ) และเตือน label ของ flowchart ที่จะทำให้ภาพพัง โดยไม่ขวางการอนุมัติ แต่ code block ที่ไม่ปิดขวางการอนุมัติ | มีแล้ว |
 | FR-144 | ตอนอนุมัติ ภาพไปกับข้อเท็จจริง: ER diagram ไปที่ `PrototypeData/README.md`, state diagram ไปที่ `rules.md` ของ hotspot และ AI ที่ consult แย้งภาพได้ด้วย finding แบบ challenge | มีแล้ว |
+| FR-145 | ป้ายผลถ้าตอบผิดและการรับที่เหลือตามคำแนะนำ (0.30) ทุก `### D<n>` รวมข้อที่เพิ่มในรอบแก้ มีบรรทัด `**ถ้าผิด:**` เหนือคำแนะนำ เขียน `แก้ยาก — <สิ่งที่ต้องแก้>` เมื่อคำตอบที่ผิดจะต้องแก้ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า หรือเป็นคำตอบที่ใช้แทนข้อความในเอกสารลูกค้า นอกนั้นเขียน `แก้ทีหลังได้ — <วิธีแก้>` ผู้ใช้ตอบในแชตด้วย `ที่เหลือตามแนะนำ` ได้ แล้วรอบแก้จะเติมคำตอบของทุกข้อที่เปิดอยู่ก่อนรอบนั้นตาม `**Claude แนะนำ:**` (ตัวอักษรและเงื่อนไข ไม่รวมเหตุผล) ต่อท้าย `(ตามคำแนะนำ)` และไม่เติมจากตัวเลือกของ AI tool อื่น ข้อที่ยังเปิดไว้และต้องบอกในรายงานมีสามแบบ คือข้อที่เพิ่มในรอบนั้น ข้อที่คำแนะนำเปลี่ยนในรอบนั้น และข้อที่คำแนะนำไม่ได้ระบุตัวเลือก ข้อแก้ยากที่รับตามคำแนะนำได้ข้อตรวจในหัวข้อ 5 ก่อนข้ออื่น และรายงานบอกชื่อข้อเหล่านั้น ร่างที่เขียนก่อน 0.30 ได้บรรทัดนี้ในข้อที่ยังเปิดเมื่อแก้รอบถัดไป ที่มา: `docs/discuss-usage-analysis-stemhub.md` P01 | มีแล้ว |
 
 ### 6.13 ผู้ใช้และการตัดสินใจ
 
@@ -511,7 +513,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.29)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.30)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -537,6 +539,10 @@ mflow-marketplace/
 | AGENDA.md ใหม่จาก `agenda init`: มี `tech-stack` และ `code-structure` เป็นแถว 1 และ 2 ไม่มี warning ซิงก์เขียน ยังไม่เริ่ม ทั้งสองแถว briefing แสดงทั้งสอง `new tech-stack` เปลี่ยนเป็นกำลังคุย และ init ซ้ำไม่เขียนทับ | ผ่าน |
 | discuss.mjs agenda (0.15): ไม่มีไฟล์ไม่สร้างเอง (สร้างเฉพาะ `agenda init`), สถานะจากเอกสารล่าสุด (superseded + ฉบับใหม่, draft, approved, dropped ทับสถานะเก่า), ข้ามถูกเก็บจนมีเอกสาร, ช่องว่างเป็นยังไม่เริ่ม, `\|` ในช่องไม่เพี้ยน, CRLF คงเดิม, รันซ้ำไม่เขียน, แถวขาดช่องและไม่มี slug ถูกเตือนและไม่แตะ, แถวใน comment ไม่นับ, `new` ซิงก์และบอก `onAgenda`, briefing แสดงหัวข้อที่ยังไม่เริ่มและที่ต้องทบทวนโดยไม่เขียนไฟล์ | ผ่าน |
 | discuss.mjs marker (0.13): `**เลือก:**` และ `> ความเห็น:` นับเป็นคำตอบและ note, marker เดิม `**พี่ปูเลือก:**` และ `> พี่ปู:` ยังนับ, บรรทัด `**codex เลือก:**` ไม่นับเป็นคำตอบ, marker ใน comment และ code block ไม่นับ | ผ่าน |
+| discuss ถ้าผิด (0.30): บรรทัด `**ถ้าผิด:**` ไม่นับเป็นคำตอบหรือตัวเลือก, คำตอบ `a (ตามคำแนะนำ)` และ `a + d (ตามคำแนะนำ)` อ่านเป็นตัวอักษร `a` พร้อมอนุมัติ, `new` จาก template จริงนับช่อง `ถ้าผิด` ที่ยังไม่เติมเป็น placeholder | ผ่าน |
+| การรับที่เหลือตามคำแนะนำ (`ที่เหลือตามแนะนำ`, 0.30) ในรอบแก้ของ discuss | ยังไม่ได้รันใน session จริง (R-03) |
+| `rules.proposal` (0.30) กับ OpenSpec 1.13.2: `openspec instructions proposal --json` คืนบรรทัด "In the proposal, list every choice …" พร้อม folder discuss ของโปรเจกต์ | ผ่าน |
+| การถามข้อแก้ยากตอน `/opsx:propose` (0.30) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | การทำงานตามหลัก P10 ใน skill (discuss, hotspot, review-notes, change-request) | ยังไม่ได้รันใน session จริง (R-03) |
 | Component ของ 0.14 (pager, header search แบบเลือกคอลัมน์, DatePicker, DateRangeField, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView) ผ่าน `/mflow:theme` | ยังไม่ได้รันใน session จริง (R-03) DatePicker มาจากแบบที่ใช้งานจริงในโปรเจกต์ Next.js |
 | Apply subagent (0.16) กับ OpenSpec 1.13.2: config.yaml จากตัวอย่างใน init ผ่าน parser, `openspec instructions apply --json` คืน `operationGuidance` ครบสองข้อพร้อม `context`, `openspec update --force` ไม่แตะ `config.yaml` และ `.claude/agents/`, `claude -p --plugin-dir` เห็น `mflow:dev` และ transcript ของ subagent บันทึก `"model":"claude-sonnet-5-5"` กับ `"effort":"xhigh"` ทั้งที่ session หลักเป็น Haiku | ผ่าน |

@@ -154,6 +154,65 @@ test("a new doc's ถ้าผิด line stays a placeholder until it is filled
   assert.ok(run(p, "discuss.mjs", ["check", "01"]).json.placeholderLines.includes(costLine));
 });
 
+test("an open decision without a ถ้าผิด line is a warning that never blocks approval; an answered one is left alone", () => {
+  p = project();
+  const costed = D1("").replace("- **Claude แนะนำ:**", "- **ถ้าผิด:** แก้ทีหลังได้ — เปลี่ยนตัวกรองใน change ถัดไป\n- **Claude แนะนำ:**");
+  const doc = check(FRONT + body(D1("") + costed.replace("D1", "D2") + D1(" b").replace("D1", "D3")));
+  assert.deepEqual(doc.costMissing, ["D1: ผู้จัดการเขตเห็นกี่สาขา"]);
+  assert.deepEqual(check(FRONT + body(D1(" a"))).costMissing, []);
+  assert.equal(check(FRONT + body(D1(" a"))).readyToApprove, true);
+});
+
+test("a doc past ~200 lines of prose gets a lengthWarning; fences, table rows and frontmatter do not count", () => {
+  p = project();
+  const fence = "```text\n" + "wireframe line\n".repeat(300) + "```\n";
+  const table = "| a | b |\n|---|---|\n" + "| x | y |\n".repeat(300);
+  const short = check(FRONT + body(D1(" a")) + fence + table);
+  assert.equal(short.lengthWarning, null);
+  assert.ok(short.proseLines < 40, String(short.proseLines));
+  const long = check(FRONT + body(D1(" a")) + "- ข้อความ\n".repeat(200));
+  assert.match(long.lengthWarning, /lines of prose, past the ~200/);
+  assert.equal(long.readyToApprove, true, "a warning only");
+});
+
+/** A Backlog task as the backlog CLI writes it, with its acceptance criteria. */
+const task = (id, title, status, refs, ac) => `---
+id: ${id}
+title: '${title}'
+status: ${status}
+labels:
+  - prototype
+references:
+${refs.map((r) => `  - ${r}`).join("\n")}
+---
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+${ac.join("\n")}
+<!-- AC:END -->
+`;
+
+test("checks lists the open ทดสอบใช้งาน tasks with their unticked criteria, for a doc or for the docs a change cites", () => {
+  p = project();
+  const doc = (n) => `docs/decisions/discuss/${n}.md`;
+  p.write("backlog/tasks/task-7 - a.md", task("TASK-7", "ทดสอบใช้งาน: สิทธิ์", "To Do", [doc("01-access-control")], ["- [x] #1 เห็นสาขาตัวเอง", "- [ ] #2 ไม่เห็นต้นทุน"]));
+  p.write("backlog/tasks/task-8 - b.md", task("TASK-8", "ทดสอบใช้งาน: เลขเอกสาร", "Done", [doc("02-numbering")], ["- [x] #1 รันเลข"]));
+  p.write("backlog/tasks/task-9 - c.md", task("TASK-9", "สร้างหน้ารายการ", "To Do", [doc("01-access-control")], ["- [ ] #1 แสดงรายการ"]));
+  p.write("backlog/tasks/task-10 - d.md", task("TASK-10", "ทดสอบใช้งาน: แจ้งเตือน", "In Progress", [doc("03-notifications")], ["- [ ] #1 ส่งอีเมล"]));
+  p.write("openspec/changes/archive/2026-10-01-branch-scope/proposal.md", `Follows ${doc("01-access-control")}.\n`);
+  const checks = (...args) => {
+    const r = run(p, "discuss.mjs", ["checks", ...args]);
+    assert.equal(r.status, 0, r.stderr);
+    return r.json;
+  };
+  assert.deepEqual(checks().open.map((t) => t.task), ["TASK-10", "TASK-7"], "not Done, titled ทดสอบใช้งาน, citing a doc");
+  const scoped = checks("--change", "branch-scope");
+  assert.deepEqual(scoped.docs, [doc("01-access-control")]);
+  assert.deepEqual(scoped.open.map((t) => [t.task, t.ticked, t.unticked]), [["TASK-7", 1, ["#2 ไม่เห็นต้นทุน"]]]);
+  assert.deepEqual(checks("3").open.map((t) => t.task), ["TASK-10"]);
+  assert.notEqual(run(p, "discuss.mjs", ["checks", "--change", "nothing-here"]).status, 0);
+});
+
 test("a tilde fence closes only on tildes", () => {
   p = project();
   const example = "~~~text\n```\n### D9: ตัวอย่าง\n- **เลือก:**\n~~~\n";

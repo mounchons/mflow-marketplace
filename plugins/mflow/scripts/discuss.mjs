@@ -25,6 +25,14 @@
 // Pictures (skills/discuss/references/visuals.md) are counted and linted but never gate approval:
 //   visuals            mermaid blocks, text-fence wireframes, linked screenshots, mermaid diagram types
 //   mermaidWarnings    flowchart node labels left unquoted around ( ) [ ] { } ; or #, which break the parser
+// Two more warnings never gate approval either:
+//   costMissing        open decisions with no `**ถ้าผิด:**` line (what a wrong answer costs); answered ones are
+//                      left as written, since a draft from before the line existed keeps its answers
+//   lengthWarning      more than ~200 lines of prose (proseLines: frontmatter, comments, fenced blocks, table
+//                      rows and blank lines not counted), the size past which a topic should be split
+//
+// The checks in use that approve turned into Backlog tasks (`ทดสอบใช้งาน: …`, ref the doc) are read, never written:
+//   node discuss.mjs checks [<NN> …] [--change <name>] -> JSON: the open ones, with their unticked criteria
 //
 // Reports from other tools (/mflow:discuss NN consult) land in <inboxDir> and are matched to a doc by
 // the id `discuss-<NN>-r<revision>` in their `brief` frontmatter or their file name. A report counts as
@@ -48,6 +56,8 @@ const TEMPLATE = path.join(here, "..", "skills", "discuss", "assets", "discussio
 const FILE_RE = /^(\d{2,})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DECISION_RE = /^\s*(?:[-*]\s*)?\*\*เลือก:\*\*(.*)$/;
+const COST_RE = /^\s*(?:[-*]\s*)?\*\*ถ้าผิด:\*\*(.*)$/;
+const PROSE_LIMIT = 200;
 const NOTE_RE = /^\s*>\s*ความเห็น\s*:(.*)$/;
 const HEADING_RE = /^###\s+(D\d+\b.*)$/;
 const ANY_HEADING_RE = /^#{1,6}\s/;
@@ -168,11 +178,13 @@ function inspect(root, full, allReports = reports(root)) {
     sectionAt[i] = section;
     const h = HEADING_RE.exec(line);
     if (h) {
-      decision = { id: /^D\d+/.exec(h[1])[0], name: h[1].trim(), answers: [], options: new Set() };
+      decision = { id: /^D\d+/.exec(h[1])[0], name: h[1].trim(), answers: [], options: new Set(), cost: "" };
       decisions.push(decision);
     }
     const o = OPTION_RE.exec(line);
     if (o && decision) decision.options.add(o[1]);
+    const c = COST_RE.exec(line);
+    if (c && decision) decision.cost = c[1].trim();
     const d = DECISION_RE.exec(line);
     if (d) {
       if (decision) decision.answers.push(d[1].trim());
@@ -185,8 +197,12 @@ function inspect(root, full, allReports = reports(root)) {
   // A picture is content too: a section holding only a mermaid block is not empty.
   for (const b of blocks) if (sectionAt[b.line - 1]) sectionAt[b.line - 1].filled = true;
 
-  const openDecisions = decisions.filter((x) => !x.answers.some(Boolean)).map((x) => x.name);
+  const open = decisions.filter((x) => !x.answers.some(Boolean));
+  const openDecisions = open.map((x) => x.name);
   const answeredDecisions = decisions.length - openDecisions.length;
+  const costMissing = open.filter((x) => x.id && !x.cost).map((x) => x.name);
+  const bodyFrom = /^---\r?\n[\s\S]*?\r?\n---/.exec(text)?.[0].split(/\r?\n/).length ?? 0;
+  const proseLines = visible.slice(bodyFrom).filter((l) => l.trim() && !/^\s*\|/.test(l)).length;
   const decisionProblems = [];
   const seenIds = new Set();
   for (const x of decisions) {
@@ -233,6 +249,11 @@ function inspect(root, full, allReports = reports(root)) {
     unclosedFenceLine,
     visuals,
     mermaidWarnings: mermaid.flatMap(lintMermaid),
+    costMissing,
+    proseLines,
+    lengthWarning: proseLines > PROSE_LIMIT
+      ? `${proseLines} lines of prose, past the ~${PROSE_LIMIT} a doc keeps (fenced blocks and table rows not counted): split the topic, or say why it stays one doc`
+      : null,
     readyToApprove:
       status === "draft" && openDecisions.length === 0 && decisionProblems.length === 0 &&
       missingSections.length === 0 && emptySections.length === 0 && missingMetadata.length === 0 &&
@@ -411,6 +432,74 @@ function cited(root, ref) {
   return { doc: doc.file, status: doc.status, revision: doc.revision, cited: hits };
 }
 
+/** The discussion docs a change cites, from every Markdown file in its folder (live or archived). */
+function docsOfChange(root, name) {
+  const changes = path.join(root, "openspec", "changes");
+  const archive = path.join(changes, "archive");
+  const archived = fs.existsSync(archive) ? fs.readdirSync(archive).filter((d) => d.endsWith(`-${name}`)).map((d) => path.join(archive, d)) : [];
+  const dirs = [path.join(changes, name), ...archived].filter((d) => fs.existsSync(d));
+  if (!dirs.length) throw new Error(`checks: no change '${name}' in openspec/changes or its archive`);
+  const dir = loadConfig(root).discussDir.replace(/\/+$/, "");
+  const re = new RegExp(`${dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\d{2,}-[a-z0-9-]+\\.md`, "g");
+  const found = new Set();
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith(".md")) for (const m of (readText(full) || "").matchAll(re)) found.add(m[0]);
+    }
+  };
+  dirs.forEach(walk);
+  return [...found].sort();
+}
+
+/** A YAML list under `key:` in a Backlog task's frontmatter (the shared parser reads scalars only). */
+function fmList(text, key) {
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] || "";
+  const lines = fm.split(/\r?\n/);
+  const at = lines.findIndex((l) => new RegExp(`^${key}:`).test(l));
+  if (at < 0) return [];
+  const inline = /^[^:]+:\s*\[(.*)\]\s*$/.exec(lines[at]);
+  if (inline) return inline[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
+  const out = [];
+  for (const l of lines.slice(at + 1)) {
+    const item = /^\s+-\s+(.*)$/.exec(l);
+    if (!item) break;
+    out.push(item[1].trim().replace(/^['"]|['"]$/g, ""));
+  }
+  return out;
+}
+
+/**
+ * The open checks in use: Backlog tasks titled `ทดสอบใช้งาน…` that cite a discussion doc and are not Done,
+ * with the acceptance criteria still unticked. Only for the docs named, or the docs a change cites.
+ */
+function checks(root, argv) {
+  const ci = argv.indexOf("--change");
+  const change = ci >= 0 ? argv[ci + 1] : null;
+  if (ci >= 0 && !change) throw new Error("checks: --change needs a change name");
+  const ids = argv.filter((a, i) => /^\d+$/.test(a) && (ci < 0 || i !== ci + 1)).map((a) => a.padStart(2, "0"));
+  const dir = loadConfig(root).discussDir.replace(/\/+$/, "");
+  const wanted = change ? docsOfChange(root, change) : null;
+  const tasksDir = path.join(root, "backlog", "tasks");
+  const open = [];
+  for (const f of fs.existsSync(tasksDir) ? fs.readdirSync(tasksDir).filter((n) => n.endsWith(".md")).sort() : []) {
+    const text = readText(path.join(tasksDir, f)) || "";
+    const fm = frontmatter(text);
+    const title = (fm.title || "").replace(/^['"]|['"]$/g, "");
+    if (!title.startsWith("ทดสอบใช้งาน") || /^done$/i.test(fm.status || "")) continue;
+    const docs = fmList(text, "references").map((r) => r.replace(/\\/g, "/")).filter((r) => r.startsWith(`${dir}/`));
+    if (!docs.length) continue;
+    if (wanted && !docs.some((d) => wanted.includes(d))) continue;
+    if (ids.length && !docs.some((d) => ids.includes(FILE_RE.exec(path.basename(d))?.[1]))) continue;
+    const ac = /<!-- AC:BEGIN -->([\s\S]*?)<!-- AC:END -->/.exec(text)?.[1] ?? text;
+    const unticked = [...ac.matchAll(/^- \[ \] (.*)$/gm)].map((m) => m[1].trim().slice(0, 160));
+    const ticked = [...ac.matchAll(/^- \[[xX]\] /gm)].length;
+    open.push({ task: fm.id || f.replace(/\.md$/, ""), title, status: fm.status || "", file: `backlog/tasks/${f}`, docs, ticked, unticked });
+  }
+  return { change, docs: wanted, open };
+}
+
 function create(root, argv) {
   const [slug, ...rest] = argv;
   if (!slug || !SLUG_RE.test(slug)) {
@@ -454,11 +543,12 @@ if (isMain) {
     else if (cmd === "check") out = check(root, rest[0]);
     else if (cmd === "new") out = create(root, rest);
     else if (cmd === "cited") out = cited(root, rest[0]);
+    else if (cmd === "checks") out = checks(root, rest);
     else if (cmd === "agenda" && rest[0] === "init") out = initAgenda(root);
     else if (cmd === "agenda") {
       out = agenda(root, { write: true }) ?? { exists: false, hint: "no AGENDA.md yet: run `discuss.mjs agenda init`" };
     }
-    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | cited <NN|file> | agenda [init]");
+    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | cited <NN|file> | checks [<NN> ...] [--change <name>] | agenda [init]");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

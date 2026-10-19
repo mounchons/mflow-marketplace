@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.30)
+## คำสั่ง (v0.32)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -52,6 +52,8 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมินและบันทึกผลกระทบ แล้วทำต่อเมื่อคุณสั่ง (ร่างตอบลูกค้าเมื่อขอ) |
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/ai/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
+| | `/mflow:analyze units` → `unit:<ชื่อ> [--to …]` | (ไม่บังคับ) ตรวจระบบที่ทำแล้ว "ตามที่ทำจริง" ทีละหน่วย: Claude แตกโค้ดเป็นหน่วยตรวจจากไฟล์ที่ git เก็บไว้ (`.mflow/review-units.json`, script ยืนยันว่าทุกไฟล์มีหน่วยหรือมีเหตุผลที่ไม่ตรวจ) แล้ว brief ให้ AI ตัวอื่นเข้าใจระบบจากข้อเท็จจริงที่ดึงจากโค้ด spec และโค้ด โดยห้ามอ่านเอกสารลูกค้าและ discuss |
+| | `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถามที่ต้องตัดสินก่อนในคำสั่งเดียว: ข้อที่ทำให้ spec เปลี่ยนเข้า OpenSpec change ของหน่วย (`<หน่วย>-review-fixes`), ข้อที่ spec ถูกอยู่แล้วเป็น task, คำถามที่แก้ยากไป `/mflow:discuss` |
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
@@ -164,7 +166,7 @@ mflow/
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
 │   ├─ stop-guard.mjs
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
-│   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ + สถานะของ AGENDA.md
+│   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ + สถานะของ AGENDA.md + task ทดสอบใช้งานที่ค้าง
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool
 │   ├─ apply-subagent.mjs  ← เปิด/ปิด mflow:dev (ค่าใน .mflow/, ค่าเริ่มต้นปิด)
 │   ├─ subagent-guard.mjs  ← hook PreToolUse ที่ปฏิเสธ mflow:dev เมื่อปิดอยู่
@@ -173,6 +175,7 @@ mflow/
 │   ├─ doctor.mjs          ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ (อ่านอย่างเดียว)
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   ├─ consult.mjs         ← สถานะของ analyze/design/challenge (ไม่บังคับ) อ่านจากไฟล์จริง
+│   ├─ review-units.mjs    ← หน่วยตรวจ: ร่าง, ตรวจว่าทุกไฟล์มีหน่วย, ไฟล์ข้อเท็จจริงที่ดึงจากโค้ด
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์
@@ -199,6 +202,25 @@ OpenSpec บอกว่า "สร้างอะไร" (change: proposal, spe
 3. ทุก tool ตอบรายงานเป็น "ข้อความสุดท้าย" ที่มี `Understanding` + `Files read` นำหน้า แล้วคำสั่งบันทึกลง `docs/ai/inbox/`
 4. `/mflow:assess` ตรวจความเข้าใจและไฟล์ที่อ่านก่อน แล้วค่อยตรวจ finding ทีละข้อ
 5. โหมด code ทำใน worktree/branch `agent/<tool>/<id>` → `/mflow:review` → merge เมื่อ approve และคุณตกลง
+
+Codex และ tool อื่นไม่ได้เรียก `/mflow:*` (คำสั่งเหล่านี้ทำงานใน Claude Code เท่านั้น) tool อื่นได้ทุกอย่างที่ต้องใช้จาก brief
+
+### ตรวจระบบที่ทำแล้ว ตามที่ทำจริง
+
+| ขั้น | ใคร | ทำอะไร |
+|---|---|---|
+| 1 | Claude Code | `/mflow:analyze units` แตกโค้ดเป็นหน่วยตรวจ แล้ว `review-units.mjs check` ยืนยันว่าทุกไฟล์มีหน่วย หรืออยู่ในกลุ่มที่ไม่ตรวจพร้อมเหตุผล และ spec ทุกด้านมีหน่วยรับ |
+| 2 | คุณ | ดูแผน รวม แยก หรือเรียงลำดับหน่วย |
+| 3 | Claude Code | `/mflow:analyze unit:<ชื่อ> --to codex,opencode` เขียน brief + ไฟล์ข้อเท็จจริง (รายชื่อไฟล์, ชื่อ test, route/endpoint, schema ที่ script ดึงจากโค้ด) แล้วแสดงคำสั่งของแต่ละ tool |
+| 4 | คุณ | รันคำสั่งของ Codex / OpenCode |
+| 5 | Codex / OpenCode | อ่าน brief แล้วอ่าน repo แบบอ่านอย่างเดียว เขียนรายงานลง `docs/ai/inbox/` (ห้ามเปิด `docs/source/`, `docs/decisions/`, `docs/vision.md`, STATUS.md, backlog) |
+| 6 | Claude Code | `/mflow:analyze AN-NNN` ตรวจทุกข้อกับโค้ดจริง บอกไฟล์ของหน่วยที่ไม่มีรายงานไหนอ่าน แล้วเขียนสรุปที่บอกว่าแต่ละข้อ "ไปที่" ไหน พร้อม `## ต้องตัดสินก่อน` |
+| 7 | คุณ | `/mflow:analyze AN-NNN แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` |
+| 8 | Claude Code | `/opsx:propose <หน่วย>-review-fixes` → `/opsx:apply` → `/mflow:test` → `/mflow:review` → `/opsx:archive` |
+
+กฎว่าข้อไหนไปที่ไหน: "แก้แล้ว spec ยังพูดถูกโดยไม่ต้องแตะหรือไม่" ถ้าไม่ (โค้ดทำสิ่งที่ spec ไม่บอกแล้วเลือกเก็บ, bug ในกรณีที่ spec ไม่ได้พูดถึง, โลจิกใหม่) เข้า OpenSpec พร้อม delta spec ถ้าใช่ (bug ที่ spec บอกถูกอยู่แล้ว, test ที่ขาด, refactor) เป็น task ใน change เดียวกัน หรือใน Backlog ถ้าไม่มี change รวมเป็นชุดละหน่วยเพื่อให้ test ทั้งชุดรันครั้งเดียว คำถามระดับหนัก (schema, สิทธิ์, ข้อมูลที่ลูกค้าไม่ได้พูดถึง, การลบ, การส่งออกนอกระบบ) ไป `/mflow:discuss` และ change ของหน่วยทำต่อไปก่อนโดยไม่รวมข้อที่รอคำตอบ
+
+ค่าเสริมใน `.mflow/config.json` (ไม่บังคับ): `asBuilt.openapi` path ของไฟล์ OpenAPI ที่โปรเจกต์ export ไว้ (mflow ไม่รันแอปเอง) และ `asBuilt.facts.tests` / `asBuilt.facts.routes` regular expression เพิ่มเติม (มี capture group เดียวเป็นชื่อ test หรือ route)
 
 ### ทะเบียน tool
 

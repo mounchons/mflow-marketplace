@@ -6,9 +6,13 @@
 // and the commands (requirement §13).
 //
 //   node consult.mjs new <analyze|design|challenge> --scope "<what>" [--to <tool,tool | any>]
-//        [--focus <a,b>] [--target <file>] [--from <file>] [--again]
+//        [--focus <a,b>] [--target <file>] [--from <file>] [--basis built] [--again]
 //        -> JSON: the session and where its brief, reports and summary go. The same intent and scope
 //           while a session is still open returns that session (existing: true) unless --again.
+//           An analysis of `unit:<name>` (a unit of .mflow/review-units.json) or with --basis built reads
+//           the system as built: the brief leaves out the customer's sources and the decision docs, and a
+//           unit's session also names its facts file. `previous` lists the summarized sessions of the same
+//           scope, whose settled items the new brief names as known.
 //   node consult.mjs round <id> --issues <F3,C2>     -> start the next round on the findings still disputed
 //   node consult.mjs status <id>                     -> JSON: the state of one session, read from disk
 //   node consult.mjs list                            -> JSON: every session with its state
@@ -23,6 +27,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findRoot, frontmatter, gitStatus, loadConfig, readJsonFile, readText, run, writeFileAtomic } from "./lib.mjs";
+import { readPlan } from "./review-units.mjs";
 import { fileHash } from "./source-index.mjs";
 
 export const INTENTS = {
@@ -91,6 +96,7 @@ const paths = (root, s, round) => {
   const inbox = loadConfig(root).inboxDir;
   return {
     brief: `.mflow/briefs/${s.id}-r${round}.md`,
+    ...(s.unit ? { facts: `.mflow/briefs/${s.id}-r${round}.facts.md` } : {}),
     out: `${inbox}/${s.id}-r${round}-{tool}.md`,
     summary: `${docsDir(root, s)}/${s.id}/${INTENTS[s.intent].summary}`,
   };
@@ -144,6 +150,8 @@ export function inspect(root, s) {
     intent: s.intent,
     scope: s.scope,
     focus: s.focus,
+    basis: s.basis || null,
+    unit: s.unit || null,
     round: latest,
     state,
     completeness: inLatest.length === 0 ? "none" : missing.length ? "partial" : "complete",
@@ -163,6 +171,19 @@ function create(root, intent, opts) {
   const target = opts.target ? pinned(root, opts.target, "--target") : null;
   const scope = (opts.scope || (target ? target.path : "")).trim();
   if (!scope) throw new Error("new: --scope \"<what>\" is needed");
+  if (opts.basis !== undefined && opts.basis !== "built") throw new Error("new: --basis takes only built");
+  let unit = null;
+  if (/^unit:/i.test(scope)) {
+    const name = /^unit:([a-z0-9][a-z0-9-]*)$/.exec(scope)?.[1];
+    if (!name) throw new Error(`new: ${scope} is not unit:<name> with a lower-case unit name`);
+    if (intent !== "analyze") throw new Error("new: unit:<name> is a scope of analyze");
+    const plan = readPlan(root);
+    if (!plan.units.some((u) => u.name === name)) {
+      throw new Error(`new: no unit ${name} in .mflow/review-units.json (units: ${plan.units.map((u) => u.name).join(", ") || "none"})`);
+    }
+    unit = name;
+  }
+  const basis = unit || opts.basis === "built" ? "built" : null;
   if (!opts.again) {
     for (const id of sessionIds(root)) {
       const s = readSession(root, id);
@@ -182,6 +203,8 @@ function create(root, intent, opts) {
     intent,
     scope,
     focus: (opts.focus || "").split(",").map((f) => f.trim()).filter(Boolean),
+    ...(basis ? { basis } : {}),
+    ...(unit ? { unit } : {}),
     created: today(),
     snapshot: {
       base: git ? run("git rev-parse HEAD", root, 8000)?.trim() || null : null,
@@ -192,8 +215,14 @@ function create(root, intent, opts) {
     participants: (opts.to || "any").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
     rounds: [{ n: 1, started: today() }],
   };
+  // Earlier sessions of the same scope that reached a summary: their settled items are known to the new brief.
+  const previous = sessionIds(root).map((d) => readSession(root, d))
+    .filter((p) => p.intent === intent && normalize(p.scope) === normalize(scope))
+    .map((p) => inspect(root, p))
+    .filter((p) => p.state === "summarized")
+    .map((p) => ({ id: p.id, summary: p.summary, revision: p.summaryRevision }));
   writeFileAtomic(sessionFile(root, id), JSON.stringify(session, null, 2) + "\n");
-  return { created: true, ...inspect(root, session), snapshot: session.snapshot };
+  return { created: true, ...inspect(root, session), snapshot: session.snapshot, previous };
 }
 
 function nextRound(root, id, issues) {
@@ -228,7 +257,7 @@ if (isMain) {
     else if (cmd === "round") out = nextRound(root, positional[0], opts.issues);
     else if (cmd === "status") out = inspect(root, readSession(root, positional[0]));
     else if (cmd === "list") out = list(root);
-    else throw new Error("usage: consult.mjs new <analyze|design|challenge> --scope \"…\" [--to …] [--focus …] [--target f] [--from f] [--again] | round <id> --issues … | status <id> | list");
+    else throw new Error("usage: consult.mjs new <analyze|design|challenge> --scope \"…\" [--to …] [--focus …] [--target f] [--from f] [--basis built] [--again] | round <id> --issues … | status <id> | list");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

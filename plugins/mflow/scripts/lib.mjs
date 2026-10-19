@@ -178,7 +178,18 @@ export function loadConfig(root) {
   if ("stopGuard" in user && typeof user.stopGuard !== "boolean" && !isObject(user.stopGuard)) {
     wrong("stopGuard", "true, false or an object");
   }
-  for (const key of ["applySubagent", "tools"]) if (key in user && !isObject(user[key])) wrong(key, "an object");
+  for (const key of ["applySubagent", "tools", "asBuilt"]) if (key in user && !isObject(user[key])) wrong(key, "an object");
+  // asBuilt: what review-units.mjs facts reads besides its own patterns (an exported OpenAPI file, extra
+  // regular expressions, each with one capture group for the test name or route).
+  if (user.asBuilt) {
+    const ab = user.asBuilt;
+    if ("openapi" in ab && (typeof ab.openapi !== "string" || !insideProject(ab.openapi))) wrong("asBuilt.openapi", "a file path inside the project, relative to it");
+    if ("facts" in ab && !isObject(ab.facts)) wrong("asBuilt.facts", "an object");
+    for (const k of ["tests", "routes"]) {
+      const v = ab.facts?.[k];
+      if (v !== undefined && !(Array.isArray(v) && v.every((s) => typeof s === "string"))) wrong(`asBuilt.facts.${k}`, "a list of regular expressions as strings");
+    }
+  }
   const sg = typeof user.stopGuard === "boolean" ? { enabled: user.stopGuard } : user.stopGuard || {};
   return {
     ...defaults,

@@ -117,6 +117,7 @@ Used by `/mflow:analyze`. Mode `analyze`, subject `<id>-r<n>`. Instructions that
 - Describe what the system does now, each point with evidence, apart from what its documents say it should do.
 - Report only findings with evidence or a concrete scenario; there is no quota. Where nothing was found, say what was examined.
 - Do not open `docs/ai/inbox/` in round 1: other tools answer the same brief, and your view must stay independent. In a later round, answer the disputed findings the brief lists, by their id.
+- As built (`unit:<name>` or `--basis built`), also: learn the system from the facts file, the specs and the code, never from the folders the brief's "Do not open" lists; give every finding a `Type:` (a: the spec says it, the code does not do it; b: the code does it, the spec does not say it; c: a logic fault whatever the spec says; d: a scenario with no test; e: missing logic or an improvement); and where a spec and the code disagree, report it without assuming either is right.
 
 ```markdown
 ## Current behaviour
@@ -125,6 +126,7 @@ Used by `/mflow:analyze`. Mode `analyze`, subject `<id>-r<n>`. Instructions that
 ## Findings
 ### F1 <title>
 - Kind: problem | gap | risk | improvement
+- Type: a | b | c | d | e  (as built only)
 - Claim: <one sentence>
 - Evidence: <file:line, spec section, or source doc + page — must be in Files read>
 - Impact: high | medium | low

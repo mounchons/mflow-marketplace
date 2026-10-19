@@ -16,7 +16,7 @@ Restate it in one or two sentences and list the screens, rules, data and documen
 Evidence, in order: archived specs in `openspec/specs/`, approved screens in `docs/ui/screens.md`, approved discussion docs in `docs/decisions/discuss/`, `docs/vision.md` scope and out-of-scope, active documents in `docs/source/INDEX.md` (never superseded ones), review summaries in `docs/reviews/`.
 
 Classify with the evidence quoted by file and section:
-- **Defect:** agreed behaviour that was built wrong → Backlog bug task, no charge.
+- **Defect:** agreed behaviour that was built wrong → Backlog bug task, no charge; when a `<unit>-review-fixes` change from `/mflow:analyze` is open for that part and not yet applied, a task in it instead, so the fix rides the same test gate.
 - **Clarification:** within agreed scope, detail was open → Backlog task, or a hotspot ticket if it is a rule.
 - **New scope:** not in the baseline, or changes something approved → change request.
 

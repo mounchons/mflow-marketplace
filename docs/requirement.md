@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.30.0 |
+| เวอร์ชันที่อธิบาย | 0.32.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -256,6 +256,7 @@ flowchart TD
 | FR-209 | mflow แบบ clean (0.28): เลิกรองรับสิ่งที่มีไว้ให้โปรเจกต์ก่อน 0.27 หลังจาก StemHub, BunTukTransport และ ThawSi ได้ config และ AGENTS.md ใหม่แล้ว ได้แก่ ถ้อยคำเก่าของ `config.yaml`, doctor ที่ตรวจ `## Who decides`, cache รุ่นก่อน 0.17.2 และข้อความ "set up before 0.18" (ไม่มี `templates.json` = warn ให้รัน init), ป้ายรุ่นใน help, theme และ manual §8 ที่เป็นของรุ่นเก่า ยังเก็บ: ค่าตั้ง folder และ `migrate-layout.mjs` (StemHub ยังใช้ layout ก่อน 0.20), การอ่าน marker ของเอกสาร discuss แบบเก่า (StemHub, BunTukTransport ยังมี), การถามเฉพาะ `Project name (code)` เมื่อยังไม่มี (ThawSi), และ `update responsive`/`update components`/`update look` ที่เติมส่วนที่ kit ยังไม่มี | มีแล้ว |
 | FR-210 | mflow แบบ clean (0.29): StemHub ย้ายเป็น layout แบบหมวดแล้ว (branch `chore/mflow-grouped-layout`) mflow จึงลบ `migrate-layout.mjs` และ test ของมัน, การตรวจ layout ใน doctor และ briefing, การอ่าน consultation จาก folder เก่า (`docs/analysis`, `docs/design`, `docs/challenge`), เลข CR ใน `docs/change-requests/`, ขั้นย้ายเอกสารของ `/mflow:init` และชื่อ folder เก่าใน `openspec-config.mjs` และเลิกอ่าน marker ของเอกสาร discuss แบบก่อน 0.13 (`**พี่ปูเลือก:**`, `> พี่ปู:`) เพราะเอกสารที่ยังใช้ marker นั้นใน StemHub และ BunTukTransport approve แล้วทั้งหมด (`check` ใช้กับ draft) ค่าตั้ง folder ใน `.mflow/config.json` ยังใช้ได้ | มีแล้ว |
 | FR-211 | `rules.proposal` (0.30): proposal มีรายการทุกเรื่องที่คำสั่งของผู้ใช้ เอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว และ hotspot ยังไม่ได้ตัดสิน พร้อมทางที่เลือกและเหตุผล ทำเครื่องหมายข้อที่ถ้าเลือกผิดจะต้องแก้ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า หรือเป็นทางที่ต่างจากเอกสารลูกค้า (เกณฑ์เดียวกับ `แก้ยาก` ของ FR-145) ถามผู้ใช้เฉพาะข้อที่ทำเครื่องหมายก่อน proposal เสร็จ ข้ออื่นเป็นคำถามตอนทดสอบใช้งาน ถามที่ propose เท่านั้น `operations.apply.guidance` ยังทำทุก task โดยไม่หยุดถาม ที่มา: `docs/discuss-usage-analysis-stemhub.md` P02 | มีแล้ว |
+| FR-212 | ข้อทดสอบใช้งานที่ค้าง (0.31) `discuss.mjs checks [<NN>…] [--change <name>]` อ่าน task ใน `backlog/tasks/` ที่ชื่อขึ้นต้นด้วย `ทดสอบใช้งาน` อ้างเอกสาร discuss และยังไม่ Done พร้อมเกณฑ์ที่ยังไม่ติ๊ก กรองตามเอกสาร หรือตามเอกสารที่ change อ้าง (ทั้ง change ที่ยังเปิดและที่ archive แล้ว) และไม่เขียน Backlog `/mflow:review` ใส่ผลไว้ใต้ `Checks in use:` ในรายงานและบอกผู้ใช้ให้ลองในระบบจริงแล้ว `/mflow:review-notes` เป็นการเตือนที่ไม่เปลี่ยนคำตัดสินหรือขวาง merge ที่มา: `docs/discuss-usage-analysis-stemhub.md` P03 | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -296,6 +297,7 @@ flowchart TD
 | FR-143 | `check` นับภาพ (mermaid, wireframe, ภาพหน้าจอ) และเตือน label ของ flowchart ที่จะทำให้ภาพพัง โดยไม่ขวางการอนุมัติ แต่ code block ที่ไม่ปิดขวางการอนุมัติ | มีแล้ว |
 | FR-144 | ตอนอนุมัติ ภาพไปกับข้อเท็จจริง: ER diagram ไปที่ `PrototypeData/README.md`, state diagram ไปที่ `rules.md` ของ hotspot และ AI ที่ consult แย้งภาพได้ด้วย finding แบบ challenge | มีแล้ว |
 | FR-145 | ป้ายผลถ้าตอบผิดและการรับที่เหลือตามคำแนะนำ (0.30) ทุก `### D<n>` รวมข้อที่เพิ่มในรอบแก้ มีบรรทัด `**ถ้าผิด:**` เหนือคำแนะนำ เขียน `แก้ยาก — <สิ่งที่ต้องแก้>` เมื่อคำตอบที่ผิดจะต้องแก้ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า หรือเป็นคำตอบที่ใช้แทนข้อความในเอกสารลูกค้า นอกนั้นเขียน `แก้ทีหลังได้ — <วิธีแก้>` ผู้ใช้ตอบในแชตด้วย `ที่เหลือตามแนะนำ` ได้ แล้วรอบแก้จะเติมคำตอบของทุกข้อที่เปิดอยู่ก่อนรอบนั้นตาม `**Claude แนะนำ:**` (ตัวอักษรและเงื่อนไข ไม่รวมเหตุผล) ต่อท้าย `(ตามคำแนะนำ)` และไม่เติมจากตัวเลือกของ AI tool อื่น ข้อที่ยังเปิดไว้และต้องบอกในรายงานมีสามแบบ คือข้อที่เพิ่มในรอบนั้น ข้อที่คำแนะนำเปลี่ยนในรอบนั้น และข้อที่คำแนะนำไม่ได้ระบุตัวเลือก ข้อแก้ยากที่รับตามคำแนะนำได้ข้อตรวจในหัวข้อ 5 ก่อนข้ออื่น และรายงานบอกชื่อข้อเหล่านั้น ร่างที่เขียนก่อน 0.30 ได้บรรทัดนี้ในข้อที่ยังเปิดเมื่อแก้รอบถัดไป ที่มา: `docs/discuss-usage-analysis-stemhub.md` P01 | มีแล้ว |
+| FR-146 | คำเตือนของ `check` ที่ไม่ขวางการอนุมัติ (0.31) `costMissing` คือข้อตัดสินใจที่ยังเปิดแต่ไม่มีบรรทัด `**ถ้าผิด:**` (ข้อที่ตอบแล้วไม่นับ) และ `lengthWarning` เมื่อ `proseLines` เกิน ~200 (ไม่นับ frontmatter, comment, code block, แถวตาราง และบรรทัดว่าง) เอกสารใหม่ต้องไม่มี `costMissing` ก่อนส่งให้ผู้ใช้ รอบแก้เติมบรรทัดที่ขาด และ `lengthWarning` นำไปสู่การแยกเรื่อง หรือหนึ่งบรรทัดที่บอกเหตุผลที่ยังเป็นเรื่องเดียว ที่มา: `docs/discuss-usage-analysis-stemhub.md` P04 (ส่วนคำเตือน) | มีแล้ว |
 
 ### 6.13 ผู้ใช้และการตัดสินใจ
 
@@ -333,6 +335,11 @@ flowchart TD
 | FR-184 | briefing แสดง session ที่ยังไม่สรุปในหัวข้อแยก "Consultations (optional)" ไม่ปนกับงานที่รอ และไม่เป็น next action ของงานหลัก รายงานของ consultation ไม่นับเป็น "AI-inbox item(s) not assessed" เฉพาะเมื่อ session นั้นมีอยู่จริง (ชื่อ id ที่แต่งขึ้นไม่ทำให้รายงานหลุดจากคิวตรวจ) ถ้า session อ่านไม่ได้ briefing บอก และรายงานกลับไปอยู่ในรายการรอ scope และ path จาก session แสดงเป็นบรรทัดเดียว ไม่แทรกข้อความเข้า briefing และ path ที่ปักหมุดไว้ซึ่งชี้ออกนอกโปรเจกต์ไม่ถูกอ่าน | มีแล้ว |
 | FR-185 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus] [--to]` ให้ AI หลายตัววิเคราะห์สภาพจริงของระบบ (สัญญา `consult-analyze`: พฤติกรรมปัจจุบันพร้อมหลักฐาน, findings ที่มี ID หลักฐาน ผลกระทบ confidence, ข้อเสนอเรียงลำดับ, สิ่งที่ยังตรวจไม่ได้) และสรุปที่ `docs/ai/analysis/AN-NNN/summary.md` | มีแล้ว |
 | FR-186 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus] [--to]` ให้ AI หลายตัวเสนอแบบ (สัญญา `consult-design`: ปัญหาและขอบเขต, แบบที่แนะนำเท่าที่หัวข้อต้องการ, ทางเลือกรวมการคงโครงเดิม, สิทธิ์/ความล้มเหลว/การทำงานพร้อมกัน, trade-offs พร้อมสมมติฐาน, การย้ายจากระบบเดิม, เกณฑ์ตรวจรับ, ข้อที่ผู้ใช้ต้องเลือก และป้าย `[เสนอ]`/`[อนุมาน]`) ไม่ต้องผ่าน analyze ก่อน รวมเป็น `docs/ai/design/DS-NNN/proposal.md` (สถานะ proposed/selected/superseded) และ `comparison.md` เมื่อยังมีทางเลือกตั้งแต่สองทาง แบบที่เลือกส่งต่อ `/opsx:propose` โดยอ้าง revision ไม่แก้ `openspec/specs/` เอง | มีแล้ว |
+| FR-213 | หน่วยตรวจ (0.32): `/mflow:analyze units` ให้ Claude แตกโค้ดเป็นหน่วยตรวจจากไฟล์ที่ git เก็บไว้ ไม่ใช่จากความจำของคน (`review-units.mjs draft` เสนอจาก folder ของ module และชื่อไฟล์) ลง `.mflow/review-units.json`: หน่วย feature ครบทุก layer, หน่วย shared สำหรับโค้ดที่ทุกหน่วยใช้ (persistence, common, identity/security, integration/job, prototype/testing, UI kit, shell), หน่วย joins สำหรับ flow ข้ามหน่วย และกลุ่ม `notReviewed` ที่ต้องมีเหตุผล `review-units.mjs check` (อ่านอย่างเดียว) บอกไฟล์ที่ไม่มีหน่วย ไฟล์ที่อยู่สองหน่วย กลุ่มที่ไม่มีเหตุผล spec ที่ไม่มีหน่วยรับ (รวม change ที่ยังไม่ archive) ชื่อ spec/หน่วยข้างเคียง/flow ที่ไม่มีอยู่ และหน่วยที่ว่าง แผนที่เก่าเตือนแต่ไม่ขวาง ที่มา: `docs/mflow-asbuilt-review-proposal.md` | มีแล้ว |
+| FR-214 | วิเคราะห์ตามที่ทำจริง (0.32): `/mflow:analyze unit:<ชื่อ>` หรือ `--basis built` session บันทึก `basis: built` (และ `unit`) brief ให้อ่าน (1) ไฟล์ข้อเท็จจริงที่ `review-units.mjs facts` ดึงจากโค้ดตามรูปแบบ ไม่ตีความ: รายชื่อไฟล์ของหน่วย ชื่อ test (`[Fact]`/`[Theory]`/`@Test`, `it()`/`test()`, `def test_`) route และ endpoint (Next.js app/pages ใต้ folder ที่มี `next.config.*`, Razor `@page`, `[Route]`/`[Http*]`, `Map*()`, `app.get()`, `@app.get()`) และ schema ทั้งระบบ (`*ModelSnapshot.cs`, `schema.prisma`, `CREATE TABLE`) พร้อม commit ที่ดึง (2) spec ของหน่วยรวม change ที่ยังไม่ archive (3) ภาพรวมจาก AGENTS.md (4) โค้ด และมีส่วน "Do not open" สำหรับ folder เอกสารลูกค้า เอกสารตัดสินใจ vision inbox STATUS.md และ backlog ทุก finding มี `Type:` a–e, spec กับโค้ดขัดกันไม่ถือว่าฝ่ายใดถูก, session ใหม่บอก `previous` ของ scope เดียวกันเพื่อไม่รายงานซ้ำ, OpenAPI ใช้เฉพาะไฟล์ที่โปรเจกต์ export ไว้ (`asBuilt.openapi`) mflow ไม่รันแอป | มีแล้ว |
+| FR-215 | ไฟล์ที่ tool อ่านจริง (0.32): `inbox-normalize.mjs --unit <ชื่อ>` เทียบ `Files read` ของรายงานกับไฟล์ของหน่วย (folder ที่ระบุนับให้ทุกไฟล์ข้างใต้) ไฟล์ที่ไม่มีรายงานไหนอ่านไปอยู่ใน `## ยังตรวจไม่ได้` ของสรุป | มีแล้ว |
+| FR-216 | ส่งผลเข้า OpenSpec (0.32): สรุปแบบ as built มีคอลัมน์ `ประเภท` และ `ไปที่` ผู้ใช้เลือกและตอบในคำสั่งเดียว (`/mflow:analyze AN-NNN แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ`) กฎ "แก้แล้ว spec ยังพูดถูกโดยไม่ต้องแตะหรือไม่": ไม่ → OpenSpec change ของหน่วย `<หน่วย>-review-fixes` พร้อม delta spec (bug ประเภท c ได้ scenario ของกรณีนั้น), ใช่ → task ใน change นั้น หรือ Backlog ชุดเดียวทำใน branch เดียวเมื่อไม่มี change หนึ่ง Backlog task ต่อชุดชี้ไปที่ change งานนอกขอบเขตผ่าน `/mflow:change-request` ก่อน `consultation.md` ส่วน E และ defect ของ change-request ปรับตาม | มีแล้ว |
+| FR-217 | ข้อที่ผู้ใช้ต้องตัดสินก่อน (0.32): สรุปมี `## ต้องตัดสินก่อน` (ข้อค้นพบที่รอ ตัวเลือก คำแนะนำ `**ถ้าผิด:**` และระดับ) และ `## คำตัดสิน` ระดับหนักใช้เกณฑ์แก้ยากเดิม (schema, สิทธิ์, ข้อมูลที่ลูกค้าไม่ได้พูดถึง, การลบ, การส่งออกนอกระบบ) ไป `/mflow:discuss` พร้อมหลักฐาน ระดับเบาตอบในคำสั่ง ค่าเริ่มต้นเมื่อมีคำถามหนักค้าง: change ของหน่วยทำต่อโดยไม่รวมข้อที่รอ (เป็น change ถัดไป หรือรวมเข้าถ้า change แรกยังไม่ถึง apply) `rules.proposal` ถามเฉพาะข้อแก้ยากที่ยังไม่มีใน `## คำตัดสิน` ข้อที่ไม่แก้หรือเลื่อนลง Backlog พร้อมเหตุผลและเป็นเรื่องที่รู้แล้วในรอบถัดไป | มีแล้ว |
 | FR-187 | `/mflow:challenge @ไฟล์ [--focus] [--to]` ให้ AI หลายตัวหาสถานการณ์ที่ทำให้แบบหรือเอกสารล้มเหลวก่อนมีโค้ด (สัญญา `consult-challenge`: ข้อความที่ถูกทักท้วง → สถานการณ์ → ผลที่ควรเป็น → สิ่งที่ผิดพลาดหรือยังตอบไม่ได้ → หลักฐาน → การทดสอบหรือการแก้ที่เสนอ และส่วนที่ตรวจแล้วยังยืน ไม่มีโควตาจำนวน) session ปักหมุด hash ของไฟล์เป้าหมาย และบอกเมื่อไฟล์ถูกแก้หลังเริ่ม สรุปที่ `docs/ai/challenge/CH-NNN/summary.md` ไม่มีสำเนาของเป้าหมาย ลิงก์กลับเฉพาะแบบเสนอที่ mflow เขียน (`docs/ai/design/DS-NNN/proposal.md`) ไม่แก้เอกสาร discuss ที่ freeze, `openspec/specs/` หรือเอกสารของผู้ใช้ | มีแล้ว |
 
 ## 7. Non-functional requirements
@@ -408,6 +415,7 @@ mflow-marketplace/
     │   ├─ doctor.mjs                ← ตรวจสุขภาพโปรเจกต์และเครื่องมือ อ่านอย่างเดียว (/mflow:help check setup)
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   ├─ consult.mjs               ← session ของ analyze/design/challenge (ไม่บังคับ) สถานะอ่านจากไฟล์จริง
+    │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
     ├─ skills/<20 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
@@ -432,6 +440,8 @@ mflow-marketplace/
 | `/mflow:delegate <subject> --mode analyze\|review\|code [--to <tool>]` | ส่งงานให้ AI ตัวอื่น |
 | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ผลจาก AI ตัวอื่นกลับมา |
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
+| `/mflow:analyze units` → `/mflow:analyze unit:<ชื่อ> [--to …]` | (ไม่บังคับ) อยากให้ AI ตัวอื่นตรวจระบบที่ทำแล้วตามที่ทำจริงทีละหน่วย โดยไม่อ่านเอกสารลูกค้าและ discuss |
+| `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถาม แล้วส่งเข้า OpenSpec change ของหน่วย |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
 | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
 | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุด (ไม่รวม E2E) ครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่แก้) |
@@ -455,6 +465,10 @@ mflow-marketplace/
   "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 },
   "applySubagent": { "enabled": false },
   "e2eMaxWorkers": 2,
+  "asBuilt": {
+    "openapi": "docs/api/openapi.yaml",
+    "facts": { "tests": ["<regex ที่มี capture group เดียว>"], "routes": ["…"] }
+  },
   "tools": {
     "<ชื่อ tool>": {
       "verified": false,
@@ -466,6 +480,8 @@ mflow-marketplace/
   }
 }
 ```
+
+`asBuilt` ไม่บังคับ (0.32): `openapi` คือไฟล์ OpenAPI ที่โปรเจกต์ export ไว้เอง ไฟล์ข้อเท็จจริงของหน่วยจะชี้ไปที่ไฟล์นี้ (mflow ไม่รันแอปเพื่อสร้าง) และ `facts.tests` / `facts.routes` เป็น regular expression เพิ่มจากรูปแบบที่มีในตัว แผนหน่วยตรวจอยู่ที่ `.mflow/review-units.json` แยกจากไฟล์นี้
 
 `{brief}` `{out}` `{worktree}` ถูกแทนด้วย path แบบ absolute ที่ครอบ single quote ตามกฎของแต่ละ shell (Bash และ PowerShell) `$` backtick ช่องว่าง และ `'` ใน path จึงไม่ถูกตีความ ใน template ไม่ต้องใส่เครื่องหมายคำพูดเอง และ cmdlet ของ PowerShell ให้รับ path ผ่าน `-LiteralPath` เพราะ `[ ]` ใน `-Path` เป็น wildcard script ไม่ยอมสร้างคำสั่งถ้าไม่มี `--brief` หรือ `--out` หรือไม่มี `--worktree` ใน mode code
 
@@ -513,7 +529,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.30)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.32)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -543,6 +559,8 @@ mflow-marketplace/
 | การรับที่เหลือตามคำแนะนำ (`ที่เหลือตามแนะนำ`, 0.30) ในรอบแก้ของ discuss | ยังไม่ได้รันใน session จริง (R-03) |
 | `rules.proposal` (0.30) กับ OpenSpec 1.13.2: `openspec instructions proposal --json` คืนบรรทัด "In the proposal, list every choice …" พร้อม folder discuss ของโปรเจกต์ | ผ่าน |
 | การถามข้อแก้ยากตอน `/opsx:propose` (0.30) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
+| discuss.mjs คำเตือน (0.31): `costMissing` นับเฉพาะข้อที่ยังเปิดและไม่มี `ถ้าผิด`, `lengthWarning` เมื่อเกิน 200 บรรทัดโดยไม่นับ code block แถวตาราง และ frontmatter, ทั้งสองไม่ขวาง `readyToApprove` | ผ่าน |
+| discuss.mjs checks (0.31): ไม่นับ task ที่ Done หรือไม่ได้ชื่อ `ทดสอบใช้งาน`, คืนเกณฑ์ที่ยังไม่ติ๊ก, `--change` อ่าน change ที่ archive แล้ว, เลขเอกสารกรองได้, change ที่ไม่มีอยู่ตอบ error | ผ่าน |
 | การทำงานตามหลัก P10 ใน skill (discuss, hotspot, review-notes, change-request) | ยังไม่ได้รันใน session จริง (R-03) |
 | Component ของ 0.14 (pager, header search แบบเลือกคอลัมน์, DatePicker, DateRangeField, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown, Tooltip, Loading, DetailView) ผ่าน `/mflow:theme` | ยังไม่ได้รันใน session จริง (R-03) DatePicker มาจากแบบที่ใช้งานจริงในโปรเจกต์ Next.js |
 | Apply subagent (0.16) กับ OpenSpec 1.13.2: config.yaml จากตัวอย่างใน init ผ่าน parser, `openspec instructions apply --json` คืน `operationGuidance` ครบสองข้อพร้อม `context`, `openspec update --force` ไม่แตะ `config.yaml` และ `.claude/agents/`, `claude -p --plugin-dir` เห็น `mflow:dev` และ transcript ของ subagent บันทึก `"model":"claude-sonnet-5-5"` กับ `"effort":"xhigh"` ทั้งที่ session หลักเป็น Haiku | ผ่าน |
@@ -562,6 +580,9 @@ mflow-marketplace/
 | รัน test ตามสั่ง (0.25): `/opsx:apply` ไม่รันทั้งชุดและไม่ทำ gate task, `/mflow:test` รันทีละส่วนและบันทึกผล, `/mflow:review` ใช้ผลที่ commit เดียวกัน, `since` (0.25.1) พิสูจน์ commit ที่ตามมาจากผลรันทั้งชุดครั้งก่อน และคำแนะนำให้เปิดอีก session ระหว่างรัน | ยังไม่ได้รันใน session จริง (R-03) กฎ YAML ที่ init เติมผ่าน parser ของ OpenSpec 1.13.2 แล้ว |
 | E2E ตามสั่ง (0.26): `/mflow:e2e`, กฎ E2E ใน `openspec/config.yaml` และ AGENTS.md, apply ข้ามขั้น E2E ของ task เก่า | ยังไม่ได้รันใน session จริง (R-03) doctor ตรวจกับ `openspec/config.yaml` และ `tests/e2e/playwright.config.ts` ของโปรเจกต์จริงแบบอ่านอย่างเดียวแล้ว เตือนถูกทั้งสองข้อ (`workers: 1` ของ project stack ไม่นับ) |
 | Hook `e2e-guard`, `openspec-config.mjs` และระดับของ review (0.27) | regression ผ่าน: guard ทดสอบกับคำสั่งจริงที่ทำให้เครื่องดับและคำสั่งที่ไม่ใช่การรัน, merge ทดสอบกับสำเนา `config.yaml` ของโปรเจกต์จริง (path แบบก่อน 0.20, บรรทัด 0.1, comment ของ OpenSpec) และ `openspec instructions apply/tasks --json` อ่านได้ครบ ยังไม่ได้รันใน session จริง (R-03) |
+| review-units.mjs (0.32): แผนครบผ่าน check, check บอกไฟล์ไม่มีหน่วย ไฟล์สองหน่วย กลุ่มไม่มีเหตุผล spec ที่ไม่มีหน่วย (ไม่นับ change ที่ archive) ชื่อ spec และ flow ที่ไม่มีอยู่, หน่วย joins ได้ไฟล์ของหน่วยใน flow, แผนเสียหรือไม่มีหยุดพร้อมบอกวิธีแก้, draft หา module และไม่ดึงเอกสาร spec เข้าหน่วย, facts ดึงชื่อ test (รวม `[Theory]` ที่มี `[InlineData]` คั่น) route ของ controller และ Next.js schema จาก model snapshot และบอก commit, pattern และ OpenAPI จาก config, config ผิดชนิดหยุด, `--out` นอกโปรเจกต์ถูกปฏิเสธ; consult บันทึก basis/unit/facts และ `previous`; inbox-normalize `--unit` บอกไฟล์ที่ไม่ได้อ่าน | ผ่าน |
+| review-units.mjs กับ StemHub แบบอ่านอย่างเดียว (0.32): draft เจอ 11 module รวม `Audit` ที่ไม่มี folder ใน Api, เอกสาร spec backlog และ settings ถูกเสนอเป็น notReviewed, facts ของหน่วย Supplier (ผลเขียนลง scratchpad) ได้ 57 ไฟล์ 196 test 17 route (endpoint ของ controller พร้อม prefix และหน้า Next.js 3 หน้า) และ 105 entity จาก model snapshot | ผ่าน |
+| `/mflow:analyze units`, `unit:<ชื่อ>`, การรวมผลแบบ as built และการส่งเข้า OpenSpec (0.32) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot

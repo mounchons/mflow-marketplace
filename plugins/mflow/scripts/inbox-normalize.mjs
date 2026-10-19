@@ -5,15 +5,18 @@
 // filled), the file is rewritten only when something changes, and the first original is kept
 // in .mflow/cache/inbox-original/.
 //
-//   node inbox-normalize.mjs <file> [--from <tool>] [--mode analyze|review|code] [--brief <id>] [--base <commit>]
+//   node inbox-normalize.mjs <file> [--from <tool>] [--mode analyze|review|code] [--brief <id>] [--base <commit>] [--unit <name>]
 //
 // With a `base` (the commit the brief was written at, which the report copies), it also lists the
 // files under "Files read" that changed since then (`stale.changedSince`): findings resting on them may
 // describe code or text that is no longer there, so they are checked against the current version.
+// With a `unit` (a unit of .mflow/review-units.json), it lists the unit's files the report never read
+// (`coverage.unread`); a folder listed under "Files read" counts for every file under it.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { findRoot, frontmatter } from "./lib.mjs";
+import { readPlan, unitFiles } from "./review-units.mjs";
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith("--") && !args[args.indexOf(a) - 1]?.startsWith("--"));
@@ -102,9 +105,28 @@ if (base) {
   }
 }
 
+let coverage = null;
+const unit = opt("--unit");
+if (unit) {
+  const root = findRoot(path.dirname(path.resolve(file))) || process.cwd();
+  try {
+    const { files } = unitFiles(root, readPlan(root), unit);
+    const read = filesRead(body).map((p) => {
+      const posix = p.replaceAll("\\", "/").replace(/^\.\//, "");
+      const rel = path.isAbsolute(p) ? path.relative(root, p).split(path.sep).join("/") : posix;
+      return rel.replace(/\/$/, "");
+    });
+    const seen = (f) => read.some((r) => r === f || f.startsWith(`${r}/`));
+    const unread = files.filter((f) => !seen(f));
+    coverage = { unit, files: files.length, read: files.length - unread.length, unread };
+  } catch (err) {
+    coverage = { unit, error: String(err.message || err) };
+  }
+}
+
 process.stdout.write(JSON.stringify({
   file, changed: next !== original, backup, frontmatterAdded: !block, unwrappedFence: unwrapped,
-  ...want, hasUnderstanding, hasFilesRead, stale,
+  ...want, hasUnderstanding, hasFilesRead, stale, coverage,
   warning: hasUnderstanding && hasFilesRead ? null
     : "Missing Understanding and/or Files read: treat findings as unverified until checked.",
 }, null, 2) + "\n");

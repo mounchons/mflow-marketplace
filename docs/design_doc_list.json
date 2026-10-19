@@ -50,9 +50,25 @@
       "evidence_snapshot": "StemHub feat/supplier-screens 965b5df (read-only)",
       "created_at": "2026-10-18",
       "proposals": ["P01", "P02", "P03", "P04", "P05", "P06"],
-      "implemented_in": "0.30.0 (P01, P02)",
-      "not_implemented": ["P03", "P04", "P05", "P06 (no change by design)"],
+      "implemented_in": "0.30.0 (P01, P02), 0.31.0 (P03 at review, P04 warnings)",
+      "not_implemented": ["P04 decision summary table", "P05 (waits for open question 1)", "P06 (no change by design)"],
       "updated_at": "2026-10-18"
+    },
+    {
+      "id": "DOC-MFLOW-ASBUILT-001",
+      "name": "ข้อเสนอ: ให้ AI ตัวอื่นตรวจระบบตามที่ทำจริง แล้วส่งผลเข้า OpenSpec",
+      "file_path": "mflow-asbuilt-review-proposal.md",
+      "type": "design-proposal",
+      "version": "0.1.0",
+      "status": "implemented",
+      "reviewed_plugin_version": "0.31.0-working-tree",
+      "implemented_in": "0.32.0",
+      "not_implemented": ["a real-session run of /mflow:analyze units and unit:<name> (R-03)"],
+      "related_document": "DOC-MFLOW-MULTI-AGENT-001",
+      "evidence_snapshot": "StemHub (read-only)",
+      "created_at": "2026-10-19",
+      "parts": ["--basis built", "review units", "help and manual", "findings to OpenSpec", "decisions before propose"],
+      "updated_at": "2026-10-19"
     }
   ]
 }

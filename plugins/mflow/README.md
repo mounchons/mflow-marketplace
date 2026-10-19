@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.33)
+## คำสั่ง (v0.34)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -112,6 +112,8 @@ hook ของ mflow ทำงานเฉพาะใน Claude Code (Codex ร
 test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดแค่ครั้งเดียวต่อ change และรันตอนที่คุณสั่ง
 
 - `/opsx:apply` รันเฉพาะ test ของ task นั้นและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รันทั้งชุด สิ่งที่พังจึงเจอตั้งแต่ task ที่ทำให้พัง และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
+- test ระหว่าง apply รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งให้จบในราว 8 นาที ถ้ายาวกว่านั้นแบ่งตามคลาส (0.34) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำของเครื่องใกล้หมด แล้วไม่ได้ผลอะไรเลย
+- ถ้า integration test class ที่ครอบโค้ดที่แก้มีราวหนึ่งในสามของชุดขึ้นไป หรือรันนานเกิน 10 นาที (มักเกิดเมื่อแก้ส่วนกลางอย่าง sign-in, session, seed) apply รันแค่ unit test กับ test ที่ task เพิ่มหรือแก้ แล้วปล่อย integration ให้ `/mflow:test` รันครั้งเดียว ไม่รันคลาสเดียวกันซ้ำสองรอบ (0.34)
 - `/mflow:test` รัน build, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว และ `openspec validate --strict` รันทีละส่วนให้จบในเวลาที่ shell รอได้ ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะเคยทำให้หน่วยความจำไม่พอจนถูกหยุดกลางทาง ส่วนที่แบ่งไว้บันทึกเป็นบรรทัด `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ
 - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
 - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
@@ -136,6 +138,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - บรรทัดของ mflow ใน list อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` รุ่นถัดไปแทนเฉพาะช่วงนั้น บรรทัดที่มีถ้อยคำตรงกับของ mflow แต่อยู่นอก marker ถูกรวมเข้ามาด้วย บรรทัดที่โปรเจกต์ดัดแปลงเอง (path ของ data dictionary หรือหมายเหตุในวงเล็บ) นับเป็นของโปรเจกต์และ mflow ไม่เพิ่มของตัวเองซ้ำ ส่วน `context` เป็นข้อความก้อนเดียว (comment จะกลายเป็นเนื้อหา) จึงจำจากถ้อยคำเสมอ บรรทัดของโปรเจกต์เองและ comment ของ OpenSpec คงไว้ path ตาม folder ใน `.mflow/config.json`
 - OpenSpec ทิ้ง `config.yaml` ทั้งไฟล์เมื่อ parse ไม่ได้ (เช่นมี `: ` ในบรรทัดของ list) script จึงใส่เครื่องหมายคำพูดให้บรรทัดที่ YAML จะอ่านผิด และรายงานบรรทัดของโปรเจกต์ที่เป็นแบบนั้น
 - `/mflow:help check setup` เตือนเมื่อ `config.yaml` ยังมีบรรทัดรุ่นเก่า ขาดบรรทัดปัจจุบัน หรือยังไม่มี marker
+- `rules.proposal` มีกฎขนาด change (0.34): ถ้าจะเกินราว 15 task หรือแก้ส่วนที่ทุกโมดูลใช้ (sign-in, session, security, seed, ตารางกลาง) พร้อมหน้าจอ ให้ propose เฉพาะส่วนแรก (มักเป็นฝั่ง server) แล้วเขียนส่วนที่เหลือไว้ใต้ Later changes ใน proposal ให้คุณสั่ง propose ต่อ ยกเว้นคุณบอกให้ทำเป็น change เดียว
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
 

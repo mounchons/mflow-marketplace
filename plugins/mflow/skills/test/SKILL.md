@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "[since | unit | e2e | <part> | <test filter>] [--change <name>]"
 ---
 
-The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed. A later commit, such as a fix after review, is proven with `since`: the whole-suite record of an earlier commit plus the tests its changes need. `/mflow:review` reuses these records. This command is the gate that a change's last task used to be. It runs on this machine: mflow sets up no CI pipeline (GitHub Actions or another) until the user asks for one in the project.
+The whole suite runs once per change, when the user has the time and the machine for it. `/opsx:apply` runs only each task's own test and the test classes that cover the code it changed, or only the unit tests and the task's new tests when those classes are a third of the integration suite or more, so this run is the first time they run for the change. A later commit, such as a fix after review, is proven with `since`: the whole-suite record of an earlier commit plus the tests its changes need. `/mflow:review` reuses these records. This command is the gate that a change's last task used to be. It runs on this machine: mflow sets up no CI pipeline (GitHub Actions or another) until the user asks for one in the project.
 
 E2E tests are not part of the whole suite. They run only when the user names them: `/mflow:test e2e` for all of them, `/mflow:e2e <screen>` to write and run one screen's.
 

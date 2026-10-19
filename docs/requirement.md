@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.33.0 |
+| เวอร์ชันที่อธิบาย | 0.34.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -257,6 +257,9 @@ flowchart TD
 | FR-210 | mflow แบบ clean (0.29): StemHub ย้ายเป็น layout แบบหมวดแล้ว (branch `chore/mflow-grouped-layout`) mflow จึงลบ `migrate-layout.mjs` และ test ของมัน, การตรวจ layout ใน doctor และ briefing, การอ่าน consultation จาก folder เก่า (`docs/analysis`, `docs/design`, `docs/challenge`), เลข CR ใน `docs/change-requests/`, ขั้นย้ายเอกสารของ `/mflow:init` และชื่อ folder เก่าใน `openspec-config.mjs` และเลิกอ่าน marker ของเอกสาร discuss แบบก่อน 0.13 (`**พี่ปูเลือก:**`, `> พี่ปู:`) เพราะเอกสารที่ยังใช้ marker นั้นใน StemHub และ BunTukTransport approve แล้วทั้งหมด (`check` ใช้กับ draft) ค่าตั้ง folder ใน `.mflow/config.json` ยังใช้ได้ | มีแล้ว |
 | FR-211 | `rules.proposal` (0.30): proposal มีรายการทุกเรื่องที่คำสั่งของผู้ใช้ เอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว และ hotspot ยังไม่ได้ตัดสิน พร้อมทางที่เลือกและเหตุผล ทำเครื่องหมายข้อที่ถ้าเลือกผิดจะต้องแก้ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า หรือเป็นทางที่ต่างจากเอกสารลูกค้า (เกณฑ์เดียวกับ `แก้ยาก` ของ FR-145) ถามผู้ใช้เฉพาะข้อที่ทำเครื่องหมายก่อน proposal เสร็จ ข้ออื่นเป็นคำถามตอนทดสอบใช้งาน ถามที่ propose เท่านั้น `operations.apply.guidance` ยังทำทุก task โดยไม่หยุดถาม ที่มา: `docs/discuss-usage-analysis-stemhub.md` P02 | มีแล้ว |
 | FR-212 | ข้อทดสอบใช้งานที่ค้าง (0.31) `discuss.mjs checks [<NN>…] [--change <name>]` อ่าน task ใน `backlog/tasks/` ที่ชื่อขึ้นต้นด้วย `ทดสอบใช้งาน` อ้างเอกสาร discuss และยังไม่ Done พร้อมเกณฑ์ที่ยังไม่ติ๊ก กรองตามเอกสาร หรือตามเอกสารที่ change อ้าง (ทั้ง change ที่ยังเปิดและที่ archive แล้ว) และไม่เขียน Backlog `/mflow:review` ใส่ผลไว้ใต้ `Checks in use:` ในรายงานและบอกผู้ใช้ให้ลองในระบบจริงแล้ว `/mflow:review-notes` เป็นการเตือนที่ไม่เปลี่ยนคำตัดสินหรือขวาง merge ที่มา: `docs/discuss-usage-analysis-stemhub.md` P03 | มีแล้ว |
+| FR-222 | test ระหว่าง apply รันแบบไม่ใช้เบื้องหลัง (0.34): `operations.apply.guidance` ให้รันทีละคำสั่ง แต่ละคำสั่งจบในราว 8 นาที แบ่ง filter ที่ยาวกว่านั้นตามคลาส และห้ามส่ง test ไปรันเบื้องหลัง ที่มา: StemHub change supplier-sign-in (2026-10-19) รอบ 242 test ในคำสั่งเดียวใช้ 12 นาที 51 วินาที เกินเวลาจำกัด 10 นาทีของ tool จึงไปรันเบื้องหลัง และรอบเบื้องหลังถัดมาถูกหยุดเมื่อหน่วยความจำใกล้หมดโดยไม่ได้ผล | มีแล้ว |
+| FR-223 | ไม่รัน integration ซ้ำสองรอบ (0.34): เมื่อ integration test class ที่ครอบ change มีราวหนึ่งในสามของชุดขึ้นไป หรือรันนานเกิน 10 นาที apply รันแค่ unit test กับ test ที่ task เพิ่มหรือแก้ เขียนไว้ใน task และปล่อย integration ให้ `/mflow:test` รันครั้งเดียว (`rules.tasks` ข้อ 2 และ `/mflow:test` เขียนตรงกัน) ที่มา: change เดียวกันรัน 17 คลาสที่เกี่ยวข้องรวมราว 55 นาทีระหว่าง apply ก่อนที่ `/mflow:test` จะรันคลาสเหล่านั้นอีกครั้ง | มีแล้ว |
+| FR-224 | ขนาดของ change (0.34): `rules.proposal` ให้ change หนึ่งตัว apply ทดสอบ และรีวิวได้ในรอบเดียว ถ้าจะเกินราว 15 task หรือแก้ส่วนที่ทุกโมดูลใช้ (sign-in, session, security, seed, ตารางกลาง) พร้อมหน้าจอ ให้ propose เฉพาะส่วนแรก (มักเป็นฝั่ง server) และเขียนส่วนที่เหลือใต้ Later changes ให้ผู้ใช้ propose ต่อ ยกเว้นผู้ใช้บอกให้เป็น change เดียว ที่มา: change เดียวกันมี 27 task แก้ราว 130 ไฟล์ context เต็มกลางงาน | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -535,7 +538,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.33)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.34)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -592,6 +595,8 @@ mflow-marketplace/
 | agent-skills.mjs (0.33): สร้าง skill สองตัวที่ frontmatter ผ่านกฎของ OpenCode, `agents/openai.yaml`, ไม่เหลือ path ของ plugin ทั้งใน SKILL.md และ references, ขั้น E2E และคำแนะนำของ Claude ถูกแทน, เขียนซ้ำไม่เปลี่ยน, สำเนาเก่าถูกอัปเดตและไฟล์เกินถูกลบ, skill ของผู้ใช้ชื่อเดียวกันไม่ถูกแตะ, junction ที่ชี้ออกถูกปฏิเสธ, `discuss.mjs checks` รันจากสำเนาได้, doctor เตือนสำเนาเก่าและรู้จัก `asBuilt` | ผ่าน |
 | Codex CLI 0.162.1 กับโปรเจกต์จำลอง (0.33): `codex exec -s workspace-write '$mflow-test'` ได้ record `By: codex` แบบ whole suite และเขียน STATUS.md เอง (ราว 33k token), `'$mflow-review agent/claude/sub --short'` ได้รายงาน `Reviewer: codex`, `Author: claude` (จากชื่อ branch) รัน since แล้วบันทึก `By: codex` และ approve บน Windows sandbox ของ Codex บล็อกการหา path ของ Node ทั้งสองครั้ง Codex จึงรันคำสั่งนอก sandbox เองโดยไม่ถาม (โหมด `codex exec` กับค่า approval ของเครื่องที่ทดสอบ) | ผ่าน |
 | smoke run กับ Codex จริง (`node tests/smoke/codex-skills.mjs`, รันเมื่อสั่ง ไม่อยู่ใน `node --test` และ CI) บน Windows กับ codex-cli 0.162.1: test (record `By: codex` whole suite ที่ commit และ log ใน STATUS.md, 42k token), review (`Reviewer: codex`, `Author: claude` จากชื่อ branch, มีคำตัดสิน, อ้าง record, 55k), e2e (ไม่มี record ของ E2E, ไม่ได้รัน Playwright, บอกให้ไปรันใน Claude Code, 32k), self (`Author: codex` และเขียนว่าเป็น self-review ที่ไม่นับเป็นเงื่อนไข merge, 52k) รอบแรก self ไม่ได้รีวิวเพราะ shell ของ Codex เปิดไม่ขึ้นและระบบอนุมัติอัตโนมัติของ Codex แจ้ง at capacity รันซ้ำแล้วผ่าน และในรอบนั้น Codex จับ import ที่ผิดใน fixture ได้เป็น blocker (แก้ fixture แล้ว) | ผ่าน |
+| openspec-config (0.34): บรรทัดใหม่สามข้อ (test แบบไม่ใช้เบื้องหลัง, ปล่อย integration ให้ `/mflow:test`, ขนาดของ change) เขียนลงระหว่าง marker โดยไม่ต้องครอบ quote, รันซ้ำไม่เปลี่ยน และ `openspec instructions apply --json` ของ OpenSpec 1.13.2 คืน `operationGuidance` ครบทุกข้อ | ผ่าน |
+| กฎของ 0.34 ใน session จริง (apply ที่แบ่ง test, ปล่อย integration ให้ `/mflow:test`, propose เป็นหลายส่วน) | ยังไม่ได้รันใน session จริง (R-03) |
 | OpenCode กับ skill ที่สร้าง (0.33) | ยังไม่ได้ทดสอบ: CLI ไม่อยู่ใน PATH ของเครื่องที่ทดสอบ รองรับตามเอกสาร opencode.ai/docs/skills |
 | `/mflow:analyze units`, `unit:<ชื่อ>`, การรวมผลแบบ as built และการส่งเข้า OpenSpec (0.32) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |

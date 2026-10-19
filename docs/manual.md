@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.33.0 |
+| เวอร์ชัน plugin | 0.34.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -412,7 +412,10 @@ docs/
 
 1. `/opsx:propose <ชื่อ change>` เขียน proposal, spec และ tasks (ถ้ายังคิดไม่ชัด ใช้ `/opsx:explore` ก่อน) change ที่เพิ่มหรือแก้ตารางจะอ้างเอกสาร data model และ `PrototypeData/README.md` และมี task สุดท้ายที่เปลี่ยนส่วนนั้นของ README เป็นบรรทัดชี้ไปที่ entity
    - **สิ่งที่ Claude ตัดสินแทนคุณ:** proposal จะมีรายการทุกเรื่องที่คำสั่งของคุณ เอกสารลูกค้า เอกสาร discuss ที่อนุมัติแล้ว และ hotspot ยังไม่ได้ตัดสิน พร้อมทางที่เลือกและเหตุผล ข้อที่ถ้าเลือกผิดแล้วแก้ยาก (ตารางหรือ key, สิทธิ์หรือขอบเขตข้อมูล, สิ่งที่เขียนไประบบภายนอก, สิ่งที่ส่งถึงลูกค้า เช่น อีเมล บัญชี รหัสผ่าน หรือทางที่ต่างจากเอกสารลูกค้า) Claude จะถามคุณก่อน proposal เสร็จ ข้ออื่นเก็บไว้เป็นคำถามตอนทดสอบใช้งาน ถามเฉพาะตอน propose เท่านั้น ระหว่าง `/opsx:apply` ไม่ถาม (ตั้งไว้ใน `rules.proposal` ของ `openspec/config.yaml`)
+   - **ขนาดของ change (0.34):** ถ้าจะเกินราว 15 task หรือแก้ส่วนที่ทุกโมดูลใช้ (sign-in, session, security, seed, ตารางกลาง) พร้อมหน้าจอ Claude จะ propose เฉพาะส่วนแรก (มักเป็นฝั่ง server) แล้วเขียนส่วนที่เหลือไว้ใต้ Later changes ให้คุณสั่ง propose ต่อทีละส่วน ถ้าอยากได้ change เดียวให้บอกตอนสั่ง เหตุผล: change ใหญ่ทำให้ context เต็มกลางงานและ test ที่เกี่ยวข้องกว้างจนเกือบเท่ารันทั้งชุด
 2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ test ของตัวเองและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change มี gate task อยู่ apply ปล่อยไว้ไม่ติ๊ก apply ไม่เขียนและไม่รัน E2E test task จบด้วย unit test ส่วน task เก่าที่สั่งให้รัน Playwright Claude ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E on request (/mflow:e2e <หน้าจอ>)` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และบอกชื่อหน้าจอที่ change แตะไว้ให้สั่ง `/mflow:e2e` ทีหลัง
+   - **test ระหว่าง apply (0.34):** รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งจบในราว 8 นาที (ยาวกว่านั้นแบ่งตามคลาส) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำใกล้หมดและไม่ได้ผลอะไรเลย
+   - ถ้า integration test class ที่ครอบโค้ดที่แก้มีราวหนึ่งในสามของชุดขึ้นไป หรือรันนานเกิน 10 นาที apply รันแค่ unit test กับ test ที่ task เพิ่มหรือแก้ และเขียนไว้ใน task แล้วปล่อย integration ให้ `/mflow:test` รันครั้งเดียว
 3. `/mflow:test` เมื่อเครื่องว่าง: รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md ยกเว้น E2E, format และ lint แบบตรวจอย่างเดียว และ `openspec validate <change> --strict` ครั้งเดียวต่อ change รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude ติ๊ก gate task ให้ ถ้าล้ม แก้แล้ว commit แล้วสั่ง `/mflow:test since` ซึ่งรันส่วนที่ล้มกับ test ของสิ่งที่แก้ ไม่ต้องรันทั้งชุดใหม่
    - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
    - E2E test ไม่อยู่ในการรันทั้งชุด เมื่อหน้าจอนิ่งแล้วสั่ง `/mflow:e2e <หน้าจอ>` ให้ Claude เขียนหรือปรับ test ของหน้านั้นตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น (ไม่ใส่ชื่อหน้าจอ Claude บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด) อยากรัน E2E ทั้งหมดสั่ง `/mflow:test e2e` ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) เพราะค่าเริ่มต้นของ Playwright คือครึ่งหนึ่งของ CPU thread (10 ตัวบนเครื่อง 20 thread) ซึ่งเคยทำให้ driver การ์ดจอล่มจนเครื่อง restart test ที่ล้มเพราะหน้าจอผิด spec ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
@@ -835,10 +838,11 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ตรวจโค้ดก่อน merge | `/mflow:review <branch>` เต็ม สำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ข้ามได้ถ้าแก้แค่เอกสาร style หรือข้อความ label (ใช้ผล `/mflow:test` หรือรัน `since` ต่อจากการรันทั้งชุดครั้งก่อน) |
 | hook ของ mflow ปฏิเสธการรัน Playwright | รันใหม่ด้วย `--workers=2` จาก `/mflow:e2e` หรือ `/mflow:test e2e` อยากเปิด browser มากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | แก้ตาม review แล้ว อยากพิสูจน์ commit ใหม่โดยไม่รันทั้งชุด | `/mflow:test since` |
+| งานใหญ่ apply นานหลายชั่วโมง หรือ context เต็มกลางงาน | ครั้งหน้าให้ Claude propose เป็นหลายส่วน (กฎขนาด change ของ 0.34 ทำให้เอง) และรัน `/mflow:test` บนเครื่องที่สอง หรือให้ Codex รัน `$mflow-test` ระหว่างที่ทำส่วนถัดไป |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.33.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.34.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

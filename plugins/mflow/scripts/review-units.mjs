@@ -223,8 +223,16 @@ export function draft(root) {
 
 // ---- facts ------------------------------------------------------------------------------------------
 
-const read = (root, f) => { try { return fs.readFileSync(path.join(root, f), "utf8"); } catch { return null; } };
+// A cloned repository can track a link, or have a folder replaced by a junction, that leads outside
+// the project: such a file is never read, so a pattern in the repository's own config cannot lift a
+// file from elsewhere into the facts that the brief sends to another tool.
+const read = (root, f) => {
+  if (!realInside(root, f)) return null;
+  try { return fs.readFileSync(path.join(root, f), "utf8"); } catch { return null; }
+};
 const lines = (text) => text.split(/\r?\n/);
+// A name or route is one line of the facts file, however much a pattern captured.
+const clip = (s) => (s.length > 200 ? `${s.slice(0, 200)}…` : s);
 
 /** Test names in one file: C#/Java attributes and the method after them, JS/TS it()/test(), Python test_. */
 function testNames(file, text, extra) {
@@ -362,9 +370,9 @@ export function facts(root, name, plan = readPlan(root)) {
   for (const f of files) {
     const text = read(root, f);
     if (text === null || text.includes("\0")) continue;
-    const t = testNames(f, text, extraTests);
+    const t = testNames(f, text, extraTests).map(clip);
     if (t.length) tests.push({ file: f, names: t });
-    for (const r of routes(f, text, extraRoutes, nextRoots)) found.push({ ...r, file: f });
+    for (const r of routes(f, text, extraRoutes, nextRoots)) found.push({ ...r, route: clip(r.route), file: f });
   }
   const entities = schema(root, all);
   const head = run("git rev-parse HEAD", root, 8000)?.trim() || "(no commit)";

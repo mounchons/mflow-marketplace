@@ -2,6 +2,8 @@
 // notReviewed group with its reason, specs are claimed, the facts file is lifted from the code, and a
 // report's "Files read" is checked against the unit's files.
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, test } from "node:test";
 import { git, hasGit, project, run } from "./helpers.mjs";
 
@@ -183,6 +185,26 @@ test("facts reads extra patterns and the OpenAPI path from config, and says when
   assert.match(md, /- an invoice is issued once/);
   assert.match(md, /Read openapi\.yaml/);
   assert.match(md, /## Routes and endpoints \(0\)[\s\S]*None found in this unit's files/);
+});
+
+test("facts never reads a tracked file that a link or junction takes outside the project", needsGit, () => {
+  app();
+  p.write("api/Modules/Orders/Leak/Leak.cs", "class Leak {}\n");
+  git(p, "add", "-A");
+  git(p, "commit", "-q", "-m", "leak folder");
+  // The folder is replaced by a junction to a folder outside the project that holds a file of the same name.
+  const outside = path.join(p.base, "outside");
+  fs.mkdirSync(outside);
+  fs.writeFileSync(path.join(outside, "Leak.cs"), "TOP-SECRET line\n");
+  fs.rmSync(p.file("api/Modules/Orders/Leak"), { recursive: true });
+  fs.symlinkSync(outside, p.file("api/Modules/Orders/Leak"), "junction");
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, asBuilt: { facts: { tests: ["^(.*)$"] } } }));
+  plan();
+  ok("facts", "orders", "--out", ".mflow/briefs/o.facts.md");
+  const md = p.read(".mflow/briefs/o.facts.md");
+  assert.ok(md.includes("api/Modules/Orders/Leak/Leak.cs"), "the path is still listed as a file of the unit");
+  assert.ok(!md.includes("TOP-SECRET"), "the file outside the project is not read");
+  assert.match(md, /- public class OrderService \{\}/, "files inside the project are read as before");
 });
 
 test("config refuses a pattern list that is not strings, or an OpenAPI path outside the project", needsGit, () => {

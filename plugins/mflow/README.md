@@ -237,6 +237,7 @@ Codex และ tool อื่นไม่ได้เรียก `/mflow:*` (�
 
 - ผลใช้ข้ามเครื่องมือได้: record ของ test มี `By:` และ `/mflow:review` ของ Claude ใช้ record ที่ Codex หรือ OpenCode รันได้ตามกฎเดิม รายงาน review มี `Reviewer:` และ `Author:` ถ้า Codex หรือ OpenCode รีวิวโค้ดที่ตัวเองเขียน รายงานนั้นไม่นับเป็นเงื่อนไข merge
 - E2E ไม่รันใน Codex และ OpenCode เพราะไม่มี hook จำกัดจำนวน browser ให้รัน `/mflow:test e2e` ใน Claude Code
+- ตรวจกับ Codex จริงบนเครื่องไหนก็ได้ที่มี Codex CLI ที่ login แล้ว: ใน checkout ของ mflow-marketplace รัน `node tests/smoke/codex-skills.mjs` (กรณี `test`, `review`, `e2e`, `self` เลือกได้ด้วย `--cases`) script สร้างโปรเจกต์จำลองใน temp ให้ Codex รันแต่ละกรณีแล้วตรวจสิ่งที่ Codex เขียน ใช้ token ของ Codex ราว 30-40k ต่อกรณี จึงไม่อยู่ใน `node --test` และ CI
 - อย่าแก้ไฟล์ใน `.agents/skills/mflow-*` เอง `/mflow:init` เขียนใหม่ทุกครั้งที่ plugin เปลี่ยน (`doctor` เตือนเมื่อสำเนาเก่า) skill ของคุณเองที่ชื่อซ้ำจะไม่ถูกแตะ
 - Codex ต้องใช้ sandbox `workspace-write` สำหรับ test (build เขียนไฟล์) ตอนลองบน Windows sandbox บล็อกการหา path ของ Node ทั้งสองครั้ง แล้ว Codex รันคำสั่งนอก sandbox เองโดยไม่ถาม (โหมด `codex exec` กับค่า approval ของเครื่องนั้น) จะมีคำถามก่อนหรือไม่ขึ้นกับค่า approval ของ Codex ที่คุณตั้งไว้
 

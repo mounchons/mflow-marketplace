@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.32.1 |
+| เวอร์ชันที่อธิบาย | 0.33.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -114,7 +114,7 @@ flowchart TD
 | FR-12 | Stop hook ขอให้เขียน STATUS.md เมื่อมีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด นับทั้งไฟล์ที่แก้ เพิ่ม ลบ เปลี่ยนชื่อ และที่ commit ไประหว่าง session: SessionStart จด commit และไฟล์ที่ค้างอยู่ตอนเริ่ม ไฟล์ที่ลบหรือเปลี่ยนชื่อไว้ก่อนเริ่มจึงไม่นับ ส่วน record จาก mflow รุ่นก่อนที่ไม่มีข้อมูลนี้ นับไฟล์ที่ลบทุกไฟล์ (อาจเตือนเกิน แต่ไม่พลาด) | มีแล้ว |
 | FR-13 | Stop hook ไม่เตือนใน 10 นาทีแรก และเตือนซ้ำไม่เกินทุก 30 นาที ปรับได้ใน config | มีแล้ว |
 | FR-14 | Hook ทำงานเฉพาะ repo ที่มี `.mflow/config.json` เงียบใน repo อื่น ยกเว้น hook PreToolUse ที่ปฏิเสธ subagent `mflow:dev` ใน repo ที่ไม่ใช่ mflow (FR-174) และไม่แตะ subagent ตัวอื่น | มีแล้ว |
-| FR-15 | AI ที่ไม่มี hook (Codex ฯลฯ) ทำตาม "Session ritual" ใน AGENTS.md | มีแล้ว |
+| FR-15 | hook ของ mflow ทำงานเฉพาะใน Claude Code: AI ตัวอื่น (Codex, OpenCode ฯลฯ) ทำตาม "Session ritual" ใน AGENTS.md (Codex รุ่น 0.162 มี hook ของตัวเองแล้ว แต่ mflow ไม่ได้ใช้) | มีแล้ว |
 | FR-16 | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog, ผล test) และสร้าง brief ให้ tool อื่นได้ | มีแล้ว |
 
 ### 6.3 เอกสารลูกค้า (`/mflow:capture`)
@@ -340,6 +340,10 @@ flowchart TD
 | FR-215 | ไฟล์ที่ tool อ่านจริง (0.32): `inbox-normalize.mjs --unit <ชื่อ>` เทียบ `Files read` ของรายงานกับไฟล์ของหน่วย (folder ที่ระบุนับให้ทุกไฟล์ข้างใต้) ไฟล์ที่ไม่มีรายงานไหนอ่านไปอยู่ใน `## ยังตรวจไม่ได้` ของสรุป | มีแล้ว |
 | FR-216 | ส่งผลเข้า OpenSpec (0.32): สรุปแบบ as built มีคอลัมน์ `ประเภท` และ `ไปที่` ผู้ใช้เลือกและตอบในคำสั่งเดียว (`/mflow:analyze AN-NNN แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ`) กฎ "แก้แล้ว spec ยังพูดถูกโดยไม่ต้องแตะหรือไม่": ไม่ → OpenSpec change ของหน่วย `<หน่วย>-review-fixes` พร้อม delta spec (bug ประเภท c ได้ scenario ของกรณีนั้น), ใช่ → task ใน change นั้น หรือ Backlog ชุดเดียวทำใน branch เดียวเมื่อไม่มี change หนึ่ง Backlog task ต่อชุดชี้ไปที่ change งานนอกขอบเขตผ่าน `/mflow:change-request` ก่อน `consultation.md` ส่วน E และ defect ของ change-request ปรับตาม | มีแล้ว |
 | FR-217 | ข้อที่ผู้ใช้ต้องตัดสินก่อน (0.32): สรุปมี `## ต้องตัดสินก่อน` (ข้อค้นพบที่รอ ตัวเลือก คำแนะนำ `**ถ้าผิด:**` และระดับ) และ `## คำตัดสิน` ระดับหนักใช้เกณฑ์แก้ยากเดิม (schema, สิทธิ์, ข้อมูลที่ลูกค้าไม่ได้พูดถึง, การลบ, การส่งออกนอกระบบ) ไป `/mflow:discuss` พร้อมหลักฐาน ระดับเบาตอบในคำสั่ง ค่าเริ่มต้นเมื่อมีคำถามหนักค้าง: change ของหน่วยทำต่อโดยไม่รวมข้อที่รอ (เป็น change ถัดไป หรือรวมเข้าถ้า change แรกยังไม่ถึง apply) `rules.proposal` ถามเฉพาะข้อแก้ยากที่ยังไม่มีใน `## คำตัดสิน` ข้อที่ไม่แก้หรือเลื่อนลง Backlog พร้อมเหตุผลและเป็นเรื่องที่รู้แล้วในรอบถัดไป | มีแล้ว |
+| FR-218 | skill ของ Codex และ OpenCode (0.33): `agent-skills.mjs plan / write / status` สร้าง `/mflow:test` และ `/mflow:review` จาก skill ของ plugin เป็น `.agents/skills/mflow-test/` และ `mflow-review/` ซึ่งทั้งสองเครื่องมืออ่าน (Codex เรียก `$mflow-test`, OpenCode `/mflow-test`) frontmatter มีเฉพาะ `name`, `description`, `compatibility`, `metadata` (กฎของ OpenCode) โดย `metadata` มี `mflow/generated`, `opencode/slash: "true"`, `opencode/autoinvoke: "false"` และมี `agents/openai.yaml` ที่ `allow_implicit_invocation: false` (Codex) path ของ plugin เปลี่ยนเป็นสำเนาใน skill (ใช้ path จาก root ของ repo) ข้อความที่ใช้ได้เฉพาะ Claude ถูกแทนแบบระบุตัว (ถ้าต้นฉบับเปลี่ยนจน match ไม่ได้ script หยุด) และต่อท้ายด้วยกฎสำหรับเครื่องมืออื่น: เรียกเมื่อผู้ใช้สั่ง, รันจาก root, คำสั่ง mflow อื่นเป็นของ Claude Code, เขียน STATUS.md เอง, `By:`/`Reviewer:` ที่มา: `docs/mflow-agent-skills-proposal.md` | มีแล้ว |
+| FR-219 | ความปลอดภัยในการสร้าง skill (0.33): ไม่แตะโฟลเดอร์ชื่อเดียวกันที่ไม่มี marker (skill ของผู้ใช้, สถานะ `foreign`), ไม่เขียนผ่าน link ที่ชี้ออกนอกโปรเจกต์ (`refused`), เขียนซ้ำไม่เปลี่ยนอะไร (ไม่นับความต่างของ line ending), ลบไฟล์ที่ mflow ไม่ได้สร้างแล้วเฉพาะในโฟลเดอร์ที่มี marker `/mflow:init` แสดงแผนแล้วเขียนเมื่อผู้ใช้ตกลง และ doctor เตือนเมื่อสำเนาเก่ากว่า plugin | มีแล้ว |
+| FR-220 | ผลที่เครื่องมืออื่นทำนับได้ (0.33): record ใน `docs/reviews/tests/` มี `By: claude \| codex \| opencode` และ `/mflow:review` นับ record ของใครก็ได้ที่เป็นไปตามกฎเดิม (record ที่ไม่มี `By:` เป็นของ Claude) รายงาน review มี `Reviewer:` และ `Author:` (จากชื่อ branch `agent/<tool>/…`, คำของผู้ใช้ หรือถาม) review ของ Codex หรือ OpenCode ที่รีวิวโค้ดของตัวเองเป็น self-review ไม่นับเป็นเงื่อนไข merge (Claude รีวิวโค้ดที่ตัวเองเขียนยังนับเหมือนเดิม) | มีแล้ว |
+| FR-221 | E2E นอก Claude Code (0.33): skill `mflow-test` ของเครื่องมืออื่นไม่รัน E2E เลย เพราะไม่มี hook `e2e-guard` จำกัดจำนวน browser ให้ไปรัน `/mflow:test e2e` ใน Claude Code | มีแล้ว |
 | FR-187 | `/mflow:challenge @ไฟล์ [--focus] [--to]` ให้ AI หลายตัวหาสถานการณ์ที่ทำให้แบบหรือเอกสารล้มเหลวก่อนมีโค้ด (สัญญา `consult-challenge`: ข้อความที่ถูกทักท้วง → สถานการณ์ → ผลที่ควรเป็น → สิ่งที่ผิดพลาดหรือยังตอบไม่ได้ → หลักฐาน → การทดสอบหรือการแก้ที่เสนอ และส่วนที่ตรวจแล้วยังยืน ไม่มีโควตาจำนวน) session ปักหมุด hash ของไฟล์เป้าหมาย และบอกเมื่อไฟล์ถูกแก้หลังเริ่ม สรุปที่ `docs/ai/challenge/CH-NNN/summary.md` ไม่มีสำเนาของเป้าหมาย ลิงก์กลับเฉพาะแบบเสนอที่ mflow เขียน (`docs/ai/design/DS-NNN/proposal.md`) ไม่แก้เอกสาร discuss ที่ freeze, `openspec/specs/` หรือเอกสารของผู้ใช้ | มีแล้ว |
 
 ## 7. Non-functional requirements
@@ -416,6 +420,7 @@ mflow-marketplace/
     │   ├─ inbox-normalize.mjs       ← เตรียมรายงานก่อน assess
     │   ├─ consult.mjs               ← session ของ analyze/design/challenge (ไม่บังคับ) สถานะอ่านจากไฟล์จริง
     │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
+    │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
     ├─ skills/<20 คำสั่ง>/SKILL.md   (+ references/, assets/)
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
@@ -442,6 +447,7 @@ mflow-marketplace/
 | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัววิเคราะห์ระบบ แล้วรวมผลที่ตรวจหลักฐานแล้ว |
 | `/mflow:analyze units` → `/mflow:analyze unit:<ชื่อ> [--to …]` | (ไม่บังคับ) อยากให้ AI ตัวอื่นตรวจระบบที่ทำแล้วตามที่ทำจริงทีละหน่วย โดยไม่อ่านเอกสารลูกค้าและ discuss |
 | `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถาม แล้วส่งเข้า OpenSpec change ของหน่วย |
+| `$mflow-test`, `$mflow-review` (Codex) / `/mflow-test`, `/mflow-review` (OpenCode) | ให้ Codex หรือ OpenCode รัน test หรือรีวิว (skill ที่ `/mflow:init` สร้างใน `.agents/skills/`) |
 | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวเสนอแบบและทางเลือกก่อนตัดสินใจ |
 | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) อยากให้ AI หลายตัวหาจุดที่แบบจะพังก่อนสร้างจริง |
 | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>] [--change <ชื่อ>]` | รัน test ทั้งชุด (ไม่รวม E2E) ครั้งเดียวต่อ change เมื่อเครื่องว่าง (apply รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่แก้) |
@@ -505,7 +511,7 @@ mflow-marketplace/
 ## 13. นอกขอบเขต
 
 - mflow ไม่รัน AI tool อื่นให้ และไม่ merge หรือ push โค้ดเอง
-- คำสั่ง `/mflow:*` ใช้ได้เฉพาะใน Claude Code (tool อื่นทำงานผ่าน brief และ AGENTS.md)
+- คำสั่ง `/mflow:*` ใช้ได้เฉพาะใน Claude Code (tool อื่นทำงานผ่าน brief และ AGENTS.md) ยกเว้น test และ review ซึ่ง mflow สร้างเป็น skill `mflow-test` และ `mflow-review` ใน `.agents/skills/` ให้ Codex และ OpenCode (0.33, FR-218)
 - ไม่มีฐานข้อมูลกลางหรือบริการ cloud สถานะทั้งหมดอยู่ใน repo
 - ไม่ติดตั้ง OpenSpec หรือ Backlog.md เอง (แสดงคำสั่งให้ผู้ใช้รัน)
 - ไม่สร้างโค้ด production แทน OpenSpec workflow (`/mflow:screen` สร้าง prototype, ของจริงผ่าน `/opsx:apply`)
@@ -529,7 +535,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.32)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.33)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -583,6 +589,9 @@ mflow-marketplace/
 | review-units.mjs (0.32): แผนครบผ่าน check, check บอกไฟล์ไม่มีหน่วย ไฟล์สองหน่วย กลุ่มไม่มีเหตุผล spec ที่ไม่มีหน่วย (ไม่นับ change ที่ archive) ชื่อ spec และ flow ที่ไม่มีอยู่, หน่วย joins ได้ไฟล์ของหน่วยใน flow, แผนเสียหรือไม่มีหยุดพร้อมบอกวิธีแก้, draft หา module และไม่ดึงเอกสาร spec เข้าหน่วย, facts ดึงชื่อ test (รวม `[Theory]` ที่มี `[InlineData]` คั่น) route ของ controller และ Next.js schema จาก model snapshot และบอก commit, pattern และ OpenAPI จาก config, config ผิดชนิดหยุด, `--out` นอกโปรเจกต์ถูกปฏิเสธ; consult บันทึก basis/unit/facts และ `previous`; inbox-normalize `--unit` บอกไฟล์ที่ไม่ได้อ่าน | ผ่าน |
 | review-units.mjs ไฟล์ที่ link ชี้ออก (0.32.1): โฟลเดอร์ที่ track ไว้ถูกแทนด้วย junction ไปไฟล์นอกโปรเจกต์ และ config มี pattern ที่ดึงทุกบรรทัด `facts` ยังแสดง path แต่ไม่อ่านเนื้อหา (ก่อนแก้ เนื้อหานอกโปรเจกต์หลุดเข้าไฟล์ข้อเท็จจริง) ชื่อ test และ route ยาวไม่เกิน 200 ตัวอักษรต่อบรรทัด | ผ่าน |
 | review-units.mjs กับ StemHub แบบอ่านอย่างเดียว (0.32): draft เจอ 11 module รวม `Audit` ที่ไม่มี folder ใน Api, เอกสาร spec backlog และ settings ถูกเสนอเป็น notReviewed, facts ของหน่วย Supplier (ผลเขียนลง scratchpad) ได้ 57 ไฟล์ 196 test 17 route (endpoint ของ controller พร้อม prefix และหน้า Next.js 3 หน้า) และ 105 entity จาก model snapshot | ผ่าน |
+| agent-skills.mjs (0.33): สร้าง skill สองตัวที่ frontmatter ผ่านกฎของ OpenCode, `agents/openai.yaml`, ไม่เหลือ path ของ plugin ทั้งใน SKILL.md และ references, ขั้น E2E และคำแนะนำของ Claude ถูกแทน, เขียนซ้ำไม่เปลี่ยน, สำเนาเก่าถูกอัปเดตและไฟล์เกินถูกลบ, skill ของผู้ใช้ชื่อเดียวกันไม่ถูกแตะ, junction ที่ชี้ออกถูกปฏิเสธ, `discuss.mjs checks` รันจากสำเนาได้, doctor เตือนสำเนาเก่าและรู้จัก `asBuilt` | ผ่าน |
+| Codex CLI 0.162.1 กับโปรเจกต์จำลอง (0.33): `codex exec -s workspace-write '$mflow-test'` ได้ record `By: codex` แบบ whole suite และเขียน STATUS.md เอง (ราว 33k token), `'$mflow-review agent/claude/sub --short'` ได้รายงาน `Reviewer: codex`, `Author: claude` (จากชื่อ branch) รัน since แล้วบันทึก `By: codex` และ approve บน Windows sandbox ของ Codex บล็อกการหา path ของ Node ทั้งสองครั้ง Codex จึงรันคำสั่งนอก sandbox เองโดยไม่ถาม (โหมด `codex exec` กับค่า approval ของเครื่องที่ทดสอบ) | ผ่าน |
+| OpenCode กับ skill ที่สร้าง (0.33) | ยังไม่ได้ทดสอบ: CLI ไม่อยู่ใน PATH ของเครื่องที่ทดสอบ รองรับตามเอกสาร opencode.ai/docs/skills |
 | `/mflow:analyze units`, `unit:<ชื่อ>`, การรวมผลแบบ as built และการส่งเข้า OpenSpec (0.32) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
 

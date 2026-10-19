@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.32)
+## คำสั่ง (v0.33)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -53,6 +53,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/ai/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
 | | `/mflow:analyze units` → `unit:<ชื่อ> [--to …]` | (ไม่บังคับ) ตรวจระบบที่ทำแล้ว "ตามที่ทำจริง" ทีละหน่วย: Claude แตกโค้ดเป็นหน่วยตรวจจากไฟล์ที่ git เก็บไว้ (`.mflow/review-units.json`, script ยืนยันว่าทุกไฟล์มีหน่วยหรือมีเหตุผลที่ไม่ตรวจ) แล้ว brief ให้ AI ตัวอื่นเข้าใจระบบจากข้อเท็จจริงที่ดึงจากโค้ด spec และโค้ด โดยห้ามอ่านเอกสารลูกค้าและ discuss |
+| | `$mflow-test` / `$mflow-review` (Codex), `/mflow-test` / `/mflow-review` (OpenCode) | ให้ Codex หรือ OpenCode รัน test หรือรีวิว จาก skill ที่ `/mflow:init` สร้างใน `.agents/skills/` ผลใช้ร่วมกับ Claude ได้ (ไม่รัน E2E) |
 | | `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถามที่ต้องตัดสินก่อนในคำสั่งเดียว: ข้อที่ทำให้ spec เปลี่ยนเข้า OpenSpec change ของหน่วย (`<หน่วย>-review-fixes`), ข้อที่ spec ถูกอยู่แล้วเป็น task, คำถามที่แก้ยากไป `/mflow:discuss` |
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
@@ -87,7 +88,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 - **PreToolUse** (เครื่องมือ Agent): ปฏิเสธการเรียก subagent `mflow:dev` เมื่อโปรเจกต์ยังไม่ได้เปิดด้วย `/mflow:subagent on` (ค่าเริ่มต้นคือปิด) subagent ตัวอื่นผ่านตามปกติ ถ้าอ่านค่าไม่ได้จะปฏิเสธไว้ก่อน และ hook นี้ทำงานในทุกโปรเจกต์ที่เปิด plugin ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้เลย
 - **PreToolUse** (Bash และ PowerShell): ปฏิเสธการรัน `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกินเพดาน (`e2eMaxWorkers` ใน `.mflow/config.json` ค่าเริ่มต้น 2) เพราะค่าเริ่มต้นของ Playwright เปิด browser เท่าครึ่งหนึ่งของ CPU thread จนเคยทำให้เครื่อง restart ดูเฉพาะคำสั่งที่ขึ้นต้นด้วย Playwright (หลัง `cd`, ตัวแปร env, `timeout`) การค้นข้อความอย่าง `grep "playwright test"` ผ่านได้ `--list` ผ่านได้ ถ้าอ่านค่าตั้งไม่ได้ hook ปล่อยผ่าน ไม่บล็อกคำสั่งอื่น
 
-Codex ไม่มี hook: ทำตามส่วน "Session ritual" ใน AGENTS.md แทน
+hook ของ mflow ทำงานเฉพาะใน Claude Code (Codex รุ่นใหม่มี hook ของตัวเอง แต่ mflow ไม่ได้ใช้): ใน Codex และ OpenCode ให้ทำตามส่วน "Session ritual" ใน AGENTS.md แทน skill `mflow-test` และ `mflow-review` ที่ mflow สร้างให้สองเครื่องมือนี้เขียนกฎข้อนี้ไว้ในตัว
 
 ## Subagent ตอน apply
 
@@ -176,6 +177,7 @@ mflow/
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   ├─ consult.mjs         ← สถานะของ analyze/design/challenge (ไม่บังคับ) อ่านจากไฟล์จริง
 │   ├─ review-units.mjs    ← หน่วยตรวจ: ร่าง, ตรวจว่าทุกไฟล์มีหน่วย, ไฟล์ข้อเท็จจริงที่ดึงจากโค้ด
+│   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์
@@ -221,6 +223,22 @@ Codex และ tool อื่นไม่ได้เรียก `/mflow:*` (�
 กฎว่าข้อไหนไปที่ไหน: "แก้แล้ว spec ยังพูดถูกโดยไม่ต้องแตะหรือไม่" ถ้าไม่ (โค้ดทำสิ่งที่ spec ไม่บอกแล้วเลือกเก็บ, bug ในกรณีที่ spec ไม่ได้พูดถึง, โลจิกใหม่) เข้า OpenSpec พร้อม delta spec ถ้าใช่ (bug ที่ spec บอกถูกอยู่แล้ว, test ที่ขาด, refactor) เป็น task ใน change เดียวกัน หรือใน Backlog ถ้าไม่มี change รวมเป็นชุดละหน่วยเพื่อให้ test ทั้งชุดรันครั้งเดียว คำถามระดับหนัก (schema, สิทธิ์, ข้อมูลที่ลูกค้าไม่ได้พูดถึง, การลบ, การส่งออกนอกระบบ) ไป `/mflow:discuss` และ change ของหน่วยทำต่อไปก่อนโดยไม่รวมข้อที่รอคำตอบ
 
 ค่าเสริมใน `.mflow/config.json` (ไม่บังคับ): `asBuilt.openapi` path ของไฟล์ OpenAPI ที่โปรเจกต์ export ไว้ (mflow ไม่รันแอปเอง) และ `asBuilt.facts.tests` / `asBuilt.facts.routes` regular expression เพิ่มเติม (มี capture group เดียวเป็นชื่อ test หรือ route)
+
+
+### ให้ Codex หรือ OpenCode รัน test และรีวิว
+
+`/mflow:init` สร้าง `/mflow:test` และ `/mflow:review` เป็น skill ใน `.agents/skills/mflow-test/` และ `mflow-review/` (ถามก่อนเขียน) ซึ่ง Codex และ OpenCode อ่านจากโฟลเดอร์เดียวกัน:
+
+| เครื่องมือ | เรียก |
+|---|---|
+| Claude Code | `/mflow:test`, `/mflow:review` (เหมือนเดิม) |
+| Codex | `$mflow-test`, `$mflow-review` (หรือเลือกจาก `/skills`) |
+| OpenCode | `/mflow-test`, `/mflow-review` |
+
+- ผลใช้ข้ามเครื่องมือได้: record ของ test มี `By:` และ `/mflow:review` ของ Claude ใช้ record ที่ Codex หรือ OpenCode รันได้ตามกฎเดิม รายงาน review มี `Reviewer:` และ `Author:` ถ้า Codex หรือ OpenCode รีวิวโค้ดที่ตัวเองเขียน รายงานนั้นไม่นับเป็นเงื่อนไข merge
+- E2E ไม่รันใน Codex และ OpenCode เพราะไม่มี hook จำกัดจำนวน browser ให้รัน `/mflow:test e2e` ใน Claude Code
+- อย่าแก้ไฟล์ใน `.agents/skills/mflow-*` เอง `/mflow:init` เขียนใหม่ทุกครั้งที่ plugin เปลี่ยน (`doctor` เตือนเมื่อสำเนาเก่า) skill ของคุณเองที่ชื่อซ้ำจะไม่ถูกแตะ
+- Codex ต้องใช้ sandbox `workspace-write` สำหรับ test (build เขียนไฟล์) ตอนลองบน Windows sandbox บล็อกการหา path ของ Node ทั้งสองครั้ง แล้ว Codex รันคำสั่งนอก sandbox เองโดยไม่ถาม (โหมด `codex exec` กับค่า approval ของเครื่องนั้น) จะมีคำถามก่อนหรือไม่ขึ้นกับค่า approval ของ Codex ที่คุณตั้งไว้
 
 ### ทะเบียน tool
 

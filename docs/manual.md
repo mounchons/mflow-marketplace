@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.32.1 |
+| เวอร์ชัน plugin | 0.33.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -476,6 +476,15 @@ docs/
   - ตอน `/opsx:propose` จะไม่ถามซ้ำข้อที่ตอบแล้ว ข้อที่ไม่แก้หรือเลื่อนลง Backlog พร้อมเหตุผล และรอบตรวจถัดไปจะไม่รายงานซ้ำ
 - แผนหน่วยตรวจเป็นของคุณ แก้ได้ เมื่อมี folder ใหม่ที่ยังไม่มีหน่วย Claude จะเตือนตอนเริ่มหน่วยถัดไปและเสนอปรับแผน แต่ไม่ขวาง
 
+
+**ให้ Codex หรือ OpenCode รัน test และรีวิว: `$mflow-test`, `$mflow-review` (Codex) หรือ `/mflow-test`, `/mflow-review` (OpenCode)**
+- `/mflow:init` สร้าง skill สองตัวนี้ใน `.agents/skills/` จาก skill ของ Claude (ถามก่อนเขียน) แล้ว commit พร้อม repo ทั้ง Codex และ OpenCode อ่านจากโฟลเดอร์นี้ ไม่ต้องติดตั้งอะไรเพิ่ม
+- ใช้เมื่ออยากให้ test ที่ใช้เวลานานไม่กิน session ของ Claude หรืออยากให้เครื่องมือที่ไม่ได้เขียนโค้ดเป็นคนรีวิว เช่น Claude เขียนโค้ดใน terminal หนึ่ง แล้ว Codex รัน `$mflow-test` และ `$mflow-review <branch>` อีก terminal
+- ผลใช้ร่วมกัน: record ใน `docs/reviews/tests/` มี `By:` (claude, codex, opencode) และ `/mflow:review` ของ Claude ใช้ record ของใครก็ได้ที่เป็นไปตามกฎเดิม (commit ตรง, working tree สะอาด) รายงาน review มี `Reviewer:` และ `Author:` (ดูจากชื่อ branch `agent/<tool>/…` หรือถามคุณ)
+- ถ้า Codex หรือ OpenCode รีวิวโค้ดที่ตัวเองเขียน รายงานนั้นเป็น self-review ไม่นับเป็นเงื่อนไข merge ให้เครื่องมืออื่นรีวิวแทน
+- E2E ไม่รันใน Codex และ OpenCode (ไม่มี hook จำกัดจำนวน browser) สั่ง `/mflow:test e2e` ใน Claude Code
+- Codex ใช้ sandbox `workspace-write` ตอนรัน test ตอนลองบน Windows sandbox บล็อกคำสั่ง แล้ว Codex รันนอก sandbox เองโดยไม่ถาม (โหมด `codex exec`) จะถามก่อนหรือไม่ขึ้นกับค่า approval ของ Codex ที่คุณตั้ง
+
 **ให้ AI หลายตัวเสนอแบบ (ไม่บังคับ): `/mflow:design`**
 - ใช้ก่อนสร้างหรือเปลี่ยน module, API, data model หรือ workflow เช่น `/mflow:design "ระบบสิทธิ์หลายบริษัท" --to codex,gemini` หรือเริ่มจากผลวิเคราะห์ `--from @docs/ai/analysis/AN-001/summary.md` ไม่ต้องผ่าน analyze ก่อน
 - รายงานกลับมาแล้วสั่ง `/mflow:design DS-NNN` ได้แบบเสนอเดียวที่ `docs/ai/design/DS-NNN/proposal.md` พร้อมทางเลือก (รวมการคงโครงเดิมถ้ามี tool เสนอ) และข้อที่คุณต้องตัดสินใจ ถ้ายังมีทางเลือกตั้งแต่สองทางจะได้ `comparison.md` ด้วย
@@ -495,7 +504,7 @@ docs/
 | จบวัน | | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog และผล test) ให้คนที่ไม่เห็นแชตวันนี้ทำต่อได้ |
 | ก่อนสลับไปใช้ tool อื่น | | `/mflow:handoff --for codex` ได้ brief ของงานถัดไปด้วย |
 
-Codex และ tool อื่นไม่มี hook ให้ทำตามส่วน "Session ritual" ใน `AGENTS.md` คืออ่าน STATUS.md ตอนเริ่ม และเขียน log ตอนจบ
+hook ของ mflow ทำงานเฉพาะใน Claude Code ใน Codex, OpenCode และ tool อื่นให้ทำตามส่วน "Session ritual" ใน `AGENTS.md` คืออ่าน STATUS.md ตอนเริ่ม และเขียน log ตอนจบ
 
 ## 6. ตัวอย่างการใช้งาน
 
@@ -810,6 +819,8 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | อยากให้ Codex หรือ AI ตัวอื่นตรวจระบบที่ทำแล้วตามที่ทำจริง โดยไม่อ่านเอกสารลูกค้าและ discuss (ไม่บังคับ) | `/mflow:analyze units` → `/mflow:analyze unit:<ชื่อ> --to codex,opencode` → รันคำสั่งที่ได้ → `/mflow:analyze AN-NNN` |
 | ผลตรวจของหน่วยกลับมาแล้ว อยากเลือกข้อที่จะแก้และตอบคำถาม | `/mflow:analyze AN-NNN แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` (ข้อที่เปลี่ยน spec เข้า OpenSpec change ของหน่วย) |
 | มี folder ใหม่ในโค้ด หรืออยากแก้การแบ่งหน่วยตรวจ | `/mflow:analyze units` (หรือแก้ `.mflow/review-units.json` เอง) |
+| อยากให้ Codex หรือ OpenCode รัน test หรือรีวิว ระหว่างที่ Claude เขียนโค้ด | `$mflow-test` / `$mflow-review <branch>` ใน Codex, `/mflow-test` / `/mflow-review` ใน OpenCode (ถ้ายังไม่มี skill: `/mflow:init`) |
+| doctor บอกว่า skill ของ Codex/OpenCode เก่ากว่า plugin | `/mflow:init` (เขียน `.agents/skills/mflow-*` ใหม่) |
 | ตอบตั๋ว hotspot ง่ายๆ หลายใบพร้อมกัน | `/mflow:hotspot <slug> TASK-12 a, TASK-13 b` |
 | พร้อมตอบตั๋ว `ask` หรือได้คำตอบจากคนที่ไปถามมาแล้ว | `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` |
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
@@ -827,7 +838,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.32.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.33.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -839,6 +850,8 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | golden JSON ต้องถูก copy ไปโฟลเดอร์ output ของ test | ตั้ง `CopyToOutputDirectory` ใน test project |
 | คำสั่ง gemini และ opencode ยังไม่ได้รันกับโมเดลจริง | เช็ก `--help` ก่อนใช้ครั้งแรก |
 | ไฟล์ข้อเท็จจริงของหน่วยตรวจดึงตามรูปแบบที่มีในตัว (.NET, Next.js, Node, Python) stack อื่นอาจได้ชื่อ test หรือ route ไม่ครบ | ไฟล์จะบอกว่า "ไม่พบ" พร้อมรูปแบบที่ลอง ให้เพิ่ม regular expression ที่ `asBuilt.facts.tests` / `asBuilt.facts.routes` ใน `.mflow/config.json` |
+| skill `mflow-test` และ `mflow-review` ยังไม่ได้ลองกับ OpenCode จริง (ลองกับ Codex 0.162.1 แล้ว) | ใช้ครั้งแรกแบบนั่งดู ถ้า OpenCode ไม่เห็น skill ให้ตรวจว่าเปิด OpenCode ใน repo และมี `.agents/skills/mflow-test/SKILL.md` |
+| sandbox ของ Codex บน Windows บล็อกคำสั่ง test ตอนลอง และ Codex รันนอก sandbox เองโดยไม่ถาม (`codex exec`) | ถ้าต้องการให้ถามก่อนทุกครั้ง ตั้งค่า approval ของ Codex ให้ถามเมื่อจะรันนอก sandbox |
 | route ในไฟล์ข้อเท็จจริงเป็น path ตามที่เขียนใน controller ไม่รวม prefix ที่ตั้งจากที่อื่น (เช่น `/api/v1`) | ถ้าต้องการ path เต็ม ให้ export OpenAPI ไว้แล้วตั้ง `asBuilt.openapi` (mflow ไม่รันแอปเอง) |
 | skill ทั้ง 20 ตัวยังไม่เคยรันครบวงจรใน session จริง (script ทุกตัวมีชุด test ที่รันใน CI แล้ว แต่ยังไม่ได้ยืนยันว่า Claude ทำตามข้อความใน skill ถูกทุกขั้น) | ใช้ครั้งแรกแบบนั่งดูทีละขั้น ถ้าทำไม่ตรงคู่มือให้บอกในแชต |
 | หลัง `resume` Stop hook นับเป็น session ใหม่ | งานจาก session ก่อนที่ยังไม่ได้ลง log ให้สั่ง `/mflow:handoff` เอง |

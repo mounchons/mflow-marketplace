@@ -49,9 +49,20 @@
       "base_commit": "7c888c1",
       "evidence_snapshot": "StemHub feat/supplier-screens 965b5df (read-only)",
       "created_at": "2026-10-18",
-      "proposals": ["P01", "P02", "P03", "P04", "P05", "P06"],
+      "proposals": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06"
+      ],
       "implemented_in": "0.30.0 (P01, P02), 0.31.0 (P03 at review, P04 warnings)",
-      "not_implemented": ["P04 decision summary table", "P05 (waits for open question 1)", "P06 (no change by design)"],
+      "not_implemented": [
+        "P04 decision summary table",
+        "P05 (waits for open question 1)",
+        "P06 (no change by design)"
+      ],
       "updated_at": "2026-10-18"
     },
     {
@@ -63,12 +74,39 @@
       "status": "implemented",
       "reviewed_plugin_version": "0.31.0-working-tree",
       "implemented_in": "0.32.0",
-      "not_implemented": ["a real-session run of /mflow:analyze units and unit:<name> (R-03)"],
+      "not_implemented": [
+        "a real-session run of /mflow:analyze units and unit:<name> (R-03)"
+      ],
       "related_document": "DOC-MFLOW-MULTI-AGENT-001",
       "evidence_snapshot": "StemHub (read-only)",
       "created_at": "2026-10-19",
-      "parts": ["--basis built", "review units", "help and manual", "findings to OpenSpec", "decisions before propose"],
+      "parts": [
+        "--basis built",
+        "review units",
+        "help and manual",
+        "findings to OpenSpec",
+        "decisions before propose"
+      ],
       "updated_at": "2026-10-19"
+    },
+    {
+      "id": "DOC-MFLOW-AGENT-SKILLS-001",
+      "name": "ข้อเสนอ: ให้ Codex และ OpenCode เรียก mflow-test และ mflow-review ได้",
+      "file_path": "mflow-agent-skills-proposal.md",
+      "type": "design-proposal",
+      "version": "0.1.0",
+      "status": "implemented",
+      "reviewed_plugin_version": "0.32.1",
+      "related_document": "DOC-MFLOW-ASBUILT-001",
+      "created_at": "2026-10-19",
+      "updated_at": "2026-10-19",
+      "implemented_in": "0.33.0",
+      "answers": "Q1-Q5 as recommended (2026-10-19)",
+      "verification": {
+        "regression_tests": 7,
+        "codex_smoke": "codex-cli 0.162.1: $mflow-test and $mflow-review in a temp project",
+        "opencode": "not run (CLI not on PATH)"
+      }
     }
   ]
 }

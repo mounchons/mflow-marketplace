@@ -59,7 +59,9 @@ The script puts mflow's list items between `# mflow:begin <version>` and `# mflo
 
 `operations.apply.guidance` reaches `/opsx:apply` through `openspec instructions apply --json` (`operationGuidance`), and `openspec update` never rewrites `config.yaml`, so the delegation survives OpenSpec upgrades. The `mflow:dev` agent ships with this plugin (`agents/dev.md`) and stays off until the user runs `/mflow:subagent on`; do not switch it on during init.
 
-Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo, and `openspec-config.mjs --dry-run` reports `changed: false` with no problems.
+Then the skills for Codex and OpenCode: `/mflow:test` and `/mflow:review` as `.agents/skills/mflow-test/` and `mflow-review/`, the folder both tools read (Codex calls `$mflow-test`, OpenCode `/mflow-test`). Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills.mjs" plan`, show what it would create, update or remove, and run `write` on a yes. A skill it reports as `foreign` is the user's own of that name: it stays, and say how to free the name. Skip this when the user does not use those tools; `/mflow:help check setup` reports when the copies are older than the plugin.
+
+Done when: `openspec list --json` and `backlog task list --json` both return JSON in this repo, `openspec-config.mjs --dry-run` reports `changed: false` with no problems, and `agent-skills.mjs plan` reports every skill `unchanged`, `foreign`, or skipped by the user.
 
 ## 5. Fill AGENTS.md from facts
 

@@ -53,6 +53,7 @@ Write `docs/reviews/tests/<date>-<short commit>.md`, with `-2`, `-3` for another
 
 ```
 Tested: <branch> at <full commit>[ with uncommitted changes]
+By: claude | codex | opencode
 Scope: whole suite | since <base short commit> | <what the argument named>
 Base: <base record path, for since>
 Change: <name or none>

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Stop hook (fires each time Claude finishes a turn).
 // If files changed since STATUS.md was last written, ask Claude to write the handoff entry. Changed means
-// edited, added, deleted or renamed, or committed during the session (SessionStart records the commit and
-// the uncommitted changes it started from).
+// edited, added, deleted or renamed, or committed during the session in a commit without STATUS.md
+// (SessionStart records the commit and the uncommitted changes it started from).
+// The request leaves older log entries alone: trimming the log is /mflow:handoff's, and it moves them.
 // Throttled: not in the first `graceMinutes` of a session, then at most once per `repeatMinutes`.
 // Never loops: respects stop_hook_active.
 // Every way of letting the stop through is silent; with MFLOW_DEBUG set it names its reason on stderr
@@ -47,7 +48,7 @@ const git = gitStatus(root);
 if (!git) pass("git status unavailable (not a repo, git missing, or it timed out)");
 
 const ignored = (p) =>
-  p === "STATUS.md" || p.startsWith(".mflow/") || p.startsWith(".claude/") || p.startsWith(".agents/");
+  p === "STATUS.md" || p === "docs/status-log.md" || p.startsWith(".mflow/") || p.startsWith(".claude/") || p.startsWith(".agents/");
 const changed = new Set();
 
 // Uncommitted: an edit since `since` shows in the file's mtime. A deleted file has none, and a renamed
@@ -59,13 +60,27 @@ for (const e of git.entries) {
   if (mtimeMs(e.abs) > since || (/[DRC]/.test(e.code) && !baseline.has(e.key))) changed.add(e.rel);
 }
 
-// Committed during the session: they leave `git status`. Commit times have whole seconds, so a commit
-// in the same second as `since` counts.
+// Committed during the session: they leave `git status`. Only what was committed after STATUS.md was
+// last written counts. Walking back along HEAD's first parents, the count starts after the newest
+// commit that is older than STATUS.md, or that carries STATUS.md itself (the handoff commit, or the
+// work committed together with its entry). So committing the handoff never asks for it again, and
+// work already in the log, or brought in by a merge before it, is not counted twice. Commit times
+// have whole seconds, so a commit in the same second as `since` counts.
 const head = /^[0-9a-f]{40,64}$/.test(state.head || "") && run("git rev-parse HEAD", root, 8000)?.trim();
 if (head && head !== state.head) {
-  const committedAt = Number(run("git log -1 --format=%ct", root, 8000)?.trim()) || 0;
-  if (committedAt >= Math.floor(since / 1000)) {
-    const names = run(`git -c core.quotePath=false diff --name-only -z ${state.head} HEAD -- .`, root, 8000) || "";
+  const lines = (out) => (out || "").split("\n").map((l) => l.trim()).filter(Boolean);
+  const chain = lines(run(`git log --first-parent "--format=%H %ct" ${state.head}..HEAD`, root, 8000));
+  const carried = new Set(lines(run(`git log --first-parent --format=%H ${state.head}..HEAD -- STATUS.md`, root, 8000)));
+  let from = state.head;
+  for (const line of chain) {
+    const [sha, ct] = line.split(" ");
+    if (carried.has(sha) || Number(ct) < Math.floor(since / 1000)) {
+      from = sha;
+      break;
+    }
+  }
+  if (from !== head) {
+    const names = run(`git -c core.quotePath=false diff --name-only -z ${from} HEAD -- .`, root, 8000) || "";
     for (const p of names.split("\0").filter(Boolean)) {
       const rel = path.relative(root, path.join(git.top, p)).split(path.sep).join("/");
       if (!ignored(rel)) changed.add(rel);
@@ -86,7 +101,8 @@ process.stdout.write(
     reason:
       `mflow: ${changedThisSession.length} file(s) changed since STATUS.md was last updated (${sample}). ` +
       "Before stopping: rewrite the '## Now' section of STATUS.md (focus, next step, blocked on) and add one entry " +
-      "at the top of '## Log' with Did / Decided / Next, referencing Backlog task IDs and OpenSpec change names. " +
-      "Keep the log to the newest 10 entries; fold older ones into one summary line. Then stop.",
+      "at the top of '## Log' with Did / Decided / Next, referencing Backlog task IDs and OpenSpec change names " +
+      "(or bring this session's entry up to date if it is already there). Leave the older log entries as they are. " +
+      "Then stop.",
   }),
 );

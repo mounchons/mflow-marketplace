@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.34.0 |
+| เวอร์ชันที่อธิบาย | 0.34.1 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -111,11 +111,11 @@ flowchart TD
 |---|---|---|
 | FR-10 | SessionStart (เริ่ม, resume, clear, compact) ใส่ briefing: ส่วน Now และ log ล่าสุดของ STATUS.md, OpenSpec change ที่ค้าง, Backlog task ที่ In Progress, hotspot ที่ active และจำนวนตั๋วที่หยิบได้ | มีแล้ว |
 | FR-11 | Briefing แจ้งเอกสารลูกค้าที่ยังไม่ได้ประมวลผล และรายงานจาก AI อื่นที่ยังไม่ได้ assess | มีแล้ว |
-| FR-12 | Stop hook ขอให้เขียน STATUS.md เมื่อมีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด นับทั้งไฟล์ที่แก้ เพิ่ม ลบ เปลี่ยนชื่อ และที่ commit ไประหว่าง session: SessionStart จด commit และไฟล์ที่ค้างอยู่ตอนเริ่ม ไฟล์ที่ลบหรือเปลี่ยนชื่อไว้ก่อนเริ่มจึงไม่นับ ส่วน record จาก mflow รุ่นก่อนที่ไม่มีข้อมูลนี้ นับไฟล์ที่ลบทุกไฟล์ (อาจเตือนเกิน แต่ไม่พลาด) | มีแล้ว |
+| FR-12 | Stop hook ขอให้เขียน STATUS.md เมื่อมีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด นับทั้งไฟล์ที่แก้ เพิ่ม ลบ เปลี่ยนชื่อ และที่ commit ไประหว่าง session: SessionStart จด commit และไฟล์ที่ค้างอยู่ตอนเริ่ม ไฟล์ที่ลบหรือเปลี่ยนชื่อไว้ก่อนเริ่มจึงไม่นับ ส่วน record จาก mflow รุ่นก่อนที่ไม่มีข้อมูลนี้ นับไฟล์ที่ลบทุกไฟล์ (อาจเตือนเกิน แต่ไม่พลาด) ไฟล์ที่ commit แล้วนับเฉพาะที่ commit หลัง STATUS.md ถูกเขียนครั้งล่าสุด: ไล่ย้อนตาม first parent ของ HEAD แล้วเริ่มนับหลัง commit ล่าสุดที่เก่ากว่า STATUS.md หรือที่มี STATUS.md อยู่ด้วย (commit handoff หรือ commit งานพร้อม entry) commit handoff จึงไม่ทำให้ถามซ้ำ และงานที่ลง log แล้วหรือที่ merge เข้ามาก่อนนั้นไม่ถูกนับอีก คำขอของ hook ไม่สั่งย่อ log และบอกให้คง entry เก่าไว้ตามเดิม และไม่นับ `docs/status-log.md` ที่ handoff ย้าย entry เก่าไป (0.34.1) ที่มา: StemHub 2026-10-23 commit STATUS.md อย่างเดียวหลัง merge แล้ว hook นับ 141 ไฟล์ตั้งแต่ต้น session และสั่งย่อ log จน entry 9 รายการถูกรวมเหลือบรรทัดเดียว | มีแล้ว |
 | FR-13 | Stop hook ไม่เตือนใน 10 นาทีแรก และเตือนซ้ำไม่เกินทุก 30 นาที ปรับได้ใน config | มีแล้ว |
 | FR-14 | Hook ทำงานเฉพาะ repo ที่มี `.mflow/config.json` เงียบใน repo อื่น ยกเว้น hook PreToolUse ที่ปฏิเสธ subagent `mflow:dev` ใน repo ที่ไม่ใช่ mflow (FR-174) และไม่แตะ subagent ตัวอื่น | มีแล้ว |
 | FR-15 | hook ของ mflow ทำงานเฉพาะใน Claude Code: AI ตัวอื่น (Codex, OpenCode ฯลฯ) ทำตาม "Session ritual" ใน AGENTS.md (Codex รุ่น 0.162 มี hook ของตัวเองแล้ว แต่ mflow ไม่ได้ใช้) | มีแล้ว |
-| FR-16 | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog, ผล test) และสร้าง brief ให้ tool อื่นได้ | มีแล้ว |
+| FR-16 | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog, ผล test) และสร้าง brief ให้ tool อื่นได้ ตัด log ให้เหลือ 10 รายการโดยย้าย entry เก่าไปไว้บนสุดของ `docs/status-log.md` คำต่อคำ ไม่ย่อหรือรวม (0.34.1) | มีแล้ว |
 
 ### 6.3 เอกสารลูกค้า (`/mflow:capture`)
 
@@ -371,7 +371,7 @@ flowchart TD
 repo/
 ├─ AGENTS.md                 ← วิธีทำงาน, สถาปัตยกรรม, คำศัพท์โดเมน, ข้อห้าม (ทุก AI อ่าน)
 ├─ CLAUDE.md                 ← @AGENTS.md + ของเฉพาะ Claude Code
-├─ STATUS.md                 ← Now + log ล่าสุด 10 รายการ
+├─ STATUS.md                 ← Now + log ล่าสุด 10 รายการ (entry ที่เก่ากว่าย้ายไป docs/status-log.md)
 ├─ .claude/rules/ui.md       ← กฎ UI (โหลดเฉพาะไฟล์ UI)
 ├─ .mflow/
 │   ├─ config.json           ← marker + ตั้งค่า + ทะเบียน tool เพิ่มเติม
@@ -382,6 +382,7 @@ repo/
 │   └─ suggested/            ← template ที่รอ merge (ชั่วคราว)
 ├─ docs/
 │   ├─ vision.md             ← เป้าหมาย, story map, ขอบเขต, open questions
+│   ├─ status-log.md         ← log เก่าของ STATUS.md คำต่อคำ (`/mflow:handoff` ย้ายมา)
 │   ├─ source/               ← ต้นฉบับลูกค้า + INDEX.md (สร้างอัตโนมัติ)
 │   ├─ discuss/              ← NN-<slug>.md เอกสารยืนยันความเข้าใจกับผู้ใช้ + AGENDA.md หัวข้อที่ควร discuss
 │   ├─ ui/                   ← design-system.md, screens.md, ภาพหน้าจอ, theme/ (static preview ของ kit ถ้าใช้)
@@ -538,7 +539,7 @@ mflow-marketplace/
 | R-14 | ตอนเปิด `operations.apply.guidance` เป็นคำแนะนำที่ OpenSpec ส่งให้ AI ไม่ใช่การบังคับ (ตอนปิด hook บังคับจริง) | Claude อาจเขียนโค้ดเองบนโมเดลของ session แทนการส่งให้ `mflow:dev` | ครั้งแรกหลังเปิดดูว่าเรียก subagent จริง |
 | R-09 | จำนวนคำสั่ง (19 รวมสามคำสั่งเสริมที่ไม่บังคับ) มากกว่าที่ต้องใช้ช่วงแรก | เสียเวลาเรียนรู้ | เริ่มจาก init → source → theme → screen |
 
-## 15. ผลการทดสอบ (v0.3 ถึง v0.34)
+## 15. ผลการทดสอบ (v0.3 ถึง v0.34.1)
 
 ตั้งแต่ 0.17 พฤติกรรมของ scripts และ hooks มีชุด regression ใน `tests/` รันซ้ำได้จาก checkout เดียวด้วย `node --test` ที่ root ของ repo (Node ล้วน ไม่ต้องติดตั้งอะไร ไม่ต้องใช้ account) แต่ละ test สร้างโปรเจกต์จำลองใน temp และรัน script เป็น process แยกแบบที่ hook และ skill เรียก ข้อบกพร่องที่รู้แล้วแต่ยังไม่แก้เขียนเป็น test แบบ `todo` อ้างรหัสใน [mflow-plugin-design-review.md](mflow-plugin-design-review.md) (F01 ถึง F12) เมื่อแก้ข้อนั้นแล้วจึงเปลี่ยนเป็น test ปกติ CI (`.github/workflows/tests.yml`) รันชุดนี้บน Windows และ Linux กับ Node 20, 22 และ 24 ทุกครั้งที่ push หรือเปิด PR ส่วนตารางด้านล่างเป็นผลที่ทดสอบด้วยมือหรือแบบ headless ซึ่งชุดนี้ยังไม่ครอบคลุม
 
@@ -597,6 +598,8 @@ mflow-marketplace/
 | smoke run กับ Codex จริง (`node tests/smoke/codex-skills.mjs`, รันเมื่อสั่ง ไม่อยู่ใน `node --test` และ CI) บน Windows กับ codex-cli 0.162.1: test (record `By: codex` whole suite ที่ commit และ log ใน STATUS.md, 42k token), review (`Reviewer: codex`, `Author: claude` จากชื่อ branch, มีคำตัดสิน, อ้าง record, 55k), e2e (ไม่มี record ของ E2E, ไม่ได้รัน Playwright, บอกให้ไปรันใน Claude Code, 32k), self (`Author: codex` และเขียนว่าเป็น self-review ที่ไม่นับเป็นเงื่อนไข merge, 52k) รอบแรก self ไม่ได้รีวิวเพราะ shell ของ Codex เปิดไม่ขึ้นและระบบอนุมัติอัตโนมัติของ Codex แจ้ง at capacity รันซ้ำแล้วผ่าน และในรอบนั้น Codex จับ import ที่ผิดใน fixture ได้เป็น blocker (แก้ fixture แล้ว) | ผ่าน |
 | openspec-config (0.34): บรรทัดใหม่สามข้อ (test แบบไม่ใช้เบื้องหลัง, ปล่อย integration ให้ `/mflow:test`, ขนาดของ change) เขียนลงระหว่าง marker โดยไม่ต้องครอบ quote, รันซ้ำไม่เปลี่ยน และ `openspec instructions apply --json` ของ OpenSpec 1.13.2 คืน `operationGuidance` ครบทุกข้อ | ผ่าน |
 | กฎของ 0.34 ใน session จริง (apply ที่แบ่ง test, ปล่อย integration ให้ `/mflow:test`, propose เป็นหลายส่วน) | ยังไม่ได้รันใน session จริง (R-03) |
+| Stop hook หลัง commit (0.34.1): commit handoff หลังงาน, commit งานพร้อม entry ไม่ถามซ้ำ; commit งานหลัง handoff ถามและนับเฉพาะไฟล์ของ commit นั้น; ย้าย entry ไป `docs/status-log.md` ไม่ถามซ้ำ; คำขอไม่สั่งย่อ log test ใหม่ 5 ข้อ fail กับ 0.34.0 และผ่านหลังแก้ | ผ่าน |
+| Stop hook 0.34.1 ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | OpenCode กับ skill ที่สร้าง (0.33) | ยังไม่ได้ทดสอบ: CLI ไม่อยู่ใน PATH ของเครื่องที่ทดสอบ รองรับตามเอกสาร opencode.ai/docs/skills |
 | `/mflow:analyze units`, `unit:<ชื่อ>`, การรวมผลแบบ as built และการส่งเข้า OpenSpec (0.32) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |

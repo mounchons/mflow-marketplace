@@ -79,7 +79,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 ## Hooks (ทำงานเฉพาะ repo ที่มี `.mflow/config.json`)
 
 - **SessionStart**: ฉีด briefing เข้า context ทุกครั้งที่เริ่ม/resume/clear/compact: ส่วน Now ของ STATUS.md, log ล่าสุด, OpenSpec change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active พร้อมจำนวน ticket ที่หยิบได้, เอกสารลูกค้าที่ยังไม่ได้ประมวลผล, ผลจาก AI อื่นที่ยังไม่ได้ assess, เอกสาร discuss ที่รอคุณอ่าน และส่วนแยก "Discussion agenda (optional)" ที่บอกหัวข้อแนะนำที่ยังไม่เริ่ม
-- **Stop**: ถ้ามีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด (แก้ เพิ่ม ลบ เปลี่ยนชื่อ หรือ commit ไปแล้วใน session นี้) จะให้ Claude เขียน handoff ก่อนหยุด ไม่ถามใน 10 นาทีแรกของ session และถามซ้ำไม่เกินทุก 30 นาที ปรับได้ใน `.mflow/config.json`:
+- **Stop**: ถ้ามีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด (แก้ เพิ่ม ลบ เปลี่ยนชื่อ หรือ commit ไปแล้วใน session นี้ใน commit ที่ไม่มี STATUS.md) จะให้ Claude เขียน handoff ก่อนหยุดโดยไม่แตะ log เก่า ไม่ถามใน 10 นาทีแรกของ session และถามซ้ำไม่เกินทุก 30 นาที ปรับได้ใน `.mflow/config.json`:
 
 ```json
 { "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 } }

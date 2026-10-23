@@ -97,6 +97,57 @@ test("work committed before STATUS.md was updated does not", needsGit, () => {
   expectStop("pass");
 });
 
+// StemHub 2026-10-23: the work was committed, STATUS.md written, then committed on its own; the guard
+// saw a commit newer than STATUS.md and counted every file since the session began (141), then asked
+// to trim the log, and nine entries were folded into one line.
+test("committing the handoff after the work does not ask again", needsGit, () => {
+  repo(); start();
+  p.write("src/a.txt", "changed\n");
+  git(p, "commit", "-q", "-am", "work");
+  p.write("STATUS.md", "# Status\n\n## Now\n- work committed\n");
+  git(p, "commit", "-q", "-am", "handoff");
+  expectStop("pass");
+});
+
+test("work committed together with its STATUS.md entry does not ask", needsGit, () => {
+  repo(); start();
+  p.write("src/a.txt", "changed\n");
+  p.write("STATUS.md", "# Status\n\n## Now\n- work and entry\n");
+  git(p, "commit", "-q", "-am", "work with entry");
+  expectStop("pass");
+});
+
+test("work committed after the handoff asks, and counts only that work", needsGit, () => {
+  repo(); start();
+  p.write("src/a.txt", "changed\n");
+  p.write("STATUS.md", "# Status\n\n## Now\n- a done\n");
+  git(p, "commit", "-q", "-am", "a with entry");
+  p.write("src/b.txt", "changed\n");
+  git(p, "commit", "-q", "-am", "b");
+  expectStop("block");
+  const reason = run(p, "stop-guard.mjs", [], { input: { session_id: "t-stop", cwd: p.root, stop_hook_active: false } }).json?.reason;
+  assert.match(reason, /: 1 file\(s\) changed .*\(src\/b\.txt\)/);
+});
+
+test("older entries moved to docs/status-log.md after STATUS.md do not ask", needsGit, () => {
+  repo(); start();
+  p.write("STATUS.md", "# Status\n\n## Now\n- trimmed\n");
+  p.write("docs/status-log.md", "# STATUS log archive\n\n### old entry\n");
+  git(p, "add", ".");
+  git(p, "commit", "-q", "-m", "handoff and archive");
+  p.write("docs/status-log.md", "# STATUS log archive\n\n### older entry\n### old entry\n");
+  expectStop("pass");
+});
+
+test("the request leaves older log entries alone", needsGit, () => {
+  repo(); start();
+  p.write("src/a.txt", "changed\n");
+  const r = run(p, "stop-guard.mjs", [], { input: { session_id: "t-stop", cwd: p.root, stop_hook_active: false } });
+  assert.equal(r.json?.decision, "block");
+  assert.match(r.json.reason, /Leave the older log entries as they are/);
+  assert.doesNotMatch(r.json.reason, /fold|newest 10/);
+});
+
 test("a session record from an older mflow, with no baseline, still catches a deletion", needsGit, () => {
   repo();
   const dir = path.join(p.temp, "mflow-sessions");

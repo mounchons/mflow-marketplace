@@ -63,7 +63,7 @@ Done when: the brief is written, the user has every tool's command, and STATUS.m
   - docs/decisions/ (discussion docs, hotspots, decision log)
   - docs/vision.md
   - docs/ai/inbox/ — other tools' reports; keep your view independent
-  - STATUS.md, backlog/ — work logs, not system behaviour
+  - STATUS.md, docs/status-log.md, backlog/ — work logs, not system behaviour
   Specs cite sources in parentheses (e.g. "vision Q85", "UAT S15-06",
   "docs/decisions/discuss/07-supplier-data.md"). They are labels: do not open them.
   Where a spec and the code disagree, report it as a finding; neither side is assumed right.

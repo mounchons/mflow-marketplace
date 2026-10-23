@@ -21,6 +21,12 @@ const scaffold = (...extra) => {
 };
 const record = () => JSON.parse(p.read(".mflow/templates.json"));
 
+test("AGENTS.md asks for answers typed without switching keyboard language", () => {
+  emptyProject();
+  scaffold();
+  assert.ok(p.read("AGENTS.md").includes("label each one's options `a)`, `b)`, `c)`, never ก ข ค, so the answer is one line such as `1 a, 2 b, 3 a`"));
+});
+
 test("the first run creates every template and records what it offered", () => {
   emptyProject();
   const r = scaffold();

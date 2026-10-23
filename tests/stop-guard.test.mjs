@@ -182,6 +182,13 @@ test("a session record from an older mflow, with no baseline, still catches a de
   expectStop("block");
 });
 
+test("the briefing's ritual asks for numbered questions with options a) b) c)", () => {
+  p = project();
+  p.write("STATUS.md", "# Status\n\n## Now\n- focus\n");
+  const r = run(p, "session-start.mjs", [], { input: { session_id: "t-ask", cwd: p.root, source: "startup" } });
+  assert.ok(r.json.hookSpecificOutput.additionalContext.includes("label the options a), b), c), never ก ข ค, so the answer is one line such as `1 a, 2 b, 3 a`"));
+});
+
 test("a long STATUS.md is shortened in the briefing, and what is waiting and the ritual still arrive", () => {
   p = project();
   const long = Array.from({ length: 400 }, (_, i) => `- note ${i}: ${"รายละเอียด ".repeat(3)}`).join("\n");

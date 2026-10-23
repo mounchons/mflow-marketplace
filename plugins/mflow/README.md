@@ -54,7 +54,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/ai/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
 | | `/mflow:analyze units` → `unit:<ชื่อ> [--to …]` | (ไม่บังคับ) ตรวจระบบที่ทำแล้ว "ตามที่ทำจริง" ทีละหน่วย: Claude แตกโค้ดเป็นหน่วยตรวจจากไฟล์ที่ git เก็บไว้ (`.mflow/review-units.json`, script ยืนยันว่าทุกไฟล์มีหน่วยหรือมีเหตุผลที่ไม่ตรวจ) แล้ว brief ให้ AI ตัวอื่นเข้าใจระบบจากข้อเท็จจริงที่ดึงจากโค้ด spec และโค้ด โดยห้ามอ่านเอกสารลูกค้าและ discuss |
 | | `$mflow-test` / `$mflow-review` (Codex), `/mflow-test` / `/mflow-review` (OpenCode) | ให้ Codex หรือ OpenCode รัน test หรือรีวิว จาก skill ที่ `/mflow:init` สร้างใน `.agents/skills/` ผลใช้ร่วมกับ Claude ได้ (ไม่รัน E2E) |
-| | `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถามที่ต้องตัดสินก่อนในคำสั่งเดียว: ข้อที่ทำให้ spec เปลี่ยนเข้า OpenSpec change ของหน่วย (`<หน่วย>-review-fixes`), ข้อที่ spec ถูกอยู่แล้วเป็น task, คำถามที่แก้ยากไป `/mflow:discuss` |
+| | `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=a; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถามที่ต้องตัดสินก่อนในคำสั่งเดียว: ข้อที่ทำให้ spec เปลี่ยนเข้า OpenSpec change ของหน่วย (`<หน่วย>-review-fixes`), ข้อที่ spec ถูกอยู่แล้วเป็น task, คำถามที่แก้ยากไป `/mflow:discuss` |
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
@@ -139,6 +139,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - OpenSpec ทิ้ง `config.yaml` ทั้งไฟล์เมื่อ parse ไม่ได้ (เช่นมี `: ` ในบรรทัดของ list) script จึงใส่เครื่องหมายคำพูดให้บรรทัดที่ YAML จะอ่านผิด และรายงานบรรทัดของโปรเจกต์ที่เป็นแบบนั้น
 - `/mflow:help check setup` เตือนเมื่อ `config.yaml` ยังมีบรรทัดรุ่นเก่า ขาดบรรทัดปัจจุบัน หรือยังไม่มี marker
 - `rules.proposal` มีกฎขนาด change (0.34): ถ้าจะเกินราว 15 task หรือแก้ส่วนที่ทุกโมดูลใช้ (sign-in, session, security, seed, ตารางกลาง) พร้อมหน้าจอ ให้ propose เฉพาะส่วนแรก (มักเป็นฝั่ง server) แล้วเขียนส่วนที่เหลือไว้ใต้ Later changes ใน proposal ให้คุณสั่ง propose ต่อ ยกเว้นคุณบอกให้ทำเป็น change เดียว
+- คำถามที่ให้คุณเลือก (0.34.2) ทั้งตอน propose, ใน briefing ทุก session และใน AGENTS.md: มีเลขข้อ ตัวเลือกเป็น `a)` `b)` `c)` ไม่ใช่ ก ข ค ตอบบรรทัดเดียวแบบ `1 a, 2 b, 3 a` โดยไม่ต้องสลับภาษาแป้นพิมพ์
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
 
@@ -220,7 +221,7 @@ Codex และ tool อื่นไม่ได้เรียก `/mflow:*` (�
 | 4 | คุณ | รันคำสั่งของ Codex / OpenCode |
 | 5 | Codex / OpenCode | อ่าน brief แล้วอ่าน repo แบบอ่านอย่างเดียว เขียนรายงานลง `docs/ai/inbox/` (ห้ามเปิด `docs/source/`, `docs/decisions/`, `docs/vision.md`, STATUS.md, backlog) |
 | 6 | Claude Code | `/mflow:analyze AN-NNN` ตรวจทุกข้อกับโค้ดจริง บอกไฟล์ของหน่วยที่ไม่มีรายงานไหนอ่าน แล้วเขียนสรุปที่บอกว่าแต่ละข้อ "ไปที่" ไหน พร้อม `## ต้องตัดสินก่อน` |
-| 7 | คุณ | `/mflow:analyze AN-NNN แก้ F1,F3; Q1=ก; ที่เหลือตามแนะนำ` |
+| 7 | คุณ | `/mflow:analyze AN-NNN แก้ F1,F3; Q1=a; ที่เหลือตามแนะนำ` |
 | 8 | Claude Code | `/opsx:propose <หน่วย>-review-fixes` → `/opsx:apply` → `/mflow:test` → `/mflow:review` → `/opsx:archive` |
 
 กฎว่าข้อไหนไปที่ไหน: "แก้แล้ว spec ยังพูดถูกโดยไม่ต้องแตะหรือไม่" ถ้าไม่ (โค้ดทำสิ่งที่ spec ไม่บอกแล้วเลือกเก็บ, bug ในกรณีที่ spec ไม่ได้พูดถึง, โลจิกใหม่) เข้า OpenSpec พร้อม delta spec ถ้าใช่ (bug ที่ spec บอกถูกอยู่แล้ว, test ที่ขาด, refactor) เป็น task ใน change เดียวกัน หรือใน Backlog ถ้าไม่มี change รวมเป็นชุดละหน่วยเพื่อให้ test ทั้งชุดรันครั้งเดียว คำถามระดับหนัก (schema, สิทธิ์, ข้อมูลที่ลูกค้าไม่ได้พูดถึง, การลบ, การส่งออกนอกระบบ) ไป `/mflow:discuss` และ change ของหน่วยทำต่อไปก่อนโดยไม่รวมข้อที่รอคำตอบ

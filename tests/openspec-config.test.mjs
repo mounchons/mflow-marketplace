@@ -76,6 +76,11 @@ test("every line mflow writes reads back as text in YAML", () => {
   assert.equal(yamlItem("plain text; with /mflow:test"), "plain text; with /mflow:test");
 });
 
+// StemHub 2026-10-23: a proposal asked with options ก) ข) ค), so the answer "1 ก 2 ข 3 ก" needed the Thai keyboard.
+test("the proposal asks its questions numbered, with options a) b) c)", () => {
+  assert.ok(LINES["rules.proposal"].some((l) => l.includes("label each one's options a), b), c), never ก ข ค") && l.includes("`1 a, 2 b, 3 a`")));
+});
+
 test("a new project gets every line between markers, keeps OpenSpec's comments, and a rerun changes nothing", () => {
   p = project();
   p.write("openspec/config.yaml", OPENSPEC_TEMPLATE);
@@ -184,5 +189,5 @@ test("OpenSpec reads the merged file: the context, the task rules and every appl
   assert.ok(tasks.rules.includes("Name tests after the UAT step."));
   assert.ok(tasks.rules.some((r) => r.startsWith("Every task that changes code")));
   const proposal = JSON.parse(spawnSync("openspec instructions proposal --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
-  assert.ok(proposal.rules.some((r) => r.startsWith("In the proposal, list every choice") && r.includes("docs/discuss/")), JSON.stringify(proposal.rules));
+  assert.ok(proposal.rules.some((r) => r.startsWith("In the proposal, list every choice") && r.includes("docs/discuss/") && r.includes("`1 a, 2 b, 3 a`")), JSON.stringify(proposal.rules));
 });

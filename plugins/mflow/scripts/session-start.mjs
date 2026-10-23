@@ -248,7 +248,9 @@ try {
 parts.push(
   "## Session ritual\n" +
     "Work from the state above. Before ending a session that changed code or decisions, " +
-    "update STATUS.md: rewrite '## Now' and add one log entry (Did / Decided / Next).",
+    "update STATUS.md: rewrite '## Now' and add one log entry (Did / Decided / Next). " +
+    "When the user has to choose, number the questions and label the options a), b), c), never ก ข ค, " +
+    "so the answer is one line such as `1 a, 2 b, 3 a`, typed without switching keyboard language.",
 );
 
 /**

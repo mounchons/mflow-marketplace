@@ -139,6 +139,31 @@ test("older entries moved to docs/status-log.md after STATUS.md do not ask", nee
   expectStop("pass");
 });
 
+// The names come from git's own paths minus the project's prefix, so they hold below the top level of
+// a monorepo, and on Windows when the temp folder is an 8.3 short name (RUNNER~1 on CI).
+test("a project below the git top level names its own files, and only those", needsGit, () => {
+  p = project();
+  const sub = "apps/web";
+  p.write(`${sub}/.mflow/config.json`, JSON.stringify({ version: 1, stopGuard: { enabled: true, graceMinutes: 0, repeatMinutes: 0 } }));
+  p.write(`${sub}/STATUS.md`, "# Status\n\n## Now\n- start\n");
+  p.write(`${sub}/src/a.txt`, "a\n");
+  p.write("other/x.txt", "x\n");
+  git(p, "init", "-q");
+  git(p, "add", ".");
+  git(p, "commit", "-q", "-m", "baseline");
+  const cwd = p.file(sub);
+  const env = { CLAUDE_PROJECT_DIR: cwd };
+  assert.equal(run(p, "session-start.mjs", [], { cwd, env, input: { session_id: "t-sub", cwd, source: "startup" } }).status, 0);
+  p.write(`${sub}/STATUS.md`, "# Status\n\n## Now\n- handoff\n");
+  p.write(`${sub}/docs/status-log.md`, "# STATUS log archive\n");
+  p.write("other/x.txt", "changed\n");
+  const guard = () => run(p, "stop-guard.mjs", [], { cwd, env, input: { session_id: "t-sub", cwd, stop_hook_active: false } }).json;
+  assert.equal(guard()?.decision, undefined, "the archive and a file outside the project do not ask");
+  p.write(`${sub}/src/a.txt`, "changed\n");
+  git(p, "commit", "-q", "-m", "work", "--", `${sub}/src/a.txt`);
+  assert.match(guard()?.reason ?? "", /: 1 file\(s\) changed .*\(src\/a\.txt\)/);
+});
+
 test("the request leaves older log entries alone", needsGit, () => {
   repo(); start();
   p.write("src/a.txt", "changed\n");

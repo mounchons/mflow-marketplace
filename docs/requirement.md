@@ -599,6 +599,7 @@ mflow-marketplace/
 | openspec-config (0.34): บรรทัดใหม่สามข้อ (test แบบไม่ใช้เบื้องหลัง, ปล่อย integration ให้ `/mflow:test`, ขนาดของ change) เขียนลงระหว่าง marker โดยไม่ต้องครอบ quote, รันซ้ำไม่เปลี่ยน และ `openspec instructions apply --json` ของ OpenSpec 1.13.2 คืน `operationGuidance` ครบทุกข้อ | ผ่าน |
 | กฎของ 0.34 ใน session จริง (apply ที่แบ่ง test, ปล่อย integration ให้ `/mflow:test`, propose เป็นหลายส่วน) | ยังไม่ได้รันใน session จริง (R-03) |
 | Stop hook หลัง commit (0.34.1): commit handoff หลังงาน, commit งานพร้อม entry ไม่ถามซ้ำ; commit งานหลัง handoff ถามและนับเฉพาะไฟล์ของ commit นั้น; ย้าย entry ไป `docs/status-log.md` ไม่ถามซ้ำ; คำขอไม่สั่งย่อ log test ใหม่ 5 ข้อ fail กับ 0.34.0 และผ่านหลังแก้ | ผ่าน |
+| ชื่อไฟล์ใน git status ของ hook (0.34.1): คิดจาก path ของ git ลบ prefix ของโปรเจกต์ ไม่เทียบ path บน disk ซึ่งต่างกันเมื่อ temp เป็นชื่อสั้น 8.3 (`RUNNER~1` บน Windows CI ทำให้ได้ `../../…` และไฟล์ที่ควรข้ามถูกนับ) test โปรเจกต์ใต้ top level ของ git นับเฉพาะไฟล์ของตัวเอง ชุด test ผ่านทั้ง temp path ปกติและแบบสั้น | ผ่าน |
 | Stop hook 0.34.1 ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | OpenCode กับ skill ที่สร้าง (0.33) | ยังไม่ได้ทดสอบ: CLI ไม่อยู่ใน PATH ของเครื่องที่ทดสอบ รองรับตามเอกสาร opencode.ai/docs/skills |
 | `/mflow:analyze units`, `unit:<ชื่อ>`, การรวมผลแบบ as built และการส่งเข้า OpenSpec (0.32) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |

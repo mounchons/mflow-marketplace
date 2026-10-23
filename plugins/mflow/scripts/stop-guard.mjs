@@ -10,7 +10,7 @@
 // (the tests read it; Claude Code does not show a hook's stderr when it exits 0).
 import fs from "node:fs";
 import path from "node:path";
-import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile, gitStatus } from "./lib.mjs";
+import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile, gitStatus, projectRel } from "./lib.mjs";
 
 const pass = (why) => {
   if (process.env.MFLOW_DEBUG) process.stderr.write(`stop-guard: ${why}\n`);
@@ -82,7 +82,7 @@ if (head && head !== state.head) {
   if (from !== head) {
     const names = run(`git -c core.quotePath=false diff --name-only -z ${from} HEAD -- .`, root, 8000) || "";
     for (const p of names.split("\0").filter(Boolean)) {
-      const rel = path.relative(root, path.join(git.top, p)).split(path.sep).join("/");
+      const rel = projectRel(git, root, p);
       if (!ignored(rel)) changed.add(rel);
     }
   }

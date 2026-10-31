@@ -107,6 +107,27 @@
         "codex_smoke": "codex-cli 0.162.1: $mflow-test and $mflow-review in a temp project",
         "opencode": "not run (CLI not on PATH)"
       }
+    },
+    {
+      "id": "DOC-MFLOW-CHANGE-SIZE-001",
+      "name": "วิเคราะห์ StemHub 2026-10-31: change ที่แยก API กับหน้าจอ และการขอให้ test/review หลัง apply",
+      "file_path": "analysis/01-change-size-pending-checks-2026-10-31.md",
+      "type": "usage-analysis",
+      "version": "1.0.0",
+      "status": "implemented",
+      "reviewed_plugin_version": "0.34.2",
+      "base_commit": "7b096a2",
+      "evidence_snapshot": "StemHub main 026e3680 and feat/landing-content a85f77f3 (read-only)",
+      "created_at": "2026-10-31",
+      "answers": "1 a, 2 a, 3 a, 4 a, 5 a, 6 a (2026-10-31)",
+      "implemented_in": "0.35.0 (a95c772)",
+      "verification": {
+        "regression_tests": 216,
+        "ci": "run 41212537672, 6 of 6 jobs passed",
+        "stemhub_range_check": "5 changes of 2026-10-31",
+        "live_session": "not-run"
+      },
+      "updated_at": "2026-10-31"
     }
   ]
 }

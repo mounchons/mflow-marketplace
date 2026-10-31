@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.36.0 |
+| เวอร์ชันที่อธิบาย | 0.36.1 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -264,6 +264,7 @@ flowchart TD
 | FR-226 | รายการรอ test และ review (0.35): จบ `/opsx:apply` เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review จากไฟล์ที่แตะพร้อมเหตุผล, หน้าจอที่ E2E ต้องตาม) แล้วบอกแค่ว่าพร้อม archive ไม่บอกให้สั่ง `/mflow:test`, `/mflow:review` หรือ `/mflow:e2e` ทั้งในคำตอบและใน STATUS.md (`operations.apply.guidance`) session เริ่มใหม่ไม่เตือน ผู้ใช้สั่ง test และ review เองทีหลังบน main ครั้งเดียวสำหรับทุกแถว ใช้กับทุกโปรเจกต์ ไม่มี setting ที่มา: StemHub 2026-10-31 change แรกของ CR-009 ใช้เวลา test และ review 4 ชั่วโมง 25 นาที (35% ของวัน) ก่อนเริ่ม change ถัดไปได้ และอีกสามตัวผู้ใช้สั่งข้ามเอง ค้างที่ต้องตรวจกระจายอยู่ในข้อความยาวของ STATUS.md | มีแล้ว |
 | FR-227 | test และ review จากรายการ (0.35): `scripts/pending.mjs` หา range ของ change จากโฟลเดอร์ใน `openspec/changes/` หรือ archive (ก่อน commit แรกที่แตะ ถึง commit สุดท้าย หรือปลาย branch ของ change ถ้างานเดินต่อที่นั่น) `/mflow:test` ที่ผ่านทั้งชุดหรือ `since` บน tree ที่สะอาดเติมช่อง Test ให้ทุกแถวที่ commit ที่ test มีงานของ change แล้ว ดูจากประวัติ git (archive ที่ commit ตามมาเป็นเอกสารล้วนนับว่ามี) record มีบรรทัด `Changes:` `/mflow:review pending` ตรวจแถวที่ merge แล้วทีละ change รายงานละ change (`Reviewed: <change> <base>..<end>`) ใช้ผล test จากแถวนั้น ได้ approve แล้วแถวย้ายไป `## Done` (ระดับ skip ย้ายเมื่อ test ผ่าน) changes-requested แก้ใน `fix/<change>-review` ชื่อ change ที่ archive แล้วเป็น target ของ review ได้ change ที่ archive ตั้งแต่วันที่ `Since:` แต่ไม่อยู่ในรายการ test และ review เพิ่มให้ `/mflow:init` ตั้ง `Since:` ให้โปรเจกต์ที่มี change อยู่แล้ว | มีแล้ว |
 | FR-228 | integration ระหว่าง apply (0.36): หลังแต่ละ task รัน build, unit test ทั้งหมด และ integration class ที่ task เพิ่มหรือแก้ในคำสั่งเดียว ไม่รัน class อื่น เมื่อจบ task สุดท้ายของ change ที่แตะ migration หรือ data model, startup/DI, สิทธิ์ หรือ seed รัน `- Shared checks:` ใน `## Commands` ของ AGENTS.md รอบเดียว (class ที่ตรวจทุกตาราง ทุก migration startup และ seed; `none` คือไม่มีอะไรรัน; ไม่มีบรรทัดนี้ apply บอกหนึ่งบรรทัดว่ารอ `/mflow:test`) `/mflow:init` เสนอบรรทัดนี้ `mflow:dev` รันแบบเดียวกัน `/mflow:test` นับ test ของ project ด้วย `--list-tests` เทียบกับผลรวมของ `- Test parts:` แล้วรัน class ที่ไม่อยู่ในส่วนใดเพิ่ม ที่มา: StemHub 2026-10-31 landing-content รัน integration 9 รอบใน 8 task รวม 22 นาที ในนั้น 15–17 นาทีเป็น class เดิมที่ whole suite บน main รันซ้ำอยู่แล้ว แต่ TemplateDatabaseTests ที่ล้มเพราะตารางใหม่ก็เจอระหว่าง apply จึงคงไว้เป็น shared checks ตอนจบ | มีแล้ว |
+| FR-229 | STATUS.md เล็ก (0.36.1): `/mflow:handoff` รัน `status-trim.mjs plan` แล้ว `move --keep <n> --log 9` ซึ่งย้าย block ของ `## Now` หลัง n block แรก และหัวข้อที่อยู่ระหว่าง `## Now` กับ `## Log` ไปท้าย `docs/status-log.md` ใต้ `## Now blocks moved on <วันที่>` และ log ที่เกิน 9 รายการไปบนสุดของไฟล์นั้น ทั้งหมดคำต่อคำ (เขียน archive ก่อน แล้วจึง STATUS.md) จากนั้นเขียน `## Now` ใหม่ให้มีแค่สถานะปัจจุบันกับ `Still open:` บรรทัดละข้อ ไม่เกินราว 60 บรรทัด Stop hook ขอให้แทนข้อความของ block ปัจจุบันแทนการเพิ่ม block ใหม่ doctor เตือนเมื่อ STATUS.md เกิน 100 KB ที่มา: StemHub 2026-10-31 STATUS.md ใหญ่ 565 KB (`## Now` มี 180 block หนึ่ง block ต่อ session เพราะแต่ละ session เพิ่ม block ใหม่ไว้บนของเก่า และ `## Previous session context` อีก 190 KB) แก้ไฟล์แต่ละครั้งใช้ราว 1 นาที เทียบกับราว 5 วินาทีของไฟล์ที่เล็กกว่า 200 KB และ handoff ของ 0.34 เขียนใหม่แค่ block บนสุด ลองกับสำเนาของไฟล์จริงแล้วเหลือ 54 KB ไม่มีบรรทัดหาย | มีแล้ว |
 | FR-101 | mflow ไม่รัน AI tool อื่นเอง ผู้ใช้เป็นคนรันคำสั่ง | มีแล้ว (ตั้งใจ) |
 
 ### 6.11 ช่วยเลือกคำสั่ง (`/mflow:help`)
@@ -416,6 +417,7 @@ mflow-marketplace/
     │   ├─ lib.mjs                   ← config + ทะเบียน tool ค่าเริ่มต้น
     │   ├─ scaffold.mjs              ← สร้างไฟล์จาก template ไม่ทับของเดิม (ลง folder ตามค่าตั้ง)
     │   ├─ session-start.mjs         ← briefing
+    │   ├─ status-trim.mjs           ← plan, move: ย้าย block เก่าของ ## Now และ log เก่าไป docs/status-log.md คำต่อคำ
     │   ├─ stop-guard.mjs            ← เตือน STATUS.md
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
     │   ├─ discuss.mjs               ← เลขเอกสาร discuss + ตรวจข้อค้างก่อนอนุมัติ + ซิงก์สถานะของ AGENDA.md

@@ -33,6 +33,17 @@ test("a freshly set up project has no fail in its own files, and every warn carr
   assert.equal(p.exists(".mflow/suggested"), false, "doctor wrote nothing");
 });
 
+// StemHub 2026-10-31: STATUS.md at 565 KB, and each edit to it took about a minute.
+test("a STATUS.md past 100 KB is a warn that points at /mflow:handoff", () => {
+  initialised();
+  assert.equal(doctor().status.status, "ok");
+  p.write("STATUS.md", "# STATUS\n\n## Now\n" + "- an old block that nobody moved out\n".repeat(3000));
+  const c = doctor().status;
+  assert.equal(c.status, "warn");
+  assert.match(c.detail, /STATUS\.md is \d+ KB/);
+  assert.match(c.fix, /\/mflow:handoff/);
+});
+
 test("a broken config.json is a fail, and the rest of the report still arrives", () => {
   initialised();
   p.write(".mflow/config.json", '{ "sourceDir": "docs/source", }');

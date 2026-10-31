@@ -62,7 +62,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]]` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียวแล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
-| ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด (+ brief ให้ tool อื่นทำต่อ) |
+| ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด ย้าย block เก่าของ `## Now` และ log เก่าไป `docs/status-log.md` คำต่อคำด้วย `status-trim.mjs` (0.36.1) (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
 
@@ -173,6 +173,7 @@ mflow/
 │   ├─ lib.mjs             ← config + ทะเบียน tool ค่าเริ่มต้น
 │   ├─ scaffold.mjs        ← วาง template ลงโปรเจกต์ (ลง folder ตามค่าตั้งใน .mflow/config.json)
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
+│   ├─ status-trim.mjs     ← ย้าย block เก่าของ ## Now และ log เก่าจาก STATUS.md ไป docs/status-log.md คำต่อคำ
 │   ├─ stop-guard.mjs
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
 │   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ + สถานะของ AGENDA.md + task ทดสอบใช้งานที่ค้าง

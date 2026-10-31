@@ -100,7 +100,8 @@ process.stdout.write(
     decision: "block",
     reason:
       `mflow: ${changedThisSession.length} file(s) changed since STATUS.md was last updated (${sample}). ` +
-      "Before stopping: rewrite the '## Now' section of STATUS.md (focus, next step, blocked on) and add one entry " +
+      "Before stopping: rewrite the '## Now' section of STATUS.md (focus, next step, blocked on), replacing the current " +
+      "block's text rather than adding a new block above the old ones, and add one entry " +
       "at the top of '## Log' with Did / Decided / Next, referencing Backlog task IDs and OpenSpec change names " +
       "(or bring this session's entry up to date if it is already there). Leave the older log entries as they are. " +
       "Then stop.",

@@ -21,6 +21,7 @@ const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const plugin = JSON.parse(fs.readFileSync(path.join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).version;
 const compat = JSON.parse(fs.readFileSync(path.join(PLUGIN, "compat.json"), "utf8"));
 const today = new Date().toISOString().slice(0, 10);
+const STATUS_WARN_BYTES = 100 * 1024;
 const KNOWN_SETTINGS = ["version", "hotspotsDir", "sourceDir", "inboxDir", "discussDir", "statusLogEntriesInContext", "stopGuard", "applySubagent", "tools", "e2eMaxWorkers", "asBuilt"];
 
 const checks = [];
@@ -113,7 +114,10 @@ function projectChecks() {
   }
   const status = readText(path.join(root, "STATUS.md"));
   if (status === null || !/^##\s*Now\b/m.test(status)) add("status", "warn", status === null ? "STATUS.md is missing" : "STATUS.md has no ## Now section", "Run /mflow:init, or add ## Now from the template");
-  else add("status", "ok", "STATUS.md has ## Now");
+  else if (Buffer.byteLength(status) > STATUS_WARN_BYTES) {
+    // StemHub 2026-10-31: at 565 KB an edit to STATUS.md took about a minute, against about 5 s under 200 KB.
+    add("status", "warn", `STATUS.md is ${Math.round(Buffer.byteLength(status) / 1024)} KB; each edit to it slows down past about 200 KB`, "Run /mflow:handoff: it moves the earlier ## Now blocks and the older log entries to docs/status-log.md, word for word");
+  } else add("status", "ok", "STATUS.md has ## Now");
 
   // JSON that the briefing reads from the CLIs.
   if (openspec) {

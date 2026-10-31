@@ -29,7 +29,7 @@ export const SKILLS = [
     source: "test",
     describe: " In Codex and OpenCode it never runs E2E: that stays in Claude Code.",
     references: ["init/references/stacks.md"],
-    scripts: [],
+    scripts: ["pending.mjs", "lib.mjs"],
     edits: [
       [/^In the same message, tell the user how to keep working while it runs\..*$/m,
         "In the same message, tell the user how to keep working while it runs: this session is busy until the run ends, so work that only writes documents goes in a second session in the same folder (this tool or Claude Code). Leave anything that changes or builds code in this checkout until the run ends: it breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`)."],
@@ -46,7 +46,7 @@ export const SKILLS = [
     name: "mflow-review",
     source: "review",
     references: ["init/references/stacks.md", "theme/references/responsive.md", "screen/references/prototype-data.md"],
-    scripts: ["discuss.mjs", "lib.mjs"],
+    scripts: ["discuss.mjs", "pending.mjs", "lib.mjs"],
     edits: [],
     notes: [
       "Write `Reviewer: codex` or `Reviewer: opencode` in the report, whichever tool you are, and the `Author:` line as Report says. A verdict counts toward a merge only when the reviewer is not the author.",

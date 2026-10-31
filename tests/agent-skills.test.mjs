@@ -62,7 +62,10 @@ test("write creates both skills with frontmatter Codex and OpenCode accept and n
   assert.match(r, /`Reviewer:` \(claude, codex or opencode\) and `Author:`/);
   assert.match(r, /self-review/);
   assert.ok(p.exists(".agents/skills/mflow-review/scripts/lib.mjs"));
-  assert.ok(!p.exists(".agents/skills/mflow-test/scripts"), "the test skill needs no script");
+  for (const s of ["mflow-test", "mflow-review"]) {
+    assert.ok(p.exists(`.agents/skills/${s}/scripts/pending.mjs`) && p.exists(`.agents/skills/${s}/scripts/lib.mjs`), `${s} carries pending.mjs`);
+    assert.match(p.read(`.agents/skills/${s}/SKILL.md`), new RegExp(`node "\\.agents/skills/${s}/scripts/pending\\.mjs"`));
+  }
 });
 
 test("a second write changes nothing, and status reads the version", () => {
@@ -115,6 +118,14 @@ test("discuss.mjs runs from its copy in the review skill", () => {
   const out = spawnSync(process.execPath, [p.file(".agents/skills/mflow-review/scripts/discuss.mjs"), "checks"], { cwd: p.root, encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: p.root } });
   assert.equal(out.status, 0, out.stderr);
   assert.ok(JSON.parse(out.stdout), "checks answers in JSON from the copy");
+});
+
+test("pending.mjs runs from its copy in the test skill", () => {
+  p = project();
+  skills("write");
+  const out = spawnSync(process.execPath, [p.file(".agents/skills/mflow-test/scripts/pending.mjs"), "status"], { cwd: p.root, encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: p.root } });
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(JSON.parse(out.stdout).file, "docs/reviews/pending.md");
 });
 
 test("the doctor warns when the copies are older than the plugin, and knows the asBuilt setting", () => {

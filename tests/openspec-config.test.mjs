@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import { LINES, VERSION, plan, yamlItem } from "../plugins/mflow/scripts/openspec-config.mjs";
+import { TEMPLATE as PENDING_TEMPLATE } from "../plugins/mflow/scripts/pending.mjs";
 import { project, run } from "./helpers.mjs";
 
 let p;
@@ -79,6 +80,29 @@ test("every line mflow writes reads back as text in YAML", () => {
 // StemHub 2026-10-23: a proposal asked with options ก) ข) ค), so the answer "1 ก 2 ข 3 ก" needed the Thai keyboard.
 test("the proposal asks its questions numbered, with options a) b) c)", () => {
   assert.ok(LINES["rules.proposal"].some((l) => l.includes("label each one's options a), b), c), never ก ข ค") && l.includes("`1 a, 2 b, 3 a`")));
+});
+
+// StemHub 2026-10-31: CR-009 planned four changes, each with its screens; the 0.34 size rule split two of them
+// into a server change and a screens change, each with its own propose, archive and merge.
+test("a change holds its server side and screens together, and is split by feature only past about 25 tasks", () => {
+  const rules = LINES["rules.proposal"];
+  const rule = rules.find((l) => l.startsWith("One change holds one feature whole"));
+  assert.ok(rule, "the size rule");
+  assert.match(rule, /more than about 25 tasks, or when the user says so/);
+  assert.match(rule, /by feature, each part with its own server side and screens/);
+  assert.match(rule, /continues in a new session from the first unticked task/);
+  assert.ok(!rules.some((l) => /about 15 tasks|propose only its first part now/.test(l)), "the 0.34 wording is gone");
+});
+
+test("apply ends with a row in docs/reviews/pending.md, never with /mflow:test or a review as the next step", () => {
+  const g = LINES["operations.apply.guidance"];
+  const row = g.find((l) => l.includes("add a row for the change to docs/reviews/pending.md"));
+  assert.ok(row);
+  assert.match(row, /Do not give \/mflow:test, \/mflow:review or \/mflow:e2e as the next step, in the reply or in STATUS\.md/);
+  const header = /`(\| Change \|[^`]+\|)`/.exec(row)?.[1];
+  assert.ok(header && PENDING_TEMPLATE.includes(header), "the header apply writes is the template's");
+  assert.ok(!g.some((l) => /give the user \/mflow:test as the next command|name them to the user/.test(l)));
+  assert.ok(!Object.values(LINES).flat().some((l) => /once per change/.test(l)));
 });
 
 test("a new project gets every line between markers, keeps OpenSpec's comments, and a rerun changes nothing", () => {

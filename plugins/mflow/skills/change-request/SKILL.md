@@ -26,6 +26,8 @@ Done when: the class is backed by at least one cited source, or the ambiguity is
 
 Write `docs/reviews/change-requests/CR-<nnn>-<slug>.md` (`<nnn>` follows the highest number there): request, reason for classification, impact (screens, specs, hotspots, data migration, tests), risk, estimate as a range in hours with the assumptions that drive it, effect on the delivery date, and an `Approved:` line. Create a Backlog task with label `change-request`.
 
+When the work needs more than one OpenSpec change, split it by topic and list the changes in the order they depend on each other. Each change holds its server side and its screens together, never a server change followed by a screens change of the same topic; the proposal rule in `openspec/config.yaml` splits further only past about 25 tasks. `/mflow:test` and `/mflow:review pending` run once for the changes waiting in `docs/reviews/pending.md`, so the estimate counts the test and review once for the batch, not once per change.
+
 ## 4. Go ahead on the user's instruction
 
 - **The user said to do it**, in the request or after seeing the estimate: that is the approval. Write `Approved: <date>, by the user` in the CR file and hand it on: a change to behaviour in `openspec/specs/` → `/opsx:propose` with the CR file as input; a prototype screen → `/mflow:screen`; a defect or clarification → its task, ready to work.

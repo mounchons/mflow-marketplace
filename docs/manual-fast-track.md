@@ -139,7 +139,7 @@ flowchart TD
 - **ถ้ายังคิดไม่ชัด:** ใช้ `/opsx:explore <เรื่อง>` ก่อน propose
 - **ให้ AI ตัวอื่นเขียนโค้ดแทน:** `/mflow:delegate <ชื่อ change> --mode code --to codex` แล้วตรวจด้วย `/mflow:review agent/codex/<ชื่อ change>` ก่อน merge
 - **ให้ Claude ส่งงานแต่ละ task ให้ subagent (Sonnet) เขียน:** `/mflow:subagent on` แล้ว `/clear` ก่อน `/opsx:apply`
-- **test ทั้งชุด:** `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้ ส่วน test ทั้งชุดรันครั้งเดียวด้วย `/mflow:test` เมื่อเครื่องว่าง (ผลอยู่ที่ `docs/reviews/tests/` ระหว่างรันเปิดอีก session ไว้ discuss หรือ propose ได้ แก้ตาม review แล้วพิสูจน์ด้วย `/mflow:test since` และ `/mflow:review` ใช้ผลเหล่านี้) การรันทั้งชุดไม่รวม E2E
+- **test ทั้งชุด:** `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้ จบแล้วเพิ่มแถวของ change ลง `docs/reviews/pending.md` แทนการบอกให้ test หรือ review (0.35) ส่วน test ทั้งชุดคุณสั่งเองทีหลังบน main ครั้งเดียวสำหรับทุกแถวด้วย `/mflow:test` เมื่อเครื่องว่าง แล้ว `/mflow:review pending` ตรวจทีละ change (ผลอยู่ที่ `docs/reviews/tests/` ระหว่างรันเปิดอีก session ไว้ discuss หรือ propose ได้ แก้ตาม review แล้วพิสูจน์ด้วย `/mflow:test since` และ `/mflow:review` ใช้ผลเหล่านี้) การรันทั้งชุดไม่รวม E2E
 - **E2E test (Playwright):** ไม่มีคำสั่งไหนเขียนหรือรันเอง เมื่อหน้าจอนิ่งแล้วสั่ง `/mflow:e2e <หน้าจอ>` ทีละหน้า (เปิด browser พร้อมกันไม่เกิน 2 ตัว) อยากรันทั้งหมดสั่ง `/mflow:test e2e`
 - **หลัง archive:** `git diff --stat openspec/specs` ต้องเห็นว่า spec หลักเปลี่ยน
 - **ต่อไป:** module ถัดไป จนครบทุก module ที่ลูกค้าต้องเห็น แล้วไปหัวข้อ 5
@@ -163,7 +163,7 @@ flowchart TD
 | สิทธิ์ | ตกลงให้ชัดว่าใครเห็นข้อมูลของใคร ใช้ `/mflow:discuss access-control` ถ้ามีหลาย role หรือมีข้อมูลส่วนบุคคล |
 | กฎที่ผิดแล้วแพง | เช่น สาย/ลาที่ไปหักเงินเดือน หรือรายงานส่งต้นสังกัด: `/mflow:hotspot <กฎ>` แล้ว `/mflow:golden @<Excel ที่ลูกค้าคำนวณจริง> <slug>` ให้ test เทียบกับตัวเลขจริง |
 | ระบบภายนอก | เครื่องสแกนนิ้วหรือหน้า, ระบบเดิม: ทำ spike ต่อกับของจริงให้เร็วที่สุด เพราะส่วนนี้เดาไม่ได้ |
-| ตรวจโค้ด | `/mflow:test` แล้ว `/mflow:review <branch>` ก่อน merge: เต็มเมื่อแตะกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ข้ามได้ถ้าแก้แค่เอกสาร style หรือข้อความ label (apply และ `/mflow:test` บอกระดับให้) ได้คำตัดสิน `approve` หรือ `changes-requested` |
+| ตรวจโค้ด | บน main `/mflow:test` แล้ว `/mflow:review pending` สำหรับทุก change ใน `docs/reviews/pending.md` หรือ `/mflow:review <branch>` ก่อน merge: เต็มเมื่อแตะกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ข้ามได้ถ้าแก้แค่เอกสาร style หรือข้อความ label (apply เขียนระดับไว้ในแถวของ change) ได้คำตัดสิน `approve` หรือ `changes-requested` |
 | test | เติม test ของกฎและ flow หลักที่รอบแรกข้ามไว้ |
 
 ## 7. เรียก mflow กลับมาเมื่อไร
@@ -176,7 +176,8 @@ flowchart TD
 | ต้องตกลงเรื่องที่ตีความได้หลายแบบ (สิทธิ์, เลขเอกสาร, data model) | `/mflow:discuss <หัวข้อ>` |
 | กฎคำนวณที่ซับซ้อนหรือผิดแล้วแพง | `/mflow:hotspot <กฎ>` แล้ว `/mflow:golden` |
 | เปลี่ยนหน้าตาทั้งระบบ (สี ฟอนต์ เมนู) | `/mflow:theme update <อะไร>` |
-| รัน test ทั้งชุดครั้งเดียวต่อ change (ไม่รวม E2E) | `/mflow:test` |
+| รัน test ทั้งชุดครั้งเดียวสำหรับทุก change ที่รอ (ไม่รวม E2E) | `/mflow:test` บน main |
+| ตรวจทุก change ที่ merge แล้วแต่ยังไม่ review | `/mflow:review pending` |
 | เขียนและรัน E2E test ของหน้าจอที่นิ่งแล้ว | `/mflow:e2e <หน้าจอ>` |
 | ตรวจโค้ดก่อน merge | `/mflow:review` |
 | คำขอนอกขอบเขต | `/mflow:change-request` |
@@ -200,6 +201,7 @@ docs/
 ├── ui/                    design-system.md, screens.md, theme/
 ├── reviews/               ผลทดสอบและการเปลี่ยนแปลง
 │   ├── <วันที่>-<หัวข้อ>-summary.md
+│   ├── pending.md         change ที่รอ test และ review (apply เพิ่มแถว)
 │   ├── code/              ผล /mflow:review
 │   ├── tests/             ผล /mflow:test (commit, ส่วนที่รัน, จำนวนผ่าน/ล้ม)
 │   └── change-requests/   CR-<nnn>-<slug>.md

@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.34)
+## คำสั่ง (v0.35)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -58,9 +58,9 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
-| | `/mflow:review [branch] [--short]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) เต็มสำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ไม่ต้อง review ถ้าแก้แค่เอกสาร style หรือข้อความ label |
+| | `/mflow:review [branch \| pending [<change>]] [--short]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) เต็มสำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ไม่ต้อง review ถ้าแก้แค่เอกสาร style หรือข้อความ label |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
-| | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` ครั้งเดียวต่อ change เมื่อคุณสั่ง รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
+| | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]]` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียวแล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด (+ brief ให้ tool อื่นทำต่อ) |
 
@@ -109,7 +109,9 @@ hook ของ mflow ทำงานเฉพาะใน Claude Code (Codex ร
 
 ## Test ระหว่าง apply และ `/mflow:test`
 
-test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดแค่ครั้งเดียวต่อ change และรันตอนที่คุณสั่ง
+test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดตอนที่คุณสั่งเท่านั้น และตั้งแต่ 0.35 รันครั้งเดียวสำหรับทุก change ที่รอ แทนครั้งละ change
+
+- **รายการรอ test และ review (0.35):** จบ `/opsx:apply` แล้ว Claude เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review ที่ต้องใช้พร้อมเหตุผล, หน้าจอที่ E2E ต้องตาม) แล้วบอกแค่ว่าพร้อม archive ไม่บอกให้สั่ง `/mflow:test` หรือ `/mflow:review` งานจึงเดินต่อ change ถัดไปได้ คุณสั่งเองทีหลังบน main: `/mflow:test` ครั้งเดียวเติมช่อง Test ให้ทุกแถวที่ commit นั้นมีงานของ change แล้ว (ดูจากประวัติ git ด้วย `scripts/pending.mjs`) แล้ว `/mflow:review pending` ตรวจทีละ change ตาม diff ของ change นั้น (ตั้งแต่ก่อน proposal ถึง archive) ใช้ผล test จากแถวนั้น แถวที่ผ่านทั้งสองอย่างย้ายไป `## Done` change ที่ archive แล้วแต่ไม่อยู่ในรายการ `/mflow:test` และ `/mflow:review pending` เพิ่มให้เองตั้งแต่วันที่ `Since:` session เริ่มใหม่ไม่เตือนเรื่องนี้
 
 - `/opsx:apply` รันเฉพาะ test ของ task นั้นและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รันทั้งชุด สิ่งที่พังจึงเจอตั้งแต่ task ที่ทำให้พัง และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - test ระหว่าง apply รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งให้จบในราว 8 นาที ถ้ายาวกว่านั้นแบ่งตามคลาส (0.34) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำของเครื่องใกล้หมด แล้วไม่ได้ผลอะไรเลย
@@ -117,7 +119,7 @@ test ทั้งชุดของบางโปรเจกต์ใช้เ
 - `/mflow:test` รัน build, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว และ `openspec validate --strict` รันทีละส่วนให้จบในเวลาที่ shell รอได้ ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะเคยทำให้หน่วยความจำไม่พอจนถูกหยุดกลางทาง ส่วนที่แบ่งไว้บันทึกเป็นบรรทัด `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ
 - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
 - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
-- ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Result:`, เวลาของแต่ละส่วน) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง จะติ๊ก gate task ของ change ให้
+- ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`, `Scope:`, `Changes:`, `Result:`, เวลาของแต่ละส่วน) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง จะเติมช่อง Test ใน `docs/reviews/pending.md` และติ๊ก gate task ของ change ให้
 - `/mflow:review` ใช้ผลรันทั้งชุดหรือ `since` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า จะรัน `since` เอง (ปกติไม่กี่นาที) ถามเฉพาะเมื่อต้องรันทั้งชุด ว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง (คำตัดสิน `none` จนกว่าจะมีผล test) `approve` ต้องมีหลักฐานว่าทั้งชุดผ่านที่ commit ที่ตรวจเสมอ (รันทั้งชุดที่นั่น หรือ `since` ต่อจากการรันทั้งชุดครั้งก่อน)
 
 ## E2E test เขียนและรันเมื่อคุณสั่งเท่านั้น
@@ -138,7 +140,8 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - บรรทัดของ mflow ใน list อยู่ระหว่าง `# mflow:begin <version>` กับ `# mflow:end` รุ่นถัดไปแทนเฉพาะช่วงนั้น บรรทัดที่มีถ้อยคำตรงกับของ mflow แต่อยู่นอก marker ถูกรวมเข้ามาด้วย บรรทัดที่โปรเจกต์ดัดแปลงเอง (path ของ data dictionary หรือหมายเหตุในวงเล็บ) นับเป็นของโปรเจกต์และ mflow ไม่เพิ่มของตัวเองซ้ำ ส่วน `context` เป็นข้อความก้อนเดียว (comment จะกลายเป็นเนื้อหา) จึงจำจากถ้อยคำเสมอ บรรทัดของโปรเจกต์เองและ comment ของ OpenSpec คงไว้ path ตาม folder ใน `.mflow/config.json`
 - OpenSpec ทิ้ง `config.yaml` ทั้งไฟล์เมื่อ parse ไม่ได้ (เช่นมี `: ` ในบรรทัดของ list) script จึงใส่เครื่องหมายคำพูดให้บรรทัดที่ YAML จะอ่านผิด และรายงานบรรทัดของโปรเจกต์ที่เป็นแบบนั้น
 - `/mflow:help check setup` เตือนเมื่อ `config.yaml` ยังมีบรรทัดรุ่นเก่า ขาดบรรทัดปัจจุบัน หรือยังไม่มี marker
-- `rules.proposal` มีกฎขนาด change (0.34): ถ้าจะเกินราว 15 task หรือแก้ส่วนที่ทุกโมดูลใช้ (sign-in, session, security, seed, ตารางกลาง) พร้อมหน้าจอ ให้ propose เฉพาะส่วนแรก (มักเป็นฝั่ง server) แล้วเขียนส่วนที่เหลือไว้ใต้ Later changes ใน proposal ให้คุณสั่ง propose ต่อ ยกเว้นคุณบอกให้ทำเป็น change เดียว
+- `rules.proposal` มีกฎขนาด change (0.35): หนึ่ง change คือหนึ่ง feature ทั้งฝั่ง server และหน้าจอ แยกเฉพาะเมื่อจะเกินราว 25 task หรือคุณสั่ง และแยกตาม feature (แต่ละส่วนมีทั้ง server และหน้าจอ) ไม่แยก API กับหน้าจอเป็นคนละ change ส่วนที่เหลือเขียนไว้ใต้ Later changes ให้คุณสั่ง propose ต่อ apply ที่ยาวไม่ต้องแยก เพราะ `/opsx:apply` ทำต่อใน session ใหม่จาก task แรกที่ยังไม่ติ๊ก (0.34 แยกเมื่อเกิน 15 task หรือแก้โค้ดกลางพร้อมหน้าจอ)
+- `operations.apply.guidance` (0.35): จบ apply เพิ่มแถวลง `docs/reviews/pending.md` แทนการบอกให้สั่ง `/mflow:test`, `/mflow:review` หรือ `/mflow:e2e` ทั้งในคำตอบและใน STATUS.md
 - คำถามที่ให้คุณเลือก (0.34.2) ทั้งตอน propose, ใน briefing ทุก session และใน AGENTS.md: มีเลขข้อ ตัวเลือกเป็น `a)` `b)` `c)` ไม่ใช่ ก ข ค ตอบบรรทัดเดียวแบบ `1 a, 2 b, 3 a` โดยไม่ต้องสลับภาษาแป้นพิมพ์
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
@@ -151,7 +154,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 4. ครั้งแรกของโปรเจกต์: `/mflow:theme` (หรือ `/mflow:theme preview` ถ้ายังไม่มีโค้ดแอป แล้ว `port` ใน change ที่ scaffold แอป) → `/mflow:screen inventory` (เพิ่มหัวข้อ `<กลุ่ม>-data` ลง AGENDA.md) → ออกแบบข้อมูลทีละกลุ่ม `/mflow:discuss <กลุ่ม>-data` (ไม่บังคับ)
 5. สร้างหน้าจอ `/mflow:screen <ชื่อ> ...` → ทดสอบใช้งานหรือรีวิว (สลับ role บนแถบ PROTOTYPE ให้ดูเมนูและข้อมูลของแต่ละ role) → `/mflow:review-notes`
 6. กฎที่ตัดข้ามหน้าจอ → `/mflow:hotspot` ทีละตั๋ว (`/clear` ระหว่างตั๋ว) (+ `/mflow:golden`) → graduate
-7. `/opsx:propose` → `/opsx:apply` (Claude ทำเอง หรือส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` บน Sonnet 5.5 เมื่อเปิดด้วย `/mflow:subagent on` หรือ `/mflow:delegate` ให้ tool อื่น) → `/mflow:test` (เมื่อเครื่องว่าง) → `/mflow:review` → `/opsx:archive` → เมื่อหน้าจอนิ่งแล้ว `/mflow:e2e <หน้าจอ>` ทีละหน้า
+7. `/opsx:propose` → `/opsx:apply` (Claude ทำเอง หรือส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` บน Sonnet 5.5 เมื่อเปิดด้วย `/mflow:subagent on` หรือ `/mflow:delegate` ให้ tool อื่น) → `/opsx:archive` → merge เมื่อคุณสั่ง → ภายหลังบน main ครั้งเดียวสำหรับทุก change ที่รอ: `/mflow:test` (เมื่อเครื่องว่าง) → `/mflow:review pending` → เมื่อหน้าจอนิ่งแล้ว `/mflow:e2e <หน้าจอ>` ทีละหน้า
 8. ขอเปลี่ยนสิ่งที่สร้างแล้ว → `/mflow:change-request` (บันทึกผลกระทบ แล้วทำต่อตามที่คุณสั่ง)
 9. จบวัน → `/mflow:handoff`
 
@@ -181,13 +184,14 @@ mflow/
 │   ├─ inbox-normalize.mjs ← ทำรายงานจาก AI อื่นให้พร้อมตรวจ
 │   ├─ consult.mjs         ← สถานะของ analyze/design/challenge (ไม่บังคับ) อ่านจากไฟล์จริง
 │   ├─ review-units.mjs    ← หน่วยตรวจ: ร่าง, ตรวจว่าทุกไฟล์มีหน่วย, ไฟล์ข้อเท็จจริงที่ดึงจากโค้ด
+│   ├─ pending.mjs         ← รายการรอ test และ review (docs/reviews/pending.md): range ของ change, ติ๊ก Test ตามประวัติ git, ติ๊ก Review
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์
 ```
 
-เอกสารที่ mflow เขียนลงโปรเจกต์อยู่ใต้ `docs/` ห้าหมวด: `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `code/`, `tests/`, `change-requests/`) และ `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md`
+เอกสารที่ mflow เขียนลงโปรเจกต์อยู่ใต้ `docs/` ห้าหมวด: `source/` (เอกสารลูกค้า), `decisions/` (`discuss/`, `hotspots/`), `ui/`, `reviews/` (สรุปรีวิว, `pending.md`, `code/`, `tests/`, `change-requests/`) และ `ai/` (`inbox/`, `analysis/`, `design/`, `challenge/`) กับ `docs/vision.md`
 
 ## เพิ่มคำสั่งใหม่
 

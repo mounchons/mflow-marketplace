@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.35)
+## คำสั่ง (v0.36)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -113,9 +113,10 @@ test ทั้งชุดของบางโปรเจกต์ใช้เ
 
 - **รายการรอ test และ review (0.35):** จบ `/opsx:apply` แล้ว Claude เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review ที่ต้องใช้พร้อมเหตุผล, หน้าจอที่ E2E ต้องตาม) แล้วบอกแค่ว่าพร้อม archive ไม่บอกให้สั่ง `/mflow:test` หรือ `/mflow:review` งานจึงเดินต่อ change ถัดไปได้ คุณสั่งเองทีหลังบน main: `/mflow:test` ครั้งเดียวเติมช่อง Test ให้ทุกแถวที่ commit นั้นมีงานของ change แล้ว (ดูจากประวัติ git ด้วย `scripts/pending.mjs`) แล้ว `/mflow:review pending` ตรวจทีละ change ตาม diff ของ change นั้น (ตั้งแต่ก่อน proposal ถึง archive) ใช้ผล test จากแถวนั้น แถวที่ผ่านทั้งสองอย่างย้ายไป `## Done` change ที่ archive แล้วแต่ไม่อยู่ในรายการ `/mflow:test` และ `/mflow:review pending` เพิ่มให้เองตั้งแต่วันที่ `Since:` session เริ่มใหม่ไม่เตือนเรื่องนี้
 
-- `/opsx:apply` รันเฉพาะ test ของ task นั้นและ test class ที่ครอบโค้ดที่ task แก้ (filter ไปที่ test เหล่านั้น) กับ build ไม่รันทั้งชุด สิ่งที่พังจึงเจอตั้งแต่ task ที่ทำให้พัง และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
+- `/opsx:apply` รันเฉพาะ build, unit test ทั้งหมด และ test ที่ task เพิ่มหรือแก้ (filter ไปที่ test เหล่านั้น) ไม่รันทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - test ระหว่าง apply รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งให้จบในราว 8 นาที ถ้ายาวกว่านั้นแบ่งตามคลาส (0.34) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำของเครื่องใกล้หมด แล้วไม่ได้ผลอะไรเลย
-- ถ้า integration test class ที่ครอบโค้ดที่แก้มีราวหนึ่งในสามของชุดขึ้นไป หรือรันนานเกิน 10 นาที (มักเกิดเมื่อแก้ส่วนกลางอย่าง sign-in, session, seed) apply รันแค่ unit test กับ test ที่ task เพิ่มหรือแก้ แล้วปล่อย integration ให้ `/mflow:test` รันครั้งเดียว ไม่รันคลาสเดียวกันซ้ำสองรอบ (0.34)
+- **integration ระหว่าง apply (0.36):** หลังแต่ละ task รัน build, unit test ทั้งหมด (ไม่กี่วินาที) และ integration class ที่ task เพิ่มหรือแก้เอง ในคำสั่งเดียว ไม่รัน integration class อื่น เมื่อจบ task สุดท้าย ถ้า change แตะ migration หรือ data model, startup/DI, สิทธิ์ หรือ seed จะรัน `- Shared checks:` ใน `## Commands` ของ AGENTS.md (class ที่ตรวจทุกตาราง ทุก migration startup และ seed) รอบเดียว แล้วแก้ที่ล้มก่อนบอกว่าพร้อม archive ถ้า AGENTS.md ไม่มีบรรทัดนี้ Claude บอกหนึ่งบรรทัดว่าการตรวจนี้รอ `/mflow:test` ส่วน integration อื่นทั้งหมดรอ `/mflow:test` บน main ซึ่งครอบทุกอย่างที่ apply ไม่ได้รัน ที่มา: StemHub 2026-10-31 landing-content รัน integration 9 รอบใน 8 task รวม 22 นาที ในนั้น 15–17 นาทีเป็น class เดิมที่ whole suite บน main รันซ้ำอยู่แล้ว แต่ TemplateDatabaseTests ที่ล้มเพราะตารางใหม่ก็เจอระหว่าง apply จึงคงไว้เป็น shared checks ตอนจบ
+- `/mflow:test` ตรวจว่า `- Test parts:` ครอบทุก test: นับ test ของ project (`--list-tests`) เทียบกับผลรวมของทุกส่วน ถ้าขาด แปลว่ามี class ใหม่ที่ไม่เข้าส่วนไหน จะรันเพิ่มในรอบนั้นและเติมชื่อลงส่วนของมัน (0.36)
 - `/mflow:test` รัน build, test ทุกชุดใน `## Commands`, format และ lint แบบตรวจอย่างเดียว และ `openspec validate --strict` รันทีละส่วนให้จบในเวลาที่ shell รอได้ ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะเคยทำให้หน่วยความจำไม่พอจนถูกหยุดกลางทาง ส่วนที่แบ่งไว้บันทึกเป็นบรรทัด `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ
 - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
 - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่

@@ -10,7 +10,7 @@ You implement one task of an OpenSpec change. The caller gives you the change na
 
 1. Read AGENTS.md (stack, commands, architecture), every context file you were given, and the earlier reports before editing anything. Build on what the earlier tasks changed; do not redo or undo it.
 2. Make the code changes the task describes, including the test the task ends with. Keep them minimal and inside the task. Write, change and run no E2E test, even when the task's text asks for one: name it under "Out of scope" (`/mflow:e2e <screen>` does it when the user calls it).
-3. Run that test and the test classes that cover the code you changed, with the test command in AGENTS.md filtered to them (`dotnet test <project> --filter <class or test name>` in the .NET profiles), and the build when the task touched compiled code. Never the whole suite: the user runs it with `/mflow:test`.
+3. Run the build when the task touched compiled code, every unit test, and the tests the task added or changed, with the test command in AGENTS.md filtered to them (`dotnet test <project> --filter <class or test name>` in the .NET profiles). Run no other integration class and never the whole suite: the caller runs the shared checks once at the end of the change, and the user runs the whole suite with `/mflow:test`.
 
 Do not:
 - edit `tasks.md`, the change's proposal, specs or design, or anything else under `openspec/`;

@@ -7,7 +7,7 @@ import path from "node:path";
 import { afterEach, test } from "node:test";
 import { LINES, VERSION, plan, yamlItem } from "../plugins/mflow/scripts/openspec-config.mjs";
 import { TEMPLATE as PENDING_TEMPLATE } from "../plugins/mflow/scripts/pending.mjs";
-import { project, run } from "./helpers.mjs";
+import { SCRIPTS, project, run } from "./helpers.mjs";
 
 let p;
 afterEach(() => p?.cleanup());
@@ -103,6 +103,20 @@ test("apply ends with a row in docs/reviews/pending.md, never with /mflow:test o
   assert.ok(header && PENDING_TEMPLATE.includes(header), "the header apply writes is the template's");
   assert.ok(!g.some((l) => /give the user \/mflow:test as the next command|name them to the user/.test(l)));
   assert.ok(!Object.values(LINES).flat().some((l) => /once per change/.test(l)));
+});
+
+// StemHub 2026-10-31: landing-content ran integration classes 9 times in 8 tasks, 22 of its 24 test minutes; 15–17
+// of them were classes the change did not add, which the whole suite on main runs again anyway.
+test("apply runs each task's own integration tests only, and the shared checks once at the end", () => {
+  const g = LINES["operations.apply.guidance"];
+  assert.ok(g.some((l) => l.startsWith("After each task") && l.includes("the integration test classes the task added or changed") && l.includes("no other integration class")));
+  const shared = g.find((l) => l.includes("`- Shared checks:`"));
+  assert.ok(shared, "the shared checks line");
+  assert.match(shared, /^Once, after the last task, when the change touched a migration or the data model/);
+  assert.match(shared, /`none` leaves nothing to run/);
+  assert.ok(g.indexOf(shared) < g.findIndex((l) => l.includes("docs/reviews/pending.md") && l.includes("add a row")), "the checks come before the row");
+  assert.ok(!Object.values(LINES).flat().some((l) => /test classes that cover the code it changed|about a third of/.test(l)), "the 0.34 covering-class runs are gone");
+  assert.match(fs.readFileSync(path.join(SCRIPTS, "..", "templates", "AGENTS.md"), "utf8"), /^- Shared checks: `TODO`$/m);
 });
 
 test("a new project gets every line between markers, keeps OpenSpec's comments, and a rerun changes nothing", () => {

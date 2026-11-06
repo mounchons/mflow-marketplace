@@ -13,6 +13,7 @@ title: <title>          what the customer calls it; may be Thai
 status: draft | agreed  agreed once the user has confirmed the steps and the cases
 sources: <where it comes from: requirement section, ADR, screen, code path>
 updated: <YYYY-MM-DD>
+skip: <kinds>           optional: kinds the flow cannot have (isolation, handoff), the reason under ## Goal
 ---
 ```
 
@@ -44,6 +45,7 @@ warns when a path says otherwise.
 | `alt` | another path that also ends done (paid in part, approved after a question) |
 | `error` | a path the system stops, with the reason the user sees |
 | `permission` | a role that may not take a step is refused, and one that may is not |
+| `handoff` | what one person sets or sends reaches the next as it was set: the fields, options, files and deadlines of an invitation as the invited party sees them, and after each decision (send back, reject, approve, withdraw, acknowledge) the state and the actions every party now sees |
 | `boundary` | the edges of a rule: zero, the limit, one past it, rounding |
 | `idempotency` | the same action twice (double click, retried request, upload again) does it once |
 | `concurrency` | two users or jobs on the same record at once: one wins, the other is told |
@@ -67,6 +69,8 @@ not as a gap: E2E is written per screen when the user calls `/mtest:e2e`.
 - `testsNotFound`: references no test file holds (a renamed or deleted test);
 - `unknownTokens`: path tokens that name no step, branch or transition;
 - `problems`: a missing section, a malformed or duplicated id, a level that is not one of the four;
-- `warnings`: a branch out of place in a path, an unknown kind, no permission case where people act.
+- `warnings`: a branch out of place in a path, an unknown kind, no `permission` case where people act,
+  and, where two roles or more act, no `handoff` case and no `isolation` case (a `skip:` in the front
+  matter silences the last two for a flow that cannot have them).
 
 A flow is complete (`ok: true`) when it has no problems and no gaps. `--strict` exits 1 when one is not.

@@ -17,7 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PATHS, PLUGIN_ROOT, findRoot, frontmatter, isTestFile, loadConfig, toPosix, today, walkFiles, writeFileAtomic } from "./lib.mjs";
 
-export const KINDS = ["happy", "alt", "error", "permission", "boundary", "idempotency", "concurrency", "isolation", "time", "recovery"];
+export const KINDS = ["happy", "alt", "error", "permission", "handoff", "boundary", "idempotency", "concurrency", "isolation", "time", "recovery"];
 export const LEVELS = ["unit", "integration", "e2e", "manual"];
 const STEP_ID = /^\d+(\.\d+)*[a-z]?$/;
 const BRANCH_ID = /^B\d+[a-z]?$/;
@@ -80,6 +80,9 @@ export function parseFlow(text, file = "") {
   const problems = [];
   const warnings = [];
   const id = fm.flow || path.basename(file, ".md");
+  // `skip: isolation, handoff` in the front matter: kinds the flow cannot have (the reason goes under Goal).
+  const skip = String(fm.skip ?? "").toLowerCase().split(/[,\s]+/).filter(Boolean);
+  for (const k of skip) if (!KINDS.includes(k)) warnings.push(`skip: "${k}" is not one of ${KINDS.join(", ")}`);
   if (!sec.steps) problems.push("no `## Steps` section");
   if (!sec.cases) problems.push("no `## Cases` section");
 
@@ -117,6 +120,7 @@ export function parseFlow(text, file = "") {
     flow: id,
     title: fm.title || id,
     status: fm.status || "draft",
+    skip,
     steps: steps.map((r) => ({ id: r._id, actor: col(r, "actor", "role", "who") })),
     branches: branches.map((r) => ({ id: r._id, at: col(r, "at", "from step", "at step").replace(/`/g, ""), back: col(r, "back to", "back", "returns to").replace(/`/g, "") })),
     transitions: transitions.map((r) => ({ id: r._id })),
@@ -214,8 +218,17 @@ export function coverage(flow, index, cfg) {
   }
   const system = new Set(cfg.systemActors.map((a) => a.toLowerCase()));
   const people = [...new Set(flow.steps.map((s) => s.actor).filter((a) => a && !system.has(a.toLowerCase())))];
-  if (people.length && !flow.cases.some((c) => c.kind === "permission")) {
+  const has = (kind) => flow.cases.some((c) => c.kind === kind) || (flow.skip ?? []).includes(kind);
+  if (people.length && !has("permission")) {
     warnings.push(`no case of kind permission, though people act in it (${people.join(", ")}): who may not take a step?`);
+  }
+  // Two parties or more: what one sets or sends must reach the next as set, and a party must not reach
+  // another's records. Both are warnings, not gaps; `skip:` in the front matter says a flow has neither.
+  if (people.length >= 2 && !has("handoff")) {
+    warnings.push(`no case of kind handoff, though ${people.join(", ")} act in it: does what one sets or sends reach the next as it was set?`);
+  }
+  if (people.length >= 2 && !has("isolation")) {
+    warnings.push(`no case of kind isolation: can another account of one of these roles (${people.join(", ")}) see or change these records?`);
   }
   const gapCount = Object.values(gaps).reduce((n, list) => n + list.length, 0);
   return {
@@ -281,7 +294,8 @@ export function summaryLine(f) {
   if (c.rules) parts.push(`rules with a test ${c.rulesWithTest}/${c.rules}`);
   parts.push(`cases with a test ${c.casesWithTest}/${c.cases - c.e2ePending}`);
   if (c.e2ePending) parts.push(`E2E on request ${c.e2ePending}`);
-  return `${f.flow} (${f.status}): ${parts.join(", ")}${gapCount ? ` — ${gapCount} gap(s)` : " — complete"}`;
+  const warn = f.warnings.length ? `, ${f.warnings.length} warning(s)` : "";
+  return `${f.flow} (${f.status}): ${parts.join(", ")}${gapCount ? ` — ${gapCount} gap(s)` : " — complete"}${warn}`;
 }
 
 function newFlow(root, slug, title) {

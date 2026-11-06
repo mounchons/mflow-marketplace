@@ -48,8 +48,11 @@ Done when: the user has the list and has picked, or the flows' coverage is shown
    `(from code)`: the code may be wrong, and the user should see where the doc rests on it.
 3. **Cases**, by every line of references/cases.md that applies: the straight path, each branch out and
    back (and twice when it can repeat), each exit, each refused transition, each guarded step per role,
-   data scope, the rules' edges in unit tests, twice, at once, dates, failure midway. Leave out only what
-   the flow cannot do, with one line on why under `## Goal`.
+   data scope with a second account of each outside role, each hand-off between people (what was set
+   arrives as set, what was sent back arrives whole, every decision shows on both sides), the rules'
+   edges in unit tests, twice, at once, dates, failure midway. Leave out only what the flow cannot do,
+   with one line on why under `## Goal` (and `skip: isolation` or `skip: handoff` in the front matter
+   when it has no second party or no hand-off).
 4. **Existing tests.** For each case and rule, look for a test that already proves it: by requirement id,
    by the case's words, by the endpoint or service it calls. Read the test before citing it: it must
    assert the case's outcome, not just reach the step. Write its reference into the Test cell. Do not

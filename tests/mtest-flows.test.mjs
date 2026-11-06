@@ -118,6 +118,49 @@ test("malformed ids, a duplicated id and an unknown level are problems; no permi
   assert.ok(f.warnings.some((x) => /permission/.test(x)));
 });
 
+const PARTIES = `---
+flow: survey
+title: Survey to suppliers
+{{SKIP}}
+---
+## Steps
+| Step | Actor | Action | Expected | State after |
+|---|---|---|---|---|
+| 1 | Buyer | set up and invite | invitation sent | Invited |
+| 2 | Supplier | answer and attach | sent back | Submitted |
+| 3 | worker | collect | stored in the library | Collected |
+| 4 | Approver | approve | supplier told | Approved |
+
+## Cases
+| Case | Path | Kind | Expect | Level | Test |
+|---|---|---|---|---|---|
+| C01 | 1-2-3-4 | happy | approved | integration | TODO |
+| C02 | 1-2 | permission | supplier cannot approve | integration | TODO |
+{{MORE}}
+`;
+const parties = (skip = "", more = "") => PARTIES.replace("{{SKIP}}", skip).replace("{{MORE}}", more);
+
+test("a flow where two parties act warns until it has a handoff and an isolation case", () => {
+  p = project();
+  p.write("mtest/flows/survey.md", parties());
+  let f = run(p, "flows.mjs", ["check"]).json.flows[0];
+  assert.ok(f.warnings.some((w) => /kind handoff, though Buyer, Supplier, Approver act/.test(w)), f.warnings.join("; "));
+  assert.ok(f.warnings.some((w) => /kind isolation: .*\(Buyer, Supplier, Approver\)/.test(w)), f.warnings.join("; "));
+  assert.match(run(p, "flows.mjs", ["list"]).json.flows[0].summary, /2 warning\(s\)$/);
+  p.write("mtest/flows/survey.md", parties("", "| C03 | 1-2 | handoff | the supplier sees the questions and deadline as set | e2e | TODO |\n| C04 | 1-2 | isolation | supplier B sees none of A's survey | integration | TODO |"));
+  f = run(p, "flows.mjs", ["check"]).json.flows[0];
+  assert.deepEqual(f.warnings, []);
+  assert.deepEqual(f.e2ePending.map((c) => c.case), ["C03"]);
+});
+
+test("skip: in the front matter silences the warnings of the kinds a flow cannot have", () => {
+  p = project();
+  p.write("mtest/flows/survey.md", parties("skip: isolation, handoff"));
+  assert.deepEqual(run(p, "flows.mjs", ["check"]).json.flows[0].warnings, []);
+  p.write("mtest/flows/survey.md", parties("skip: isolatoin"));
+  assert.ok(run(p, "flows.mjs", ["check"]).json.flows[0].warnings.some((w) => /skip: "isolatoin"/.test(w)));
+});
+
 test("a branch out of place in a path is a warning", () => {
   p = project();
   p.write("mtest/flows/w.md", FLOW.replace("| C02 | 1-2-B1-3-4 |", "| C02 | 1-B1-3-4 |"));

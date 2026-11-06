@@ -23,11 +23,41 @@ Done when: one target is chosen, with its cases and its existing test files list
 ## 2. Write
 
 - In the project's E2E conventions: its folder, helpers, fixtures or API mocks, login per role, and test names (the case id or the requirement id in the title). When the E2E tests are one ordered story on one database (`workers: 1`, tests that build on each other), add to the story in its order rather than writing a test that needs a fresh database.
-- Cover: the page as each role that may open it, with only that role's rows and buttons, and a role that may not; each action; each E2E case of the target; filters and paging kept in the URL when the screen has them. "What to cover" in the argument narrows or adds to this.
+- Cover: the page as each role that may open it, with only that role's rows and buttons, and a role that may not; each action; each E2E case of the target; filters and paging kept in the URL when the screen has them. For a flow where several people act, also each `handoff` and `isolation` case, as "A flow with several people" below says. "What to cover" in the argument narrows or adds to this.
 - Write each new test's reference into the Test cell of its case in `mtest/flows/`.
 - An existing test that fails because the screen changed on purpose (the requirement or the user says so) is updated. A test that fails because the screen breaks its flow keeps asserting the flow: report the defect with the fix as the next step. This command changes test files and flow docs only.
 
 Done when: every E2E case of the target has a test, or the user narrowed it.
+
+## A flow with several people
+
+A flow such as set up a survey → invite suppliers → a supplier answers and attaches files → collect →
+send back or keep in the library → build a document from chosen files → approve, reject or withdraw →
+the supplier acknowledges is proven in the browser one path per test, the people taking turns in it:
+- **One browser context per person** in the same test (`browser.newContext()`, each logged in as its
+  role, or from the project's saved login states). Contexts share the worker's one browser, so this adds
+  no browsers to the cap. Switch to the context of each step's Actor in the flow doc.
+- **Links that people get by mail** (an invitation, a reset, a notice): read them from the project's fake
+  mailer, outbox table or test endpoint, the way its integration tests do. Never from real mail. No such
+  seam in the project: say so; adding one is a change of its own.
+- **Hand-offs**: keep the values the sender set in the test's own variables (questions, options,
+  required files, deadline, message) and, on the receiver's page, assert each one is shown as set, and
+  that a setting that hides something hides it. After each decision (send back, reject, approve,
+  withdraw, acknowledge), assert on every party's page the new state, the reason, and the actions that
+  are now offered and the ones that are gone.
+- **Isolation**: a second account of the outside role (supplier B, invited to its own survey or to none)
+  opens supplier A's record by its direct URL, A's file download URL and its own list and notifications:
+  nothing of A's shows, and the direct links are refused. Check the API answer too when the page only
+  hides it.
+- **Files**: upload from the project's fixtures (`setInputFiles`); for a file or document the system
+  builds, wait for the download and assert its name, type and size, and its text when the project has a
+  reader for it (a PDF text extract) or an endpoint that returns its content.
+- **Background steps** (collecting answers, building a document, sending mail): wait for the state the
+  flow doc names, on the page or through the API, within the project's timeout. Never a fixed sleep.
+- **Data**: each test makes its own records with unique names, so paths do not depend on each other,
+  unless the project's E2E tests are written as one ordered story on one database.
+- Name each test after its case (`C07 supplier B cannot open supplier A's survey`) and write it into the
+  case's Test cell.
 
 ## 3. Run
 

@@ -25,30 +25,50 @@ applies, and leave out only what the flow cannot do (say why in one line under `
    unchanged. One allowed role is enough when the rule is "this permission or not"; one per role when
    roles differ in what they see or may do.
 6. **Data scope**: a user of one tenant, company, branch or owner never sees or changes another's record
-   in this flow, through a list, a detail, an export or a direct id (`isolation`).
+   in this flow (`isolation`). When an outside party takes part (a supplier, a customer, an applicant),
+   the case uses a second account of the same role: supplier B, logged in, finds nothing of supplier A's
+   work in its list, its search, its counts and badges, by opening A's record by direct link or id, by
+   A's file download link, in its notifications and in its exports, and cannot act on it through the API.
 7. **Separation of duties**, when the requirement asks for it: the person who prepared a record cannot
    approve it.
 
+## From the hand-offs
+
+When the flow passes from one person to another (an invitation, a questionnaire sent out, a form sent
+back, a document sent for approval), the receiving side must see what the sending side set, and both
+sides must see what the other decided (`handoff`):
+
+8. **What was set arrives as set**: every field, option, question, required file, deadline and message
+   the sender configured is what the receiver sees and works with; a setting that hides or limits
+   something (a question that is off, a section only some suppliers get) is hidden or limited on the
+   receiver's side too. One case per setting that changes what the receiver sees.
+9. **What was sent back arrives whole**: the answers, the attached files (name, size, type, opening
+   them), and the sender's comments reach the next person and the place they are kept (a library, an
+   archive), and a document built from them carries them.
+10. **Every decision shows on both sides**: after send back, reject, approve, withdraw or acknowledge,
+    each party sees the new state, the reason when there is one, and only the actions the state now
+    allows (a withdrawn item cannot be approved; a rejected one shows why to the party that sent it).
+
 ## From the data
 
-8. **Rules behind the steps**: every calculation, limit and rounding becomes a Rule row with a
+11. **Rules behind the steps**: every calculation, limit and rounding becomes a Rule row with a
    table-driven unit test covering its edges: zero, the limit, one past it, negative, the rounding
    half-way point, the largest value (`boundary`). The flow's cases then use one ordinary value; the edges
    live in the unit test, not in more integration cases.
-9. **Partial and many**: part of an amount, several items at once, one action covering several records
+12. **Partial and many**: part of an amount, several items at once, one action covering several records
    (one payment for three invoices), when the flow allows them (`alt`).
-10. **Bad input that reaches the flow**: required data missing, a duplicate, a value the rule refuses;
+13. **Bad input that reaches the flow**: required data missing, a duplicate, a value the rule refuses;
     each as one `error` case asserting the message the user sees.
 
 ## From time and failure
 
-11. **Twice**: the same action submitted twice (double click, retried request, the same file uploaded
+14. **Twice**: the same action submitted twice (double click, retried request, the same file uploaded
     again) takes effect once (`idempotency`).
-12. **At once**: two people or a job and a person acting on the same record; one wins and the other is
+15. **At once**: two people or a job and a person acting on the same record; one wins and the other is
     told, with no half-written state (`concurrency`), when the flow can be reached by two at a time.
-13. **Dates and periods**: a closed period, a due date that passes, the end of a month or a year, a time
+16. **Dates and periods**: a closed period, a due date that passes, the end of a month or a year, a time
     zone at midnight (`time`), when the flow depends on a date.
-14. **Failure midway**: an external service that fails or times out, a worker that restarts; the flow is
+17. **Failure midway**: an external service that fails or times out, a worker that restarts; the flow is
     left in a state it can resume from, and resuming does not do the work twice (`recovery`).
 
 ## Choosing the level
@@ -62,6 +82,10 @@ applies, and leave out only what the flow cannot do (say why in one line under `
 
 Most cases of a flow are `integration`. A flow whose every case is `e2e` is too slow to prove after each
 change: move what does not need the browser down a level.
+
+A hand-off or an isolation case usually needs both: an `integration` case that the API gives the
+receiver what was set (and gives another party nothing), and an `e2e` case that the receiver's page shows
+it (and that the other party's page, opened by direct link, shows nothing). Write them as two rows.
 
 ## Writing a case's test
 

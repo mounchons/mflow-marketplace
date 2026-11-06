@@ -37,6 +37,22 @@ test("vendor writes a marked copy, reports it current, and refreshes only what c
   assert.equal(run(p, "vendor.mjs", ["status"]).json.current, true);
 });
 
+test("names in the copy's marker that lead out of the copy are never deleted", () => {
+  p = project();
+  run(p, "vendor.mjs", ["write"]);
+  p.write("victim.txt", "keep me");
+  p.write(".claude/keep.json", "{}");
+  const mark = JSON.parse(p.read(".claude/skills/mtest/.mtest-vendor.json"));
+  for (const rel of ["../../../victim.txt", "scripts/../../../victim.txt", "../../keep.json", "/etc/hosts", "C:/Windows/win.ini", "notes.md"]) mark.files[rel] = "0";
+  p.write(".claude/skills/mtest/.mtest-vendor.json", JSON.stringify(mark));
+  const plan = run(p, "vendor.mjs", ["plan"]).json;
+  assert.deepEqual(plan.remove, []);
+  assert.equal(plan.ignored.length, 6);
+  assert.equal(run(p, "vendor.mjs", ["write"]).status, 0);
+  assert.equal(p.read("victim.txt"), "keep me");
+  assert.ok(p.exists(".claude/keep.json"));
+});
+
 test("a folder of the same name that is not an mtest copy is never touched", () => {
   p = project();
   p.write(".claude/skills/mtest/SKILL.md", "theirs");

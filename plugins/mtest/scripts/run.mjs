@@ -25,7 +25,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  PATHS, defaultBranch, duration, findRoot, git, loadConfig, matchesAny, pluginVersion, readJsonFile, recordHeader,
+  PATHS, defaultBranch, duration, findRoot, git, loadConfig, matchesAny, pluginVersion, readJsonFile, realInside, recordHeader,
   toPosix, today, writeFileAtomic,
 } from "./lib.mjs";
 
@@ -405,8 +405,29 @@ function renderRecord(run) {
   return { text: lines.join("\n") + "\n", result, notRun, seconds: total };
 }
 
+// The run id and a row's label name folders the runner writes and deletes (.mtest/tmp/<id>/<label>,
+// .mtest/logs/<id>/). A cloned repository can carry its own .mtest/run-open.json, and --label comes from
+// the command line, so both must read as names this runner makes before any path is built from them.
+const RUN_ID = /^\d{4}-\d{2}-\d{2}-[0-9a-z]{4,7}-\d{6}$/;
+const LABEL = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
+const safeLabel = (s) => LABEL.test(s) && !s.includes("..");
+
 function openRun(root) {
-  return readJsonFile(path.join(root, PATHS.openRun));
+  const run = readJsonFile(path.join(root, PATHS.openRun));
+  if (run && !RUN_ID.test(String(run.id))) {
+    throw new Error(`${PATHS.openRun} names a run id mtest never writes ("${String(run.id).slice(0, 60)}"); delete the file by hand`);
+  }
+  return run;
+}
+
+/** Remove .mtest/tmp/<id>, only when that path is a folder of its own inside .mtest/tmp. */
+function removeTmp(root, id) {
+  if (!RUN_ID.test(String(id))) return;
+  const base = path.join(root, PATHS.tmp);
+  const target = path.join(base, id);
+  const rel = path.relative(base, target);
+  if (rel !== id || !realInside(root, target)) return;
+  fs.rmSync(target, { recursive: true, force: true });
 }
 
 function saveRun(root, run) {
@@ -445,10 +466,12 @@ export async function runPart(root, cfg, name, { extra = "", label, timeoutMin }
   if (!part) throw new Error(`no part named ${name} in .mtest/config.json (parts: ${cfg.parts.map((p) => p.name).join(", ") || "none"})`);
   const head = git(root, "rev-parse", "HEAD") ?? "none";
   if (head !== run.commit) throw new Error(`HEAD moved from ${run.commit.slice(0, 7)} to ${head.slice(0, 7)} since this run started; abort it and start again`);
+  if (label && !safeLabel(label)) throw new Error(`--label must be a short name (letters, digits, . _ -), got "${label.slice(0, 60)}"`);
   let rowLabel = label || name;
   for (let i = 2; run.parts.some((p) => p.label === rowLabel); i++) rowLabel = `${label || name}-${i}`;
   const cwd = path.join(root, part.cwd ?? ".");
   const dir = path.join(root, PATHS.tmp, run.id, rowLabel);
+  if (!safeLabel(rowLabel) || !realInside(root, dir)) throw new Error(`the results folder for ${rowLabel} would leave .mtest/tmp`);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
   let { cmd, env, out } = buildCommand(part, extra, dir);
@@ -511,7 +534,7 @@ export function finishRun(root, cfg) {
   const r = renderRecord(run);
   writeFileAtomic(path.join(root, rel), r.text);
   fs.rmSync(path.join(root, PATHS.openRun), { force: true });
-  fs.rmSync(path.join(root, PATHS.tmp, run.id), { recursive: true, force: true });
+  removeTmp(root, run.id);
   return { record: rel, result: r.result, scope: run.scopeLabel, duration: duration(r.seconds), notRun: r.notRun, parts: run.parts.map((p) => ({ part: p.label, result: p.result, passed: p.passed, failed: p.failed, skipped: p.skipped, note: p.note ?? null })) };
 }
 
@@ -628,10 +651,12 @@ async function main() {
       case "finish":
         return out(finishRun(root, cfg));
       case "abort": {
-        const run = openRun(root);
+        // Read without the id check, so a file mtest never wrote can still be cleared; removeTmp checks the id.
+        let run = null;
+        try { run = readJsonFile(path.join(root, PATHS.openRun)); } catch { /* unreadable: removed below */ }
         fs.rmSync(path.join(root, PATHS.openRun), { force: true });
-        if (run) fs.rmSync(path.join(root, PATHS.tmp, run.id), { recursive: true, force: true });
-        return out({ aborted: run ? run.id : null });
+        if (run) removeTmp(root, run.id);
+        return out({ aborted: run ? String(run.id).slice(0, 60) : null });
       }
       case "all": {
         if (!["whole", "e2e"].includes(scope)) throw new Error("all runs the whole suite or e2e");

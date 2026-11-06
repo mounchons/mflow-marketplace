@@ -53,14 +53,28 @@ export function vendorPlan(root) {
   if (st.present) {
     try { have = readJsonFile(path.join(dest, MARK))?.files ?? {}; } catch { have = {}; }
   }
-  const plan = { dest: PATHS.vendor, version: pluginVersion(), create: [], update: [], remove: [], unchanged: [] };
+  const plan = { dest: PATHS.vendor, version: pluginVersion(), create: [], update: [], remove: [], unchanged: [], ignored: [] };
   for (const [rel, h] of Object.entries(want)) {
     if (!(rel in have) || !fs.existsSync(path.join(dest, rel))) plan.create.push(rel);
     else if (have[rel] !== h) plan.update.push(rel);
     else plan.unchanged.push(rel);
   }
-  for (const rel of Object.keys(have)) if (!(rel in want)) plan.remove.push(rel);
+  // The marker comes from the repository, so a name in it is removed only when it is a file a copy can
+  // hold: under one of the copied folders, with no `..`, and inside the copy once links are followed.
+  for (const rel of Object.keys(have)) {
+    if (rel in want) continue;
+    (removable(dest, rel) ? plan.remove : plan.ignored).push(rel);
+  }
   return plan;
+}
+
+export function removable(dest, rel) {
+  if (typeof rel !== "string" || !rel || path.isAbsolute(rel) || /^[A-Za-z]:/.test(rel)) return false;
+  const parts = rel.split(/[\\/]/);
+  if (parts.some((s) => s === ".." || s === "." || s === "") || !INCLUDE.includes(parts[0]) || parts.length < 2) return false;
+  const target = path.resolve(dest, rel);
+  const inside = path.relative(dest, target);
+  return !inside.startsWith("..") && !path.isAbsolute(inside) && realInside(dest, target);
 }
 
 export function vendorWrite(root) {
@@ -75,7 +89,10 @@ export function vendorWrite(root) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(path.join(PLUGIN_ROOT, rel), target);
   }
-  for (const rel of plan.remove) fs.rmSync(path.join(dest, rel), { force: true });
+  for (const rel of plan.remove) {
+    if (!removable(dest, rel)) continue;
+    try { fs.rmSync(path.join(dest, rel), { force: true }); } catch { /* a folder of that name: left as it is */ }
+  }
   writeFileAtomic(path.join(dest, MARK), JSON.stringify({ plugin: "mtest", version: plan.version, files: pluginFiles() }, null, 2) + "\n");
   return { ...plan, written: true };
 }

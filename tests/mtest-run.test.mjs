@@ -3,6 +3,7 @@
 // the rest, E2E stays out of the whole suite and never starts more browsers than the cap, and `since`
 // decides what a later commit needs.
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { afterEach, test } from "node:test";
 import { FAKE, project, run } from "./mtest-helpers.mjs";
 
@@ -244,6 +245,30 @@ test("plan lists the parts in scope with their missing prerequisites and the new
   assert.equal(plan.parts[0].verified, false);
   assert.equal(plan.defaultBranch, "main");
   assert.equal(plan.last, null);
+});
+
+test("an open run whose id leads out of .mtest/tmp is refused, and abort deletes nothing outside", () => {
+  setup([{ name: "unit", kind: "unit", command: "node fake.mjs trx 1 0", results: "trx" }]);
+  const outside = p.write("../outside/keep.txt", "keep me");
+  const run0 = { id: "../../../outside", scopeLabel: "x", startedAt: "2026-11-06T00:00:00Z", commit: p.git("rev-parse", "HEAD"), parts: [], expected: [] };
+  p.write(".mtest/run-open.json", JSON.stringify(run0));
+  for (const args of [["finish"], ["part", "unit"], ["plan"]]) {
+    const r = run(p, "run.mjs", args);
+    assert.equal(r.status, 2, args.join(" "));
+    assert.match(r.stderr, /run id mtest never writes/);
+  }
+  assert.equal(runner("abort").aborted, "../../../outside");
+  assert.equal(p.exists(".mtest/run-open.json"), false);
+  assert.equal(fs.readFileSync(outside, "utf8"), "keep me");
+});
+
+test("a --label that is not a plain name is refused", () => {
+  setup([{ name: "unit", kind: "unit", command: "node fake.mjs trx 1 0", results: "trx" }]);
+  runner("start");
+  const r = run(p, "run.mjs", ["part", "unit", "--label", "../../x"]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--label must be a short name/);
+  runner("abort");
 });
 
 test("a config with a wrong part is refused with the reason", () => {

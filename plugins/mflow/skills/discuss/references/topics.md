@@ -8,7 +8,7 @@ Every checklist item is either answered with a tag in the doc, turned into a dec
 
 Two topics stand first on every agenda, because everything after them is built on their answers: `tech-stack`, then `code-structure`, both before `/mflow:theme`. The profile chosen at `/mflow:init` is their starting point; these docs settle the detail.
 
-**Where the answers come from, in this order:** the customer's sources and the user's word; then the team's standards, when a team knowledge base is connected (for example the Graph Brain MCP: search it for the standard tech stack, the .NET conventions and the solution structure), tagged `[ที่มา: brain <note title>]`; then Claude's proposal, tagged `[เสนอ]`. A note that records a team standard ("default .NET 10", "default PostgreSQL 18") is the recommended option. A note about one past project is an example, not a rule; where examples disagree (one project uses a mediator library, another forbids it), that is a decision (D). In a repo that already has code, the code is a source too: state what exists and what the doc would change.
+**Where the answers come from, in this order:** the customer's sources and the user's word; then a pack the project selected for the topic (the team's settled answers, tagged `[ที่มา: pack <name> §<ID>]`, applied as [packs.md](packs.md) describes; the pack of each topic is named under its heading below); then the team's standards, when a team knowledge base is connected (for example the Graph Brain MCP: search it for the standard tech stack, the .NET conventions and the solution structure), tagged `[ที่มา: brain <note title>]`; then Claude's proposal, tagged `[เสนอ]`. A note that records a team standard ("default .NET 10", "default PostgreSQL 18") is the recommended option. A note about one past project is an example, not a rule; where examples disagree (one project uses a mediator library, another forbids it), that is a decision (D). In a repo that already has code, the code is a source too: state what exists and what the doc would change.
 
 ## tech-stack: apps, frameworks, libraries, database, containers
 
@@ -100,7 +100,7 @@ Visuals: the folder tree; a `flowchart TB` of the project references, with the f
 
 ## access-control: roles, menus, actions, data visibility
 
-The topic customers underspecify most. Split it into two docs if it grows past ~200 lines, for example `roles-and-menus` and `data-visibility`.
+Pack: `permission`. The topic customers underspecify most. Split it into two docs if it grows past ~200 lines, for example `roles-and-menus` and `data-visibility`.
 
 Checklist:
 - Roles: the full list, who holds each (job titles, headcount), and whether one user can hold several roles or different roles per branch.
@@ -223,6 +223,8 @@ Visuals: a `flowchart LR` with one lane per approver, or a `sequenceDiagram`.
 
 ## notifications
 
+Pack: `mail` (the e-mail queue, sending and templates; the events and recipients stay the project's).
+
 - Which events notify, whom, and through which channel (in-app, email, LINE, SMS)?
 - Who can only see the record, and must therefore not receive its details in a message?
 - Reminders and escalation after a deadline.
@@ -231,11 +233,37 @@ Visuals: a `sequenceDiagram` from the event to each recipient.
 
 ## audit-history
 
+Pack: `audit`.
+
 - Which entities and fields keep a change history. Who can see it?
 - Login and permission-change logs. How long must they be kept (retention)?
 - Soft delete vs hard delete. Who can restore?
 
 Visuals: usually a table is enough; a `stateDiagram-v2` if records move through deleted and restored states.
+
+## sign-in: accounts' sign-in, passwords, sessions, second factor
+
+Pack: `auth`.
+
+- Who signs in where: one portal or several, and whether an account of one portal may use another.
+- What the user types to sign in (e-mail or a user name), the failure messages, and the lock after repeated failures.
+- Password rules, expiry, history; forgot password and the link it sends; the first sign-in.
+- Session length, the idle timeout and its warning, signing out, and what ends other sessions.
+- A second factor (code by e-mail, an authenticator app), when it is asked, and whether a browser is remembered.
+- What is logged, and how long sign-in records are kept.
+
+Visuals: a `sequenceDiagram` of one sign-in from the form to the first screen, with the lock and the second factor as `alt` branches.
+
+## user-accounts: creating, inviting and managing accounts
+
+Pack: `users`.
+
+- Who creates accounts on each portal, and who manages the accounts of an outside organisation (a supplier, a customer company).
+- How a new account gets its first password (a link, an initial password), and what its status is until the first sign-in.
+- Edit, disable, delete, reset a password by an administrator; what each change ends or sends.
+- The profile a user edits; changing the e-mail; seeing one's own history.
+
+Visuals: a `stateDiagram-v2` of the account statuses and what moves an account between them.
 
 ## import-export-print
 

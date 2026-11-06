@@ -147,6 +147,8 @@ export function loadConfig(root) {
     applySubagent: { enabled: false },
     // Browsers a Playwright run may start at once (e2e-guard.mjs); more has crashed a laptop's graphics driver.
     e2eMaxWorkers: 2,
+    // The plugin's packs this project uses (packs.mjs use); /mflow:discuss reads only these.
+    packs: [],
   };
   const label = MARKER.split(path.sep).join("/");
   const stop = (what) => new Error(`${what}; fix it by hand, mflow stops until it does`);
@@ -177,6 +179,9 @@ export function loadConfig(root) {
   }
   if ("stopGuard" in user && typeof user.stopGuard !== "boolean" && !isObject(user.stopGuard)) {
     wrong("stopGuard", "true, false or an object");
+  }
+  if ("packs" in user && !(Array.isArray(user.packs) && user.packs.every((n) => typeof n === "string" && /^[a-z][a-z0-9-]*$/.test(n)))) {
+    wrong("packs", "a list of pack names in kebab-case");
   }
   for (const key of ["applySubagent", "tools", "asBuilt"]) if (key in user && !isObject(user[key])) wrong(key, "an object");
   // asBuilt: what review-units.mjs facts reads besides its own patterns (an exported OpenAPI file, extra

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.36.1 |
+| เวอร์ชัน plugin | 0.37.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -65,7 +65,7 @@ flowchart TD
 | 4 | `/mflow:screen <ชื่อ> …` → `/mflow:review-notes` | สร้างหรือปรับหน้าจอ แล้วทดสอบใช้งานหรือรีวิว | วนหลายรอบ |
 | 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session (ตอบตั๋วง่ายหลายใบพร้อมกันได้) |
 | 6 | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` แล้วภายหลังบน main `/mflow:test` → `/mflow:review pending` | สร้างของจริงทีละ slice, test และ review ทีเดียวทุก change ที่รอ | ต่อ slice / ต่อรอบที่คุณสั่ง |
-| 7 | `/mflow:e2e <หน้าจอ>` | หน้าจอนิ่งแล้ว อยากได้ E2E test (Playwright) ของหน้านั้น | ต่อหน้าจอ เมื่อคุณสั่งเท่านั้น |
+| 7 | `/mflow:e2e <หน้าจอ>` หรือ `/mflow:e2e flow <capability>` | หน้าจอนิ่งแล้ว อยากได้ E2E test (Playwright) ของหน้านั้น หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย | ต่อหน้าจอหรือต่อ flow เมื่อคุณสั่งเท่านั้น |
 | เหตุการณ์ | `/mflow:change-request` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | เมื่อเกิดขึ้น |
 | เหตุการณ์ | `/mflow:delegate` → `/mflow:assess` | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | เมื่อต้องการ |
 | ไม่บังคับ | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` | อยากได้ความเห็นจาก AI หลายตัวพร้อมกัน: วิเคราะห์ระบบ เสนอแบบ หรือหาจุดที่แบบจะพัง | เมื่อต้องการ ไม่มีขั้นไหนรอ |
@@ -427,6 +427,7 @@ docs/
 3. `/mflow:test` เมื่อเครื่องว่าง ปกติบน main ครั้งเดียวสำหรับทุก change ที่รอใน `docs/reviews/pending.md` (0.35): รัน build, test ทุกชุดใน `## Commands` ของ AGENTS.md ยกเว้น E2E, format และ lint แบบตรวจอย่างเดียว และ `openspec validate` ของ change ที่ครอบ (`--specs --strict` เมื่อ change archive แล้ว) รันทีละส่วนในหน้าต่างเดียวกัน ส่วนละไม่เกินราว 8 นาที (ไม่รันเบื้องหลังหรือหลายส่วนพร้อมกัน เพราะหน่วยความจำอาจไม่พอจนถูกหยุดกลางทาง) ส่วนที่แบ่งไว้บันทึกเป็น `- Test parts:` ใน AGENTS.md ให้รอบหน้าใช้ต่อ ผลอยู่ที่ `docs/reviews/tests/<วันที่>-<commit>.md` (`Tested: <branch> at <commit>`, `Changes:` คือ change ที่รอบนี้ครอบ) ถ้าผ่านทั้งชุดที่ commit ที่ไม่มีงานค้าง Claude เติมช่อง Test ให้ทุกแถวที่ commit นั้นมีงานของ change แล้ว (ดูจากประวัติ git: change ที่ยังอยู่บน branch ของตัวเองยังไม่นับ) และติ๊ก gate task ให้ change ที่ archive ไปแล้วแต่ยังไม่อยู่ในรายการ Claude เพิ่มให้ก่อนรัน ถ้าล้ม แก้แล้ว commit แล้วสั่ง `/mflow:test since` ซึ่งรันส่วนที่ล้มกับ test ของสิ่งที่แก้ ไม่ต้องรันทั้งชุดใหม่
    - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
    - E2E test ไม่อยู่ในการรันทั้งชุด เมื่อหน้าจอนิ่งแล้วสั่ง `/mflow:e2e <หน้าจอ>` ให้ Claude เขียนหรือปรับ test ของหน้านั้นตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น (ไม่ใส่ชื่อหน้าจอ Claude บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด) อยากรัน E2E ทั้งหมดสั่ง `/mflow:test e2e` ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) เพราะค่าเริ่มต้นของ Playwright คือครึ่งหนึ่งของ CPU thread (10 ตัวบนเครื่อง 20 thread) ซึ่งเคยทำให้ driver การ์ดจอล่มจนเครื่อง restart test ที่ล้มเพราะหน้าจอผิด spec ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
+   - flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37): สั่ง `/mflow:e2e flow <capability>` Claude ไล่ขั้นของ flow จาก scenario ใน spec พร้อมหน้าจอและ role ให้ดูก่อน แล้วเขียน test ทีละเส้นทาง (รวมการส่งกลับ, reject, withdraw) ในเทสเดียวสลับคนด้วย browser context ต่อ role ซึ่งไม่เพิ่มจำนวน browser ลิงก์เชิญอ่านจาก fake mailer ของระบบ ตรวจว่า supplier เห็นคำถาม ไฟล์ที่ต้องแนบ กำหนดส่ง ตรงกับที่ตั้งไว้ (ส่วนที่ซ่อนก็ต้องไม่เห็น) ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองเปิดลิงก์งานหรือไฟล์ของคนแรกไม่ได้ ไม่เห็นใน list หรือการแจ้งเตือน ถ้า spec ยังไม่มี scenario เรื่องไหน Claude บอกว่าขาดอะไรพร้อม scenario ที่ควรเพิ่ม (ทำเป็น change) ไม่แต่งเอาเองใน test
    - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
 4. `/mflow:review pending` (0.35) ตรวจ change ที่ merge เข้า main แล้วตามลำดับในรายการ ทีละ change รายงานละ change (`docs/reviews/code/<วันที่>-<change>.md`, `Reviewed: <change> <base>..<end>`) diff ของแต่ละ change คือตั้งแต่ก่อน commit แรกที่แตะโฟลเดอร์ของ change (proposal) ถึง commit สุดท้าย (archive) ใช้ผล test จากช่อง Test ของแถวนั้นโดยไม่รันซ้ำ ได้ `approve` แล้วแถวย้ายไป `## Done` ได้ `changes-requested` แก้ใน branch `fix/<change>-review` เมื่อคุณสั่ง แล้ว `/mflow:test since` กับ `/mflow:review fix/<change>-review --short` context เยอะแล้ว Claude หยุดหลังรายงานที่เสร็จ ให้ `/clear` แล้วสั่ง `/mflow:review pending` อีกครั้ง ซึ่งเริ่มที่แถวถัดไป ชื่อ change ที่ archive แล้วก็ใช้เป็น target ได้ (`/mflow:review <ชื่อ change>`)
    - `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า Claude รัน `since` เอง (ถ้าต้องรันทั้งชุด Claude ถามครั้งเดียวว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
@@ -803,6 +804,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | briefing บอกว่า CLI ใช้ไม่ได้ config อ่านไม่ได้ หรือรู้สึกว่ามีอะไรผิด | `/mflow:help check setup` (ตรวจอย่างเดียว บอกวิธีแก้ทุกข้อ) |
 | จะเปลี่ยน stack ก่อน `/mflow:theme` (หลังจากนั้นต้องสร้าง kit และหน้าจอใหม่) | แก้ `## Stack` ใน AGENTS.md หรือรัน `/mflow:init` ซ้ำให้ถามใหม่ |
 | ลูกค้าส่งเอกสารหรือฉบับใหม่ | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` |
+| อยากใช้ business logic มาตรฐานของทีม (sign-in รหัสผ่าน OTP, จัดการบัญชี, สิทธิ์, อีเมล, audit) แทนการตอบคำถามเดิมซ้ำ | บอกในแชต "ใช้แพ็ก auth, users, permission, mail" แล้ว `/mflow:discuss sign-in` (`user-accounts`, `access-control`, `notifications`, `audit-history`) → approve → `/opsx:propose` เริ่มจาก `docs/decisions/packs/<ชื่อ>.md` (README หัวข้อแพ็ก) |
 | จะเลือก tech stack, library, ฐานข้อมูล, Docker หรือโครงสร้างโฟลเดอร์ | `/mflow:discuss tech-stack` แล้ว `/mflow:discuss code-structure` |
 | อยากรู้ว่าควร discuss หัวข้อไหนบ้าง | ดู `docs/decisions/discuss/AGENDA.md` หรือ `/mflow:discuss` (สร้างหรือเรียงใหม่ด้วย `/mflow:discuss agenda`) |
 | อยากเช็กว่า Claude เข้าใจเรื่องหนึ่งตรงกับที่คิด (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | `/mflow:discuss <หัวข้อ> [@ไฟล์]` |
@@ -841,6 +843,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | อยากรู้ว่า change ไหนยังไม่ได้ test หรือ review | เปิด `docs/reviews/pending.md` แล้วบน main สั่ง `/mflow:test` (ครั้งเดียวครอบทุกแถว) ตามด้วย `/mflow:review pending` |
 | test ทั้งชุดใช้เวลานาน อยากรันครั้งเดียวตอนเครื่องว่าง (apply รันเฉพาะ build, unit test และ test ของแต่ละ task กับ shared checks ตอนจบ ที่เหลือ `/mflow:test` รันครบ) | `/mflow:test` (`/mflow:test <ส่วน>` สำหรับบางส่วน) ไม่รวม E2E |
 | หน้าจอนิ่งแล้ว อยากได้ E2E test ของหน้านั้น (ไม่มีคำสั่งอื่นเขียนหรือรัน E2E) | `/mflow:e2e <หน้าจอ>` (E2E ทั้งหมด: `/mflow:test e2e`) |
+| อยากทดสอบ flow ที่มีหลายฝ่าย เช่น เชิญ supplier → ตอบ → กวาดข้อมูล → approve/reject/withdraw → acknowledge และให้แน่ใจว่า supplier เห็นตรงกับที่ตั้งค่า และไม่เห็นงานของเจ้าอื่น | `/mflow:e2e flow <capability>` |
 | อยากให้ apply ส่งงานเขียนโค้ดให้ subagent บน Sonnet 5.5 (ค่าเริ่มต้นปิด) หรือจะปิดกลับ | `/mflow:subagent on` แล้ว `/clear` / `off` (`--shared` ให้ทั้งทีม, `status` ดูสถานะ) ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียวให้บอกในข้อความ `/opsx:apply` |
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
@@ -852,7 +855,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.36.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.37.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -872,6 +875,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | หลัง `resume` Stop hook นับเป็น session ใหม่ | งานจาก session ก่อนที่ยังไม่ได้ลง log ให้สั่ง `/mflow:handoff` เอง |
 | STATUS.md ของโปรเจกต์ที่สร้างก่อน 0.34.1 ยังมี comment ใต้ `## Log` ที่บอกให้ย่อ entry เก่าเหลือบรรทัดเดียว | `/mflow:handoff` ครั้งถัดไปเปลี่ยน comment ให้ตาม template หรือแก้เอง ถ้า log ถูกย่อไปแล้ว entry เดิมยังอยู่ใน git (`git show <commit>:STATUS.md`) |
 | wireframe ตัวอักษรที่มีภาษาไทย ขอบขวาไม่ตรงกัน เพราะสระบน/ล่างและวรรณยุกต์ไม่กินช่องในฟอนต์ความกว้างคงที่ | Claude จะวาดกล่องแบบเปิดด้านขวา หรือวางข้อความไทยไว้ท้ายบรรทัด ถ้ามีหน้าจอจริงแล้วจะใช้ภาพหน้าจอแทน |
+| แพ็กชุดแรก (0.37) ทำจากโปรเจกต์เดียว (StemHub) และยังไม่เคยใช้กับโปรเจกต์ที่สอง | ข้อที่ Claude ตอบจากแพ็กอยู่ในตาราง "จากแพ็ก" ของเอกสาร discuss ทุกข้อ อ่านข้อที่ **ถ้าผิด** เป็นแก้ยาก แล้วแย้งด้วย `> ความเห็น:` ได้ |
 | mindmap, timeline และ journey ของ Mermaid เป็นชนิดใหม่ บาง preview ยังแสดงไม่ได้ | Claude ใช้ flowchart, sequence, state และ ER เป็นหลัก การเตือน label ที่จะพังตรวจเฉพาะ flowchart |
 | คำสั่งแปลงเอกสารลูกค้าเป็นข้อความก่อน `consult` ต้องมี pandoc หรือ python (python-docx, openpyxl, pypdf) | ติดตั้งตามหัวข้อ 3 ถ้าแปลงไม่ได้ brief จะบอก AI ตัวอื่นว่าไฟล์นั้นอ่านไม่ได้ |
 | โหมด `preview` และ `port` ยังไม่เคยรันผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้มาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูทีละขั้น โดยเฉพาะตอน port ที่ต้องเทียบ style guide กับ preview |

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.36.1 |
+| เวอร์ชันที่อธิบาย | 0.37.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -354,6 +354,20 @@ flowchart TD
 | FR-221 | E2E นอก Claude Code (0.33): skill `mflow-test` ของเครื่องมืออื่นไม่รัน E2E เลย เพราะไม่มี hook `e2e-guard` จำกัดจำนวน browser ให้ไปรัน `/mflow:test e2e` ใน Claude Code | มีแล้ว |
 | FR-187 | `/mflow:challenge @ไฟล์ [--focus] [--to]` ให้ AI หลายตัวหาสถานการณ์ที่ทำให้แบบหรือเอกสารล้มเหลวก่อนมีโค้ด (สัญญา `consult-challenge`: ข้อความที่ถูกทักท้วง → สถานการณ์ → ผลที่ควรเป็น → สิ่งที่ผิดพลาดหรือยังตอบไม่ได้ → หลักฐาน → การทดสอบหรือการแก้ที่เสนอ และส่วนที่ตรวจแล้วยังยืน ไม่มีโควตาจำนวน) session ปักหมุด hash ของไฟล์เป้าหมาย และบอกเมื่อไฟล์ถูกแก้หลังเริ่ม สรุปที่ `docs/ai/challenge/CH-NNN/summary.md` ไม่มีสำเนาของเป้าหมาย ลิงก์กลับเฉพาะแบบเสนอที่ mflow เขียน (`docs/ai/design/DS-NNN/proposal.md`) ไม่แก้เอกสาร discuss ที่ freeze, `openspec/specs/` หรือเอกสารของผู้ใช้ | มีแล้ว |
 
+### 6.16 แพ็ก business logic (packs, 0.37)
+
+ที่มา: `docs/mflow-pack-proposal.md` (คำตอบ 1 a, 2 b, 3 b, 4 b, 5 a)
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-230 | แพ็กคือคำตอบที่ทีมตัดสินแล้วของเรื่องที่ทุกระบบมี เป็นเอกสารล้วน ไม่ผูก stack อยู่ใน `plugins/mflow/packs/<ชื่อ>/` เจ็ดไฟล์: `pack.md` (frontmatter name, version, title, prefix, requires, topics), `decisions.md` (ข้อละห้าบรรทัด: คำตอบ เหตุผล ถ้าผิด ถามเมื่อ และตัวเลือกอื่นเมื่อถามได้), `params.md`, `requirements.md` (OpenSpec), `data.md`, `screens.md`, `checks.md` ชุดแรกห้าแพ็ก: `audit`, `auth`, `users`, `permission`, `mail` ทำจาก spec ปัจจุบันของ StemHub (คำตอบสุดท้ายของผู้ใช้) | มีแล้ว |
+| FR-231 | `packs.mjs check` ตรวจรูปแบบทุกไฟล์ requires ที่ไม่มีหรือวน topic ที่สองแพ็กอ้างซ้ำ placeholder และเลขข้อที่ไม่มีจริง และคำต้องห้าม (ชื่อลูกค้าและโปรเจกต์ เลขจอ เลข requirement และชื่อเอกสารของลูกค้า เลข decision/task ของโปรเจกต์ เทมเพลตแบบมีเลข IP อีเมลนอก example.com/org ชื่อเล่นบุคคล) เพราะแพ็กเผยแพร่ใน repo public test ทุกครั้งรัน check กับแพ็กที่ส่งไปกับ plugin | มีแล้ว |
+| FR-232 | โปรเจกต์เลือกแพ็กเองใน `.mflow/config.json` `packs` (ไฟล์ที่ commit) ผู้ใช้สั่งในแชต แล้ว `packs.mjs use` เพิ่มชื่อพร้อมแพ็กที่ requires `selected` บอกแพ็กที่เลือก ลำดับตาม requires หัวข้อ discuss ของแต่ละแพ็ก และโฟลเดอร์ของแพ็กที่เติมคำตอบแล้ว (ข้างโฟลเดอร์ discuss: `docs/decisions/packs/`) หัวข้อของแพ็กที่ยังไม่เลือก Claude บอกตอนกำหนดหัวข้อ และผู้ใช้เลือก | มีแล้ว |
+| FR-233 | `/mflow:discuss` หัวข้อที่มีแพ็กอ่านเฉพาะ `pack.md`, `decisions.md`, `params.md` ของแพ็กนั้น ลำดับที่มา: เอกสารลูกค้าและคำของผู้ใช้ → แพ็ก → knowledge base → ข้อเสนอของ Claude ข้อ `ไม่ถาม` ที่เอกสารลูกค้าไม่พูดถึงตอบเองในตารางของหัวข้อ 2 (`[ที่มา: pack <ชื่อ> §<ID>]`) ไม่ขึ้นเป็น D เอกสารลูกค้าที่ต่างจากแพ็กชนะ (แสดงค่าของแพ็กในวงเล็บ) D มีเฉพาะข้อ `ทุกโปรเจกต์` ข้อที่เงื่อนไขถามเมื่อเป็นจริง หรือเอกสารลูกค้าขัดกันในข้อแก้ยาก ตัวเลือก a) คือคำตอบของแพ็ก | มีแล้ว |
+| FR-234 | ตอน approve เขียน `docs/decisions/packs/<ชื่อ>.md` หนึ่งไฟล์ต่อแพ็ก จากไฟล์ approve ของแพ็ก แทน placeholder ทุกตัวด้วยค่าและคำของโปรเจกต์ requirement ที่ D หรือเอกสารลูกค้าเปลี่ยนถูกเขียนใหม่ และ `openspec/config.yaml` (`rules.proposal`) ให้ `/opsx:propose` เริ่ม change ของ capability นั้นจากไฟล์นี้ ไม่ถามซ้ำสิ่งที่ตัดสินแล้ว | มีแล้ว |
+| FR-235 | AGENDA.md มีแถวของทุกหัวข้อของแพ็กที่เลือก แม้เอกสารลูกค้าไม่พูดถึง เหตุผล `มีแพ็ก <ชื่อ>: ถามเฉพาะข้อของโปรเจกต์` | มีแล้ว |
+| FR-236 | `/mflow:e2e flow <capability หรือ scenario>` (0.37) เขียน E2E ของ flow ที่ข้ามหลายหน้าจอและหลาย role จาก scenario ใน `openspec/specs/` และ change ที่เปิดอยู่ แสดงลำดับขั้น หน้าจอ และ role ให้ผู้ใช้ดูก่อนเขียน หนึ่ง test ต่อหนึ่งเส้นทาง (รวมทุกการส่งกลับ, reject, withdraw) browser context ต่อ role ในเทสเดียว (ไม่เพิ่มจำนวน browser ตามเพดาน `e2eMaxWorkers`) ลิงก์ที่ส่งทางอีเมลอ่านจาก fake mailer, outbox หรือ test endpoint ของโปรเจกต์ ไม่ใช้อีเมลจริง ตรวจว่าค่าที่ฝั่งส่งตั้ง (คำถาม, ไฟล์ที่ต้องแนบ, กำหนดส่ง, ส่วนที่ซ่อน) ฝั่งรับเห็นตรงกัน คำตอบและไฟล์ที่ส่งกลับไปถึงคลังและเอกสารที่สร้าง ทุกการตัดสินใจแสดงสถานะ เหตุผล และปุ่มที่เหลือทั้งสองฝั่ง และบัญชีที่สองของฝ่ายภายนอก (supplier B) ไม่เห็นงานของ supplier A ทั้ง list, ค้นหา, ตัวเลข, ลิงก์ตรง, ลิงก์ไฟล์, การแจ้งเตือน (ตรวจ API ด้วยเมื่อหน้าแค่ซ่อน) ไฟล์ upload จาก fixture และตรวจไฟล์ที่ระบบสร้าง รอขั้นเบื้องหลังด้วยสถานะ ไม่ใช้ sleep scenario ที่ spec ไม่มีรายงานเป็นสิ่งที่ขาดพร้อม scenario ที่ควรเพิ่ม ไม่แต่งใน test บันทึกผลเป็น `Scope: e2e flow <name>` `rules.specs` ของ `openspec/config.yaml` ให้ change ที่มีการส่งต่อระหว่าง role มี Scenario ของสิ่งที่ฝั่งรับเห็น และของฝ่ายภายนอกรายที่สองที่ไม่เห็นอะไรเลย `/mflow:review` check 1 นับ Scenario ที่ขาดเป็น major ที่มา: flow survey/invite ที่มีหลายฝ่ายและต้องตรวจว่า supplier เห็นตรงกับที่ตั้งค่าและไม่เห็นงานของเจ้าอื่น | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -432,8 +446,10 @@ mflow-marketplace/
     │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
     │   ├─ pending.mjs               ← รายการรอ test และ review: status, range, add, init, tick-test, tick-review
     │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
+    │   ├─ packs.mjs                 ← แพ็ก business logic: list, check (รูปแบบ, requires, คำต้องห้าม), selected, use
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
     ├─ skills/<20 คำสั่ง>/SKILL.md   (+ references/, assets/)
+    ├─ packs/<ชื่อ>/                 ← แพ็ก business logic (audit, auth, users, permission, mail): 7 ไฟล์ต่อแพ็ก, รูปแบบใน packs/README.md
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -482,6 +498,7 @@ mflow-marketplace/
   "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 },
   "applySubagent": { "enabled": false },
   "e2eMaxWorkers": 2,
+  "packs": ["audit", "auth", "users", "permission", "mail"],
   "asBuilt": {
     "openapi": "docs/api/openapi.yaml",
     "facts": { "tests": ["<regex ที่มี capture group เดียว>"], "routes": ["…"] }
@@ -505,6 +522,8 @@ mflow-marketplace/
 ค่าของ folder ข้างบนเป็นค่าเริ่มต้น โปรเจกต์ตั้งชื่ออื่นได้ (FR-07b)
 
 ไฟล์นี้ parse ไม่ได้ ค่าผิดชนิด (เช่น `sourceDir` ไม่ใช่ข้อความ) หรือ folder ที่ออกนอกโปรเจกต์ (path แบบ absolute, ขึ้นต้นด้วยชื่อไดรฟ์, ใช้ `..` จนพ้น root หรือผ่าน symlink/junction ที่ชี้ออกไป รวมถึง `.mflow/` เอง: ไฟล์นี้และลิงก์มากับ repo และ script เขียนลง folder เหล่านี้) คำสั่ง mflow จะหยุดและบอกสาเหตุ scaffold ตรวจทุกไฟล์ที่จะเขียนก่อนเริ่ม (ลิงก์ที่ชี้ไปไฟล์ที่ยังไม่มีก็นับเป็นออกนอก) แทนการใช้ค่าเริ่มต้นเงียบๆ (NFR-11) ไฟล์ว่างใช้ค่าเริ่มต้น
+
+`packs` (0.37) คือแพ็กที่โปรเจกต์เลือก ค่าเริ่มต้นว่าง ตั้งด้วย `packs.mjs use <ชื่อ>` ซึ่งเพิ่มแพ็กที่ requires ให้เอง ชื่อต้องเป็น kebab-case (FR-232)
 
 `applySubagent` ตั้งด้วย `/mflow:subagent on --shared` ส่วนค่าเฉพาะเครื่องอยู่ใน `.mflow/local.json` (รูปแบบเดียวกัน ไม่ commit) และทับค่าในไฟล์นี้
 
@@ -642,3 +661,5 @@ mflow-marketplace/
 | 3 | ตรวจ `openspec/specs/` หลัง archive อัตโนมัติ | เจอ R-01 จริง |
 | 4 | ยืนยันคำสั่ง opencode/gemini แล้วเปลี่ยนเป็น `verified: true` | ใช้ tool นั้นจริง |
 | 5 | ทดสอบคำสั่ง PowerShell บน Windows จริง | ก่อนใช้ delegate บน Windows ครั้งแรก |
+| 6 | แพ็กเฟส 2: `/mflow:pack list \| extract <ชื่อ> --from <โปรเจกต์>`, `/mflow:init` ถามว่าใช้แพ็กไหน, อัปเดตโปรเจกต์เมื่อแพ็กขึ้นรุ่นใหม่ | หลังโปรเจกต์ที่สองใช้แพ็กแล้ว (กติกา 2–3 ครั้ง) |
+| 7 | แพ็กเฟส 3: ชั้น stack ต่อ profile (`packs/<ชื่อ>/stack/<profile>.md`) และแพ็ก `settings`, `upload`, `api`, `approval`, `import-export` | หลังเฟส 2 |

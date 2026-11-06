@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.36)
+## คำสั่ง (v0.37)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -40,6 +40,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/decisions/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
+| | `/mflow:discuss <หัวข้อ>` กับแพ็ก (0.37) | หัวข้อที่มีแพ็กที่โปรเจกต์เลือก (`sign-in`, `user-accounts`, `access-control`, `notifications`, `audit-history`) ตอบข้อที่แพ็กตัดสินไว้แล้วเอง ถามเฉพาะข้อของโปรเจกต์ เลือกแพ็กด้วยการบอกในแชต เช่น "ใช้แพ็ก auth, users" (ดูหัวข้อแพ็กด้านล่าง) |
 | | `/mflow:discuss tech-stack` / `code-structure` | สองหัวข้อแรกของทุกโปรเจกต์ (ก่อน `/mflow:theme`): แยก web / API / mobile, framework, library ที่เป็น open source และตรวจ licence แล้ว, PostgreSQL + EF Core, Docker, ตัวเสริมที่ใส่ภายหลัง (Redis, queue) และโครง solution แยก layer ตามมาตรฐานของทีม (อ่านจาก knowledge base เช่น Graph Brain ถ้าเชื่อมไว้) |
 | | `/mflow:discuss agenda [skip <slug> <เหตุผล>]` | สร้างหรือเรียง `docs/decisions/discuss/AGENDA.md` ใหม่: หัวข้อที่ควร discuss พร้อมเหตุผล ที่มา และควรคุยก่อนขั้นไหน (capture และ screen inventory เพิ่มให้เอง สถานะอัปเดตเอง) เป็นคำแนะนำ ไม่บังคับ |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, คอลัมน์ไอคอนที่เทียบกันระหว่างแถว, `QuickView` ดูรายละเอียดใน Dialog หรือ SidePanel โดยไม่เปลี่ยนหน้า, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้าตามาตรฐานของ mflow (house style: sidebar สีกรมท่า, top bar สีขาวมีช่องค้นหา กระดิ่ง ป้ายสาขา และผู้ใช้, สีฟ้า `#0ea5e9`, ชุดสีสด 10 เฉดให้สถานะ avatar การ์ด KPI และไอคอนประเภท, ฟอนต์ Inter + Noto Sans Thai, ไอคอน Font Awesome 6) ปรับสีตาม CI ของลูกค้าได้ (ใช้ skill `frontend-design` ช่วยถ้าติดตั้งไว้), หน้า style guide, กฎ UI สำหรับ agent; `update look` ทำหน้าตาใหม่, `update responsive` และ `update components` เติมส่วนที่ kit ยังไม่มี |
@@ -61,7 +62,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:review [branch \| pending [<change>]] [--short]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) เต็มสำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ไม่ต้อง review ถ้าแก้แค่เอกสาร style หรือข้อความ label |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
-| | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]]` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียวแล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
+| | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]] | flow <capability>` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียว หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37: เชิญ supplier → ตอบ → กวาดข้อมูล → ส่งกลับ/เก็บเข้าคลัง → สร้าง doc → approve/reject/withdraw → acknowledge) แล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด ย้าย block เก่าของ `## Now` และ log เก่าไป `docs/status-log.md` คำต่อคำด้วย `status-trim.mjs` (0.36.1) (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -129,7 +130,7 @@ E2E test ที่เขียนตอนหน้าจอยังเปล�
 
 - task จบด้วย unit test เท่านั้น user flow พิสูจน์ด้วย unit test ของกฎและ service ที่อยู่เบื้องหลัง `/opsx:apply`, `mflow:dev`, `/mflow:screen` และ `/mflow:test` แบบทั้งชุดไม่เขียนและไม่รัน E2E test
 - task เก่าที่สั่งให้รัน Playwright: apply ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E on request (/mflow:e2e <หน้าจอ>)` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และบอกชื่อหน้าจอที่ change แตะ
-- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
+- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:e2e flow <capability>` (0.37) เขียน test ทีละเส้นทางของ flow ที่ข้ามหลายหน้าและหลายฝ่าย ในเทสเดียวใช้ browser context ต่อ role (ไม่เพิ่มจำนวน browser) ลิงก์เชิญจาก fake mailer ของระบบ ตรวจว่าฝั่งรับเห็นสิ่งที่ฝั่งส่งตั้งไว้ตรงกัน ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองไม่เห็นงานของคนแรก (list, ลิงก์ตรง, ไฟล์, การแจ้งเตือน) scenario ที่ spec ยังไม่มีรายงานเป็นสิ่งที่ขาด ไม่แต่งเอง `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
 - test ที่ล้มเพราะหน้าจอเปลี่ยนโดยตั้งใจถูกปรับตามของใหม่ ถ้าล้มเพราะหน้าจอผิด spec test ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
 - `/mflow:review` ไม่นับการไม่มี E2E test เป็นข้อบกพร่อง แค่บอกหน้าจอที่ยังรอ (`E2E on request`)
 
@@ -144,8 +145,28 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - `rules.proposal` มีกฎขนาด change (0.35): หนึ่ง change คือหนึ่ง feature ทั้งฝั่ง server และหน้าจอ แยกเฉพาะเมื่อจะเกินราว 25 task หรือคุณสั่ง และแยกตาม feature (แต่ละส่วนมีทั้ง server และหน้าจอ) ไม่แยก API กับหน้าจอเป็นคนละ change ส่วนที่เหลือเขียนไว้ใต้ Later changes ให้คุณสั่ง propose ต่อ apply ที่ยาวไม่ต้องแยก เพราะ `/opsx:apply` ทำต่อใน session ใหม่จาก task แรกที่ยังไม่ติ๊ก (0.34 แยกเมื่อเกิน 15 task หรือแก้โค้ดกลางพร้อมหน้าจอ)
 - `operations.apply.guidance` (0.35): จบ apply เพิ่มแถวลง `docs/reviews/pending.md` แทนการบอกให้สั่ง `/mflow:test`, `/mflow:review` หรือ `/mflow:e2e` ทั้งในคำตอบและใน STATUS.md
 - คำถามที่ให้คุณเลือก (0.34.2) ทั้งตอน propose, ใน briefing ทุก session และใน AGENTS.md: มีเลขข้อ ตัวเลือกเป็น `a)` `b)` `c)` ไม่ใช่ ก ข ค ตอบบรรทัดเดียวแบบ `1 a, 2 b, 3 a` โดยไม่ต้องสลับภาษาแป้นพิมพ์
+- `rules.proposal` (0.37): ถ้ามีแพ็กที่เติมคำตอบแล้ว (`docs/decisions/packs/<ชื่อ>.md`) จากเอกสาร discuss ที่อนุมัติ change ของเรื่องนั้นเริ่มจากไฟล์นี้ ไม่ถามซ้ำสิ่งที่ตัดสินแล้ว และบอกทุกจุดที่ต่างไปพร้อมเหตุผล
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
+
+## แพ็ก business logic (0.37)
+
+แพ็กคือคำตอบที่ทีมตัดสินไว้แล้วของเรื่องที่ทุกระบบมี เป็นเอกสาร ไม่ใช่โค้ด จึงใช้ได้ทุก stack แต่ละแพ็กมีข้อตัดสินใจพร้อมเหตุผล ค่าตัวเลขเริ่มต้น requirement แบบ OpenSpec พจนานุกรมข้อมูล หน้าจอ และจุดทดสอบ ชุดแรกทำจาก spec ของ StemHub ที่สร้างและทดสอบแล้ว
+
+| แพ็ก | เรื่อง | หัวข้อ discuss | ต้องมีก่อน |
+|---|---|---|---|
+| `audit` | ผู้ทำและเวลา, soft delete, Activity Log | `audit-history` | — |
+| `mail` | คิวอีเมล ตัวส่ง เทมเพลต | `notifications` | audit |
+| `auth` | เข้าระบบ รหัสผ่าน เซสชัน OTP | `sign-in` | audit, mail |
+| `permission` | กลุ่ม สิทธิ์ต่อหน้าจอ ขอบเขตข้อมูล | `access-control` | auth, audit |
+| `users` | จัดการบัญชี เชิญ รีเซ็ตรหัส Profile | `user-accounts` | auth, permission, audit, mail |
+
+1. เลือกแพ็ก: บอกในแชต เช่น "ใช้แพ็ก auth, users" Claude รัน `packs.mjs use` ซึ่งเขียนลง `.mflow/config.json` (`packs`) และเพิ่มแพ็กที่ต้องมีก่อนให้เอง
+2. `/mflow:discuss sign-in` (หรือหัวข้ออื่นในตาราง): ข้อที่แพ็กตัดสินไว้และเอกสารลูกค้าไม่พูดถึง Claude ตอบเองในตาราง "จากแพ็ก" ของหัวข้อ 2 พร้อมป้าย `[ที่มา: pack auth §AUTH-D01]` เอกสารลูกค้าที่ระบุต่างไปชนะเสมอ ถามคุณเฉพาะข้อที่เป็นของโปรเจกต์ (เช่น มีกี่พอร์ทัล เปิด OTP ไหม) แย้งข้อไหนก็ได้ด้วย `> ความเห็น:`
+3. `/mflow:discuss <NN> approve`: เขียนแพ็กที่เติมคำตอบของโปรเจกต์แล้วไว้ที่ `docs/decisions/packs/<ชื่อ>.md` แล้ว `/opsx:propose` เริ่ม change จากไฟล์นั้น
+4. ตรวจแพ็กหลังแก้: `node plugins/mflow/scripts/packs.mjs check` (รูปแบบ, requires, และคำที่ห้ามมีเพราะ repo เป็น public เช่น ชื่อลูกค้า เลขจอ เลขเอกสารลูกค้า IP อีเมลจริง)
+
+ยังไม่มีคำสั่ง `/mflow:pack` จนกว่าจะใช้แพ็กครบสองโปรเจกต์ (เฟส 2: สร้างแพ็กใหม่จากโปรเจกต์ที่เสร็จแล้ว) ที่มาและแผน: `docs/mflow-pack-proposal.md` ใน repo ของ marketplace
 
 ## Flow ประจำวัน
 
@@ -188,8 +209,10 @@ mflow/
 │   ├─ review-units.mjs    ← หน่วยตรวจ: ร่าง, ตรวจว่าทุกไฟล์มีหน่วย, ไฟล์ข้อเท็จจริงที่ดึงจากโค้ด
 │   ├─ pending.mjs         ← รายการรอ test และ review (docs/reviews/pending.md): range ของ change, ติ๊ก Test ตามประวัติ git, ติ๊ก Review
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
+│   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
+├─ packs/<ชื่อ>/           ← แพ็ก business logic (audit, auth, users, permission, mail) รูปแบบใน packs/README.md
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์
 ```
 

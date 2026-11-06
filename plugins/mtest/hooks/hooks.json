@@ -1,0 +1,20 @@
+{
+  "description": "mtest: brief the session on the newest test run, flow coverage and unreviewed commits; refuse a Playwright run that could start more browsers than the project allows.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start.mjs\"", "timeout": 30 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/e2e-guard.mjs\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

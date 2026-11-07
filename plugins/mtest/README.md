@@ -29,7 +29,7 @@
 | `/mtest:test [since \| e2e \| <part> [filter] \| triage]` | รันเทสทั้งชุด (ไม่รวม E2E) ทีละ part แล้วบันทึกลง `mtest/runs/`; `since` รันเฉพาะที่ต้องรันหลัง commit ใหม่; `e2e` เมื่อสั่ง; `triage` วิเคราะห์เทสที่ fail |
 | `/mtest:review [since \| <branch> \| <from>..<to> \| pr <n> \| --uncommitted] [--short]` | review diff เทียบกฎใน AGENTS.md, requirement/ADR, flow ที่โดน และผลเทสที่บันทึกไว้; `since` = ทุก commit ตั้งแต่ review ครั้งก่อน |
 | `/mtest:e2e [<screen> \| flow <flow>]` | เขียนและรัน E2E ของหน้าเดียวหรือ flow เดียว จำกัด browser ตาม `e2eMaxWorkers` |
-| `/mtest:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.3) สั่งเมื่อจะปล่อยเครื่องไว้ เวลาไหนก็ได้ (ชื่อ night เป็นแค่ชื่อ) แล้วรันเองจนจบโดยไม่มีใครดู: เทสทั้งชุด → review → แก้ใน branch แล้วเทสและ review ซ้ำ (ไม่เกิน `--rounds` รอบ) → เขียน E2E ที่ขาด → รัน E2E ทั้งหมด → ตรวจ → รายการให้ดูตอนกลับมาใน `mtest/STATUS.md` ไม่ merge เอง, push เฉพาะบน web |
+| `/mtest:night [--until HH:MM] [--rounds n] [--no-e2e] [--stack]` | (0.3) สั่งเมื่อจะปล่อยเครื่องไว้ เวลาไหนก็ได้ (ชื่อ night เป็นแค่ชื่อ) แล้วรันเองจนจบโดยไม่มีใครดู: เทสทั้งชุด → review → แก้ใน branch แล้วเทสและ review ซ้ำ (ไม่เกิน `--rounds` รอบ) → เขียน E2E ที่ขาด → รัน E2E ทั้งหมด → ตรวจ → รายการให้ดูตอนกลับมาใน `mtest/STATUS.md` ไม่ merge เอง, push เฉพาะบน web `--stack` (0.3.2) เปิด stack ที่ E2E ต้องใช้แล้วปิดเฉพาะที่เปิดเอง |
 | `/mtest:help [check setup]` | สถานะ + คำสั่งถัดไป; `check setup` ตรวจการตั้งค่า |
 
 รันจาก terminal ได้โดยไม่ต้องเปิด Claude: `node <runner>/run.mjs all` (ทั้งชุด) หรือ `--scope e2e` —

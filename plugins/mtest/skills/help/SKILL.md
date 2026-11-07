@@ -21,6 +21,7 @@ Answer in the user's language, in three short parts:
 | `/mtest:test` | Runs the whole suite (without E2E) part by part and records it against the commit; `since` for a later commit; `e2e` on request; `triage` explains failures |
 | `/mtest:review` | Reviews the commits since the last review, a branch, a range or a pull request against AGENTS.md, the requirements and the flows, reusing the test record |
 | `/mtest:e2e` | Writes and runs the E2E tests of one screen or one flow, at most `e2eMaxWorkers` browsers at once |
+| `/mtest:night` | Started by the user for the night (terminal with `claude --permission-mode auto`, or the web): the whole suite, the review, the fixes on branches with test and review again up to a round cap, the missing E2E tests, every E2E test, a check and the morning list; never merges, pushes only on the web |
 | `/mtest:help` | This list; `check setup` checks the setup |
 
 From a terminal, without Claude, in the project folder: `node "<runner>" all` runs the whole suite and writes the same record (`--scope e2e` for the E2E parts). Write `<runner>` out as the `runner` path `plan` printed, so the line can be pasted as it is; when `plan` also printed `copy` (the project's copy for the web), give that form too, `node .claude/skills/mtest/scripts/run.mjs all`, which stays the same across plugin upgrades.

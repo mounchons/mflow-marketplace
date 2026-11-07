@@ -45,7 +45,7 @@ test("every plugin-root path and relative link in the skills, hooks and template
 
 test("every skill is invoked by hand and says what it takes", () => {
   const skills = files.filter((f) => /^skills\/[^/]+\/SKILL\.md$/.test(f));
-  assert.deepEqual(skills.map((s) => s.split("/")[1]).sort(), ["e2e", "flow", "help", "init", "review", "test"]);
+  assert.deepEqual(skills.map((s) => s.split("/")[1]).sort(), ["e2e", "flow", "help", "init", "night", "review", "test"]);
   for (const rel of skills) {
     const front = text(rel).split(/^---$/m)[1] ?? "";
     const name = rel.split("/")[1];

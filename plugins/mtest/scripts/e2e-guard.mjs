@@ -106,7 +106,7 @@ function main() {
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: `${reason} Run it again with --workers=${cap} or fewer (the cap is e2eMaxWorkers in .mtest/config.json), and only when the user called /mtest:e2e or /mtest:test e2e.`,
+      permissionDecisionReason: `${reason} Run it again with --workers=${cap} or fewer (the cap is e2eMaxWorkers in .mtest/config.json), and only when the user called /mtest:e2e, /mtest:test e2e or /mtest:night.`,
     },
   }));
 }

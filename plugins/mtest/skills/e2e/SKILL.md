@@ -16,10 +16,11 @@ user's call.
 - The E2E part in `.mtest/config.json` (`kind: "e2e"`), its folder and its Playwright config (helpers, fixtures, base URL, how it starts the app, `workers`). None: there is no E2E framework yet; say so and stop. Setting one up is a change of its own when the user asks for it.
 - **No argument:** list the screens (the web app's routes or pages) and the flows with E2E cases waiting (`node "${CLAUDE_PLUGIN_ROOT}/scripts/flows.mjs" check`, `e2ePending`), each with its E2E test files (search the E2E folder for the route, the page's test ids or the case ids) and when the test files and the screen's files last changed (`git log -1`), so the user sees which have no tests and which changed after their tests. Ask which one, and stop.
 - **`<screen>`:** its route, the roles that may open it (from the app's menu and permission code), its actions, and the flow cases that cross it.
-- **`flow <flow>`:** the `e2e` cases of that flow doc. When a step sets something once (a system setting, a master list, a switch, a template, a required field, a limit) that another person's web shows, list for each such setting where it is set, which web, screens and people show it, each of its states (on and off, each value), whom it reaches, and when the flow doc says it takes effect.
-- **Several webs:** when the flow's people work on different web apps (an admin web and a supplier web, each with its own address or sign-in), find each web's base URL and how it starts for E2E in the Playwright config and in AGENTS.md. Missing: ask the user, and write it under `## Testing (mtest)` in AGENTS.md.
+- **`flow <flow>`:** the `e2e` cases of that flow doc. When a step sets something once (a system setting, a master list, a switch, a template, a required field, a limit) that another person's web shows, list for each such setting where it is set, which web, screens and people show it (the web from the app folder its route lives in), each of its states (on and off, each value), whom it reaches, and when the flow doc says it takes effect.
+- **Several webs:** when the flow's people work on different web apps (an admin web and a supplier web, each with its own address or sign-in), find in the Playwright config and in AGENTS.md each web's base URL, how it starts for E2E (the config's `webServer` list, or a stack command such as `docker compose … up -d`), and how each Playwright project reaches the API: mocked in the test (`page.route`, a mock server) or the real API. Missing: ask the user, and write it under `## Testing (mtest)` in AGENTS.md.
+- **Where each part of a setting is proven.** When the projects of each web mock the API, a setting that crosses webs is proven in three parts, each a case of the flow with its own test: (1) the admin web sends it (`e2e`: that page asserts the request it sends, in each state); (2) the API joins it (`integration`: what is saved through the admin endpoint is what the receiver's endpoint answers, in each state, to whom it reaches and not to the others, and from when); (3) the receiver web shows it (`e2e`: that page draws each state from a mocked answer typed by the project's API contract, with the same values as part 1, from one shared constant or fixture). List, for each setting, the case and test of each part or `missing`. A missing part 2 is a case to add at `integration` level; E2E does not stand in for it. A joined test (both webs on the real API) is one per setting, for its main path, in the project that runs the real API, and only when the project has one.
 
-Done when: one target is chosen, with its cases and its existing test files listed.
+Done when: one target is chosen, with its cases and its existing test files listed, and for a setting across webs the case and test of each of its three parts or `missing`.
 
 ## 2. Write
 
@@ -58,25 +59,37 @@ the supplier acknowledges is proven in the browser one path per test, the people
 - **Data**: each test makes its own records with unique names, so paths do not depend on each other,
   unless the project's E2E tests are written as one ordered story on one database.
 - **Several webs**: when the people work on different web apps, open each person's context on its own
-  web (`browser.newContext({ baseURL, storageState })` with that web's base URL and that web's saved
-  login), never every context on the one `use.baseURL`. Both webs run before the test: from the
-  Playwright config's `webServer` list, or already running as AGENTS.md says. A link in a mail that
-  leads to the other web is followed as it is, and the test asserts it opens on that web's address.
-  Still one browser per worker.
+  web (`browser.newContext({ baseURL, storageState })` with that web's base URL and that web's login: a
+  saved state, or the project's sign-in helper that signs in through the API and then opens the page),
+  never every context on the one `use.baseURL`. Two webs on one host with different ports share their
+  cookies, because cookies do not keep ports apart: a context per web keeps the sessions apart, and one
+  context for both works only when the webs name their cookies differently. Both webs run before the
+  test: from the Playwright config's `webServer` list, or the stack command AGENTS.md names; a stack that
+  is not up is said so before the run, not left to fail. A link in a mail that leads to the other web is
+  followed as it is, and the test asserts it opens on that web's address. Still one browser per worker.
+- **Calls to the API from the test** (to arrange data, to check what a page only hides, to put things
+  back) go through the project's helper that sends what the web sends (its session and CSRF token), or
+  the API refuses them before they reach the check the test means to prove.
 - **A setting that reaches another web**: for a value a person sets once for everyone or for a group
-  (not a value of one record, which the hand-offs above cover), test each state: set it on the admin
-  side, then on the receiver's page, reloaded or opened again after the change, assert it shows exactly
-  as set; then turn it off or change it, and assert the page follows, and that what was turned off is
-  gone by its direct link too, with the API answer checked when the page only hides it. Wait for the
-  new state within the project's timeout, never a fixed sleep. A page that does not follow is a defect,
-  unless the flow doc says when the change takes effect (a cache's time, the next sign-in); then test
-  that. A setting for some suppliers only is also asserted absent for supplier B outside it.
-- **Shared settings, one test at a time**: a setting the whole system reads changes what other tests
-  see while they run, since several workers run at once. Prefer a setting scoped to records the test
-  made (its own supplier group or category). When it can only be system-wide, keep such tests in one
-  file in serial mode, run apart from the other E2E files (their own Playwright project, which the
-  others list in `dependencies`), and put the value back as it was in `afterAll` or a `finally`, even
-  when a test fails. Never leave a changed shared setting behind.
+  (not a value of one record, which the hand-offs above cover), test each state. In a project on the
+  real API: set it on the admin web, then on the receiver's page, reloaded or opened again after the
+  change, assert it shows exactly as set; turn it off or change it, and assert the page follows, that
+  what was turned off is gone by its direct link too, and the API answer when the page only hides it. In
+  a project that mocks the API, setting it on one page and looking at the other shows only the mock:
+  write parts 1 and 3 of §1 instead, the same values in both. Wait for the new state within the
+  project's timeout, never a fixed sleep. A page that does not follow is a defect, unless the flow doc
+  says when the change takes effect (a cache's time, the next sign-in); then test that. A setting for
+  some suppliers only is also asserted absent for supplier B outside it.
+- **Data every test reads** (settings, groups' grants and scopes, templates, seed records, the test
+  clock): a test that changes it changes what the other tests see while they run. Prefer a value scoped
+  to records the test made (its own group or category). Otherwise the test goes in a file of tests that
+  write (such as `*.writes.spec.ts`), run in a Playwright project of its own after the read-only ones:
+  that project lists the read-only project in `dependencies` and has `workers: 1`, because serial mode
+  alone keeps one file's tests in order but still runs files side by side. Each test puts back what it
+  changed in a `finally` (or `afterEach`), never only at the end of the test body, where a failure
+  midway leaves it changed for every later test and run. Records a test makes carry a run stamp in their
+  names (`Date.now().toString(36)`), so a second run on the same database does not collide, and records
+  the rules forbid deleting are cleaned up the way the rules allow (withdraw, then reject).
 - Name each test after its case (`C07 supplier B cannot open supplier A's survey`) and write it into the
   case's Test cell.
 

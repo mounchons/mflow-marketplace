@@ -54,7 +54,11 @@ sides must see what the other decided (`handoff`):
     (set, then cleared or changed, where what was turned off is gone by its direct link too), one that a
     party outside its reach does not see it when it reaches only some, and one for when it takes effect
     when the requirement says it is not at once (a cache's time, the next sign-in). A receiver on
-    another web app is still a `handoff` case of the same flow.
+    another web app is still a `handoff` case of the same flow. When each web's E2E tests mock the API,
+    each state is three cases: the admin page sends it (`e2e`), the API answers the receiver what was
+    saved, to whom and from when (`integration`), and the receiver's page draws it from a mocked answer
+    with the same values (`e2e`). The browser walk across both webs on the real API is one case per
+    setting, its main path, where the project has a stack to run it on.
 
 ## From the data
 
@@ -106,5 +110,6 @@ it (and that the other party's page, opened by direct link, shows nothing). Writ
   and the ones not written, the refusal and its reason. A status code alone proves nothing about the
   flow.
 - No sleeps: wait for the state. No network to real services: the project's fakes.
-- A case that changes a setting the whole system reads puts the value back as it was, even when it
-  fails, and does not run beside the tests that read that setting.
+- A case that changes data every test reads (a setting, a group's grants or scope, a template, a seed
+  record, the test clock) puts it back as it was in a `finally`, never only at the end of the test, and
+  does not run beside the tests that read it. Records a test makes carry a run stamp in their names.

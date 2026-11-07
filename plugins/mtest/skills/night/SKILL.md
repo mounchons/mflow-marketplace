@@ -1,0 +1,100 @@
+---
+name: night
+description: Run the project's checks unattended, when the user starts it for the night on Claude Code (terminal or web) — the whole suite, the review of the commits since the last review, the fixes of what failed or was found on branches with test and review again up to a round cap, the E2E tests the reviewed screens and flows lack, every E2E test, a final check, and the morning list in mtest/STATUS.md; never merges, and pushes only on the web.
+disable-model-invocation: true
+argument-hint: "[--until HH:MM] [--rounds <n>] [--no-e2e]"
+---
+
+The user starts this before leaving the machine for the night and reads the result in the morning. It chains what mtest already does, in this order: `/mtest:test` → fix what failed → `/mtest:review since` → fix what the review found, then test and review again, round after round → write the E2E tests the reviewed screens and flows lack (`/mtest:e2e`) → `/mtest:test e2e` → check → the morning list. Every step runs as its own skill says; this file says only how they chain without anyone there.
+
+`--until` is the local time the run must be done by (default 06:00); `--rounds` is how many fix rounds one target gets (default 3). A round is one fix commit, then its tests, then its review. E2E runs because the user called this command; `--no-e2e` leaves steps 6 and 7 out.
+
+## Before the user leaves
+
+Say this in one message when the run starts, so it can be corrected before the machine is left:
+- **Terminal:** the session must not stop for permission prompts, or the run waits for an answer until morning. Start it in the project folder with `claude --permission-mode auto`, then `/mtest:night`. The machine must not sleep (on Windows: Settings → System → Power, Sleep: Never while plugged in).
+- **Web (claude.ai/code):** a session on the repository with the plugin copy in `.claude/skills/mtest/` (`/mtest:init` writes it) and the tools the parts need in the environment's setup script ([cloud.md](../init/references/cloud.md)). Browsers for E2E need their own line in that script.
+- Nothing is merged; the morning list says what waits for the user's yes. On the web, the branches are pushed at the end, because the web session's files are gone when it ends; from the terminal nothing is pushed.
+
+## The rules of the whole run
+
+- **No questions.** Where a skill this run calls would ask the user, take the choice this file names, or else the one that changes nothing outside this repository and loses nothing, and write the question and the choice into the run file (`--note "asked: …; took: …"`). A finding whose fix needs the user's decision (a requirement question, a permission rule, data the requirement does not have) is never guessed: it stays open and goes in the morning list.
+- **One long turn.** Do not end the turn before step 9 is done: nobody is there to say go on. After each step, `node "${CLAUDE_PLUGIN_ROOT}/scripts/night.mjs" status` names the next one.
+- **The run file.** `night.mjs log <step> <state> [--target <name>] [--note <text>]` after every step, every target and every round (`started`, `round`, `done`, `skipped`, `stopped`). When the context is compacted, or the session restarted, `night.mjs status` and the run file say where to go on; never start the run over.
+- **Commits.** What the run writes under `mtest/` always lands on the default branch (the session's branch on the web); fix and E2E branches hold code only. After each step or round, commit it (records, reviews, flow docs' Test cells, STATUS.md, the run file) in one commit, `night: <step> <target>`, on the default branch, so the morning's merges carry no edits of `mtest/`. A test run on a fix or E2E branch writes its record there, uncommitted: switch back to the default branch (the files under `mtest/` come along), run the review from there (it reads the branch by its diff), and commit there. A fix or E2E commit adds the files it changed by name, never `git add -A`, so nothing under `mtest/` goes on a branch.
+- **The default branch keeps its code.** Fixes go on branches from the default branch (`.mtest/config.json` or git); never merge, rebase, force-push or delete a branch. The only commits the run adds to the default branch are under `mtest/`.
+- **Time.** Before each step and each round, check `overtime` in `night.mjs status`. Past `--until`: log the step `stopped` with `until reached`, and go straight to step 8 and step 9, which always run.
+- **Browsers.** E2E runs go through the runner, which keeps them at most `e2eMaxWorkers` (4 by default).
+
+## 1. Preflight
+
+- `night.mjs start [--until …] [--rounds …]`. A run already open: go on from its `next` step instead.
+- The tree must be clean (`git status --porcelain`, leaving out `mtest/` and `.mtest/` but not `.mtest/config.json`): the run never commits the user's own work in progress. Not clean: log `preflight stopped` with the files, and go to step 9.
+- The branch: the default branch from the terminal. On the web, the session's own branch made from it takes the run's `mtest/` commits in its place.
+- `run.mjs plan` (the parts and their prerequisites), `reviews.mjs since` (the commits waiting for review), `flows.mjs check` (the flows and their E2E cases waiting).
+- Log `preflight done` with the parts, the commits waiting, where it runs and the time it must end.
+
+## 2. Test
+
+`/mtest:test`, the whole suite, as that skill says (each part in the foreground, the record). When it would ask about missing prerequisites, start what AGENTS.md says starts them, once; still missing, take a) run the rest, so the record is `incomplete`. When it would offer a second session, say nothing. Commit. Log `test done` with the result and the record path.
+
+## 3. Test fix
+
+Only when the suite failed; otherwise log `test-fix skipped`.
+
+On a branch `fix/night-<date>-tests` from the default branch, each round:
+1. `night.mjs log test-fix round --target fix/night-<date>-tests`.
+2. `/mtest:test triage` for the causes, then fix the one that is wrong, the code or the test, measured against the flow doc and the requirement. Never remove, skip or loosen a test to pass. A failure from a missing prerequisite is not a code fix: log `stopped`.
+3. Commit the fix (`fix: <what> (night <date>)`), then `/mtest:test since` on the branch. Switch to the default branch, then `/mtest:review fix/night-<date>-tests` at the level its files need, and commit there.
+4. Passing tests and `approve`: log the target `done` with the commit. Otherwise switch to the branch for the next round, until `--rounds`: then log it `stopped` with what is still failing or open.
+
+Each round ends on the default branch. While it fails, the review in step 4 has no passing proof and ends `none`; the morning list puts this branch first.
+
+## 4. Review
+
+`/mtest:review since`, the commits since the last review on the default branch, at the level its files need. Commit. Log `review done --target since --note "<verdict> <report path>"`, then `review done`. No commits waiting: log `review skipped`.
+
+## 5. Review fix
+
+When the verdict is `changes-requested`, on a branch `fix/night-<date>-review` from the default branch, each round:
+1. `night.mjs log review-fix round --target fix/night-<date>-review`.
+2. Fix the findings of the newest report, blockers and majors first, each with the test that proves it, and the flow doc's Test cell when a case gets its test. A finding that needs the user's decision stays open.
+3. Commit the fix (`fix: review findings (night <date>)`), then `/mtest:test since` on the branch. Switch to the default branch, then `/mtest:review fix/night-<date>-review --short`, and commit there.
+4. `approve`: log the target `done` with `approved at <commit>, waiting for merge`. Otherwise switch to the branch for the next round, until `--rounds`: then log it `stopped` with the findings still open and the report.
+
+Each round ends on the default branch. With no `changes-requested`, log `review-fix skipped`.
+
+## 6. Write the missing E2E tests
+
+The screens whose files the reviewed commits changed and that have no E2E test, or whose tests are older than their files (`git log -1` of each), and the flows those commits touched with E2E cases waiting (`flows.mjs check`, `e2ePending`). No E2E part in `.mtest/config.json`, or `--no-e2e`: log `e2e-write skipped` and `e2e skipped` with why, and go to step 8.
+
+On a branch `e2e/night-<date>` from the default branch, for each: `/mtest:e2e <screen>` or `/mtest:e2e flow <flow>`, which writes or updates the tests and runs them. A test that fails because the screen breaks its flow stays as it is and is a defect for the morning list; a test that fails because the test is wrong is fixed, a round each, up to `--rounds`. Commit the test files on the branch; switch to the default branch and commit the records and the Test cells there; log each screen or flow as a target; switch back to the branch for the next one.
+
+## 7. Run every E2E test
+
+`/mtest:test e2e` on `e2e/night-<date>` when step 6 wrote anything, on the default branch otherwise. An E2E part that needs a stack the runner does not start: run it only when the stack answers at the address AGENTS.md names; down, leave it out and say so. Failures are not fixed here: each goes in the morning list with whether the screen or the test is at fault. Switch to the default branch, commit the record there, and log `e2e done`.
+
+## 8. Check
+
+Log `verify started`, then check, and write each result into the run file:
+- every step of the run file is finished, or stopped with a reason;
+- the default branch holds only the run's `mtest/` commits since the run's start commit: `git diff --name-only <start commit>..<default branch>` lists only `mtest/`;
+- the newest whole-suite record on the default branch, and, for each fix branch, its newest `since` record and review verdict at its last code commit;
+- the E2E record, the screens and flows left without tests, and `flows.mjs check` after the run;
+- `git status --porcelain` is clean, and the checkout is back on the default branch (the session's branch on the web).
+
+A problem in the run's own records is fixed now; anything else goes in the morning list.
+
+## 9. Report
+
+- Write `## Now` in `mtest/STATUS.md` as the morning list, most urgent first:
+  1. **Waiting for your yes to merge:** each branch with what it holds and its proof (`fix/night-<date>-tests`, `fix/night-<date>-review` when approved, `e2e/night-<date>`), the test fix branch first.
+  2. **Stopped:** each target out of rounds or time, with its open findings or failures and the report.
+  3. **Failing and not fixed:** suite or E2E failures, and the defects the E2E tests found.
+  4. **Taken without you:** each question a skill would have asked, and the choice taken.
+- Log `report done`, then `night.mjs finish --result done` (or `--result stopped` when a step was cut short by the time or the tree), and commit `mtest/`.
+- **On the web** (`where: cloud` in the run file): push the session's branch and every branch the run made (`git push -u origin <branch>`). A push the environment refuses goes in the run file and STATUS.md with the branch's commits; commit and push that note on the session's branch. **From the terminal:** push nothing.
+
+Tell the user, for the morning: the run file, the morning list in a few lines, and the first command to run (the merge of the first branch after reading its review).
+
+Done when: the run file has a `Finished:` line, `mtest/STATUS.md` holds the morning list, everything under `mtest/` is committed, and on the web the branches are pushed.

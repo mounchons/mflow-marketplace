@@ -20,7 +20,7 @@
 
 จากนั้นเปิด session ใหม่ใน project แล้วสั่ง `/mtest:init`
 
-## คำสั่ง (v0.2)
+## คำสั่ง (v0.3)
 
 | คำสั่ง | ทำอะไร |
 |---|---|
@@ -29,12 +29,24 @@
 | `/mtest:test [since \| e2e \| <part> [filter] \| triage]` | รันเทสทั้งชุด (ไม่รวม E2E) ทีละ part แล้วบันทึกลง `mtest/runs/`; `since` รันเฉพาะที่ต้องรันหลัง commit ใหม่; `e2e` เมื่อสั่ง; `triage` วิเคราะห์เทสที่ fail |
 | `/mtest:review [since \| <branch> \| <from>..<to> \| pr <n> \| --uncommitted] [--short]` | review diff เทียบกฎใน AGENTS.md, requirement/ADR, flow ที่โดน และผลเทสที่บันทึกไว้; `since` = ทุก commit ตั้งแต่ review ครั้งก่อน |
 | `/mtest:e2e [<screen> \| flow <flow>]` | เขียนและรัน E2E ของหน้าเดียวหรือ flow เดียว จำกัด browser ตาม `e2eMaxWorkers` |
+| `/mtest:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.3) สั่งก่อนนอน แล้วรันเองทั้งคืนโดยไม่มีใครดู: เทสทั้งชุด → review → แก้ใน branch แล้วเทสและ review ซ้ำ (ไม่เกิน `--rounds` รอบ) → เขียน E2E ที่ขาด → รัน E2E ทั้งหมด → ตรวจ → รายการสำหรับตอนเช้าใน `mtest/STATUS.md` ไม่ merge เอง, push เฉพาะบน web |
 | `/mtest:help [check setup]` | สถานะ + คำสั่งถัดไป; `check setup` ตรวจการตั้งค่า |
 
 รันจาก terminal ได้โดยไม่ต้องเปิด Claude: `node <runner>/run.mjs all` (ทั้งชุด) หรือ `--scope e2e` —
 ได้บันทึกผลรูปแบบเดียวกัน `/mtest:help` จะบอก path เต็มที่ copy ไปวางได้ทันที (ถ้ามีสำเนาใน repo ใช้
 `node .claude/skills/mtest/scripts/run.mjs all` ซึ่งไม่เปลี่ยนตาม version) ใช้เป็นจุดเริ่มสำหรับการตั้งเวลารัน
 (เช่นกลางคืน) ในรอบถัดไป
+
+### รันกลางคืน (0.3)
+
+- **บนเครื่อง:** เปิด session ในโฟลเดอร์ project ด้วย `claude --permission-mode auto` (ไม่หยุดถามระหว่างรัน ถ้ามีหน้าต่าง
+  ขออนุญาตขึ้นตอนกลางคืน งานจะรอจนเช้า) แล้วสั่ง `/mtest:night --until 06:00` ตั้งเครื่องไม่ให้ sleep ไม่ push อะไร
+- **บน web:** session บน repo ที่มีสำเนา `.claude/skills/mtest/` และ setup script ที่ติดตั้งเครื่องมือของเทส (และ browser
+  ถ้าจะรัน E2E) จบแล้ว push branch ของ session และทุก branch ที่สร้าง เพราะไฟล์ของ session หายเมื่อ session จบ
+- แก้ใน branch `fix/night-<date>-tests`, `fix/night-<date>-review` และเขียน E2E ใน `e2e/night-<date>` ไม่ merge เอง
+  branch หลักได้แค่ commit ใต้ `mtest/` สถานะอยู่ที่ `mtest/night/<date>-<HHMM>.md` ถ้า context เต็มหรือ session หลุด
+  สั่งใหม่แล้วทำต่อจากขั้นที่ค้าง ตอนเช้าดู `## Now` ใน `mtest/STATUS.md`: branch ที่รอคุณ merge, สิ่งที่หยุดเพราะครบรอบ
+  หรือหมดเวลา, สิ่งที่ล้มแล้วยังไม่แก้ และคำถามที่เลือกคำตอบแทนคุณ
 
 ## ไฟล์ที่ mtest เขียนใน project
 
@@ -46,7 +58,8 @@ mtest/
 ├── STATUS.md              ตอนนี้ถึงไหน, คำสั่งถัดไป
 ├── flows/<flow>.md        flow + case + เทสที่พิสูจน์
 ├── runs/<date>-<commit>.md   บันทึกผลเทสแต่ละรอบ (commit ได้)
-└── reviews/<date>-<target>.md  รายงาน review
+├── reviews/<date>-<target>.md  รายงาน review
+└── night/<date>-<HHMM>.md  สถานะของการรันกลางคืนแต่ละครั้ง (ทำต่อจากขั้นที่ค้างได้)
 .mtest/
 ├── config.json            parts (คำสั่ง, โฟลเดอร์, ผลลัพธ์, prerequisite), e2eMaxWorkers, defaultBranch
 ├── templates.json         template ที่เคยเสนอ (เพื่อ rerun หลัง upgrade)
@@ -98,6 +111,11 @@ mtest/
   case `handoff` หนึ่ง case ต่อหนึ่งสถานะ (ตั้งแล้วเห็นตรง ปิดหรือเปลี่ยนแล้วหายรวมถึงลิงก์ตรง), case ของผู้ที่ค่าตั้ง
   ไปถึงและคนที่ไม่ควรเห็น, และ case ของเวลาที่มีผลเมื่อไม่ใช่ทันที (cache, login ครั้งถัดไป) ใน E2E แต่ละคนเปิดบน
   เว็บของตัวเอง (`baseURL` และ login ของเว็บนั้น) ค่าตั้งที่ทั้งระบบใช้ร่วมกันรันแยกแบบ serial และคืนค่าเดิมแม้เทสล้ม
+- โปรเจกต์ที่เทสของแต่ละเว็บ mock API (0.3): ค่าตั้งข้ามเว็บแต่ละสถานะเป็นสาม case คือ หน้า admin ส่งค่าถูก (`e2e`),
+  API ส่งค่าที่บันทึกไปถึงฝั่งรับ ถึงใคร และมีผลเมื่อไร (`integration`), หน้าฝั่งรับแสดงจาก mock ค่าเดียวกัน (`e2e`)
+  เทสที่เดินข้ามสองเว็บบน API จริงหนึ่งตัวต่อค่าตั้งใน project แบบ stack ข้อมูลที่ทุกเทสอ่าน (ค่าตั้ง สิทธิ์ template
+  นาฬิกาทดสอบ) อยู่ใน Playwright project ที่รันหลังเทสอ่านอย่างเดียว (`dependencies`, `workers: 1`) คืนค่าใน `finally`
+  และชื่อข้อมูลมี run stamp
 
 ## บทเรียนจากการใช้งานจริง (มาจาก mflow)
 
@@ -127,11 +145,12 @@ plugins/mtest/
 │   ├── flows.mjs              อ่าน flow doc, ตรวจ coverage, หาเทสจากชื่อ
 │   ├── run.mjs                runner: plan/start/part/finish/all/since/last
 │   ├── reviews.mjs            รายงาน review, commit ที่ยังไม่ review
+│   ├── night.mjs              สถานะของ /mtest:night: ขั้นถัดไป, รอบต่อเป้าหมาย, เวลาที่เหลือ
 │   ├── vendor.mjs             สำเนา plugin ใน .claude/skills/mtest/
 │   ├── e2e-guard.mjs          hook: ปฏิเสธ Playwright ที่เกิน cap
 │   ├── session-start.mjs      hook: briefing ตอนเปิด session
 │   └── doctor.mjs             ตรวจการตั้งค่า (read-only)
-├── skills/{init,flow,test,review,e2e,help}/SKILL.md
+├── skills/{init,flow,test,review,e2e,night,help}/SKILL.md
 └── templates/                 AGENTS.md, CLAUDE.md, mtest/, .mtest/.gitignore
 ```
 

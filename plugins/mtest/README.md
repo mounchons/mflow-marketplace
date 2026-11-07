@@ -29,7 +29,7 @@
 | `/mtest:test [since \| e2e \| <part> [filter] \| triage]` | รันเทสทั้งชุด (ไม่รวม E2E) ทีละ part แล้วบันทึกลง `mtest/runs/`; `since` รันเฉพาะที่ต้องรันหลัง commit ใหม่; `e2e` เมื่อสั่ง; `triage` วิเคราะห์เทสที่ fail |
 | `/mtest:review [since \| <branch> \| <from>..<to> \| pr <n> \| --uncommitted] [--short]` | review diff เทียบกฎใน AGENTS.md, requirement/ADR, flow ที่โดน และผลเทสที่บันทึกไว้; `since` = ทุก commit ตั้งแต่ review ครั้งก่อน |
 | `/mtest:e2e [<screen> \| flow <flow>]` | เขียนและรัน E2E ของหน้าเดียวหรือ flow เดียว จำกัด browser ตาม `e2eMaxWorkers` |
-| `/mtest:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.3) สั่งก่อนนอน แล้วรันเองทั้งคืนโดยไม่มีใครดู: เทสทั้งชุด → review → แก้ใน branch แล้วเทสและ review ซ้ำ (ไม่เกิน `--rounds` รอบ) → เขียน E2E ที่ขาด → รัน E2E ทั้งหมด → ตรวจ → รายการสำหรับตอนเช้าใน `mtest/STATUS.md` ไม่ merge เอง, push เฉพาะบน web |
+| `/mtest:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.3) สั่งเมื่อจะปล่อยเครื่องไว้ เวลาไหนก็ได้ (ชื่อ night เป็นแค่ชื่อ) แล้วรันเองจนจบโดยไม่มีใครดู: เทสทั้งชุด → review → แก้ใน branch แล้วเทสและ review ซ้ำ (ไม่เกิน `--rounds` รอบ) → เขียน E2E ที่ขาด → รัน E2E ทั้งหมด → ตรวจ → รายการให้ดูตอนกลับมาใน `mtest/STATUS.md` ไม่ merge เอง, push เฉพาะบน web |
 | `/mtest:help [check setup]` | สถานะ + คำสั่งถัดไป; `check setup` ตรวจการตั้งค่า |
 
 รันจาก terminal ได้โดยไม่ต้องเปิด Claude: `node <runner>/run.mjs all` (ทั้งชุด) หรือ `--scope e2e` —
@@ -37,15 +37,16 @@
 `node .claude/skills/mtest/scripts/run.mjs all` ซึ่งไม่เปลี่ยนตาม version) ใช้เป็นจุดเริ่มสำหรับการตั้งเวลารัน
 (เช่นกลางคืน) ในรอบถัดไป
 
-### รันกลางคืน (0.3)
+### ปล่อยให้รันเอง (0.3)
 
 - **บนเครื่อง:** เปิด session ในโฟลเดอร์ project ด้วย `claude --permission-mode auto` (ไม่หยุดถามระหว่างรัน ถ้ามีหน้าต่าง
-  ขออนุญาตขึ้นตอนกลางคืน งานจะรอจนเช้า) แล้วสั่ง `/mtest:night --until 06:00` ตั้งเครื่องไม่ให้ sleep ไม่ push อะไร
+  ขออนุญาตขึ้น งานจะรอจนมีคนตอบ) แล้วสั่ง `/mtest:night` เวลาไหนก็ได้ (ใส่ `--until HH:MM` ถ้าอยากให้หยุดตามเวลา
+  ไม่ใส่รันจนจบทุกขั้น) ตั้งเครื่องไม่ให้ sleep ไม่ push อะไร
 - **บน web:** session บน repo ที่มีสำเนา `.claude/skills/mtest/` และ setup script ที่ติดตั้งเครื่องมือของเทส (และ browser
   ถ้าจะรัน E2E) จบแล้ว push branch ของ session และทุก branch ที่สร้าง เพราะไฟล์ของ session หายเมื่อ session จบ
 - แก้ใน branch `fix/night-<date>-tests`, `fix/night-<date>-review` และเขียน E2E ใน `e2e/night-<date>` ไม่ merge เอง
   branch หลักได้แค่ commit ใต้ `mtest/` สถานะอยู่ที่ `mtest/night/<date>-<HHMM>.md` ถ้า context เต็มหรือ session หลุด
-  สั่งใหม่แล้วทำต่อจากขั้นที่ค้าง ตอนเช้าดู `## Now` ใน `mtest/STATUS.md`: branch ที่รอคุณ merge, สิ่งที่หยุดเพราะครบรอบ
+  สั่งใหม่แล้วทำต่อจากขั้นที่ค้าง ตอนกลับมาดู `## Now` ใน `mtest/STATUS.md`: branch ที่รอคุณ merge, สิ่งที่หยุดเพราะครบรอบ
   หรือหมดเวลา, สิ่งที่ล้มแล้วยังไม่แก้ และคำถามที่เลือกคำตอบแทนคุณ
 
 ## ไฟล์ที่ mtest เขียนใน project
@@ -59,7 +60,7 @@ mtest/
 ├── flows/<flow>.md        flow + case + เทสที่พิสูจน์
 ├── runs/<date>-<commit>.md   บันทึกผลเทสแต่ละรอบ (commit ได้)
 ├── reviews/<date>-<target>.md  รายงาน review
-└── night/<date>-<HHMM>.md  สถานะของการรันกลางคืนแต่ละครั้ง (ทำต่อจากขั้นที่ค้างได้)
+└── night/<date>-<HHMM>.md  สถานะของ `/mtest:night` แต่ละครั้ง (ทำต่อจากขั้นที่ค้างได้)
 .mtest/
 ├── config.json            parts (คำสั่ง, โฟลเดอร์, ผลลัพธ์, prerequisite), e2eMaxWorkers, defaultBranch
 ├── templates.json         template ที่เคยเสนอ (เพื่อ rerun หลัง upgrade)

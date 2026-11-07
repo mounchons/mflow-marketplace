@@ -34,6 +34,13 @@ test("a run lives in mtest/night, ends with the report step, and resumes from it
   assert.equal(night(["status"], 63).json.open, false);
 });
 
+test("without --until a run has no time limit, whatever the hour", () => {
+  p = project();
+  assert.equal(night(["start"]).json.until, null);
+  const st = night(["status"], 24 * 60).json;
+  assert.deepEqual([st.minutesLeft, st.overtime], [null, false]);
+});
+
 test("outside an mtest project the script says so", () => {
   p = project({ marker: false });
   assert.match(night(["status"]).json.error, /no \.mtest\/config\.json here or above; run \/mtest:init first/);

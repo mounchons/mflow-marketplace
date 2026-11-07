@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// The state of one night run (/mtest:night), in a file the run writes after every step, so a run whose context
-// was compacted, or whose session was restarted, goes on from the first step that is not finished, and the morning
-// finds what happened, step by step. The run is started by the user; nothing here schedules it.
+// The state of one unattended run (/mtest:night), in a file the run writes after every step, so a run whose context
+// was compacted, or whose session was restarted, goes on from the first step that is not finished, and the user, back at
+// the machine, finds what happened, step by step. The user starts a run whenever they leave the machine to it (the
+// name says night; the clock does not matter); nothing here schedules it.
 //
 // A run: mtest/night/<date>-<HHMM>.md, open until it has a `Finished:` line. Its steps, in order:
 // preflight, test, test-fix, review, review-fix, e2e-write, e2e, verify, report. A step is finished when its last
@@ -13,7 +14,8 @@
 //   node night.mjs status                                                 -> JSON { open, file, until, minutesLeft, overtime, next, steps, targets, ... }
 //   node night.mjs finish [--result done|stopped]                         -> JSON { file, finished, result }
 //
-// --until is local time (default 06:00), the next time the clock shows it; --rounds is 1–10 (default 3).
+// --until is a local time, the next time the clock shows it; without it the run has no time limit and ends when its
+// steps do. --rounds is 1–10 (default 3).
 // `where` is cloud when CLAUDE_CODE_REMOTE is set (Claude Code on the web), cli otherwise. NIGHT_NOW (an ISO time)
 // stands in for the clock in tests.
 import { execFileSync } from "node:child_process";
@@ -90,7 +92,7 @@ function runs(root) {
 export function summary(file, at = now()) {
   const { head, events, finished } = parse(readText(file));
   const rounds = Number(head.rounds) || 3;
-  const until = head.until ? new Date(head.until.split(" ")[0]) : null;
+  const until = head.until && head.until !== "none" ? new Date(head.until.split(" ")[0]) : null;
   const steps = Object.fromEntries(STEPS.map((s) => [s, "open"]));
   const targets = {};
   for (const e of events) {
@@ -108,7 +110,7 @@ export function summary(file, at = now()) {
     open: !finished,
     file,
     started: head.started ?? null,
-    until: head.until ?? null,
+    until: until ? until.toISOString() : null,
     minutesLeft,
     overtime: minutesLeft !== null && minutesLeft <= 0,
     rounds,
@@ -151,7 +153,7 @@ function start(root, opts) {
   if (opts.until === true) throw new Error("--until takes a local time HH:MM");
   if (!Number.isInteger(rounds) || rounds < 1 || rounds > 10) throw new Error(`--rounds takes a whole number from 1 to 10, not "${opts.rounds}"`);
   const at = now();
-  const until = untilFrom(at, opts.until ?? "06:00");
+  const until = opts.until === undefined ? null : untilFrom(at, opts.until);
   const where = /^(1|true|yes|on)$/i.test(process.env.CLAUDE_CODE_REMOTE ?? "") ? "cloud" : "cli";
   const branch = git(root, "rev-parse", "--abbrev-ref", "HEAD") ?? "none";
   const commit = git(root, "rev-parse", "HEAD") ?? "none";
@@ -162,7 +164,7 @@ function start(root, opts) {
     `# Night run ${local(at)}`,
     "",
     `Started: ${at.toISOString()} (${local(at)})`,
-    `Until: ${until.toISOString()} (${local(until)})`,
+    `Until: ${until ? `${until.toISOString()} (${local(until)})` : "none"}`,
     `Rounds: ${rounds}`,
     `Where: ${where}`,
     `Branch: ${branch}`,
@@ -175,7 +177,7 @@ function start(root, opts) {
     "",
   ].join("\n");
   writeFileAtomic(file, text);
-  return { file: path.relative(root, file).replaceAll("\\", "/"), started: at.toISOString(), until: until.toISOString(), untilLocal: local(until), rounds, where, branch, commit };
+  return { file: path.relative(root, file).replaceAll("\\", "/"), started: at.toISOString(), until: until?.toISOString() ?? null, untilLocal: until ? local(until) : null, rounds, where, branch, commit };
 }
 
 function log(root, step, state, opts) {

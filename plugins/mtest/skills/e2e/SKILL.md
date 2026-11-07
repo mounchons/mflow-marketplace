@@ -1,6 +1,6 @@
 ---
 name: e2e
-description: Write or update the E2E tests of one screen, or of one flow's E2E cases, and run only them with at most e2eMaxWorkers browsers, when the user calls it once the screen has settled; nothing else in mtest writes E2E tests.
+description: Write or update the E2E tests of one screen, or of one flow's E2E cases (people taking turns, a setting made on the admin web as the supplier web shows it), and run only them with at most e2eMaxWorkers browsers, when the user calls it once the screen has settled; nothing else in mtest writes E2E tests.
 disable-model-invocation: true
 argument-hint: "[<screen> | flow <flow>] [what to cover]"
 ---
@@ -16,7 +16,8 @@ user's call.
 - The E2E part in `.mtest/config.json` (`kind: "e2e"`), its folder and its Playwright config (helpers, fixtures, base URL, how it starts the app, `workers`). None: there is no E2E framework yet; say so and stop. Setting one up is a change of its own when the user asks for it.
 - **No argument:** list the screens (the web app's routes or pages) and the flows with E2E cases waiting (`node "${CLAUDE_PLUGIN_ROOT}/scripts/flows.mjs" check`, `e2ePending`), each with its E2E test files (search the E2E folder for the route, the page's test ids or the case ids) and when the test files and the screen's files last changed (`git log -1`), so the user sees which have no tests and which changed after their tests. Ask which one, and stop.
 - **`<screen>`:** its route, the roles that may open it (from the app's menu and permission code), its actions, and the flow cases that cross it.
-- **`flow <flow>`:** the `e2e` cases of that flow doc.
+- **`flow <flow>`:** the `e2e` cases of that flow doc. When a step sets something once (a system setting, a master list, a switch, a template, a required field, a limit) that another person's web shows, list for each such setting where it is set, which web, screens and people show it, each of its states (on and off, each value), whom it reaches, and when the flow doc says it takes effect.
+- **Several webs:** when the flow's people work on different web apps (an admin web and a supplier web, each with its own address or sign-in), find each web's base URL and how it starts for E2E in the Playwright config and in AGENTS.md. Missing: ask the user, and write it under `## Testing (mtest)` in AGENTS.md.
 
 Done when: one target is chosen, with its cases and its existing test files listed.
 
@@ -56,6 +57,26 @@ the supplier acknowledges is proven in the browser one path per test, the people
   flow doc names, on the page or through the API, within the project's timeout. Never a fixed sleep.
 - **Data**: each test makes its own records with unique names, so paths do not depend on each other,
   unless the project's E2E tests are written as one ordered story on one database.
+- **Several webs**: when the people work on different web apps, open each person's context on its own
+  web (`browser.newContext({ baseURL, storageState })` with that web's base URL and that web's saved
+  login), never every context on the one `use.baseURL`. Both webs run before the test: from the
+  Playwright config's `webServer` list, or already running as AGENTS.md says. A link in a mail that
+  leads to the other web is followed as it is, and the test asserts it opens on that web's address.
+  Still one browser per worker.
+- **A setting that reaches another web**: for a value a person sets once for everyone or for a group
+  (not a value of one record, which the hand-offs above cover), test each state: set it on the admin
+  side, then on the receiver's page, reloaded or opened again after the change, assert it shows exactly
+  as set; then turn it off or change it, and assert the page follows, and that what was turned off is
+  gone by its direct link too, with the API answer checked when the page only hides it. Wait for the
+  new state within the project's timeout, never a fixed sleep. A page that does not follow is a defect,
+  unless the flow doc says when the change takes effect (a cache's time, the next sign-in); then test
+  that. A setting for some suppliers only is also asserted absent for supplier B outside it.
+- **Shared settings, one test at a time**: a setting the whole system reads changes what other tests
+  see while they run, since several workers run at once. Prefer a setting scoped to records the test
+  made (its own supplier group or category). When it can only be system-wide, keep such tests in one
+  file in serial mode, run apart from the other E2E files (their own Playwright project, which the
+  others list in `dependencies`), and put the value back as it was in `afterAll` or a `finally`, even
+  when a test fails. Never leave a changed shared setting behind.
 - Name each test after its case (`C07 supplier B cannot open supplier A's survey`) and write it into the
   case's Test cell.
 

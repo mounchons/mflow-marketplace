@@ -48,27 +48,34 @@ sides must see what the other decided (`handoff`):
 10. **Every decision shows on both sides**: after send back, reject, approve, withdraw or acknowledge,
     each party sees the new state, the reason when there is one, and only the actions the state now
     allows (a withdrawn item cannot be approved; a rejected one shows why to the party that sent it).
+11. **A setting that reaches another web**: a value set once for everyone or for a group (a system
+    setting, a master list, a switch, a template, a required field, a limit) on one web, such as the
+    admin web, that another person's web shows, such as the supplier web: one `handoff` case per state
+    (set, then cleared or changed, where what was turned off is gone by its direct link too), one that a
+    party outside its reach does not see it when it reaches only some, and one for when it takes effect
+    when the requirement says it is not at once (a cache's time, the next sign-in). A receiver on
+    another web app is still a `handoff` case of the same flow.
 
 ## From the data
 
-11. **Rules behind the steps**: every calculation, limit and rounding becomes a Rule row with a
+12. **Rules behind the steps**: every calculation, limit and rounding becomes a Rule row with a
    table-driven unit test covering its edges: zero, the limit, one past it, negative, the rounding
    half-way point, the largest value (`boundary`). The flow's cases then use one ordinary value; the edges
    live in the unit test, not in more integration cases.
-12. **Partial and many**: part of an amount, several items at once, one action covering several records
+13. **Partial and many**: part of an amount, several items at once, one action covering several records
    (one payment for three invoices), when the flow allows them (`alt`).
-13. **Bad input that reaches the flow**: required data missing, a duplicate, a value the rule refuses;
+14. **Bad input that reaches the flow**: required data missing, a duplicate, a value the rule refuses;
     each as one `error` case asserting the message the user sees.
 
 ## From time and failure
 
-14. **Twice**: the same action submitted twice (double click, retried request, the same file uploaded
+15. **Twice**: the same action submitted twice (double click, retried request, the same file uploaded
     again) takes effect once (`idempotency`).
-15. **At once**: two people or a job and a person acting on the same record; one wins and the other is
+16. **At once**: two people or a job and a person acting on the same record; one wins and the other is
     told, with no half-written state (`concurrency`), when the flow can be reached by two at a time.
-16. **Dates and periods**: a closed period, a due date that passes, the end of a month or a year, a time
+17. **Dates and periods**: a closed period, a due date that passes, the end of a month or a year, a time
     zone at midnight (`time`), when the flow depends on a date.
-17. **Failure midway**: an external service that fails or times out, a worker that restarts; the flow is
+18. **Failure midway**: an external service that fails or times out, a worker that restarts; the flow is
     left in a state it can resume from, and resuming does not do the work twice (`recovery`).
 
 ## Choosing the level
@@ -99,3 +106,5 @@ it (and that the other party's page, opened by direct link, shows nothing). Writ
   and the ones not written, the refusal and its reason. A status code alone proves nothing about the
   flow.
 - No sleeps: wait for the state. No network to real services: the project's fakes.
+- A case that changes a setting the whole system reads puts the value back as it was, even when it
+  fails, and does not run beside the tests that read that setting.

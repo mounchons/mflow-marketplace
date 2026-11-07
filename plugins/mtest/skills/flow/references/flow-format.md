@@ -45,7 +45,7 @@ warns when a path says otherwise.
 | `alt` | another path that also ends done (paid in part, approved after a question) |
 | `error` | a path the system stops, with the reason the user sees |
 | `permission` | a role that may not take a step is refused, and one that may is not |
-| `handoff` | what one person sets or sends reaches the next as it was set: the fields, options, files and deadlines of an invitation as the invited party sees them, and after each decision (send back, reject, approve, withdraw, acknowledge) the state and the actions every party now sees |
+| `handoff` | what one person sets or sends reaches the next as it was set: the fields, options, files and deadlines of an invitation as the invited party sees them, and after each decision (send back, reject, approve, withdraw, acknowledge) the state and the actions every party now sees; a setting made once on one web (the admin web) as another web shows it (the supplier web), one case per state |
 | `boundary` | the edges of a rule: zero, the limit, one past it, rounding |
 | `idempotency` | the same action twice (double click, retried request, upload again) does it once |
 | `concurrency` | two users or jobs on the same record at once: one wins, the other is told |

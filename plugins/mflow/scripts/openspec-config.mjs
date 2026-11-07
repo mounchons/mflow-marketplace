@@ -45,6 +45,7 @@ export const LINES = {
   "rules.specs": [
     "Every requirement has at least one Scenario; for rule tables, one Scenario per distinct outcome row.",
     "When one role sets or sends something that another role or an outside party then sees or answers (an invitation, a questionnaire, a returned form, a decision such as approve, reject or withdraw), add a Scenario for what the receiving side sees, matching what was set, including what a setting hides; when the receiving side is an outside party (a supplier, a customer), add a Scenario that a second party of that kind sees none of it, in its lists, by direct link, in files and in notifications.",
+    "When a role sets something once on one screen or web (a system setting, a master list, a switch, a template, a required field, a limit) that changes what another role or web shows, add a Scenario on the receiving side for each of its states (set and cleared, on and off, each value that shows differently), one for whom it reaches when it reaches only some (and that the others do not see it), and one for when the change takes effect (at once, after a reload, after a cache's time).",
   ],
   "rules.tasks": [
     "Every task that changes code ends with the unit test that proves it (framework as in AGENTS.md Stack); a user flow is proven by unit tests of the rules and services behind it. A task that changes only documents needs no test. No task writes, changes or runs E2E tests; /mflow:e2e <screen> does that one screen at a time when the user calls it.",

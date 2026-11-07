@@ -82,6 +82,17 @@ test("the proposal asks its questions numbered, with options a) b) c)", () => {
   assert.ok(LINES["rules.proposal"].some((l) => l.includes("label each one's options a), b), c), never ก ข ค") && l.includes("`1 a, 2 b, 3 a`")));
 });
 
+// 0.37.1: a setting made once on the admin web and shown on the supplier web had no Scenario for its other
+// state, whom it reaches or when it takes effect, so /mflow:e2e flow had nothing to test it against.
+test("the specs ask for every state of a setting another role or web shows, whom it reaches and when it takes effect", () => {
+  const rule = LINES["rules.specs"].find((l) => l.startsWith("When a role sets something once on one screen or web"));
+  assert.ok(rule, "the settings rule");
+  assert.match(rule, /each of its states \(set and cleared, on and off/);
+  assert.match(rule, /whom it reaches when it reaches only some \(and that the others do not see it\)/);
+  assert.match(rule, /when the change takes effect/);
+  assert.ok(LINES["rules.specs"].some((l) => l.includes("a second party of that kind sees none of it")), "the 0.37.0 hand-off rule stays");
+});
+
 // StemHub 2026-10-31: CR-009 planned four changes, each with its screens; the 0.34 size rule split two of them
 // into a server change and a screens change, each with its own propose, archive and merge.
 test("a change holds its server side and screens together, and is split by feature only past about 25 tasks", () => {

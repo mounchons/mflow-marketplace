@@ -1,8 +1,8 @@
 ---
 name: e2e
-description: Write or update the E2E tests of one screen, or of one flow that crosses screens and people (an invitation answered by a supplier, then collected, approved or sent back), and run only them, when the user calls it once the screens have settled; nothing else in mflow writes or runs E2E tests.
+description: Write or update the E2E tests of one screen, or of one flow that crosses screens, people and webs (an invitation answered by a supplier, then collected, approved or sent back; a setting made on the admin web as the supplier web shows it), and run only them, when the user calls it once the screens have settled; nothing else in mflow writes or runs E2E tests.
 disable-model-invocation: true
-argument-hint: "[<screen> [what to cover] | flow <capability or scenario>]"
+argument-hint: "[<screen> [what to cover] | flow <capability, scenario or setting>]"
 ---
 
 E2E tests drive the real pages in a browser. Written while a screen still changes, they have to be rewritten after every change, and a whole run starts many browsers at once. So mflow writes and runs them only here, one screen at a time, when the user calls it. Tasks, `/opsx:apply`, `/mflow:screen` and the whole suite of `/mflow:test` prove behaviour with unit tests and the build. `/mflow:test e2e` runs every E2E test, also only on the user's call.
@@ -13,18 +13,20 @@ E2E tests drive the real pages in a browser. Written while a screen still change
 - No argument: list the screens in `docs/ui/screens.md` with their E2E test files (or none), and when each test file and the screen's UI files last changed (`git log -1`), so the user sees which screens have no tests and which changed after their tests. Ask which one, and stop.
 - `<screen>`: find its row in `docs/ui/screens.md` (route, roles, actions, rules) and what it must do: the scenarios in `openspec/specs/` and in open changes that cross it, the UAT or acceptance IDs AGENTS.md names, and its existing E2E test files (search the E2E folder for the route and the page's test ids).
 - `flow <capability or scenario>`: the scenarios of that capability in `openspec/specs/` (and in open changes), or the one named, that cross several screens or several roles, such as set up a survey → invite suppliers → a supplier answers and attaches files → collect → send back or keep in the library → build a document from chosen files → approve, reject or withdraw → the supplier acknowledges. List its steps in order, each with its screen (from `docs/ui/screens.md`) and the role that acts, then every path the scenarios name (each send back, reject and withdraw), and show the list to the user before writing.
+- The argument may also name a setting (`flow <setting>`), or a step of the flow may set one: something a role sets once on one screen or web (a system setting, a master list, a switch, a template, a required field, a limit) that changes what another role or web shows. Follow it into the capability whose screens show it, even when that is another capability or another web, and list for each setting where it is set, which web, screens and roles show it, each of its states (on and off, each value), whom it reaches (everyone, or some suppliers only), and when the spec says it takes effect.
+- When the flow crosses more than one web app (an admin web and a supplier web, each with its own address or sign-in), find each web's base URL and how it starts for E2E in AGENTS.md `## Commands` and the project's Playwright config. Missing: ask, as "Asking" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes, and write it under `## Commands`.
 
 Done when: one screen or one flow is chosen and its scenarios and existing test files are listed.
 
 ## 2. Write
 
 - One test file per screen, or the files the project already has for it, in the project's E2E conventions: its folder, helpers, fixtures or API mocks, and the test names AGENTS.md asks for (such as the UAT Test ID).
-- Cover: the page loads as each role in `Role(s)`, with only that role's rows and buttons; each action and each acceptance scenario that crosses this screen; the screenshots that §5 of `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/responsive.md` names, when the project keeps them. For a flow: every path from its first step to its end, and the hand-offs and the second party below. "What to cover" in the argument narrows or adds to this.
+- Cover: the page loads as each role in `Role(s)`, with only that role's rows and buttons; each action and each acceptance scenario that crosses this screen; the screenshots that §5 of `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/responsive.md` names, when the project keeps them. For a flow: every path from its first step to its end, and the hand-offs, the second party, the webs and the settings below. "What to cover" in the argument narrows or adds to this.
 - An existing test that fails because the screen changed on purpose (its spec or the user says so) is updated to the current behaviour. A test that fails because the screen breaks its spec keeps asserting the spec: report it as a defect in the screen, with the fix as the next step (`/opsx:apply` for a change in progress, `/mflow:screen <screen> …` for a prototype). This command changes test files only.
 
 Done when: every scenario of the screen or the flow has a test, or the user narrowed the scope.
 
-## A flow across screens and people
+## A flow across screens, people and webs
 
 One test per path, the people taking turns in it:
 - **One browser context per role** in the same test (`browser.newContext()`, each logged in as its role, or from the project's saved login states; in prototype mode, the role switcher of each context). Contexts share the worker's one browser, so the cap on browsers still holds.
@@ -35,8 +37,11 @@ One test per path, the people taking turns in it:
 - **Files:** upload from the project's fixtures (`setInputFiles`); for a file or document the system builds, wait for the download and assert its name, type and size, and its text when the project can read it.
 - **Background steps** (collecting answers, building a document, sending mail): wait for the state on the page or through the API, within the project's timeout. Never a fixed sleep.
 - **Data:** each test makes its own records with unique names, unless the project's E2E tests are one ordered story on one database.
+- **Several webs:** when the roles work on different web apps, open each role's context on its own web (`browser.newContext({ baseURL, storageState })` with that web's base URL and that web's saved login), never every context on the one `use.baseURL`. Both webs run before the test: from the Playwright config's `webServer` list, or already running as AGENTS.md `## Commands` says. A link in a mail that leads to the other web is followed as it is, and the test asserts it opens on that web's address. Still one browser per worker.
+- **A setting that reaches another web:** for a value a role sets once for everyone or for a group (not a value of one record, which the hand-off above covers), test each state: set it on the admin side, then on the receiver's page, reloaded or opened again after the change, assert it shows exactly as set; then turn it off or change it, and assert the page follows, and that what was turned off is gone by its direct link too, with the API answer checked when the page only hides it. Wait for the new state within the project's timeout, never a fixed sleep. A page that does not follow is a defect, unless the spec says when the change takes effect (a cache's time, the next sign-in); then test that. A setting for some suppliers only is also asserted absent for supplier B outside it.
+- **Shared settings, one test at a time:** a setting the whole system reads changes what other tests see while they run, since two workers run at once. Prefer a setting scoped to records the test made (its own supplier group or category). When it can only be system-wide, keep such tests in one file in serial mode, run apart from the other E2E files (their own Playwright project, which the others list in `dependencies`), and put the value back as it was in `afterAll` or a `finally`, even when a test fails. Never leave a changed shared setting behind.
 
-A scenario of the flow that the specs do not have (what the supplier sees of a setting, what another supplier sees) is not invented in the test: report it as missing from the spec, with the scenario to add, and test what the spec says.
+A scenario of the flow that the specs do not have (what the supplier sees of a setting in each state, whom a setting reaches, what another supplier sees) is not invented in the test: report it as missing from the spec, with the scenario to add, and test what the spec says.
 
 ## 3. Run
 

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.37.0 |
+| เวอร์ชัน plugin | 0.37.1 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -65,7 +65,7 @@ flowchart TD
 | 4 | `/mflow:screen <ชื่อ> …` → `/mflow:review-notes` | สร้างหรือปรับหน้าจอ แล้วทดสอบใช้งานหรือรีวิว | วนหลายรอบ |
 | 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session (ตอบตั๋วง่ายหลายใบพร้อมกันได้) |
 | 6 | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` แล้วภายหลังบน main `/mflow:test` → `/mflow:review pending` | สร้างของจริงทีละ slice, test และ review ทีเดียวทุก change ที่รอ | ต่อ slice / ต่อรอบที่คุณสั่ง |
-| 7 | `/mflow:e2e <หน้าจอ>` หรือ `/mflow:e2e flow <capability>` | หน้าจอนิ่งแล้ว อยากได้ E2E test (Playwright) ของหน้านั้น หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย | ต่อหน้าจอหรือต่อ flow เมื่อคุณสั่งเท่านั้น |
+| 7 | `/mflow:e2e <หน้าจอ>` หรือ `/mflow:e2e flow <capability หรือชื่อค่าตั้ง>` | หน้าจอนิ่งแล้ว อยากได้ E2E test (Playwright) ของหน้านั้น หรือของ flow ที่ข้ามหลายหน้า หลายฝ่าย และหลายเว็บ (เช่น ตั้งค่าที่ admin web แล้วแสดงที่ supplier web) | ต่อหน้าจอหรือต่อ flow เมื่อคุณสั่งเท่านั้น |
 | เหตุการณ์ | `/mflow:change-request` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | เมื่อเกิดขึ้น |
 | เหตุการณ์ | `/mflow:delegate` → `/mflow:assess` | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | เมื่อต้องการ |
 | ไม่บังคับ | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` | อยากได้ความเห็นจาก AI หลายตัวพร้อมกัน: วิเคราะห์ระบบ เสนอแบบ หรือหาจุดที่แบบจะพัง | เมื่อต้องการ ไม่มีขั้นไหนรอ |
@@ -428,6 +428,7 @@ docs/
    - ระหว่างรัน session นั้นทำอย่างอื่นไม่ได้ Claude จะแนะนำให้เปิดอีก session ในโฟลเดอร์โปรเจกต์เดียวกัน (terminal ใหม่ แล้วพิมพ์ `claude`) ไว้ทำงานที่เขียนแค่เอกสาร เช่น `/mflow:discuss`, `/mflow:capture`, `/mflow:hotspot`, `/mflow:review-notes`, `/opsx:explore`, `/opsx:propose` ส่วน `/opsx:apply`, `/mflow:screen`, `/mflow:e2e`, `/mflow:theme` และ `/mflow:golden` ต้องรอให้รันจบ เพราะแก้และ build โค้ดใน checkout เดียวกัน
    - E2E test ไม่อยู่ในการรันทั้งชุด เมื่อหน้าจอนิ่งแล้วสั่ง `/mflow:e2e <หน้าจอ>` ให้ Claude เขียนหรือปรับ test ของหน้านั้นตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น (ไม่ใส่ชื่อหน้าจอ Claude บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด) อยากรัน E2E ทั้งหมดสั่ง `/mflow:test e2e` ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) เพราะค่าเริ่มต้นของ Playwright คือครึ่งหนึ่งของ CPU thread (10 ตัวบนเครื่อง 20 thread) ซึ่งเคยทำให้ driver การ์ดจอล่มจนเครื่อง restart test ที่ล้มเพราะหน้าจอผิด spec ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
    - flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37): สั่ง `/mflow:e2e flow <capability>` Claude ไล่ขั้นของ flow จาก scenario ใน spec พร้อมหน้าจอและ role ให้ดูก่อน แล้วเขียน test ทีละเส้นทาง (รวมการส่งกลับ, reject, withdraw) ในเทสเดียวสลับคนด้วย browser context ต่อ role ซึ่งไม่เพิ่มจำนวน browser ลิงก์เชิญอ่านจาก fake mailer ของระบบ ตรวจว่า supplier เห็นคำถาม ไฟล์ที่ต้องแนบ กำหนดส่ง ตรงกับที่ตั้งไว้ (ส่วนที่ซ่อนก็ต้องไม่เห็น) ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองเปิดลิงก์งานหรือไฟล์ของคนแรกไม่ได้ ไม่เห็นใน list หรือการแจ้งเตือน ถ้า spec ยังไม่มี scenario เรื่องไหน Claude บอกว่าขาดอะไรพร้อม scenario ที่ควรเพิ่ม (ทำเป็น change) ไม่แต่งเอาเองใน test
+   - ค่าตั้งที่ตั้งเว็บหนึ่งแล้วไปแสดงอีกเว็บ (0.37.1) เช่น admin ตั้งค่าที่ admin web แล้ว supplier web ต้องแสดงตาม: สั่ง `/mflow:e2e flow <capability หรือชื่อค่าตั้ง>` Claude ตามค่าตั้งไปถึงหน้าจอที่แสดงผล แม้อยู่คนละ capability หรือคนละเว็บ แล้วแสดงให้ดูก่อนว่าค่าตั้งแต่ละตัวตั้งที่ไหน เว็บไหน หน้าไหน role ไหนเห็น มีกี่สถานะ ไปถึงใคร และมีผลเมื่อไร ถ้าสองเว็บเป็นคนละแอป (คนละ URL หรือคนละ login) Claude อ่าน URL และวิธีเปิดของแต่ละเว็บจาก `## Commands` ใน AGENTS.md ถ้าไม่มีจะถามแล้วเขียนให้ แต่ละ role เปิดบนเว็บของตัวเองในเทสเดียว test ตรวจทุกสถานะ: ตั้งแล้ว supplier เห็นตรงตามที่ตั้ง ปิดหรือเปลี่ยนแล้วหน้า supplier เปลี่ยนตาม (สิ่งที่ปิดเปิดด้วยลิงก์ตรงก็ไม่ได้) ค่าตั้งที่ให้บาง supplier ตรวจว่า supplier ที่อยู่นอกขอบเขตไม่เห็น ค่าตั้งที่ทั้งระบบใช้ร่วมกันรันแยกทีละ test และคืนค่าเดิมหลังจบแม้ test ล้ม เพื่อไม่ให้ test อื่นที่รันพร้อมกันเห็นค่าผิด ถ้า supplier web เก็บค่าตั้งไว้ใน cache spec ต้องบอกว่ามีผลเมื่อไร (Claude ไม่เดาเอง) โปรเจกต์ที่ใช้ 0.37.0 อยู่ สั่ง `/mflow:init` หลังอัปเกรด เพื่อรับบรรทัดใหม่ใน `rules.specs` ที่ให้ spec มี scenario ของค่าตั้งครบทุกสถานะ
    - commit ที่ตามมาทีหลัง (เช่น แก้ตาม review) พิสูจน์ด้วย `/mflow:test since`: ใช้ผลรันทั้งชุดล่าสุดของ commit ก่อนหน้าเป็นฐาน แล้วดูไฟล์ที่เปลี่ยนตั้งแต่นั้น แก้แค่เอกสารไม่ต้องรันอะไร แก้โค้ดหรือ test รันส่วนที่เคยล้ม ไฟล์ test ที่แก้ และ test class ของโค้ดที่แก้ แก้ migration, startup/DI, ไฟล์ build หรือ package หรือโครงกลางของ test รันทั้งชุดใหม่
 4. `/mflow:review pending` (0.35) ตรวจ change ที่ merge เข้า main แล้วตามลำดับในรายการ ทีละ change รายงานละ change (`docs/reviews/code/<วันที่>-<change>.md`, `Reviewed: <change> <base>..<end>`) diff ของแต่ละ change คือตั้งแต่ก่อน commit แรกที่แตะโฟลเดอร์ของ change (proposal) ถึง commit สุดท้าย (archive) ใช้ผล test จากช่อง Test ของแถวนั้นโดยไม่รันซ้ำ ได้ `approve` แล้วแถวย้ายไป `## Done` ได้ `changes-requested` แก้ใน branch `fix/<change>-review` เมื่อคุณสั่ง แล้ว `/mflow:test since` กับ `/mflow:review fix/<change>-review --short` context เยอะแล้ว Claude หยุดหลังรายงานที่เสร็จ ให้ `/clear` แล้วสั่ง `/mflow:review pending` อีกครั้ง ซึ่งเริ่มที่แถวถัดไป ชื่อ change ที่ archive แล้วก็ใช้เป็น target ได้ (`/mflow:review <ชื่อ change>`)
    - `/mflow:review [branch | --uncommitted | ชื่อ change | TASK-ID]` ตรวจกับ spec ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ ถ้าไม่มีแต่มีผลรันทั้งชุดของ commit ก่อนหน้า Claude รัน `since` เอง (ถ้าต้องรันทั้งชุด Claude ถามครั้งเดียวว่าจะรันเลย หรือตรวจส่วนอื่นก่อนแล้วไปรัน `/mflow:test` ทีหลัง ซึ่งได้คำตัดสิน `none` จนกว่าจะมีผล test) และตรวจว่า entity ตรงกับ data dictionary ได้คำตัดสิน `approve` หรือ `changes-requested` ที่ `docs/reviews/code/` รายงานบันทึก commit ที่ตรวจ (`Reviewed: <branch> at <commit>`) **merge เมื่อได้ `approve` และคุณตกลงแล้วเท่านั้น** และเฉพาะเมื่อ branch ยังชี้ commit ที่ตรวจ ถ้ามี commit เพิ่มหลังตรวจ Claude ตรวจส่วนที่เพิ่มก่อน
@@ -844,6 +845,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | test ทั้งชุดใช้เวลานาน อยากรันครั้งเดียวตอนเครื่องว่าง (apply รันเฉพาะ build, unit test และ test ของแต่ละ task กับ shared checks ตอนจบ ที่เหลือ `/mflow:test` รันครบ) | `/mflow:test` (`/mflow:test <ส่วน>` สำหรับบางส่วน) ไม่รวม E2E |
 | หน้าจอนิ่งแล้ว อยากได้ E2E test ของหน้านั้น (ไม่มีคำสั่งอื่นเขียนหรือรัน E2E) | `/mflow:e2e <หน้าจอ>` (E2E ทั้งหมด: `/mflow:test e2e`) |
 | อยากทดสอบ flow ที่มีหลายฝ่าย เช่น เชิญ supplier → ตอบ → กวาดข้อมูล → approve/reject/withdraw → acknowledge และให้แน่ใจว่า supplier เห็นตรงกับที่ตั้งค่า และไม่เห็นงานของเจ้าอื่น | `/mflow:e2e flow <capability>` |
+| ตั้งค่าที่ admin web แล้วอยากแน่ใจว่า supplier web แสดงตาม ทั้งตอนเปิดและปิด ไปถึง supplier ที่ควรได้เท่านั้น และมีผลตามเวลาที่ spec บอก | `/mflow:e2e flow <capability หรือชื่อค่าตั้ง>` (0.37.1) |
 | อยากให้ apply ส่งงานเขียนโค้ดให้ subagent บน Sonnet 5.5 (ค่าเริ่มต้นปิด) หรือจะปิดกลับ | `/mflow:subagent on` แล้ว `/clear` / `off` (`--shared` ให้ทั้งทีม, `status` ดูสถานะ) ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียวให้บอกในข้อความ `/opsx:apply` |
 | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | `/mflow:change-request <คำขอ>` |
 | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | `/mflow:delegate <id> --mode … [--to …]` |
@@ -855,7 +857,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.37.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.37.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -881,6 +883,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | โหมด `preview` และ `port` ยังไม่เคยรันผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้มาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูทีละขั้น โดยเฉพาะตอน port ที่ต้องเทียบ style guide กับ preview |
 | เมนูสามสถานะ ปุ่ม ☰ และการตรวจตามขนาดจอยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้เป็นตัวอย่างมาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูหน้า style guide ที่ทุกขนาดจอตรวจรับ |
 | มีหลาย web app (เช่น back office กับ portal): `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ `/mflow:theme` กับ `/mflow:screen` ยังทำงานกับ UI แอปเดียว | ตัดสินใน `tech-stack` ว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยกต่อแอป และหน้าจอไหนอยู่แอปไหน การทำ kit แยกต่อแอปยังต้องทำด้วยมือ |
+| E2E ของค่าตั้งที่ข้ามเว็บ (0.37.1) ยังไม่เคยรันกับโปรเจกต์จริงที่มีสองเว็บ | ครั้งแรกให้ดูรายการค่าตั้งที่ Claude แสดงก่อนเขียน (ตั้งที่ไหน แสดงที่ไหน กี่สถานะ ไปถึงใคร มีผลเมื่อไร) และดูว่า test ที่เปลี่ยนค่าตั้งของทั้งระบบคืนค่าเดิมหลังรัน |
 | hook `e2e-guard` ปฏิเสธ `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกิน `e2eMaxWorkers` (ค่าเริ่มต้น 2) ดูเฉพาะคำสั่งที่เรียก Playwright ตรงๆ ไม่เห็น npm script ที่ห่อ Playwright หรือ Microsoft.Playwright ใต้ `dotnet test` | ตั้ง `workers: 2` ใน `playwright.config` ด้วย (`/mflow:help check setup` เตือนให้) อยากให้เปิด browser พร้อมกันมากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | `openspec-config.mjs` แก้ `config.yaml` ทีละบรรทัด ไม่ได้อ่าน YAML ทุกรูปแบบ: `context` ที่เขียนบรรทัดเดียวหรือแบบ `>` และ key ที่ไม่ใช่ list จะถูกรายงานใน `problems` และไม่แตะ | แก้ส่วนนั้นเอง แล้วรัน script อีกครั้ง |
 | `/mflow:e2e` และกฎ E2E ของ apply ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude รันเฉพาะไฟล์ของหน้าจอนั้นด้วย `--workers=2` และ apply ไม่แตะไฟล์ใน E2E folder |

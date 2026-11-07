@@ -16,7 +16,7 @@ user's call.
 - The E2E part in `.mtest/config.json` (`kind: "e2e"`), its folder and its Playwright config (helpers, fixtures, base URL, how it starts the app, `workers`). None: there is no E2E framework yet; say so and stop. Setting one up is a change of its own when the user asks for it.
 - **No argument:** list the screens (the web app's routes or pages) and the flows with E2E cases waiting (`node "${CLAUDE_PLUGIN_ROOT}/scripts/flows.mjs" check`, `e2ePending`), each with its E2E test files (search the E2E folder for the route, the page's test ids or the case ids) and when the test files and the screen's files last changed (`git log -1`), so the user sees which have no tests and which changed after their tests. Ask which one, and stop.
 - **`<screen>`:** its route, the roles that may open it (from the app's menu and permission code), its actions, and the flow cases that cross it.
-- **`flow <flow>`:** the `e2e` cases of that flow doc. When a step sets something once (a system setting, a master list, a switch, a template, a required field, a limit) that another person's web shows, list for each such setting where it is set, which web, screens and people show it (the web from the app folder its route lives in), each of its states (on and off, each value), whom it reaches, and when the flow doc says it takes effect.
+- **`flow <flow>`:** the `e2e` cases of that flow doc. A step no person takes (an Actor that is an external system, an import or a scheduled job, a mail the system sends) is listed with how the test makes it happen and how it sees it happened, as [references/chain.md](references/chain.md) shows: the project's fake of that system and its test endpoints, the job's trigger, the fake mailer. A step with no such seam is reported, with the seam to add as a change of its own. When a step sets something once (a system setting, a master list, a switch, a template, a required field, a limit) that another person's web shows, list for each such setting where it is set, which web, screens and people show it (the web from the app folder its route lives in), each of its states (on and off, each value), whom it reaches, and when the flow doc says it takes effect.
 - **Several webs:** when the flow's people work on different web apps (an admin web and a supplier web, each with its own address or sign-in), find in the Playwright config and in AGENTS.md each web's base URL, how it starts for E2E (the config's `webServer` list, or a stack command such as `docker compose … up -d`), and how each Playwright project reaches the API: mocked in the test (`page.route`, a mock server) or the real API. Missing: ask the user, and write it under `## Testing (mtest)` in AGENTS.md.
 - **Where each part of a setting is proven.** When the projects of each web mock the API, a setting that crosses webs is proven in three parts, each a case of the flow with its own test: (1) the admin web sends it (`e2e`: that page asserts the request it sends, in each state); (2) the API joins it (`integration`: what is saved through the admin endpoint is what the receiver's endpoint answers, in each state, to whom it reaches and not to the others, and from when); (3) the receiver web shows it (`e2e`: that page draws each state from a mocked answer typed by the project's API contract, with the same values as part 1, from one shared constant or fixture). List, for each setting, the case and test of each part or `missing`. A missing part 2 is a case to add at `integration` level; E2E does not stand in for it. A joined test (both webs on the real API) is one per setting, for its main path, in the project that runs the real API, and only when the project has one.
 
@@ -39,9 +39,26 @@ the supplier acknowledges is proven in the browser one path per test, the people
 - **One browser context per person** in the same test (`browser.newContext()`, each logged in as its
   role, or from the project's saved login states). Contexts share the worker's one browser, so this adds
   no browsers to the cap. Switch to the context of each step's Actor in the flow doc.
-- **Links that people get by mail** (an invitation, a reset, a notice): read them from the project's fake
-  mailer, outbox table or test endpoint, the way its integration tests do. Never from real mail. No such
+- **Mail is a step** (an invitation, a reset, a notice, an approval): read it from the project's fake
+  mailer, outbox table or test endpoint, the way its integration tests do, never from real mail, after
+  waiting for the mail line to have sent it. Assert who got it and who did not (supplier A, not supplier
+  B), its subject and the values the sender set, and that its link opens on the receiving web. No such
   seam in the project: say so; adding one is a change of its own.
+- **Data from another system** (an external API, a document store, a file drop): put the input into the
+  project's fake of that system as the real one would deliver it, with names unique to the run; start the
+  import through the project's trigger (an endpoint or the page that runs it), never by waiting for its
+  schedule; poll until a run newer than the test's start has finished and the record is there. Never call
+  the real external system.
+- **A long chain, one test, a step each**: the main path walks every step through the screens in one
+  test, each business step a `test.step` named with its step id in the flow doc, so a failure names the
+  step, with a timeout set for the whole chain. Each other path (reject, withdraw, a new revision from the
+  external system) is its own test that arranges the steps before its branch point through the project's
+  API helpers and walks only the branch on the screens. Such a chain needs the real API, its jobs and its
+  mail queue: it runs in the project on the real stack. A sketch: [references/chain.md](references/chain.md).
+- **The project's helpers first**: sign-in per web, API calls with the session and CSRF token, the fake
+  of each external system, the job trigger, the mail reader, the test clock and the cleanup are the
+  project's own; look for them in its E2E helpers before writing one, and write a missing one once,
+  beside the others.
 - **Hand-offs**: keep the values the sender set in the test's own variables (questions, options,
   required files, deadline, message) and, on the receiver's page, assert each one is shown as set, and
   that a setting that hides something hides it. After each decision (send back, reject, approve,

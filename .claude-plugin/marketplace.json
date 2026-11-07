@@ -19,7 +19,7 @@
     },
     {
       "name": "mtest",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "source": "./plugins/mtest",
       "description": "Tests, reviews and E2E for a new or existing project without a spec tool: flow docs whose every step, branch and case has a test, a runner that records each run against its commit, and E2E with a cap on browsers."
     },

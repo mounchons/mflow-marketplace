@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.37)
+## คำสั่ง (v0.38)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -63,6 +63,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]] | flow <capability หรือค่าตั้ง>` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียว หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37: เชิญ supplier → ตอบ → กวาดข้อมูล → ส่งกลับ/เก็บเข้าคลัง → สร้าง doc → approve/reject/withdraw → acknowledge; 0.37.1: ค่าตั้งที่ตั้งบน admin web แล้วแสดงบน supplier web ทุกสถานะ) แล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
+| | `/mflow:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.38) สั่งก่อนนอน แล้วรันเองทั้งคืนโดยไม่มีใครดู: `/mflow:test` → แก้ test ที่ล้ม → `/mflow:review pending` → แก้ตาม review ใน `fix/<change>-review` แล้ว test และ review ซ้ำ (ไม่เกิน `--rounds` รอบ ค่าเริ่มต้น 3) → เขียน E2E ที่หน้าจอในช่อง E2E screens ยังขาด → `/mflow:test e2e` → ตรวจ → `/mflow:handoff` เป็นรายการสำหรับตอนเช้า ไม่ merge เอง main ได้แค่ commit เอกสาร push เฉพาะบน web หยุดเมื่อถึง `--until` (ค่าเริ่มต้น 06:00) สถานะอยู่ที่ `docs/reviews/night/` ทำต่อจากขั้นที่ค้างได้ บนเครื่องเปิด session ด้วย `claude --permission-mode auto` |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด ย้าย block เก่าของ `## Now` และ log เก่าไป `docs/status-log.md` คำต่อคำด้วย `status-trim.mjs` (0.36.1) (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -130,7 +131,7 @@ E2E test ที่เขียนตอนหน้าจอยังเปล�
 
 - task จบด้วย unit test เท่านั้น user flow พิสูจน์ด้วย unit test ของกฎและ service ที่อยู่เบื้องหลัง `/opsx:apply`, `mflow:dev`, `/mflow:screen` และ `/mflow:test` แบบทั้งชุดไม่เขียนและไม่รัน E2E test
 - task เก่าที่สั่งให้รัน Playwright: apply ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E on request (/mflow:e2e <หน้าจอ>)` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และบอกชื่อหน้าจอที่ change แตะ
-- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:e2e flow <capability>` (0.37) เขียน test ทีละเส้นทางของ flow ที่ข้ามหลายหน้าและหลายฝ่าย ในเทสเดียวใช้ browser context ต่อ role (ไม่เพิ่มจำนวน browser) ลิงก์เชิญจาก fake mailer ของระบบ ตรวจว่าฝั่งรับเห็นสิ่งที่ฝั่งส่งตั้งไว้ตรงกัน ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองไม่เห็นงานของคนแรก (list, ลิงก์ตรง, ไฟล์, การแจ้งเตือน) scenario ที่ spec ยังไม่มีรายงานเป็นสิ่งที่ขาด ไม่แต่งเอง ค่าตั้งที่ตั้งเว็บหนึ่งแล้วแสดงอีกเว็บ (0.37.1): แต่ละ role เปิดบนเว็บของตัวเอง (`baseURL` และ login ของเว็บนั้น จาก `## Commands`) ตรวจทุกสถานะของค่าตั้ง (ตั้งแล้วเห็นตรง ปิดแล้วหายรวมถึงลิงก์ตรง) ผู้ที่ค่าตั้งไปถึงและคนที่ไม่ควรเห็น และเวลาที่มีผลตาม spec ค่าตั้งที่ทั้งระบบใช้ร่วมกันรันแยกแบบ serial และคืนค่าเดิมแม้ test ล้ม `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
+- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:e2e flow <capability>` (0.37) เขียน test ทีละเส้นทางของ flow ที่ข้ามหลายหน้าและหลายฝ่าย ในเทสเดียวใช้ browser context ต่อ role (ไม่เพิ่มจำนวน browser) ลิงก์เชิญจาก fake mailer ของระบบ ตรวจว่าฝั่งรับเห็นสิ่งที่ฝั่งส่งตั้งไว้ตรงกัน ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองไม่เห็นงานของคนแรก (list, ลิงก์ตรง, ไฟล์, การแจ้งเตือน) scenario ที่ spec ยังไม่มีรายงานเป็นสิ่งที่ขาด ไม่แต่งเอง ค่าตั้งที่ตั้งเว็บหนึ่งแล้วแสดงอีกเว็บ (0.37.1): แต่ละ role เปิดบนเว็บของตัวเอง (`baseURL` และ login ของเว็บนั้น จาก `## Commands`) ตรวจทุกสถานะของค่าตั้ง (ตั้งแล้วเห็นตรง ปิดแล้วหายรวมถึงลิงก์ตรง) ผู้ที่ค่าตั้งไปถึงและคนที่ไม่ควรเห็น และเวลาที่มีผลตาม spec ค่าตั้งที่ทั้งระบบใช้ร่วมกันรันแยกแบบ serial และคืนค่าเดิมแม้ test ล้ม (0.38) project ที่ mock API พิสูจน์ค่าตั้งข้ามเว็บเป็นสามท่อน: หน้า admin ส่งค่าถูก (E2E), API ส่งค่าที่บันทึกไปถึงฝั่งรับ (integration), หน้าฝั่งรับแสดงจาก mock ค่าเดียวกัน (E2E) และแสดงท่อนที่ยัง `missing` test ข้ามสองเว็บบน API จริงหนึ่งตัวต่อค่าตั้งใน project แบบ stack ข้อมูลที่ทุก test อ่าน (ค่าตั้ง สิทธิ์ template นาฬิกาทดสอบ) อยู่ใน project ที่รันหลัง test อ่านอย่างเดียว (`dependencies`, `workers: 1`) และคืนค่าใน `finally` `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
 - test ที่ล้มเพราะหน้าจอเปลี่ยนโดยตั้งใจถูกปรับตามของใหม่ ถ้าล้มเพราะหน้าจอผิด spec test ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
 - `/mflow:review` ไม่นับการไม่มี E2E test เป็นข้อบกพร่อง แค่บอกหน้าจอที่ยังรอ (`E2E on request`)
 
@@ -146,7 +147,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - `operations.apply.guidance` (0.35): จบ apply เพิ่มแถวลง `docs/reviews/pending.md` แทนการบอกให้สั่ง `/mflow:test`, `/mflow:review` หรือ `/mflow:e2e` ทั้งในคำตอบและใน STATUS.md
 - คำถามที่ให้คุณเลือก (0.34.2) ทั้งตอน propose, ใน briefing ทุก session และใน AGENTS.md: มีเลขข้อ ตัวเลือกเป็น `a)` `b)` `c)` ไม่ใช่ ก ข ค ตอบบรรทัดเดียวแบบ `1 a, 2 b, 3 a` โดยไม่ต้องสลับภาษาแป้นพิมพ์
 - `rules.proposal` (0.37): ถ้ามีแพ็กที่เติมคำตอบแล้ว (`docs/decisions/packs/<ชื่อ>.md`) จากเอกสาร discuss ที่อนุมัติ change ของเรื่องนั้นเริ่มจากไฟล์นี้ ไม่ถามซ้ำสิ่งที่ตัดสินแล้ว และบอกทุกจุดที่ต่างไปพร้อมเหตุผล
-- `rules.specs` (0.37 และ 0.37.1): สิ่งที่ role หนึ่งตั้งหรือส่งให้อีกฝ่าย มี Scenario ของสิ่งที่ฝั่งรับเห็น และของฝ่ายภายนอกรายที่สองที่ไม่เห็นอะไรเลย ค่าตั้งที่ตั้งครั้งเดียวแล้วเปลี่ยนสิ่งที่ role หรือเว็บอื่นเห็น มี Scenario ของทุกสถานะ (ตั้งแล้วและล้างแล้ว เปิดและปิด) ของผู้ที่ค่าตั้งไปถึง (และคนอื่นไม่เห็น) และของเวลาที่มีผล
+- `rules.specs` (0.37 และ 0.37.1): สิ่งที่ role หนึ่งตั้งหรือส่งให้อีกฝ่าย มี Scenario ของสิ่งที่ฝั่งรับเห็น และของฝ่ายภายนอกรายที่สองที่ไม่เห็นอะไรเลย ค่าตั้งที่ตั้งครั้งเดียวแล้วเปลี่ยนสิ่งที่ role หรือเว็บอื่นเห็น มี Scenario ของทุกสถานะ (ตั้งแล้วและล้างแล้ว เปิดและปิด) ของผู้ที่ค่าตั้งไปถึง (และคนอื่นไม่เห็น) และของเวลาที่มีผล ซึ่งเขียนเป็น Scenario ต่อค่าตั้ง หรือเป็นตารางเวลาที่มีผลของทุกค่าตั้งพร้อม Scenario ต่อแบบของเวลาก็ได้ (0.38)
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
 
@@ -209,6 +210,7 @@ mflow/
 │   ├─ consult.mjs         ← สถานะของ analyze/design/challenge (ไม่บังคับ) อ่านจากไฟล์จริง
 │   ├─ review-units.mjs    ← หน่วยตรวจ: ร่าง, ตรวจว่าทุกไฟล์มีหน่วย, ไฟล์ข้อเท็จจริงที่ดึงจากโค้ด
 │   ├─ pending.mjs         ← รายการรอ test และ review (docs/reviews/pending.md): range ของ change, ติ๊ก Test ตามประวัติ git, ติ๊ก Review
+│   ├─ night.mjs           ← สถานะของ /mflow:night (docs/reviews/night/): ขั้นถัดไป, รอบต่อเป้าหมาย, เวลาที่เหลือ
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI

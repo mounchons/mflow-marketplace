@@ -48,7 +48,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
      `- Shared checks:` is the integration test command, filtered, that /opsx:apply runs once at the end of a change
      that touched the data model, startup, permissions or seed data: the classes that read every table, every
      migration, the startup and the seeds. Other integration classes wait for /mflow:test.
-     E2E runs only when the user calls /mflow:e2e <screen> or /mflow:test e2e, with at most 2 browsers at a time. -->
+     E2E runs only when the user calls /mflow:e2e <screen>, /mflow:test e2e or /mflow:night, with at most 2 browsers at a time. -->
 - Build: `TODO`
 - Unit + domain tests: `TODO`
 - Shared checks: `TODO`

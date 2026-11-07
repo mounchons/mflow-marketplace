@@ -73,7 +73,7 @@ function main() {
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: `${reason} Run it again with --workers=${Math.min(2, cap)} (the cap is e2eMaxWorkers in .mflow/config.json, ${cap} here), and only when the user called /mflow:e2e or /mflow:test e2e.`,
+      permissionDecisionReason: `${reason} Run it again with --workers=${Math.min(2, cap)} (the cap is e2eMaxWorkers in .mflow/config.json, ${cap} here), and only when the user called /mflow:e2e, /mflow:test e2e or /mflow:night.`,
     },
   }));
 }

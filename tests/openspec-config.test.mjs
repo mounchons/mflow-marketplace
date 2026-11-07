@@ -82,7 +82,7 @@ test("the proposal asks its questions numbered, with options a) b) c)", () => {
   assert.ok(LINES["rules.proposal"].some((l) => l.includes("label each one's options a), b), c), never ก ข ค") && l.includes("`1 a, 2 b, 3 a`")));
 });
 
-// 0.37.1: a setting made once on the admin web and shown on the supplier web had no Scenario for its other
+// 0.37.1, 0.38.0: a setting made once on the admin web and shown on the supplier web had no Scenario for its other
 // state, whom it reaches or when it takes effect, so /mflow:e2e flow had nothing to test it against.
 test("the specs ask for every state of a setting another role or web shows, whom it reaches and when it takes effect", () => {
   const rule = LINES["rules.specs"].find((l) => l.startsWith("When a role sets something once on one screen or web"));
@@ -90,6 +90,10 @@ test("the specs ask for every state of a setting another role or web shows, whom
   assert.match(rule, /each of its states \(set and cleared, on and off/);
   assert.match(rule, /whom it reaches when it reaches only some \(and that the others do not see it\)/);
   assert.match(rule, /when the change takes effect/);
+  // 0.38.0: StemHub's system-settings spec gives the timing of every key in one table ("When a saved value applies") with a
+  // Scenario per kind of timing; a Scenario per setting must not be the only form the rule accepts.
+  assert.match(rule, /either in a Scenario per setting or in one requirement with a table of when each setting applies and a Scenario for each kind of timing/);
+  assert.ok(!/and one for when the change takes effect/.test(rule), "the 0.37.1 wording is gone");
   assert.ok(LINES["rules.specs"].some((l) => l.includes("a second party of that kind sees none of it")), "the 0.37.0 hand-off rule stays");
 });
 

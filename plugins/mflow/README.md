@@ -35,7 +35,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 | กลุ่ม | คำสั่ง | ทำอะไร |
 |---|---|---|
-| ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack และชื่อโปรเจกต์ในโค้ด (เสนอให้สามชื่อ) ก่อน, ต่อ OpenSpec + Backlog.md, สร้าง `docs/decisions/discuss/AGENDA.md` (มี `tech-stack` และ `code-structure` นำหน้า), คัดแยกเอกสารเดิม |
+| ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack และชื่อโปรเจกต์ในโค้ด (เสนอให้สามชื่อ) ก่อน, ต่อ OpenSpec + Backlog.md, สร้าง `docs/decisions/discuss/AGENDA.md` (มี `tech-stack` และ `code-structure` นำหน้า), คัดแยกเอกสารเดิม, (เลือกได้, 0.38.1) เขียนสำเนา plugin ที่ `.claude/skills/mflow/` สำหรับ Claude Code on the web ซึ่งไม่ติดตั้ง plugin ให้ |
 | เอกสารลูกค้า | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded, เพิ่มหัวข้อที่ควร discuss ลง AGENDA.md |
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/decisions/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
@@ -63,7 +63,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]] | flow <capability หรือค่าตั้ง>` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียว หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37: เชิญ supplier → ตอบ → กวาดข้อมูล → ส่งกลับ/เก็บเข้าคลัง → สร้าง doc → approve/reject/withdraw → acknowledge; 0.37.1: ค่าตั้งที่ตั้งบน admin web แล้วแสดงบน supplier web ทุกสถานะ) แล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
-| | `/mflow:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.38) สั่งก่อนนอน แล้วรันเองทั้งคืนโดยไม่มีใครดู: `/mflow:test` → แก้ test ที่ล้ม → `/mflow:review pending` → แก้ตาม review ใน `fix/<change>-review` แล้ว test และ review ซ้ำ (ไม่เกิน `--rounds` รอบ ค่าเริ่มต้น 3) → เขียน E2E ที่หน้าจอในช่อง E2E screens ยังขาด → `/mflow:test e2e` → ตรวจ → `/mflow:handoff` เป็นรายการสำหรับตอนเช้า ไม่ merge เอง main ได้แค่ commit เอกสาร push เฉพาะบน web หยุดเมื่อถึง `--until` (ค่าเริ่มต้น 06:00) สถานะอยู่ที่ `docs/reviews/night/` ทำต่อจากขั้นที่ค้างได้ บนเครื่องเปิด session ด้วย `claude --permission-mode auto` |
+| | `/mflow:night [--until HH:MM] [--rounds n] [--no-e2e]` | (0.38) สั่งเมื่อจะปล่อยเครื่องไว้ เวลาไหนก็ได้ (ชื่อ night เป็นแค่ชื่อ) แล้วรันเองจนจบโดยไม่มีใครดู: `/mflow:test` → แก้ test ที่ล้ม → `/mflow:review pending` → แก้ตาม review ใน `fix/<change>-review` แล้ว test และ review ซ้ำ (ไม่เกิน `--rounds` รอบ ค่าเริ่มต้น 3) → เขียน E2E ที่หน้าจอในช่อง E2E screens ยังขาด → `/mflow:test e2e` → ตรวจ → `/mflow:handoff` เป็นรายการให้ดูตอนกลับมา ไม่ merge เอง main ได้แค่ commit เอกสาร push เฉพาะบน web ไม่ใส่ `--until` รันจนจบทุกขั้น ใส่แล้วหยุดเมื่อถึงเวลานั้น (0.38.1) สถานะอยู่ที่ `docs/reviews/night/` ทำต่อจากขั้นที่ค้างได้ บนเครื่องเปิด session ด้วย `claude --permission-mode auto` |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด ย้าย block เก่าของ `## Now` และ log เก่าไป `docs/status-log.md` คำต่อคำด้วย `status-trim.mjs` (0.36.1) (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -212,6 +212,7 @@ mflow/
 │   ├─ pending.mjs         ← รายการรอ test และ review (docs/reviews/pending.md): range ของ change, ติ๊ก Test ตามประวัติ git, ติ๊ก Review
 │   ├─ night.mjs           ← สถานะของ /mflow:night (docs/reviews/night/): ขั้นถัดไป, รอบต่อเป้าหมาย, เวลาที่เหลือ
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
+│   ├─ vendor.mjs          ← สำเนา plugin ใน .claude/skills/mflow/ สำหรับ Claude Code on the web: plan, write, status (0.38.1)
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)

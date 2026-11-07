@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.38.0 |
+| เวอร์ชัน plugin | 0.38.1 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -436,16 +436,16 @@ docs/
    - ระดับของ review ดูจากไฟล์ที่ change แตะ apply เขียนไว้ในแถวของ change ใน `docs/reviews/pending.md`: **เต็ม** (`/mflow:review <branch>`) เมื่อแตะกฎธุรกิจ สิทธิ์หรือ data scope, query, migration, การเชื่อมระบบอื่น หรือ startup; **สั้น** (`--short`) สำหรับโค้ดอื่น เช่นหน้าจอที่แค่แสดงสิ่งที่ API ส่งมา และรอบแก้หลัง review ซึ่งตรวจเฉพาะส่วนที่เปลี่ยนตั้งแต่ commit ที่ review ล่าสุดและดูว่า finding เดิมแก้แล้วหรือยัง; **ข้าม** เมื่อแก้แค่เอกสาร style/token หรือข้อความ label (merge ได้เมื่อคุณตกลง โดยต้องมีผล `/mflow:test` ที่ commit นั้นถ้าไม่ได้แก้แค่เอกสาร) คุณเลือกระดับเองได้เสมอ
    - **ข้อทดสอบใช้งานที่ค้าง:** review แสดง task `ทดสอบใช้งาน` ของเอกสาร discuss ที่ change อ้าง ซึ่งยังไม่ Done พร้อมเกณฑ์ที่ยังไม่ได้ติ๊ก (ใต้ `Checks in use:` ในรายงาน) ให้ลองในระบบที่รันอยู่ แล้วสั่ง `/mflow:review-notes` เป็นการเตือนเท่านั้น ไม่มีผลกับคำตัดสินหรือการ merge
    - (ไม่บังคับ) ก่อน apply ของที่ผิดแล้วแพง ให้ AI หลายตัวหาจุดที่แบบจะพังได้ด้วย `/mflow:challenge @openspec/changes/<ชื่อ change>/proposal.md` ต่างจาก review ที่ตรวจโค้ดซึ่งเขียนแล้ว
-   - **ข้อ 3 และ 4 ตอนกลางคืน (0.38):** สั่ง `/mflow:night` ก่อนออกจากเครื่อง Claude รันต่อเองทั้งคืนโดยไม่ถามคุณ:
+   - **ข้อ 3 และ 4 แบบปล่อยให้รันเอง (0.38):** สั่ง `/mflow:night` เมื่อจะปล่อยเครื่องไว้สักพัก เวลาไหนก็ได้ (ชื่อ night เป็นแค่ชื่อคำสั่ง เช่น ข้ามคืน ช่วงพักเที่ยง หรือระหว่างประชุม) Claude รันต่อเองจนจบโดยไม่ถามคุณ:
      1. `/mflow:test` ทั้งชุด ถ้าล้มแก้ใน branch `fix/night-<วันที่>-tests`
      2. `/mflow:review pending` ทุกแถว
      3. แถวที่ได้ `changes-requested` แก้ใน `fix/<change>-review` แล้ว `/mflow:test since` และ `/mflow:review --short` ซ้ำจนได้ approve หรือครบ `--rounds` (ค่าเริ่มต้น 3 รอบ)
      4. เขียน E2E ของหน้าจอในช่อง E2E screens ที่ยังไม่มี test หรือหน้าจอแก้หลัง test ล่าสุด ใน branch `e2e/night-<วันที่>` แล้วรัน E2E ทั้งหมด (project ที่ต้องใช้ stack เช่น `docker compose` รันเฉพาะเมื่อ stack เปิดอยู่)
-     5. ตรวจว่าทุกขั้นจบ และ main ได้แค่ commit เอกสาร แล้ว `/mflow:handoff` เขียน `## Now` เป็นรายการสำหรับตอนเช้า
-   - **Claude ไม่ merge เอง:** ตอนเช้าคุณอ่าน review ของแต่ละ branch แล้วสั่ง merge เอง ข้อที่ต้องให้คุณตัดสิน (คำถามใน spec สิทธิ์ ตารางที่ spec ไม่มี) Claude ไม่เดา แต่ใส่ไว้ในรายการตอนเช้า คำถามที่ skill อื่นจะถาม Claude เลือกทางที่ไม่เปลี่ยนอะไรนอก repo แล้วจดไว้ว่าเลือกอะไร
-   - **วิธีเริ่มบนเครื่อง:** เปิด terminal ในโฟลเดอร์โปรเจกต์ สั่ง `claude --permission-mode auto` แล้วพิมพ์ `/mflow:night --until 06:00` ถ้ามีหน้าต่างขออนุญาตขึ้นตอนกลางคืน งานจะหยุดรอจนเช้า ตั้งเครื่องไม่ให้ sleep (Settings → System → Power) tree ต้องสะอาด (ไม่มีงานค้างที่ยังไม่ commit) ไม่อย่างนั้น Claude หยุดตั้งแต่ขั้นแรกโดยไม่ commit งานของคุณ บนเครื่องไม่ push อะไร
-   - **บน web (claude.ai/code):** ต้องมีสำเนา plugin ใน `.claude/skills/mflow/` (ยังไม่เคยลองบน web จริง) และ setup script ที่ติดตั้งเครื่องมือของ test จบแล้ว push branch ของ session และทุก branch ที่สร้าง เพราะไฟล์ของ session หายเมื่อ session จบ
-   - **สถานะ:** อยู่ที่ `docs/reviews/night/<วันที่>-<เวลา>.md` เขียนทุกครั้งที่จบขั้น ถ้า context เต็มหรือ session หลุด สั่ง `/mflow:night` อีกครั้งแล้ว Claude ทำต่อจากขั้นที่ค้าง ถึง `--until` แล้วข้ามไปขั้นตรวจและ handoff ทันที `--no-e2e` ข้ามขั้น E2E
+     5. ตรวจว่าทุกขั้นจบ และ main ได้แค่ commit เอกสาร แล้ว `/mflow:handoff` เขียน `## Now` เป็นรายการให้คุณดูตอนกลับมา
+   - **Claude ไม่ merge เอง:** ตอนกลับมาคุณอ่าน review ของแต่ละ branch แล้วสั่ง merge เอง ข้อที่ต้องให้คุณตัดสิน (คำถามใน spec สิทธิ์ ตารางที่ spec ไม่มี) Claude ไม่เดา แต่ใส่ไว้ในรายการนั้น คำถามที่ skill อื่นจะถาม Claude เลือกทางที่ไม่เปลี่ยนอะไรนอก repo แล้วจดไว้ว่าเลือกอะไร
+   - **วิธีเริ่มบนเครื่อง:** เปิด terminal ในโฟลเดอร์โปรเจกต์ สั่ง `claude --permission-mode auto` แล้วพิมพ์ `/mflow:night` (ไม่ใส่ `--until` รันจนจบทุกขั้น ใส่ `--until 17:30` เมื่ออยากให้หยุดตามเวลา) ถ้ามีหน้าต่างขออนุญาตขึ้นระหว่างรัน งานจะหยุดรอจนมีคนตอบ ตั้งเครื่องไม่ให้ sleep (Settings → System → Power) tree ต้องสะอาด (ไม่มีงานค้างที่ยังไม่ commit) ไม่อย่างนั้น Claude หยุดตั้งแต่ขั้นแรกโดยไม่ commit งานของคุณ บนเครื่องไม่ push อะไร
+   - **บน web (claude.ai/code):** ใช้สำเนา plugin ที่ `/mflow:init` เขียนไว้ใน `.claude/skills/mflow/` (ดูหัวข้อ "mflow บน Claude Code on the web" ด้านล่าง ยังไม่เคยลองบน web จริง) เลือก permission mode เป็น Auto และ push ทุก commit ทันที (session branch หลัง commit เอกสาร, branch แก้ไขหลัง commit โค้ด) เพราะเครื่องบน web ที่ว่างนานจะพัก และอาจถูกเรียกคืนเหลือแค่ประวัติแชต ถ้าหลุดกลางทาง เปิด session ใหม่บน branch ที่ push ไว้แล้วสั่ง `/mflow:night` อีกครั้ง จะทำต่อจากขั้นที่ค้าง
+   - **สถานะ:** อยู่ที่ `docs/reviews/night/<วันที่>-<เวลา>.md` เขียนทุกครั้งที่จบขั้น ถ้า context เต็มหรือ session หลุด สั่ง `/mflow:night` อีกครั้งแล้ว Claude ทำต่อจากขั้นที่ค้าง ถ้าใส่ `--until` เมื่อถึงเวลาจะข้ามไปขั้นตรวจและ handoff ทันที `--no-e2e` ข้ามขั้น E2E
 5. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 6. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
@@ -502,6 +502,12 @@ docs/
 - แผนหน่วยตรวจเป็นของคุณ แก้ได้ เมื่อมี folder ใหม่ที่ยังไม่มีหน่วย Claude จะเตือนตอนเริ่มหน่วยถัดไปและเสนอปรับแผน แต่ไม่ขวาง
 
 
+**mflow บน Claude Code on the web (claude.ai/code, 0.38.1)**
+- web ไม่ติดตั้ง plugin ให้ (ทั้งที่ติดตั้งในเครื่องและที่ `.claude/settings.json` ประกาศ) แต่โหลดสิ่งที่ repo มีใต้ `.claude/` ตอน `/mflow:init` Claude ถามครั้งเดียวว่าจะเขียนสำเนา plugin ไว้ที่ `.claude/skills/mflow/` ไหม (ครั้งต่อไปหลังอัปเกรด เขียนเฉพาะไฟล์ที่เปลี่ยนโดยไม่ถาม) แล้ว commit สำเนาเป็น commit แยกและ push
+- ตั้ง environment ที่ claude.ai/code: network แบบ Trusted (ถึง npm, NuGet, apt, GitHub และ Docker Hub แต่ browser ของ Playwright อาจต้องเพิ่ม domain หรือใช้ Full), setup script รันเป็น root บน Ubuntu 24.04 ก่อน Claude เริ่ม มี Docker และ docker compose แล้ว แต่ไม่มี .NET ตัวอย่างอยู่ที่ `skills/init/references/cloud.md` ของ plugin (`/mflow:init` แสดงให้)
+- ใน session แรกพิมพ์ `/mflow:help` ถ้าตอบได้และมี briefing ของ mflow ตอนเปิด session แปลว่าสำเนาโหลดได้พร้อม hook ถ้าไม่ได้ ให้บอก session ให้อ่าน `.claude/skills/mflow/skills/<คำสั่ง>/SKILL.md` แล้วทำตาม (hook จะไม่ทำงาน)
+- การโหลด plugin แบบนี้บน web ยังไม่เคยพิสูจน์ session แรกคือการทดสอบ briefing และ `/mflow:help check setup` เตือนเมื่อสำเนาเก่ากว่า plugin ส่วน review ไม่นับสำเนาเป็นโค้ดของโปรเจกต์
+
 **ให้ Codex หรือ OpenCode รัน test และรีวิว: `$mflow-test`, `$mflow-review` (Codex) หรือ `/mflow-test`, `/mflow-review` (OpenCode)**
 - `/mflow:init` สร้าง skill สองตัวนี้ใน `.agents/skills/` จาก skill ของ Claude (ถามก่อนเขียน) แล้ว commit พร้อม repo ทั้ง Codex และ OpenCode อ่านจากโฟลเดอร์นี้ ไม่ต้องติดตั้งอะไรเพิ่ม
 - ใช้เมื่ออยากให้ test ที่ใช้เวลานานไม่กิน session ของ Claude หรืออยากให้เครื่องมือที่ไม่ได้เขียนโค้ดเป็นคนรีวิว เช่น Claude เขียนโค้ดใน terminal หนึ่ง แล้ว Codex รัน `$mflow-test` และ `$mflow-review <branch>` อีก terminal
@@ -528,7 +534,7 @@ docs/
 | ระหว่างทำงาน | หลัง 10 นาทีแรก ถ้ามีไฟล์เปลี่ยนแต่ STATUS.md ยังไม่ถูกอัปเดต (นับทั้งไฟล์ที่ลบ เปลี่ยนชื่อ และที่ commit ไปแล้วใน session นี้หลังเขียน STATUS.md ครั้งล่าสุด ส่วน commit ที่มี STATUS.md อยู่ด้วยนับเป็น handoff แล้ว) Claude จะเขียนบันทึกสั้นก่อนหยุดโดยไม่แตะ log เก่า เตือนซ้ำไม่เกินทุก 30 นาที และหลัง compact ก็ยังจำงานก่อนหน้าได้ | ไม่ต้องทำอะไร ปรับเวลาได้ใน `.mflow/config.json` (`stopGuard`) |
 | จบวัน | | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog และผล test) ให้คนที่ไม่เห็นแชตวันนี้ทำต่อได้ ตั้งแต่ 0.36.1 `## Now` เหลือแค่สถานะปัจจุบันกับรายการ `Still open:` บรรทัดละข้อ block ของ session ก่อนๆ และหัวข้อที่อยู่ระหว่าง `## Now` กับ `## Log` ย้ายไปท้าย `docs/status-log.md` ใต้ `## Now blocks moved on <วันที่>` ส่วน log เกิน 10 รายการย้ายไปบนสุดของไฟล์เดียวกัน ทั้งหมดคำต่อคำด้วย script `status-trim.mjs` ไม่มีการย่อหรือสรุป `/mflow:help check setup` เตือนเมื่อ STATUS.md เกิน 100 KB |
 | ก่อนสลับไปใช้ tool อื่น | | `/mflow:handoff --for codex` ได้ brief ของงานถัดไปด้วย |
-| ก่อนนอน (ถ้ามี change รอ test และ review) | | เปิด session ด้วย `claude --permission-mode auto` แล้วสั่ง `/mflow:night --until 06:00` (0.38) ตอนเช้าเปิด `## Now` ของ STATUS.md: branch ที่รอคุณสั่ง merge, สิ่งที่หยุดเพราะครบรอบหรือหมดเวลา, สิ่งที่ล้มแล้วยังไม่แก้ และคำถามที่ Claude เลือกคำตอบแทน |
+| ก่อนปล่อยเครื่องไว้ (ข้ามคืน พักเที่ยง หรือประชุม) ถ้ามี change รอ test และ review | | เปิด session ด้วย `claude --permission-mode auto` แล้วสั่ง `/mflow:night` (0.38, `--until HH:MM` ถ้าอยากให้หยุดตามเวลา) ตอนกลับมาเปิด `## Now` ของ STATUS.md: branch ที่รอคุณสั่ง merge, สิ่งที่หยุดเพราะครบรอบหรือหมดเวลา, สิ่งที่ล้มแล้วยังไม่แก้ และคำถามที่ Claude เลือกคำตอบแทน |
 
 hook ของ mflow ทำงานเฉพาะใน Claude Code ใน Codex, OpenCode และ tool อื่นให้ทำตามส่วน "Session ritual" ใน `AGENTS.md` คืออ่าน STATUS.md ตอนเริ่ม และเขียน log ตอนจบ
 
@@ -865,12 +871,12 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ตรวจโค้ดก่อน merge | `/mflow:review <branch>` เต็ม สำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ข้ามได้ถ้าแก้แค่เอกสาร style หรือข้อความ label (ใช้ผล `/mflow:test` หรือรัน `since` ต่อจากการรันทั้งชุดครั้งก่อน) |
 | hook ของ mflow ปฏิเสธการรัน Playwright | รันใหม่ด้วย `--workers=2` จาก `/mflow:e2e` หรือ `/mflow:test e2e` อยากเปิด browser มากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | แก้ตาม review แล้ว อยากพิสูจน์ commit ใหม่โดยไม่รันทั้งชุด | `/mflow:test since` |
-| อยากให้ test, review, แก้ตาม review, E2E และตรวจ รันเองตอนกลางคืน แล้วตอนเช้ามีรายการให้ดู | `/mflow:night --until 06:00` ใน session ที่เปิดด้วย `claude --permission-mode auto` (หรือบน web) ไม่ merge เอง |
+| อยากให้ test, review, แก้ตาม review, E2E และตรวจ รันเองโดยไม่ต้องนั่งดู (เวลาไหนก็ได้) แล้วกลับมามีรายการให้ดู | `/mflow:night [--until HH:MM]` ใน session ที่เปิดด้วย `claude --permission-mode auto` (หรือบน web) ไม่ merge เอง |
 | งานใหญ่ apply นานหลายชั่วโมง หรือ context เต็มกลางงาน | `/clear` แล้ว `/opsx:apply <change>` ทำต่อจาก task แรกที่ยังไม่ติ๊ก งานที่จะเกินราว 25 task Claude แบ่งตาม feature ให้ตอน propose (0.35) และรัน `/mflow:test` บนเครื่องที่สอง หรือให้ Codex รัน `$mflow-test` ระหว่างที่ทำส่วนถัดไป |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.38.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.38.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -897,8 +903,8 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | เมนูสามสถานะ ปุ่ม ☰ และการตรวจตามขนาดจอยังไม่เคยสร้างผ่าน `/mflow:theme` ใน session จริง (แบบที่ใช้เป็นตัวอย่างมาจากโปรเจกต์ที่ทำด้วยมือ) | ครั้งแรกให้นั่งดูหน้า style guide ที่ทุกขนาดจอตรวจรับ |
 | มีหลาย web app (เช่น back office กับ portal): `## Stack` เก็บ path ของ kit ได้ชุดเดียว และ `/mflow:theme` กับ `/mflow:screen` ยังทำงานกับ UI แอปเดียว | ตัดสินใน `tech-stack` ว่า kit อยู่ที่เดียว (เช่น `packages/ui`) หรือแยกต่อแอป และหน้าจอไหนอยู่แอปไหน การทำ kit แยกต่อแอปยังต้องทำด้วยมือ |
 | E2E ของค่าตั้งที่ข้ามเว็บ (0.37.1, 0.38) ปรับตาม test สองเว็บของ StemHub แล้ว แต่ยังไม่เคยสั่ง `/mflow:e2e flow` ในโปรเจกต์จริง | ครั้งแรกให้ดูรายการค่าตั้งที่ Claude แสดงก่อนเขียน (ตั้งที่ไหน แสดงที่ไหน กี่สถานะ ไปถึงใคร มีผลเมื่อไร และ test ของแต่ละท่อนหรือ `missing`) และดูว่า test ที่เปลี่ยนข้อมูลที่ทุก test อ่านคืนค่าใน `finally` |
-| `/mflow:night` (0.38) ยังไม่เคยรันข้ามคืนในโปรเจกต์จริง และบน web ยังต้องรอการทดสอบสำเนา plugin ใน `.claude/skills/mflow/` | คืนแรกให้สั่งด้วย `--until` ที่ใกล้ (เช่นอีก 2 ชั่วโมง) แล้วดูไฟล์ใน `docs/reviews/night/` ว่าทุกขั้นจบหรือหยุดพร้อมเหตุผล branch ที่สร้างตรงกับรายการตอนเช้า และ `git diff --name-only <commit เริ่ม>..main` มีแค่เอกสาร |
-| ถ้าหน้าต่างขออนุญาตขึ้นระหว่าง `/mflow:night` งานจะรอจนมีคนตอบ | เปิด session ด้วย `claude --permission-mode auto` ก่อนสั่ง ถ้ายังมีคำสั่งที่ถูกถาม ให้เพิ่มใน allow list ของ `.claude/settings.local.json` หลังคืนแรก |
+| `/mflow:night` (0.38) ยังไม่เคยรันในโปรเจกต์จริง และสำเนา plugin ใน `.claude/skills/mflow/` ที่ `/mflow:init` เขียน (0.38.1) ยังไม่เคยลองบน web | ครั้งแรกให้สั่งด้วย `--until` ที่ใกล้ (เช่นอีก 2 ชั่วโมง) แล้วดูไฟล์ใน `docs/reviews/night/` ว่าทุกขั้นจบหรือหยุดพร้อมเหตุผล branch ที่สร้างตรงกับรายการใน `## Now` และ `git diff --name-only <commit เริ่ม>..main` มีแค่เอกสาร |
+| ถ้าหน้าต่างขออนุญาตขึ้นระหว่าง `/mflow:night` งานจะรอจนมีคนตอบ | เปิด session ด้วย `claude --permission-mode auto` ก่อนสั่ง ถ้ายังมีคำสั่งที่ถูกถาม ให้เพิ่มใน allow list ของ `.claude/settings.local.json` หลังรันครั้งแรก |
 | hook `e2e-guard` ปฏิเสธ `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกิน `e2eMaxWorkers` (ค่าเริ่มต้น 2) ดูเฉพาะคำสั่งที่เรียก Playwright ตรงๆ ไม่เห็น npm script ที่ห่อ Playwright หรือ Microsoft.Playwright ใต้ `dotnet test` | ตั้ง `workers: 2` ใน `playwright.config` ด้วย (`/mflow:help check setup` เตือนให้) อยากให้เปิด browser พร้อมกันมากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | `openspec-config.mjs` แก้ `config.yaml` ทีละบรรทัด ไม่ได้อ่าน YAML ทุกรูปแบบ: `context` ที่เขียนบรรทัดเดียวหรือแบบ `>` และ key ที่ไม่ใช่ list จะถูกรายงานใน `problems` และไม่แตะ | แก้ส่วนนั้นเอง แล้วรัน script อีกครั้ง |
 | `/mflow:e2e` และกฎ E2E ของ apply ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่า Claude รันเฉพาะไฟล์ของหน้าจอนั้นด้วย `--workers=2` และ apply ไม่แตะไฟล์ใน E2E folder |

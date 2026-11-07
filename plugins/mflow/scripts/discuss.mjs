@@ -390,7 +390,9 @@ function check(root, ref) {
 /** Project files to search: git's tracked and untracked-but-not-ignored files, or a walk without git. */
 function projectFiles(root) {
   const listed = run("git ls-files -co --exclude-standard -z -- .", root, 15000);
-  if (listed !== null) return listed.split("\0").filter(Boolean);
+  // The copy of mflow for the web (.claude/skills/mflow/) is the plugin, not the project.
+  const own = (f) => !f.startsWith(".claude/skills/mflow/");
+  if (listed !== null) return listed.split("\0").filter(Boolean).filter(own);
   const out = [];
   const walk = (dir) => {
     for (const e of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
@@ -401,7 +403,7 @@ function projectFiles(root) {
     }
   };
   walk("");
-  return out;
+  return out.filter(own);
 }
 
 /**

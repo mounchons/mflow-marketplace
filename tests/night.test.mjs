@@ -75,6 +75,18 @@ test("past --until the run is overtime; finish closes it and a new run can start
   assert.notEqual(second.json.file, file);
 });
 
+// 0.38.1: the name says night, but the user starts a run at any hour; a default of 06:00 gave a run started at 05:50
+// ten minutes and one started at 07:00 almost a day. Without --until a run has no time limit.
+test("without --until a run started at any hour has no time limit", () => {
+  p = project();
+  const s = night(["start"]);
+  assert.equal(s.status, 0, s.stdout);
+  assert.deepEqual([s.json.until, s.json.untilLocal], [null, null]);
+  assert.match(p.read(s.json.file), /^Until: none$/m);
+  const st = night(["status"], 24 * 60).json;
+  assert.deepEqual([st.until, st.minutesLeft, st.overtime, st.next], [null, null, false, "preflight"]);
+});
+
 test("a run on Claude Code on the web says so, and a flag the skill reads (--no-e2e) does not stop the start", () => {
   p = project();
   const s = night(["start", "--no-e2e", "--rounds", "2"], 0, { CLAUDE_CODE_REMOTE: "true" });

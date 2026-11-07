@@ -150,3 +150,20 @@ test("outside an mflow project the report says so", () => {
   fs.rmSync(path.join(p.root, ".mflow"), { recursive: true });
   assert.equal(doctor().project.status, "fail");
 });
+
+// 0.38.1: the web installs no plugins, so /mflow:init writes a copy in .claude/skills/mflow/; an old copy is a warn.
+test("the copy for Claude Code on the web is ok when current, a warn with a fix when it lags, and left alone when foreign", () => {
+  initialised();
+  assert.equal(doctor()["cloud-copy"], undefined, "no copy, nothing to say");
+  assert.equal(run(p, "vendor.mjs", ["write"]).status, 0);
+  assert.equal(doctor()["cloud-copy"].status, "ok");
+  const mark = JSON.parse(p.read(".claude/skills/mflow/.mflow-vendor.json"));
+  mark.version = "0.1.0";
+  p.write(".claude/skills/mflow/.mflow-vendor.json", JSON.stringify(mark));
+  const lag = doctor()["cloud-copy"];
+  assert.equal(lag.status, "warn");
+  assert.match(lag.detail, /is mflow 0\.1\.0/);
+  assert.match(lag.fix, /\/mflow:init/);
+  fs.rmSync(path.join(p.root, ".claude/skills/mflow/.mflow-vendor.json"));
+  assert.equal(doctor()["cloud-copy"].status, "info");
+});

@@ -13,6 +13,7 @@ import { scan as scanSources } from "./source-index.mjs";
 import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
 import { consultationId, list as listConsultations } from "./consult.mjs";
+import { vendorStatus } from "./vendor.mjs";
 
 /** Text from a file anyone can edit, as one line of at most `max` characters: no line breaks or control characters. */
 const oneLine = (text, max) => {
@@ -241,6 +242,11 @@ try {
   const upgrade = [];
   if (!offered || compareVersions(offered, pluginVersion) < 0) {
     upgrade.push(`- mflow ${pluginVersion} has templates newer than this project's (${offered ? `from ${offered}` : "no record yet"}) → /mflow:init offers only the changed ones; /mflow:help check setup for a full check`);
+  }
+  // The copy for Claude Code on the web (.claude/skills/mflow/), when it lags behind this plugin.
+  const copy = vendorStatus(root);
+  if (copy.present && !copy.foreign && !copy.current) {
+    upgrade.push(`- the copy for Claude Code on the web (.claude/skills/mflow/) is mflow ${copy.version}, this plugin is ${copy.pluginVersion} → /mflow:init refreshes it`);
   }
   if (upgrade.length) parts.push("## mflow upgrade\n" + upgrade.join("\n"));
 } catch { /* unreadable record: /mflow:help check setup reports it */ }

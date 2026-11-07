@@ -16,6 +16,7 @@ import { list as listConsultations } from "./consult.mjs";
 import { projectDir, status as subagentStatus } from "./apply-subagent.mjs";
 import { plan as openspecConfigPlan } from "./openspec-config.mjs";
 import { status as agentSkillsStatus } from "./agent-skills.mjs";
+import { vendorStatus } from "./vendor.mjs";
 
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const plugin = JSON.parse(fs.readFileSync(path.join(PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).version;
@@ -177,6 +178,12 @@ function projectChecks() {
   else if (agentSkills.some((s) => s.state === "current")) add("agent-skills", "ok", `skills for Codex and OpenCode from mflow ${plugin}`);
   else add("agent-skills", "info", "no skills for Codex and OpenCode yet (.agents/skills/mflow-test, mflow-review); /mflow:init can write them");
 
+  // The copy for Claude Code on the web: the web installs no plugins, so a session there loads mflow only from it.
+  const copy = vendorStatus(root);
+  if (copy.foreign) add("cloud-copy", "info", ".claude/skills/mflow is not mflow's copy (no .mflow-vendor.json), so mflow leaves it alone and writes none there");
+  else if (copy.present && !copy.current) add("cloud-copy", "warn", `.claude/skills/mflow is mflow ${copy.version}, the plugin is ${plugin}`, "Run /mflow:init, which refreshes the copy (vendor.mjs write)");
+  else if (copy.present) add("cloud-copy", "ok", `copy for Claude Code on the web: mflow ${plugin}`);
+
   // Consultations (optional): a session file that cannot be read hides nothing, but should be fixed.
   try {
     const sessions = listConsultations(root).sessions;
@@ -233,7 +240,8 @@ function topLevelWorkers(source) {
 /** Project files with one extension, from git's list (tracked and not ignored) or a bounded walk. */
 function codeFiles(dir, ext) {
   const listed = run("git ls-files -co --exclude-standard -z -- .", dir, 15000);
-  if (listed !== null) return listed.split("\0").filter((f) => f.endsWith(ext));
+  // The copy of mflow for the web (.claude/skills/mflow/) is the plugin, not the project.
+  if (listed !== null) return listed.split("\0").filter((f) => f.endsWith(ext) && !f.startsWith(".claude/skills/mflow/"));
   const out = [];
   const walk = (rel) => {
     if (out.length > 20000) return;

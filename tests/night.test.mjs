@@ -87,9 +87,9 @@ test("without --until a run started at any hour has no time limit", () => {
   assert.deepEqual([st.until, st.minutesLeft, st.overtime, st.next], [null, null, false, "preflight"]);
 });
 
-test("a run on Claude Code on the web says so, and a flag the skill reads (--no-e2e) does not stop the start", () => {
+test("a run on Claude Code on the web says so, and the flags the skill reads (--no-e2e, --stack) do not stop the start", () => {
   p = project();
-  const s = night(["start", "--no-e2e", "--rounds", "2"], 0, { CLAUDE_CODE_REMOTE: "true" });
+  const s = night(["start", "--no-e2e", "--stack", "--rounds", "2"], 0, { CLAUDE_CODE_REMOTE: "true" });
   assert.equal(s.status, 0, s.stdout);
   assert.deepEqual([s.json.where, s.json.rounds], ["cloud", 2]);
 });

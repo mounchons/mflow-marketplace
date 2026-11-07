@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.38.1 |
+| เวอร์ชัน plugin | 0.38.2 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -446,6 +446,7 @@ docs/
    - **วิธีเริ่มบนเครื่อง:** เปิด terminal ในโฟลเดอร์โปรเจกต์ สั่ง `claude --permission-mode auto` แล้วพิมพ์ `/mflow:night` (ไม่ใส่ `--until` รันจนจบทุกขั้น ใส่ `--until 17:30` เมื่ออยากให้หยุดตามเวลา) ถ้ามีหน้าต่างขออนุญาตขึ้นระหว่างรัน งานจะหยุดรอจนมีคนตอบ ตั้งเครื่องไม่ให้ sleep (Settings → System → Power) tree ต้องสะอาด (ไม่มีงานค้างที่ยังไม่ commit) ไม่อย่างนั้น Claude หยุดตั้งแต่ขั้นแรกโดยไม่ commit งานของคุณ บนเครื่องไม่ push อะไร
    - **บน web (claude.ai/code):** ใช้สำเนา plugin ที่ `/mflow:init` เขียนไว้ใน `.claude/skills/mflow/` (ดูหัวข้อ "mflow บน Claude Code on the web" ด้านล่าง ยังไม่เคยลองบน web จริง) เลือก permission mode เป็น Auto และ push ทุก commit ทันที (session branch หลัง commit เอกสาร, branch แก้ไขหลัง commit โค้ด) เพราะเครื่องบน web ที่ว่างนานจะพัก และอาจถูกเรียกคืนเหลือแค่ประวัติแชต ถ้าหลุดกลางทาง เปิด session ใหม่บน branch ที่ push ไว้แล้วสั่ง `/mflow:night` อีกครั้ง จะทำต่อจากขั้นที่ค้าง
    - **สถานะ:** อยู่ที่ `docs/reviews/night/<วันที่>-<เวลา>.md` เขียนทุกครั้งที่จบขั้น ถ้า context เต็มหรือ session หลุด สั่ง `/mflow:night` อีกครั้งแล้ว Claude ทำต่อจากขั้นที่ค้าง ถ้าใส่ `--until` เมื่อถึงเวลาจะข้ามไปขั้นตรวจและ handoff ทันที `--no-e2e` ข้ามขั้น E2E
+   - **`--stack` (0.38.2):** ให้ Claude เปิด stack ที่ E2E ต้องใช้เอง (เช่น StemHub: `cp deploy/.env.example deploy/.env` เฉพาะเมื่อยังไม่มีไฟล์ แล้ว `docker compose -f deploy/docker-compose.yml up -d --build` ตาม `## Commands`) ก่อนขั้นเขียน E2E แล้วรอจน health address ตอบ (ไม่เกิน 10 นาที) ถ้า stack เปิดอยู่แล้วใช้ตัวนั้นและไม่ปิด ถ้าเปิดเองจะปิดหลังรัน E2E ด้วย `down` ไม่ใส่ `-v` ข้อมูลใน stack ยังอยู่ ไฟล์ที่มีอยู่แล้วไม่ถูกแก้ ถ้า Docker ไม่ทำงาน (บน Windows ต้องเปิด Docker Desktop) หรือ stack ไม่ขึ้น Claude บันทึก log ท้ายๆ แล้วรันต่อโดยไม่มี project ที่ต้องใช้ stack ไม่ใส่ `--stack` จะรัน project แบบ stack เฉพาะเมื่อ stack เปิดอยู่แล้ว
 5. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
 6. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
@@ -871,12 +872,12 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | ตรวจโค้ดก่อน merge | `/mflow:review <branch>` เต็ม สำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ข้ามได้ถ้าแก้แค่เอกสาร style หรือข้อความ label (ใช้ผล `/mflow:test` หรือรัน `since` ต่อจากการรันทั้งชุดครั้งก่อน) |
 | hook ของ mflow ปฏิเสธการรัน Playwright | รันใหม่ด้วย `--workers=2` จาก `/mflow:e2e` หรือ `/mflow:test e2e` อยากเปิด browser มากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | แก้ตาม review แล้ว อยากพิสูจน์ commit ใหม่โดยไม่รันทั้งชุด | `/mflow:test since` |
-| อยากให้ test, review, แก้ตาม review, E2E และตรวจ รันเองโดยไม่ต้องนั่งดู (เวลาไหนก็ได้) แล้วกลับมามีรายการให้ดู | `/mflow:night [--until HH:MM]` ใน session ที่เปิดด้วย `claude --permission-mode auto` (หรือบน web) ไม่ merge เอง |
+| อยากให้ test, review, แก้ตาม review, E2E และตรวจ รันเองโดยไม่ต้องนั่งดู (เวลาไหนก็ได้) แล้วกลับมามีรายการให้ดู | `/mflow:night [--until HH:MM] [--stack]` ใน session ที่เปิดด้วย `claude --permission-mode auto` (หรือบน web) ไม่ merge เอง |
 | งานใหญ่ apply นานหลายชั่วโมง หรือ context เต็มกลางงาน | `/clear` แล้ว `/opsx:apply <change>` ทำต่อจาก task แรกที่ยังไม่ติ๊ก งานที่จะเกินราว 25 task Claude แบ่งตาม feature ให้ตอน propose (0.35) และรัน `/mflow:test` บนเครื่องที่สอง หรือให้ Codex รัน `$mflow-test` ระหว่างที่ทำส่วนถัดไป |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.38.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.38.2)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

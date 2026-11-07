@@ -2,17 +2,17 @@
 name: night
 description: Run the checks of the changes waiting in docs/reviews/pending.md unattended, whenever the user starts it and leaves the machine to it, at any hour (the name says night), on Claude Code (terminal or web) — the whole suite, every review, the fixes of what failed or was found on branches with test and review again up to a round cap, the E2E tests the reviewed screens lack, every E2E test, a final check, and a handoff with the list for the user's return; never merges, and pushes only on the web.
 disable-model-invocation: true
-argument-hint: "[--until HH:MM] [--rounds <n>] [--no-e2e]"
+argument-hint: "[--until HH:MM] [--rounds <n>] [--no-e2e] [--stack]"
 ---
 
 The user starts this whenever the machine can work alone for a while (overnight, over lunch, through a meeting) and reads the result on coming back; the name says night, the hour does not matter. It chains what mflow already does, in this order: `/mflow:test` → fix what failed → `/mflow:review pending` → fix what the reviews found, then test and review again, round after round → write the E2E tests the reviewed screens lack (`/mflow:e2e`) → `/mflow:test e2e` → check → `/mflow:handoff`. Every step runs as its own skill says; this file says only how they chain without anyone there.
 
-`--until` is a local time the run must be done by; without it the run goes on until its steps are done; `--rounds` is how many fix rounds one target gets (default 3). A round is one fix commit, then its tests, then its review. E2E runs because the user called this command; `--no-e2e` leaves steps 6 and 7 out.
+`--until` is a local time the run must be done by; without it the run goes on until its steps are done; `--rounds` is how many fix rounds one target gets (default 3). A round is one fix commit, then its tests, then its review. E2E runs because the user called this command; `--no-e2e` leaves steps 6 and 7 out. `--stack` also starts the stack the E2E tests need (a compose stack) and stops it again, as "The stack" below says; without it, a stack that is not up is left out.
 
 ## Before the user leaves
 
 Say this in one message when the run starts, so it can be corrected before the machine is left:
-- **Terminal:** the session must not stop for permission prompts, or the run waits for an answer until someone comes back. Start it in the project folder with `claude --permission-mode auto`, then `/mflow:night`. The machine must not sleep (on Windows: Settings → System → Power, Sleep: Never while plugged in).
+- **Terminal:** the session must not stop for permission prompts, or the run waits for an answer until someone comes back. Start it in the project folder with `claude --permission-mode auto`, then `/mflow:night`. The machine must not sleep (on Windows: Settings → System → Power, Sleep: Never while plugged in). With `--stack`, Docker must be running (Docker Desktop on Windows).
 - **Web (claude.ai/code):** a session on the repository in the Auto permission mode, with the tools the tests need in the environment's setup script. mflow loads there only from the copy `/mflow:init` writes in `.claude/skills/mflow/` (a route not yet proven on the web; `${CLAUDE_PLUGIN_ROOT}/skills/init/references/cloud.md`).
 - Nothing is merged; the list at the end says what waits for the user's yes. On the web, every commit is pushed as soon as it is made, because a web machine can be reclaimed and keeps only the conversation; from the terminal nothing is pushed.
 
@@ -65,6 +65,14 @@ For each row whose verdict is `changes-requested`, in order, on its branch `fix/
 
 Each round ends on `main`. Then log `review-fix done`.
 
+## The stack, with `--stack`
+
+Without `--stack` the run starts no stack: a Playwright project that needs one (a compose stack, a server the Playwright config does not start) runs only when the stack already answers. With `--stack`, and only when E2E runs, the run starts it before step 6 and stops it after step 7:
+1. Find in AGENTS.md `## Commands` how the stack starts for E2E, its health address, and the files it needs first (such as `cp deploy/.env.example deploy/.env`). No stack command there: log `e2e stopped --target stack --note "no stack command in AGENTS.md"` and go on without it.
+2. Already answering at its health address: use it as it is, and leave it running at the end.
+3. Otherwise, on `main` (the session's branch on the web), so it builds the code the E2E tests are for (the E2E branch adds only tests): make each file it needs from its example only when the file is missing, never changing one that exists; check that Docker answers (`docker info`; on Windows, Docker Desktop must be running); run the stack command in the foreground with the shell's longest timeout, and once more when a build runs past it (Docker keeps what it built); then wait for the health address in one command, polling every 10 seconds for up to 10 minutes. Docker down, or no answer in time: log it with the last lines of the stack's logs (`docker compose … logs --tail 50`), stop what the run started, and go on without the stack.
+4. Log `e2e started --target stack --note "started by the run"` (or `"already up"`). After step 7, stop what the run started (`docker compose … down`, without `-v`, so the stack's data stays) and log `e2e done --target stack`. A file the run made from its example that git does not ignore is removed again, so the tree stays clean. A stack that was up before the run stays up.
+
 ## 6. Write the missing E2E tests
 
 The screens in the E2E screens column of the rows in `docs/reviews/pending.md` (open, and the ones this run moved to Done), those with no E2E test yet or whose UI files changed after their tests (`git log -1` of each). No E2E framework in the project, or `--no-e2e`: log `e2e-write skipped` and `e2e skipped` with why, and go to step 8.
@@ -73,7 +81,7 @@ On a branch `e2e/night-<date>` from `main`, for each screen: `/mflow:e2e <screen
 
 ## 7. Run every E2E test
 
-`/mflow:test e2e` on `e2e/night-<date>` when step 6 wrote anything, on `main` otherwise, with the cap. A Playwright project that needs a stack (a compose stack, a server the config does not start): run it only when the stack answers at the health address AGENTS.md names; down, leave it out and say so. Failures are not fixed here: each goes in the list for the user with whether the screen or the test is at fault. Switch to `main`, commit the record there, and log `e2e done`.
+`/mflow:test e2e` on `e2e/night-<date>` when step 6 wrote anything, on `main` otherwise, with the cap. A Playwright project that needs a stack runs only when the stack answers at the health address AGENTS.md names (with `--stack`, the run started it, as "The stack" above says); down, leave it out and say so. Failures are not fixed here: each goes in the list for the user with whether the screen or the test is at fault. Switch to `main`, commit the record there, and log `e2e done`.
 
 ## 8. Check
 
@@ -83,6 +91,7 @@ Log `verify started`, then check, and write each result into the run file:
 - the newest whole-suite record on `main`, and, for each fix branch, its newest `since` record and review verdict at its last code commit;
 - each row of `docs/reviews/pending.md`: Test and Review filled, or why not;
 - the E2E record, and the screens left without tests;
+- with `--stack`, the stack the run started is down again, and the files it made from their examples are named in the run file;
 - `git status --porcelain` is clean, and the checkout is back on `main` (the session's branch on the web).
 
 A problem in the run's own documents is fixed now; anything else goes in the list for the user.

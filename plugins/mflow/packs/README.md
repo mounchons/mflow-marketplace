@@ -70,7 +70,7 @@ One `## <table>` per stored table, then `| Column | Type | Rule |`. Types are ne
 
 ## Stack layer
 
-`stack/<stack>.md` (English, optional) says how the pack is built on one back end: which framework feature carries each decision and what has to be written by hand. It is guidance for `/opsx:propose` and apply, not code to paste. Known stacks: `dotnet` (ASP.NET Core back end, profiles `mvc-htmx` and `react-vite`). discuss never reads it; approve appends it to the filled pack file when the project's back end matches (`skills/discuss/references/packs.md`).
+`stack/<stack>.md` (English, optional) says how the pack is built on one back end: which framework feature carries each decision and what has to be written by hand. It is guidance for `/opsx:propose` and apply, not code to paste. Known stacks: `dotnet` (ASP.NET Core back end: profiles `mvc-htmx` and `react-vite`, and a `custom` profile that names it, which keeps the section that fits its kind of web). discuss never reads it; approve appends it to the filled pack file when the project's back end matches (`skills/discuss/references/packs.md`).
 
 ```markdown
 ---

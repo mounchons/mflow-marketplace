@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.42)
+## คำสั่ง (v0.43)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -165,7 +165,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 | `audit` | ผู้ทำและเวลา, soft delete, Activity Log | `audit-history` | — |
 | `settings` | หน้าตั้งค่าระบบ ชนิดค่า ค่าความลับ เวลาที่ค่ามีผล | `system-settings` | audit |
 | `mail` | คิวอีเมล ตัวส่ง เทมเพลต ค่า SMTP บนจอ ปุ่มส่งทดสอบ | `notifications` | audit, settings |
-| `auth` | เข้าระบบ รหัสผ่าน เซสชัน (cookie หรือ JWT ตามชนิดแอป) OTP ทางอีเมล | `sign-in` | audit, mail, settings |
+| `auth` | เข้าระบบ รหัสผ่าน เซสชัน (cookie เมื่อเว็บอยู่ origin เดียวกับ API, JWT สำหรับ mobile ระบบอื่น และเว็บคนละ origin) OTP ทางอีเมล | `sign-in` | audit, mail, settings |
 | `permission` | กลุ่ม สิทธิ์ต่อหน้าจอ เมนู ขอบเขตข้อมูล | `access-control` | auth, audit |
 | `users` | จัดการบัญชี เชิญ รีเซ็ตรหัส Profile | `user-accounts` | auth, permission, audit, mail |
 | `api` | route error body list แบ่งหน้า วันเวลา health OpenAPI log environment | `api-conventions` | — |

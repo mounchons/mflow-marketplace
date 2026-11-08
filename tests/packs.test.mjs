@@ -86,15 +86,41 @@ test("every shipped pack has its .NET stack file", () => {
   for (const x of r.json.packs) assert.deepEqual(x.stacks, ["dotnet"], `${x.name} has no stack/dotnet.md`);
 });
 
-test("auth version 2: tokens for apps that call the API, the OTP switch on the settings page", () => {
+test("auth: tokens for clients a cookie cannot serve, the OTP switch on the settings page", () => {
   const read = (f) => fs.readFileSync(path.join(SHIPPED, "auth", f), "utf8");
-  assert.match(read("pack.md"), /^version: 2$/m);
+  assert.match(read("pack.md"), /^version: 3$/m);
   assert.match(read("decisions.md"), /### AUTH-D31:/);
   assert.match(read("decisions.md"), /### AUTH-D32:/);
   assert.match(read("params.md"), /`auth\.otp_enabled`/);
   assert.match(read("params.md"), /`auth\.access_token_minutes`/);
   assert.doesNotMatch(read("requirements.md"), /AUTH_OTP_<PORTAL>/);
   assert.match(read("stack/dotnet.md"), /AddIdentityCore<TUser>/);
+});
+
+// The user's choice of 2026-11-08 after comparing cookie sessions with JWT: every web on the API's origin holds a
+// cookie (React, Vue and Angular included); tokens are for clients a cookie cannot serve.
+test("auth: a web on the API's origin holds a cookie; a mobile app, another system or a web on another origin holds tokens", () => {
+  const read = (f) => fs.readFileSync(path.join(SHIPPED, "auth", f), "utf8");
+  const d09 = /### AUTH-D09:[\s\S]*?(?=### AUTH-D10:)/.exec(read("decisions.md"))[0];
+  assert.match(d09, /เว็บที่อยู่ origin เดียวกับ API/);
+  assert.match(d09, /React, Vue, Angular/);
+  assert.match(d09, /คนละ site แพ็กนี้ไม่รองรับ/);
+  assert.doesNotMatch(d09, /profile `react-vite`/);
+  const req = read("requirements.md");
+  assert.match(req, /a web on the API's origin, whether rendered on the server or a browser app that calls the API, SHALL hold it in a random cookie/);
+  assert.match(req, /a mobile app, another system acting for a user, and a browser app on another origin of the same site SHALL hold a short access token/);
+  assert.match(req, /#### Scenario: A browser app on the API's origin holds a cookie/);
+  assert.match(req, /This requirement applies to sessions held with tokens/);
+  const stack = read("stack/dotnet.md");
+  const section = /## react-vite\n([\s\S]*?)(?=\n## Pitfalls)/.exec(stack.replace(/\r\n/g, "\n"))[1];
+  assert.match(section, /^- A web on the API's origin \(the default\)/m);
+  assert.match(section, /X-CSRF-Token/);
+  assert.match(section, /Only for a web on another origin of the same site/);
+  const shell = fs.readFileSync(path.join(SHIPPED, "shell", "requirements.md"), "utf8");
+  assert.match(shell, /For a session held with tokens, an expired access token \(`TOKEN_EXPIRED`\) is not an expired session/);
+  const rule = fs.readFileSync(path.join(SHIPPED, "..", "skills", "discuss", "references", "packs.md"), "utf8");
+  assert.match(rule, /a `custom` profile that names it/);
+  assert.match(rule, /a browser app that calls the API: `## react-vite`, with React read as the project's framework/);
 });
 
 test("a valid pack passes", () => {

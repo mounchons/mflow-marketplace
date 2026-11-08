@@ -51,7 +51,7 @@ Target: .NET 10, EF Core 10 with Npgsql, PostgreSQL. Names checked against Micro
 
 ## react-vite
 
-- Minimal API endpoints that bind `IFormFile` require antiforgery since .NET 8. With cookie sign-in keep it and send the token; call `DisableAntiforgery()` only for bearer-token APIs.
+- Minimal API endpoints that bind `IFormFile` require antiforgery since .NET 8. A browser app's writes already pass the sign-in pack's CSRF check or carry a bearer token, so call `DisableAntiforgery()` on those endpoints and keep that one check.
 - Upload progress needs `XMLHttpRequest.upload.onprogress` (browser API; fetch has no upload progress).
 - Download with cookie sign-in: point the browser at the download URL. With bearer tokens: fetch as blob and take the name from `Content-Disposition`; cross-origin, expose it with `CorsPolicyBuilder.WithExposedHeaders("Content-Disposition")` (unverified).
 

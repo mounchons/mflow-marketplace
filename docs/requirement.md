@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.42.1 |
+| เวอร์ชันที่อธิบาย | 0.43.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -406,7 +406,7 @@ flowchart TD
 
 | ID | ความต้องการ | สถานะ |
 |---|---|---|
-| FR-248 | แพ็ก `auth` รุ่น 2: ทุกการเข้าระบบเป็นเซสชันหนึ่งแถวฝั่ง server ส่วนวิธีถือเซสชันตามชนิดแอป: เว็บที่ render ฝั่ง server (`mvc-htmx`) ใช้ cookie ที่ตรวจกับแถวทุกคำขอ, แอปที่เรียก API (`react-vite`, mobile, ระบบอื่นที่ทำแทนผู้ใช้) ใช้ JWT access token อายุ `auth.access_token_minutes` (15 นาที) ใน header คู่กับ refresh token ที่หมุนทุกครั้ง เก็บ hash, ตัวเก่าที่กลับมาภายใน 30 วินาทีได้ access token ใหม่ (หลายแท็บ) หลังจากนั้นตัดเซสชันและลง `SessionRevoked` (AUTH-D31), token ถือแค่ id บัญชี พอร์ทัล (audience) id เซสชัน เวลา และสิทธิ์ เซ็นด้วยกุญแจ env `AUTH_JWT_KEY` อย่างน้อย 32 ไบต์ (AUTH-D32), การเปลี่ยนบัญชีตัด refresh ทันทีและ access token หมดภายในอายุของมัน สวิตช์ OTP ย้ายจาก env มาเป็น `auth.otp_enabled` ต่อพอร์ทัลบนหน้าตั้งค่า เหลือ env `AUTH_OTP_OFF` ไว้ปิดฉุกเฉินเมื่ออีเมลล่ม (AUTH-D24) | มีแล้ว |
+| FR-248 | แพ็ก `auth` รุ่น 2: ทุกการเข้าระบบเป็นเซสชันหนึ่งแถวฝั่ง server ส่วนวิธีถือเซสชันตามชนิดแอป: เว็บที่ render ฝั่ง server (`mvc-htmx`) ใช้ cookie ที่ตรวจกับแถวทุกคำขอ, แอปที่เรียก API (`react-vite`, mobile, ระบบอื่นที่ทำแทนผู้ใช้) ใช้ JWT access token อายุ `auth.access_token_minutes` (15 นาที) ใน header คู่กับ refresh token ที่หมุนทุกครั้ง เก็บ hash, ตัวเก่าที่กลับมาภายใน 30 วินาทีได้ access token ใหม่ (หลายแท็บ) หลังจากนั้นตัดเซสชันและลง `SessionRevoked` (AUTH-D31), token ถือแค่ id บัญชี พอร์ทัล (audience) id เซสชัน เวลา และสิทธิ์ เซ็นด้วยกุญแจ env `AUTH_JWT_KEY` อย่างน้อย 32 ไบต์ (AUTH-D32), การเปลี่ยนบัญชีตัด refresh ทันทีและ access token หมดภายในอายุของมัน สวิตช์ OTP ย้ายจาก env มาเป็น `auth.otp_enabled` ต่อพอร์ทัลบนหน้าตั้งค่า เหลือ env `AUTH_OTP_OFF` ไว้ปิดฉุกเฉินเมื่ออีเมลล่ม (AUTH-D24) | มีแล้ว เงื่อนไขของเซสชันเปลี่ยนตาม FR-255 (0.43) |
 | FR-249 | แพ็ก `mail` รุ่น 2: ค่า SMTP ทั้งชุด (host, port, โหมด TLS, ผู้ใช้, รหัสที่เป็นค่าความลับ, ลายนิ้วมือใบรับรอง, ที่อยู่และชื่อผู้ส่ง) อยู่บนหน้าตั้งค่า อ่านทุกครั้งที่ส่ง, SMTP ที่ยังไม่ได้ตั้งไม่หยุดการ start แต่คงอีเมลไว้ใน Queued และบอกบนหน้าตั้งค่าและ health (MAIL-D26), ปุ่มส่งทดสอบที่ส่งทันทีด้วยค่าที่บันทึกแล้วและแสดงคำตอบของ server โดยไม่มีค่าตั้ง (MAIL-D30), สวิตช์ส่ง `MAIL_SEND` และ `MAIL_SECRET_KEY` คงอยู่ใน env เพื่อให้ฐานข้อมูลที่คัดลอกไปเครื่องทดสอบไม่ส่งถึงคนจริง | มีแล้ว |
 | FR-250 | แพ็กใหม่สี่ชุด: `settings` (หน้าตั้งค่าระบบ ชนิดค่า ค่าความลับ เวลาที่ค่ามีผล การยืนยันการเปลี่ยนที่อันตราย บันทึกทีละแท็บพร้อม version, หัวข้อ `system-settings`), `api` (route มี version, error body แบบเดียว, list แบ่งหน้า, วันเวลา, health, OpenAPI, log, limit, environment, หัวข้อ `api-conventions`), `upload` (ไฟล์ที่รับ ตรวจชนิดจริง พักก่อนผูก เก็บนอก web root ดาวน์โหลดตามสิทธิ์ของระเบียน ลบไฟล์ค้าง, หัวข้อ `file-upload`), `shell` (layout ตาม kit ภาษา วันเวลา ตาราง ฟอร์ม ข้อความ หน้า error, หัวข้อ `web-shell`) `auth` และ `mail` ต้องมี `settings` ก่อน เพราะค่าของทั้งสองอยู่บนหน้าตั้งค่า | มีแล้ว |
 | FR-251 | ชั้น stack ของแพ็ก: `packs/<ชื่อ>/stack/dotnet.md` (อังกฤษ) บอกว่าแต่ละข้อของแพ็กใช้ feature ไหนของ ASP.NET Core และอะไรต้องเขียนเอง ไม่ใช่โค้ดให้คัดลอก ทุกแพ็กมีครบ `auth` ใช้ ASP.NET Core Identity (`AddIdentityCore`, `PasswordHasher`, security stamp) กับ cookie + `ITicketStore` หรือ JwtBearer + `JsonWebTokenHandler` และบอกข้อที่ Identity ไม่ตอบ (ล็อกต่อชื่อที่ไม่มีจริง ประวัติรหัส ลิงก์ใช้ครั้งเดียว OTP ตามค่าตั้ง) `packs.mjs check` รับเฉพาะ stack ที่รู้จัก (`dotnet`) ตรวจ frontmatter (`pack`, `stack`) หัวข้อ `## Decision by decision` เลขข้อที่มีจริง และคำต้องห้าม `list` และ `selected` บอก stack ของแต่ละแพ็ก ตอน approve โปรเจกต์ที่ back end เป็น ASP.NET Core ได้ส่วน `## Stack: dotnet` ต่อท้ายไฟล์แพ็กที่เติมคำตอบแล้ว โดยตัดส่วนของ profile ที่ไม่ใช้ discuss ไม่อ่านไฟล์ stack | มีแล้ว |
@@ -427,6 +427,14 @@ flowchart TD
 | ID | ความต้องการ | สถานะ |
 |---|---|---|
 | FR-254 | เมื่อ `/mflow:init` รวม template เข้าไฟล์เดิม แล้ว `CLAUDE.md` หรือ `AGENTS.md` ของโปรเจกต์เขียนกฎ commit ไว้ต่างจาก template (เช่น `Commit only on the user's word`) ให้แทนด้วยบรรทัดของ template ไม่ถาม ไม่ว่ามีงานค้างหรือ test ไม่ผ่านอยู่ และบอกหนึ่งบรรทัดในรายงานว่าแทนบรรทัดไหน | มีแล้ว |
+
+### 6.23 เว็บที่เรียก API ถือเซสชันด้วย cookie (0.43)
+
+ที่มา: เทียบ cookie กับ session บน server ของ StemHub กับ JWT ของแพ็ก `auth` รุ่น 2 เมื่อ 2026-11-08 StemHub เป็น Next.js static export บน ASP.NET Core Web API ที่ใช้ cookie อยู่แล้ว และ Microsoft Learn แนะนำให้แอปบน browser ถือ token ไว้ฝั่ง back end คำตอบของผู้ใช้วันเดียวกัน: 1 a
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-255 | แพ็ก `auth` รุ่น 3 (AUTH-D09): เว็บที่อยู่ origin เดียวกับ API ทั้งที่ render ฝั่ง server และเว็บที่เรียก API (React, Vue, Angular) ถือเซสชันด้วย cookie ที่ script อ่านไม่ได้ และส่ง CSRF token ใน header ทุกคำขอที่เขียนข้อมูล ส่วน JWT กับ refresh token ที่หมุนใช้กับแอป mobile ระบบอื่นที่ทำแทนผู้ใช้ และเว็บคนละ origin ที่อยู่ site เดียวกับ API เว็บคนละ site แพ็กไม่รองรับ เพราะ cookie ของ refresh token เป็น `SameSite=Strict` ตอน approve โปรเจกต์ `custom` ที่ระบุ back end ASP.NET Core ได้ `stack/dotnet.md` และเก็บส่วน `## react-vite` หรือ `## mvc-htmx` ตามชนิดของเว็บ โดยอ่าน React เป็น framework ของโปรเจกต์ | มีแล้ว |
 
 ## 7. Non-functional requirements
 

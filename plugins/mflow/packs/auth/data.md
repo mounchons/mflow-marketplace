@@ -25,7 +25,7 @@ Every account table reuses the `id` of its row in the audit pack's `actor` regis
 | id | uuid | primary key |
 | portal | text | the portal the session belongs to |
 | account_id | uuid | references `actor.id` |
-| kind | text | Cookie (a web rendered on the server) or Token (an app that calls the API) (AUTH-D09) |
+| kind | text | Cookie (a web on the API's origin) or Token (a mobile app, another system, a web on another origin) (AUTH-D09) |
 | token_hash | text | hash of the session cookie's value, or of the current refresh token; unique |
 | previous_token_hash | text | Token only: hash of the refresh token before the last rotation; accepted for 30 seconds after `rotated_at` (AUTH-D31) |
 | rotated_at | timestamptz | Token only: time of the last rotation |

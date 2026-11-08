@@ -20,7 +20,7 @@ Applies when the back end is ASP.NET Core: profiles `mvc-htmx` (MVC + Razor + HT
 | Error pages | `UseExceptionHandler("/Error")` + `UseStatusCodePagesWithReExecute("/StatusCode/{0}")` | The status-code middleware does not catch exceptions; both are needed |
 | API errors | the project's error body; with ASP.NET Core defaults, `AddProblemDetails` and `ValidationProblemDetails.Errors` keyed by field | The field key must match the form field name (SHELL-D16) |
 | Request reference | `HttpContext.TraceIdentifier` or the trace id the error body carries | Shown on the 500 page and logged (SHELL-D21) |
-| Antiforgery header | `AntiforgeryOptions.HeaderName`, `[AutoValidateAntiforgeryToken]` | CSRF itself is the auth pack's; the shell's fetch wrapper and HTMX send the header |
+| Antiforgery header | `AntiforgeryOptions.HeaderName`, `[AutoValidateAntiforgeryToken]` | CSRF itself is the auth pack's: a web rendered on the server uses this header, and a browser app sends the auth pack's `X-CSRF-Token` to its filter instead; the shell's fetch wrapper and HTMX send it |
 | `next` after sign-in | `Url.IsLocalUrl`, `LocalRedirect` (MVC) or `RedirectHttpResult.IsLocalUrl` | The rule is the auth pack's; never redirect to an unchecked `next` |
 | Environments | `IWebHostEnvironment.IsProduction()` / `IsDevelopment()` | Style guide and prototype pages register only outside Production (SHELL-D23) |
 | Language switch (only SHELL-D07 option c) | `AddLocalization`, `IStringLocalizer<T>`, `UseRequestLocalization`, `CookieRequestCultureProvider` | Not needed for bilingual labels |

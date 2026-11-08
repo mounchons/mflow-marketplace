@@ -112,9 +112,9 @@ The sign-in SHALL take the page the user asked for (`next`) and answer where to 
 - **THEN** the web goes to the sign-in code page, then the first sign-in page, then `/orders`
 
 ### Requirement: Sessions
-A sign-in SHALL open a session: a row on the server, keeping only hashes, with the account, the {portal}, the sign-in time and an expiry. An account MAY hold several sessions at once. How the client holds the session SHALL follow the kind of app:
-- a web rendered on the server SHALL hold it in a random cookie of the {portal} that scripts cannot read, checked against the row on every request; the database SHALL keep only a hash of the cookie's value;
-- an app that calls the API (a browser app, a mobile app, another system acting for a user) SHALL hold a short access token and the session's refresh token, as requirement "Access token and refresh" says.
+A sign-in SHALL open a session: a row on the server, keeping only hashes, with the account, the {portal}, the sign-in time and an expiry. An account MAY hold several sessions at once. How the client holds the session SHALL follow where the client runs:
+- a web on the API's origin, whether rendered on the server or a browser app that calls the API, SHALL hold it in a random cookie of the {portal} that scripts cannot read, checked against the row on every request; the database SHALL keep only a hash of the cookie's value;
+- a mobile app, another system acting for a user, and a browser app on another origin of the same site SHALL hold a short access token and the session's refresh token, as requirement "Access token and refresh" says.
 
 A use of the session (a request with its cookie, or a refresh with its refresh token) SHALL push its expiry to the time of the use plus {auth.session_idle_minutes} minutes, but never past {auth.session_max_minutes} minutes after its sign-in, however busy the session is. An app SHALL ask for a new access token only when a request needs one, never on a timer, so a session left alone expires. Each portal SHALL have its own values, read again at each use, so a change applies to open sessions from their next use without a deploy. A request or a refresh of an expired session SHALL answer 401 `SESSION_EXPIRED`, and one without a session 401 `UNAUTHENTICATED`; the web SHALL then go to the sign-in page with `reason=timeout` and `next`. What the session fixed at sign-in, such as the rights of the permission pack, SHALL be read again only at the next sign-in. Every cookie of this pack SHALL be marked Secure, except in Development and Prototype, where it is Secure only when the request came over HTTPS. (AUTH-D09, AUTH-D10, AUTH-D30)
 
@@ -127,8 +127,12 @@ A use of the session (a request with its cookie, or a refresh with its refresh t
 - **THEN** the next request answers 401 `SESSION_EXPIRED`, and Dao signs in again with the rights of that moment
 
 #### Scenario: App left alone
-- **WHEN** Dao's browser app makes its last request at 09:30 and the next one after {auth.session_idle_minutes} minutes have passed
+- **WHEN** Dao's app holding tokens makes its last request at 09:30 and the next one after {auth.session_idle_minutes} minutes have passed
 - **THEN** the refresh answers 401 `SESSION_EXPIRED` and the web goes to the sign-in page with `reason=timeout`
+
+#### Scenario: A browser app on the API's origin holds a cookie
+- **WHEN** Dao signs in to a browser app served from the API's origin
+- **THEN** the answer sets the session cookie that scripts cannot read and the CSRF cookie, gives no access token, and nothing is left in local or session storage
 
 #### Scenario: Session on another portal
 - **WHEN** Dao is signed in on one portal and opens another portal on the same host in the same browser
@@ -147,16 +151,16 @@ A use of the session (a request with its cookie, or a refresh with its refresh t
 - **THEN** both sessions work at the same time
 
 ### Requirement: Access token and refresh
-This requirement applies to apps that call the API. The access token SHALL be a JWT signed with the deployment's key from the environment value `AUTH_JWT_KEY`, at least 32 bytes long; when the project has such an app, the API SHALL refuse to start without the key or with a shorter one, naming the setting but not its value. The token SHALL hold the account id, the {portal} as its audience, the session id, its issue and expiry times and the rights the session holds, and nothing else about the person: no e-mail, no name, no password, no code. It SHALL live {auth.access_token_minutes} minutes, read when it is issued, and SHALL be accepted only in the `Authorization: Bearer` header. The API SHALL answer 401 to a token of another portal or another deployment, with a wrong signature, or more than 30 seconds past its expiry; an expired token SHALL answer `TOKEN_EXPIRED`, so the app refreshes once and repeats the request.
+This requirement applies to sessions held with tokens. The access token SHALL be a JWT signed with the deployment's key from the environment value `AUTH_JWT_KEY`, at least 32 bytes long; when the project has such a client, the API SHALL refuse to start without the key or with a shorter one, naming the setting but not its value. The token SHALL hold the account id, the {portal} as its audience, the session id, its issue and expiry times and the rights the session holds, and nothing else about the person: no e-mail, no name, no password, no code. It SHALL live {auth.access_token_minutes} minutes, read when it is issued, and SHALL be accepted only in the `Authorization: Bearer` header. The API SHALL answer 401 to a token of another portal or another deployment, with a wrong signature, or more than 30 seconds past its expiry; an expired token SHALL answer `TOKEN_EXPIRED`, so the app refreshes once and repeats the request.
 
 The refresh token SHALL be a random value of the session; the database SHALL keep only its hash. The web SHALL keep it in a cookie of its {portal} that scripts cannot read, `SameSite=Strict`, sent only to the refresh and sign-out paths, and SHALL keep the access token in memory only, never in local or session storage; a mobile app SHALL get the refresh token in the answer body and keep it in the device's secure storage. A refresh SHALL check the session as requirement "Sessions" says, then answer a new access token and a new refresh token; the old refresh token SHALL not refresh again. The old one presented again within 30 seconds of its rotation SHALL get a new access token of the same session and no new refresh token, so several tabs refreshing at once keep the session. Presented later, the session SHALL end at once and the Activity Log SHALL get `SessionRevoked` with the note `refresh token reused`. (AUTH-D09, AUTH-D31, AUTH-D32)
 
 #### Scenario: Access token expired while working
-- **WHEN** Dao's browser app sends a request with an access token past its expiry
+- **WHEN** Dao's app holding tokens sends a request with an access token past its expiry
 - **THEN** the API answers 401 `TOKEN_EXPIRED`, the app refreshes and repeats the request, and Dao notices nothing
 
 #### Scenario: Two tabs refresh at once
-- **WHEN** two tabs of Dao's browser app refresh with the same refresh token within a second
+- **WHEN** two tabs of Dao's web on another origin refresh with the same refresh token within a second
 - **THEN** both get an access token and the session goes on
 
 #### Scenario: Stolen refresh token
@@ -172,14 +176,14 @@ The refresh token SHALL be a random value of the session; the database SHALL kee
 - **THEN** it shows her account id, portal, session id, times and rights, and no e-mail or name
 
 ### Requirement: Sign out
-Sign out SHALL end the session on the server, clear the session cookie or the refresh cookie, and go to the sign-in page; a browser app SHALL also drop its access token. The cookie or the refresh token of an ended session SHALL never work again; an access token already issued SHALL work until its expiry, at most {auth.access_token_minutes} minutes later. Every signed-in page SHALL offer Sign out in the user menu. (AUTH-D09, AUTH-D12)
+Sign out SHALL end the session on the server, clear the session cookie or the refresh cookie, and go to the sign-in page; an app holding an access token SHALL also drop it. The cookie or the refresh token of an ended session SHALL never work again; an access token already issued SHALL work until its expiry, at most {auth.access_token_minutes} minutes later. Every signed-in page SHALL offer Sign out in the user menu. (AUTH-D09, AUTH-D12)
 
 #### Scenario: Old cookie after sign out
 - **WHEN** Dao signs out and a client sends her old session cookie again
 - **THEN** the API answers 401 `UNAUTHENTICATED`
 
 #### Scenario: Old refresh token after sign out
-- **WHEN** Dao signs out of the browser app and a client refreshes with her old refresh token
+- **WHEN** Dao signs out of an app holding tokens and a client refreshes with her old refresh token
 - **THEN** the API answers 401 `UNAUTHENTICATED` and opens nothing
 
 ### Requirement: Writes are safe from other sites
@@ -219,8 +223,8 @@ For a session held with tokens, the ending SHALL stop its refresh token at once;
 - **WHEN** an administrator sets Dao to Disabled while she is signed in
 - **THEN** her next request answers 401 and the web goes to the sign-in page
 
-#### Scenario: Disabled while using the browser app
-- **WHEN** an administrator sets Dao to Disabled while she works in the browser app
+#### Scenario: Disabled while using an app holding tokens
+- **WHEN** an administrator sets Dao to Disabled while she works in an app holding tokens
 - **THEN** within {auth.access_token_minutes} minutes her next refresh answers 401 and the web goes to the sign-in page
 
 #### Scenario: E-mail changed

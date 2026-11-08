@@ -297,7 +297,7 @@ An address the web does not have SHALL show the 404 page in the {portal}'s layou
 - **THEN** the page shows the same not-found message as for a record that does not exist
 
 ### Requirement: Session expired during use
-An expired access token (`TOKEN_EXPIRED`) is not an expired session: the web SHALL refresh it and repeat the call without the user noticing. When any call answers that the session is missing or has expired, the web SHALL go to the sign-in page of its {portal} with `next` set to the current page's path and query, and SHALL say that the session timed out. After sign-in the user SHALL return to that page under the auth pack's rule for `next`. Unsaved values SHALL not be kept. (SHELL-D22)
+For a session held with tokens, an expired access token (`TOKEN_EXPIRED`) is not an expired session: the web SHALL refresh it and repeat the call without the user noticing. When any call answers that the session is missing or has expired, the web SHALL go to the sign-in page of its {portal} with `next` set to the current page's path and query, and SHALL say that the session timed out. After sign-in the user SHALL return to that page under the auth pack's rule for `next`. Unsaved values SHALL not be kept. (SHELL-D22)
 
 #### Scenario: Expired on a list
 - **WHEN** `clerk01` is on `/orders?status=open`, the session has expired, and `clerk01` moves to page 2

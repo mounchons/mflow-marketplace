@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.42.1 |
+| เวอร์ชัน plugin | 0.43.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -884,10 +884,11 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.42.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.43.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
+| แพ็ก `auth` กับเว็บ React, Vue หรือ Angular | (0.43) เว็บที่อยู่ origin เดียวกับ API ใช้ cookie ส่วน JWT ใช้กับแอป mobile ระบบอื่น และเว็บคนละ origin ที่อยู่ site เดียวกัน Vue และ Angular เลือก profile `custom` แล้วระบุ ASP.NET Core ใน `## Stack` |
 | โปรเจกต์เดิมเขียนกฎ commit ไว้ต่างจาก template | (0.42.1) `/mflow:init` แทนด้วยกฎของ plugin โดยไม่ถาม แล้วบอกหนึ่งบรรทัดว่าแทนบรรทัดไหน |
 | `init` เสนอ `openspec init --language th` ซึ่งจะได้ข้อความ "written in th" ตามตัวอักษร | ถ้าต้องการ spec ภาษาไทย ให้บอก Claude ใช้ `--language "Thai"` แทน |
 | `backlog init` ในโฟลเดอร์ที่ยังไม่เป็น git repo จะถามคำถาม | รัน `git init` ก่อน `/mflow:init` |

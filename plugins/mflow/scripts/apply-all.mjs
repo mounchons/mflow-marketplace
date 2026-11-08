@@ -28,7 +28,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findRoot, readText, writeFileAtomic } from "./lib.mjs";
 import { args, cell, git, local, localDay, localTime, now, parse } from "./night.mjs";
-import { FILE as PENDING, isDoc, parse as parsePending, readRecord } from "./pending.mjs";
+import { FILE as PENDING, NAME, parse as parsePending, readRecord } from "./pending.mjs";
 
 export const DIR = "docs/reviews/apply-all";
 export const TESTS_DIR = "docs/reviews/tests";
@@ -53,6 +53,9 @@ export function queueOf(root, names = []) {
     active = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "archive").map((e) => e.name);
   } catch { /* no openspec/changes */ }
   for (const n of names) if (!active.includes(n)) throw new Error(`no change named "${n}" in openspec/changes/`);
+  // The run builds shell commands from these names (git switch -c change/<name>), so only a real change name goes on.
+  const invalid = (names.length ? names : active).filter((n) => !NAME.test(n));
+  if (invalid.length) throw new Error(`not a change name (lowercase letters, digits and hyphens): ${invalid.join(", ")}`);
   const added = (n) => Number((git(root, "log", "--reverse", "--format=%ct", "--", `openspec/changes/${n}`) ?? "").split("\n")[0]) || Infinity;
   const queue = names.length ? [...new Set(names)] : active.map((n) => [added(n), n]).sort(([a, x], [b, y]) => a - b || x.localeCompare(y)).map(([, n]) => n);
   const unready = queue.filter((n) => !fs.existsSync(path.join(dir, n, "tasks.md")));
@@ -164,9 +167,13 @@ function log(root, step, state, opts) {
   return { event: { time: localTime(at), step, target: opts.target, state, note: opts.note ?? "" }, roundsLeft };
 }
 
+// What may follow the proven commit: Markdown under docs/, openspec/ and backlog/, and STATUS.md. Not every .md,
+// because CLAUDE.md, AGENTS.md and .claude/ steer the AI and no test or review read them. --no-renames lists both
+// sides of a move, so code moved under docs/ still counts as code.
+export const isDocument = (f) => f === "STATUS.md" || /^(docs|openspec|backlog)\/.*\.md$/i.test(f);
 const onlyDocumentsSince = (root, commit) => {
-  const out = git(root, "-c", "core.quotePath=false", "diff", "--name-only", commit, "HEAD");
-  return out !== null && out.split("\n").filter(Boolean).every(isDoc);
+  const out = git(root, "-c", "core.quotePath=false", "diff", "--no-renames", "--name-only", commit, "HEAD");
+  return out !== null && out.split("\n").filter(Boolean).every(isDocument);
 };
 
 /** The newest passing whole-suite or since record that HEAD is proven by: only documents committed after it. */
@@ -195,7 +202,7 @@ export function reviewedCommit(text) {
 
 /** Whether this change may be merged, and every reason it may not. */
 export function gate(root, change) {
-  if (!change) throw new Error("gate: name the change");
+  if (!NAME.test(change ?? "")) throw new Error("gate: name the change, in lowercase letters, digits and hyphens");
   const why = [];
   const branch = git(root, "rev-parse", "--abbrev-ref", "HEAD");
   if (branch !== branchOf(change)) why.push(`the checkout is on ${branch}, not ${branchOf(change)}`);

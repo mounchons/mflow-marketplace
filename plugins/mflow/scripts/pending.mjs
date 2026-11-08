@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 import { findRoot, insideProject, readText, realInside, writeFileAtomic } from "./lib.mjs";
 
 export const FILE = "docs/reviews/pending.md";
-const NAME = /^[a-z0-9][a-z0-9-]*$/;
+export const NAME = /^[a-z0-9][a-z0-9-]*$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LEVELS = ["full", "short", "skip"];
 const VERDICTS = ["approve", "changes-requested", "none"];
@@ -58,7 +58,7 @@ const today = () => {
 };
 const open = (cell) => !cell || /^[—–-]*$/.test(cell.trim());
 const clean = (text) => String(text ?? "").replace(/\|/g, "/").replace(/[\r\n]+/g, " ").trim() || "—";
-export const isDoc = (f) => /\.md$/i.test(f) || /^(openspec|backlog|docs)\//.test(f) || f === "STATUS.md";
+const isDoc = (f) => /\.md$/i.test(f) || /^(openspec|backlog|docs)\//.test(f) || f === "STATUS.md";
 
 // ---------- git ----------
 

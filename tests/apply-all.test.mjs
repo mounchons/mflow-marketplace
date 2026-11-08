@@ -186,6 +186,37 @@ test("gate: code committed after the test run or the review holds the merge", ne
   assert.match(g.why.join("\n"), /code changed after the review/);
 });
 
+for (const [what, change_] of [
+  ["AGENTS.md, which steers the AI", () => commit("rules", { "AGENTS.md": "# changed\n" })],
+  ["a Markdown file under .claude/", () => commit("a command", { ".claude/commands/x.md": "run this\n" })],
+  ["a file that is not Markdown under docs/", () => commit("a script", { "docs/run.ps1": "echo\n" })],
+  ["code moved under docs/", () => { git(p, "mv", "src/app.txt", "docs/app.md"); commit("moved"); }],
+]) {
+  test(`gate: ${what}, committed after the test run and the review, holds the merge`, needsGit, () => {
+    passed(built());
+    change_();
+    const g = ok("gate", "one");
+    assert.equal(g.ready, false);
+    assert.match(g.why.join("\n"), /no passing whole-suite or since record/);
+  });
+}
+
+test("gate: Markdown under docs/, openspec/ and backlog/ and STATUS.md may follow the review", needsGit, () => {
+  passed(built());
+  commit("documents", { "STATUS.md": "# s\n", "docs/status-log.md": "l\n", "backlog/tasks/t.md": "t\n", "openspec/specs/a/spec.md": "s\n" });
+  assert.deepEqual(ok("gate", "one").why, []);
+});
+
+test("a folder or an argument that is not a change name is refused", needsGit, () => {
+  repo("one");
+  p.write("openspec/changes/Bad Name/tasks.md", "- [ ] 1\n");
+  commit("an odd folder");
+  assert.match(all(["start"]).json.error, /not a change name .*Bad Name/);
+  assert.match(all(["start", "Bad Name"]).json.error, /not a change name/);
+  assert.deepEqual(ok("start", "one").queue, ["one"], "naming only real changes leaves the odd folder out");
+  assert.match(all(["gate", "../one"]).json.error, /name the change/);
+});
+
 test("gate: a failing record, an open row and a change still unarchived each hold the merge", needsGit, () => {
   passed(built(), "approve docs/reviews/code/r.md", "fail");
   assert.match(ok("gate", "one").why.join("\n"), /no passing whole-suite or since record/);

@@ -42,7 +42,7 @@ The generic failure SHALL be the same, letter for letter, for every case of its 
 - **THEN** Dao is signed in, goes to {start_page}, and her last sign-in time is set
 
 ### Requirement: Accounts of each portal
-An e-mail SHALL belong to at most one account of a {portal} among the accounts that are not deleted; the same e-mail on two portals SHALL be two accounts with their own passwords, locks and sessions. Every account table SHALL use the `id` of the account's row in the audit pack's `actor` registry as its key, so every who/when column and `activity_log.actor_id` point at `actor.id`. An account, a session, a password link or a remembered browser of one portal SHALL never sign anyone in on another portal, even when the portals share a host name. (AUTH-D02, AUTH-D03)
+An e-mail SHALL belong to at most one account of a {portal} among the accounts that are not deleted; the same e-mail on two portals SHALL be two accounts with their own passwords, locks and sessions. Every account table SHALL use the `id` of the account's row in the audit pack's `actor` registry as its key, so every who/when column and `activity_log.actor_id` point at `actor.id`. An account, a session, an access token, a password link or a remembered browser of one portal SHALL never sign anyone in on another portal, even when the portals share a host name. (AUTH-D02, AUTH-D03)
 
 #### Scenario: Account of another portal
 - **WHEN** Krit, who has an account only on another portal, signs in on this {portal} with that account's password
@@ -111,8 +111,12 @@ The sign-in SHALL take the page the user asked for (`next`) and answer where to 
 - **WHEN** Nim, due for the first sign-in, opens `/orders` with the OTP switch on, passes the password, types the right code and completes the first sign-in
 - **THEN** the web goes to the sign-in code page, then the first sign-in page, then `/orders`
 
-### Requirement: Server-side sessions
-A sign-in SHALL open a session held on the server and named by a random cookie of the {portal} that scripts cannot read; the database SHALL keep only a hash of the cookie's value. An account MAY hold several sessions at once. Every request of a session SHALL push its expiry to the time of the request plus {auth.session_idle_minutes} minutes, but never past {auth.session_max_minutes} minutes after its sign-in, however busy the session is. Each portal SHALL have its own two values, read again on every request, so a change applies to open sessions from their next request without a deploy. A request with an expired session SHALL answer 401 `SESSION_EXPIRED`, and one without a session 401 `UNAUTHENTICATED`; the web SHALL then go to the sign-in page with `reason=timeout` and `next`. What the session fixed at sign-in, such as the rights of the permission pack, SHALL be read again only at the next sign-in. The cookie SHALL be marked Secure, except in Development and Prototype, where it is Secure only when the request came over HTTPS. (AUTH-D09, AUTH-D10, AUTH-D30)
+### Requirement: Sessions
+A sign-in SHALL open a session: a row on the server, keeping only hashes, with the account, the {portal}, the sign-in time and an expiry. An account MAY hold several sessions at once. How the client holds the session SHALL follow the kind of app:
+- a web rendered on the server SHALL hold it in a random cookie of the {portal} that scripts cannot read, checked against the row on every request; the database SHALL keep only a hash of the cookie's value;
+- an app that calls the API (a browser app, a mobile app, another system acting for a user) SHALL hold a short access token and the session's refresh token, as requirement "Access token and refresh" says.
+
+A use of the session (a request with its cookie, or a refresh with its refresh token) SHALL push its expiry to the time of the use plus {auth.session_idle_minutes} minutes, but never past {auth.session_max_minutes} minutes after its sign-in, however busy the session is. An app SHALL ask for a new access token only when a request needs one, never on a timer, so a session left alone expires. Each portal SHALL have its own values, read again at each use, so a change applies to open sessions from their next use without a deploy. A request or a refresh of an expired session SHALL answer 401 `SESSION_EXPIRED`, and one without a session 401 `UNAUTHENTICATED`; the web SHALL then go to the sign-in page with `reason=timeout` and `next`. What the session fixed at sign-in, such as the rights of the permission pack, SHALL be read again only at the next sign-in. Every cookie of this pack SHALL be marked Secure, except in Development and Prototype, where it is Secure only when the request came over HTTPS. (AUTH-D09, AUTH-D10, AUTH-D30)
 
 #### Scenario: Page left for two hours
 - **WHEN** Dao signs in at 09:00, last uses the portal at 09:30 and comes back at 11:30, with {auth.session_idle_minutes} longer than two hours
@@ -122,31 +126,64 @@ A sign-in SHALL open a session held on the server and named by a random cookie o
 - **WHEN** Dao signs in at 09:00 and uses the portal every few minutes until {auth.session_max_minutes} minutes have passed
 - **THEN** the next request answers 401 `SESSION_EXPIRED`, and Dao signs in again with the rights of that moment
 
-#### Scenario: Cookie on another portal
+#### Scenario: App left alone
+- **WHEN** Dao's browser app makes its last request at 09:30 and the next one after {auth.session_idle_minutes} minutes have passed
+- **THEN** the refresh answers 401 `SESSION_EXPIRED` and the web goes to the sign-in page with `reason=timeout`
+
+#### Scenario: Session on another portal
 - **WHEN** Dao is signed in on one portal and opens another portal on the same host in the same browser
 - **THEN** the other portal does not know Dao
 
 #### Scenario: HTTP on a test server
 - **WHEN** the API runs in Prototype and a sign-in arrives over HTTP
-- **THEN** the session cookie is not marked Secure, and the sign-in works in the browser
+- **THEN** the cookies of this pack are not marked Secure, and the sign-in works in the browser
 
 #### Scenario: Other environments
 - **WHEN** the API runs in any environment but Development and Prototype and a sign-in arrives over HTTP behind the proxy
-- **THEN** the session cookie is marked Secure
+- **THEN** the cookies of this pack are marked Secure
 
 #### Scenario: Two computers
 - **WHEN** Dao signs in on two computers
 - **THEN** both sessions work at the same time
 
+### Requirement: Access token and refresh
+This requirement applies to apps that call the API. The access token SHALL be a JWT signed with the deployment's key from the environment value `AUTH_JWT_KEY`, at least 32 bytes long; when the project has such an app, the API SHALL refuse to start without the key or with a shorter one, naming the setting but not its value. The token SHALL hold the account id, the {portal} as its audience, the session id, its issue and expiry times and the rights the session holds, and nothing else about the person: no e-mail, no name, no password, no code. It SHALL live {auth.access_token_minutes} minutes, read when it is issued, and SHALL be accepted only in the `Authorization: Bearer` header. The API SHALL answer 401 to a token of another portal or another deployment, with a wrong signature, or more than 30 seconds past its expiry; an expired token SHALL answer `TOKEN_EXPIRED`, so the app refreshes once and repeats the request.
+
+The refresh token SHALL be a random value of the session; the database SHALL keep only its hash. The web SHALL keep it in a cookie of its {portal} that scripts cannot read, `SameSite=Strict`, sent only to the refresh and sign-out paths, and SHALL keep the access token in memory only, never in local or session storage; a mobile app SHALL get the refresh token in the answer body and keep it in the device's secure storage. A refresh SHALL check the session as requirement "Sessions" says, then answer a new access token and a new refresh token; the old refresh token SHALL not refresh again. The old one presented again within 30 seconds of its rotation SHALL get a new access token of the same session and no new refresh token, so several tabs refreshing at once keep the session. Presented later, the session SHALL end at once and the Activity Log SHALL get `SessionRevoked` with the note `refresh token reused`. (AUTH-D09, AUTH-D31, AUTH-D32)
+
+#### Scenario: Access token expired while working
+- **WHEN** Dao's browser app sends a request with an access token past its expiry
+- **THEN** the API answers 401 `TOKEN_EXPIRED`, the app refreshes and repeats the request, and Dao notices nothing
+
+#### Scenario: Two tabs refresh at once
+- **WHEN** two tabs of Dao's browser app refresh with the same refresh token within a second
+- **THEN** both get an access token and the session goes on
+
+#### Scenario: Stolen refresh token
+- **WHEN** someone presents Dao's refresh token a minute after her app rotated it
+- **THEN** Dao's session ends, both get 401 `UNAUTHENTICATED` at their next refresh, and the Activity Log holds `SessionRevoked` under Dao
+
+#### Scenario: Token of another portal
+- **WHEN** a client sends Dao's access token of one portal to the API of another portal
+- **THEN** the API answers 401 `UNAUTHENTICATED`
+
+#### Scenario: Nothing personal in the token
+- **WHEN** someone decodes Dao's access token without the key
+- **THEN** it shows her account id, portal, session id, times and rights, and no e-mail or name
+
 ### Requirement: Sign out
-Sign out SHALL end the session on the server, clear the session cookie and go to the sign-in page. The cookie of an ended session SHALL never work again. Every signed-in page SHALL offer Sign out in the user menu. (AUTH-D09)
+Sign out SHALL end the session on the server, clear the session cookie or the refresh cookie, and go to the sign-in page; a browser app SHALL also drop its access token. The cookie or the refresh token of an ended session SHALL never work again; an access token already issued SHALL work until its expiry, at most {auth.access_token_minutes} minutes later. Every signed-in page SHALL offer Sign out in the user menu. (AUTH-D09, AUTH-D12)
 
 #### Scenario: Old cookie after sign out
 - **WHEN** Dao signs out and a client sends her old session cookie again
 - **THEN** the API answers 401 `UNAUTHENTICATED`
 
-### Requirement: Writes need the session's CSRF token
-Every POST, PUT, PATCH and DELETE of a signed-in session SHALL carry a header equal to the CSRF token the session got at sign-in, which the web reads from a cookie of its own portal that its scripts can read. A write without it, or with another session's value, SHALL answer 403 `CSRF_FAILED` and change nothing. Sign-in, the sign-in code, forgot password, the link check and set new password have no session and need no token. (AUTH-D11)
+#### Scenario: Old refresh token after sign out
+- **WHEN** Dao signs out of the browser app and a client refreshes with her old refresh token
+- **THEN** the API answers 401 `UNAUTHENTICATED` and opens nothing
+
+### Requirement: Writes are safe from other sites
+Every POST, PUT, PATCH and DELETE of a session held in a cookie SHALL carry a header or form field equal to the CSRF token the session got, which the web reads from a cookie of its own portal that its scripts can read, or from the page the server rendered. A write without it, or with another session's value, SHALL answer 403 `CSRF_FAILED` and change nothing. A request that carries an access token in the `Authorization` header SHALL need no CSRF token, since a browser never adds that header by itself; the refresh cookie is `SameSite=Strict` and reaches only the refresh and sign-out paths, which check the `Origin` as the next requirement says. Sign-in, the sign-in code, forgot password, the link check and set new password have no session and need no token. (AUTH-D11)
 
 #### Scenario: Write without the header
 - **WHEN** a client posts to a write endpoint with Dao's session cookie but without the CSRF header
@@ -157,7 +194,7 @@ Every POST, PUT, PATCH and DELETE of a signed-in session SHALL carry a header eq
 - **THEN** the API answers 403 `CSRF_FAILED`
 
 ### Requirement: Sign-in requests come from the portal's own pages
-The sign-in, sign-in code, resend code, forgot-password and set-new-password requests SHALL carry an `Origin` whose scheme, host and port are those of the portal's own address. A request without an `Origin`, or with another one, SHALL answer 403 `ORIGIN_REFUSED`, sign nobody in, count no attempt, queue nothing and change nothing. (AUTH-D11)
+The sign-in, sign-in code, resend code, forgot-password and set-new-password requests, and the refresh and the sign-out of a session held with tokens, SHALL carry an `Origin` whose scheme, host and port are those of the portal's own address. A request without an `Origin`, or with another one, SHALL answer 403 `ORIGIN_REFUSED`, sign nobody in, count no attempt, queue nothing and change nothing. A mobile app sends no `Origin`: it SHALL use the mobile paths of these requests, which take the pending value and the refresh token in the body and never read a cookie. (AUTH-D11)
 
 #### Scenario: Page of another site
 - **WHEN** a page on `https://evil.example.com` makes a browser post a sign-in with an attacker's e-mail and password
@@ -174,11 +211,17 @@ The sign-in, sign-in code, resend code, forgot-password and set-new-password req
 ### Requirement: Account changes end its sessions
 These changes SHALL end the sessions and pending sign-ins of the account they concern: its status away from Active, its deletion, a change of its sign-in e-mail, a change of its password, a change of what fixes its rights (the group or role of the permission pack), and, when AUTH-D04 holds, its {org} saved with a status other than Active. A password or e-mail changed by the account holder SHALL keep the session that changed it. The next request of an ended session SHALL answer 401 `UNAUTHENTICATED`.
 
-The ending SHALL hold whatever the order in which such a change and a sign-in of the same account commit: a session opened by a sign-in that read the account before the change committed SHALL answer 401 `UNAUTHENTICATED` from its first request after the change. A change that ends nothing (a display name, a phone number) SHALL leave every session as it was. (AUTH-D12)
+The ending SHALL hold whatever the order in which such a change and a sign-in of the same account commit: a session opened by a sign-in that read the account before the change committed SHALL answer 401 `UNAUTHENTICATED` from its first request after the change. A change that ends nothing (a display name, a phone number) SHALL leave every session as it was.
+
+For a session held with tokens, the ending SHALL stop its refresh token at once; an access token already issued SHALL work until its expiry, at most {auth.access_token_minutes} minutes, and the next refresh SHALL answer 401 `UNAUTHENTICATED`. "First request" above then means the first refresh. (AUTH-D12)
 
 #### Scenario: Disabled during a session
 - **WHEN** an administrator sets Dao to Disabled while she is signed in
 - **THEN** her next request answers 401 and the web goes to the sign-in page
+
+#### Scenario: Disabled while using the browser app
+- **WHEN** an administrator sets Dao to Disabled while she works in the browser app
+- **THEN** within {auth.access_token_minutes} minutes her next refresh answers 401 and the web goes to the sign-in page
 
 #### Scenario: E-mail changed
 - **WHEN** an administrator changes Dao's e-mail while she is signed in
@@ -336,6 +379,7 @@ A signed-in account SHALL be due for its first sign-in when it signed in with a 
 These events SHALL write an Activity Log entry of the audit pack under the account they concern, with its portal:
 - `Login`: a session opened, after the right code when one is asked, with the note `remembered browser` when a remembered browser skipped the code;
 - `Logout`: a sign out;
+- `SessionRevoked`: a session ended because its refresh token was used again after its rotation (note `refresh token reused`);
 - `LoginFailed`: a wrong password, an account without a password yet, a starting password that expired, was revoked or was used, a wrong code (note `wrong code`), and a code typed after its time (note `code expired`);
 - `LoginRefused`: the right password of an account that may not sign in;
 - `LoginLocked`: an attempt refused by the lock, at the password or at the code;
@@ -386,33 +430,37 @@ Each {portal} web SHALL serve these pages in a sign-in layout without the portal
 - **THEN** the session ends and the web shows `/login`
 
 ### Requirement: Email OTP switch per portal
-Each {portal} SHALL have its own Email OTP switch `AUTH_OTP_<PORTAL>`, read from the environment when the API starts. A switch SHALL be off when it is not set, and SHALL accept only `true` or `false`, ignoring letter case; the API SHALL refuse to start with any other value, naming the setting but not its value. With a portal's switch off, sign-in on that portal SHALL work as if there were no code step: no code is asked, no `account.sign_in_code` is queued, and no pending sign-in or remembered browser is made. A switch changed by a restart SHALL act from the next sign-in: it SHALL never end an open session, and with the switch off a pending sign-in of that portal SHALL answer as ended. (AUTH-D23, AUTH-D24)
+Each {portal} SHALL have its own switch {auth.otp_enabled} on the system settings page, off by default. A change SHALL act from the next sign-in: it SHALL never end an open session, and with the switch off a pending sign-in of that portal SHALL answer as ended. Turning a switch off SHALL ask for a confirmation first, and every change SHALL write an Activity Log entry as any setting does. The environment value `AUTH_OTP_OFF` set to `true`, ignoring letter case, SHALL turn the code step off on every portal from the start of the API, whatever the settings say and without changing them, and the settings page SHALL show that the switches are overridden by the environment; any value but `true`, `false` or none SHALL stop the API from starting, naming the setting but not its value. With the code step off on a portal, sign-in there SHALL work as if there were no code step: no code is asked, no `account.sign_in_code` is queued, and no pending sign-in or remembered browser is made. (AUTH-D23, AUTH-D24, AUTH-D27)
 
 #### Scenario: Switch off
-- **WHEN** the switch of Dao's portal is not set and Dao signs in with the right password
+- **WHEN** the switch of Dao's portal is off and Dao signs in with the right password
 - **THEN** Dao is signed in at once and no code is queued
 
 #### Scenario: Each portal has its own switch
-- **WHEN** one portal's switch is `true` and another's is not set
-- **THEN** a sign-in on the first asks for a code and a sign-in on the second does not
+- **WHEN** an administrator turns the switch on for one portal and leaves another off
+- **THEN** the next sign-in on the first asks for a code, a sign-in on the second does not, and sessions already open stay open
 
-#### Scenario: A value the API cannot read
-- **WHEN** the API starts with the switch set to `yes`
-- **THEN** it does not start, and its message names the setting
+#### Scenario: Turned off on the page
+- **WHEN** an administrator turns a portal's switch off
+- **THEN** the page asks for a confirmation, and after it the Activity Log holds the change from on to off
 
 #### Scenario: Turned off while mail is down
-- **WHEN** the switch is on, no code reaches anyone, and IT sets it to `false` and restarts the API
-- **THEN** users sign in with the password alone, and open sessions are kept
+- **WHEN** the switch is on, no code reaches anyone so nobody can reach the settings page, and IT sets `AUTH_OTP_OFF=true` and restarts the API
+- **THEN** users sign in with the password alone, open sessions are kept, the stored switches are unchanged, and the settings page shows that the environment overrides them
+
+#### Scenario: A value the API cannot read
+- **WHEN** the API starts with `AUTH_OTP_OFF` set to `yes`
+- **THEN** it does not start, and its message names the setting
 
 ### Requirement: Sign-in code
 When a portal's switch is on, a sign-in that has passed the password, starting passwords included, and the status checks, from a browser not remembered for that account, SHALL NOT open a session. The API SHALL instead:
-- open a pending sign-in for that account on that portal, lasting {auth.otp_pending_minutes} minutes and named by a random cookie of that portal that scripts cannot read, marked Secure as the session cookie is; the database SHALL keep only a hash of the cookie's value;
+- open a pending sign-in for that account on that portal, lasting {auth.otp_pending_minutes} minutes and named by a random value that the web keeps in a cookie of that portal that scripts cannot read, marked Secure as the session cookie is, and a mobile app gets in the answer body; the database SHALL keep only a hash of that value;
 - make a code of {auth.otp_digits} digits from a cryptographic random source, valid {auth.otp_code_minutes} minutes, and keep only a keyed hash of it;
 - queue the e-mail `account.sign_in_code` to the account's e-mail with the code;
 - answer `OTP_REQUIRED` with the route of the sign-in code page, keeping the page asked for;
-- set no session or CSRF cookie and write no `Login`.
+- open no session, issue no token and write no `Login`.
 
-Until the right code, every API call SHALL answer as for a request without a session. The right code, in time and while the pending sign-in lasts, SHALL open the session as the sign-in would have opened it, set the session and CSRF cookies, end the pending sign-in so neither the code nor the pending cookie works again, and answer the route. A change of requirement "Account changes end its sessions" made after the password step SHALL end the pending sign-in: the right code then SHALL answer `OTP_RESTART` and open nothing. A new pending sign-in of an account on a portal SHALL end its earlier ones there, and a new code SHALL void the earlier codes of its pending sign-in. Resend SHALL make a new code within the same pending sign-in no sooner than {auth.otp_resend_seconds} seconds after the last one; earlier it SHALL answer `OTP_RESEND_WAIT` with the seconds left and make nothing. An account SHALL get at most {auth.otp_codes_per_hour} codes an hour on a portal; past that, the right password and Resend SHALL answer `OTP_LIMIT`, queue nothing and open nothing, and the lock counts such a sign-in neither as a failure nor as a success. The code SHALL never appear in an API answer, a URL, a log or an Activity Log entry. (AUTH-D23, AUTH-D25)
+Until the right code, every API call SHALL answer as for a request without a session. The right code, in time and while the pending sign-in lasts, SHALL open the session as the sign-in would have opened it (its cookies, or its tokens), end the pending sign-in so neither the code nor the pending cookie works again, and answer the route. A change of requirement "Account changes end its sessions" made after the password step SHALL end the pending sign-in: the right code then SHALL answer `OTP_RESTART` and open nothing. A new pending sign-in of an account on a portal SHALL end its earlier ones there, and a new code SHALL void the earlier codes of its pending sign-in. Resend SHALL make a new code within the same pending sign-in no sooner than {auth.otp_resend_seconds} seconds after the last one; earlier it SHALL answer `OTP_RESEND_WAIT` with the seconds left and make nothing. An account SHALL get at most {auth.otp_codes_per_hour} codes an hour on a portal; past that, the right password and Resend SHALL answer `OTP_LIMIT`, queue nothing and open nothing, and the lock counts such a sign-in neither as a failure nor as a success. The code SHALL never appear in an API answer, a URL, a log or an Activity Log entry. (AUTH-D23, AUTH-D25)
 
 #### Scenario: Code asked, then signed in
 - **WHEN** the switch is on, Dao signs in with the right password and types the code of the queued e-mail in time
@@ -489,10 +537,10 @@ Each web SHALL serve `/sign-in-code` in its sign-in layout: that a code of {auth
 - **THEN** the web goes to `/login?reason=code` and shows the code note there
 
 ### Requirement: Adjustable values
-The values of params.md SHALL be kept with the system's settings, read again at each use, and changed only within their ranges, never looser than the defaults; a value the customer's documents set SHALL be the default instead. A change SHALL write an Activity Log entry with the old and the new value. A minimum above its maximum, or an idle time above the longest session of the same portal, SHALL be refused and save nothing. (AUTH-D27)
+The values of params.md SHALL be on the system settings page of the settings pack, read again at each use, and changed only within their ranges, the end of a range being the loosest value allowed; a value the customer's documents set SHALL be the default instead and the new limit that may not be loosened. A change SHALL write an Activity Log entry with the old and the new value. A minimum above its maximum, an idle time above the longest session of the same portal, or an access token lifetime above the idle time of the same portal, SHALL be refused and save nothing. The token signing key SHALL never be on the page. (AUTH-D27, AUTH-D32)
 
-#### Scenario: Looser than the default
-- **WHEN** an administrator saves {auth.password_min_length} below its default
+#### Scenario: Looser than the range
+- **WHEN** an administrator saves {auth.password_min_length} below the lowest value of its range
 - **THEN** the save is refused and names the setting
 
 #### Scenario: Idle longer than the longest session

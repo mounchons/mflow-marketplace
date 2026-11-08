@@ -71,11 +71,11 @@ Every table also carries the who-and-when columns of the audit pack (`created_at
 
 ## Settings keys
 
-The settings below live in the system settings table of the project; `mail_send_since` is written by the API only.
+The settings below live in the system settings table of the settings pack under their `params.md` keys, as do the `mail.smtp_*` and `mail.from_*` keys; `mail.send_since` is written by the API only and never shown on the page.
 
 | Column | Type | Rule |
 |---|---|---|
-| mail_max_per_hour | int | `mail.max_per_hour`, set on the settings screen |
-| mail_allow_list | text | `mail.allow_list`, set on the settings screen; emptying a set list needs confirmation |
-| mail_company_name | text | `mail.company_name`, set on the settings screen |
-| mail_send_since | timestamptz | the send marker; stored when the API starts with the switch on and none is stored, cleared when it starts with the switch off |
+| mail.max_per_hour | int | set on the settings screen |
+| mail.allow_list | text | set on the settings screen; emptying a set list needs confirmation |
+| mail.company_name | text | set on the settings screen |
+| mail.send_since | timestamptz | the send marker; stored when the API starts with the switch on and none is stored, cleared when it starts with the switch off |

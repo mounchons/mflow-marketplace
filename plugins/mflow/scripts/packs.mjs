@@ -4,9 +4,9 @@
 // packs a project selected and asks only what a pack leaves to the project; approving the doc writes the
 // filled pack into the project. This script lists and checks the packs, and keeps the project's selection.
 //
-//   node packs.mjs list                    -> { packs: [{ name, version, title, prefix, requires, topics, decisions, ask }] }
+//   node packs.mjs list                    -> { packs: [{ name, version, title, prefix, requires, topics, decisions, ask, stacks }] }
 //   node packs.mjs check [<name>…]         -> { ok, checked, problems: [{ pack, file, line, problem }] }  exit 1 unless ok
-//   node packs.mjs selected                -> { selected, required, unknown, order, topics, available, projectDir, packs: {name: {dir, discuss, approve}} }
+//   node packs.mjs selected                -> { selected, required, unknown, order, topics, available, projectDir, packs: {name: {dir, discuss, approve, stack}} }
 //   node packs.mjs use <name>[,<name>…]    -> adds them and what they require to .mflow/config.json "packs"
 //   --dir <folder> reads packs from there instead of the plugin's packs/ (tests)
 import fs from "node:fs";
@@ -18,6 +18,8 @@ const PLUGIN_PACKS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..
 export const FILES = ["pack.md", "decisions.md", "params.md", "requirements.md", "data.md", "screens.md", "checks.md"];
 export const DISCUSS_FILES = FILES.slice(0, 3);
 export const APPROVE_FILES = FILES.slice(3);
+// The stack layer: packs/<name>/stack/<stack>.md, how a pack is built on one back end. Optional, read at approve.
+export const STACKS = ["dotnet"];
 const NAME_RE = /^[a-z][a-z0-9-]*$/;
 const toPosix = (p) => p.replace(/\\/g, "/");
 
@@ -81,9 +83,13 @@ export function readPack(dir, name) {
     const cells = line.split("|").slice(1, -1).map((c) => c.trim());
     if (cells.length >= 2 && /^`?[a-z][a-z0-9-]*\.[a-z0-9_]+`?$/.test(cells[1])) params.push({ key: cells[1].replace(/`/g, ""), line: i + 1 });
   }
+  const stackDir = path.join(at, "stack");
+  const stackFiles = fs.existsSync(stackDir) ? fs.readdirSync(stackDir).filter((f) => !f.startsWith(".")).sort() : [];
   return {
     name,
     dir: at,
+    stackFiles,
+    stacks: stackFiles.filter((f) => STACKS.includes(f.replace(/\.md$/, "")) && f.endsWith(".md")).map((f) => f.replace(/\.md$/, "")),
     version: fm.version,
     title: fm.title || "",
     prefix: fm.prefix || "",
@@ -100,7 +106,7 @@ export function listPacks(dir) {
   return names(dir).map((n) => {
     const p = readPack(dir, n);
     const ask = p.decisions.filter((d) => (d.fields["ถามเมื่อ"] || "") === "ทุกโปรเจกต์").map((d) => d.id);
-    return { name: p.name, version: Number(p.version) || p.version, title: p.title, prefix: p.prefix, requires: p.requires, topics: p.topics, decisions: p.decisions.length, ask };
+    return { name: p.name, version: Number(p.version) || p.version, title: p.title, prefix: p.prefix, requires: p.requires, topics: p.topics, decisions: p.decisions.length, ask, stacks: p.stacks };
   });
 }
 
@@ -214,8 +220,25 @@ export function check(dir, only = []) {
 
     for (const f of ["screens.md", "checks.md"]) if (!(readText(path.join(p.dir, f)) ?? "").trim()) add(name, f, 0, "empty");
 
+    // Stack layer: known stacks only, frontmatter naming the pack and the stack, decision IDs that resolve.
+    for (const sf of p.stackFiles) {
+      const rel = `stack/${sf}`;
+      const stack = sf.replace(/\.md$/, "");
+      if (!sf.endsWith(".md") || !STACKS.includes(stack)) { add(name, rel, 0, `not a known stack file; known: ${STACKS.map((s) => s + ".md").join(", ")}`); continue; }
+      const st = readText(path.join(p.dir, "stack", sf)) ?? "";
+      const sfm = frontmatter(st);
+      if (sfm.pack !== name) add(name, rel, 0, `frontmatter pack must be "${name}"`);
+      if (sfm.stack !== stack) add(name, rel, 0, `frontmatter stack must be "${stack}"`);
+      if (!/^##\s+Decision by decision\s*$/m.test(st)) add(name, rel, 0, "## Decision by decision missing");
+      st.split(/\r?\n/).forEach((line, i) => {
+        for (const m of line.matchAll(/\b([A-Z][A-Z0-9]*-D\d{2})\b/g)) {
+          if (!knownIds.has(m[1])) add(name, rel, i + 1, `${m[1]} is not a decision of this pack or a pack it requires`);
+        }
+      });
+    }
+
     // Content any customer may see.
-    for (const f of FILES) {
+    for (const f of [...FILES, ...p.stackFiles.map((sf) => `stack/${sf}`)]) {
       const t = readText(path.join(p.dir, f));
       if (t == null) continue;
       t.split(/\r?\n/).forEach((line, i) => {
@@ -256,6 +279,7 @@ export function selected(root, dir) {
       dir: p.dir,
       discuss: DISCUSS_FILES.map((f) => path.join(p.dir, f)),
       approve: APPROVE_FILES.map((f) => path.join(p.dir, f)),
+      stack: Object.fromEntries(p.stacks.map((s) => [s, path.join(p.dir, "stack", `${s}.md`)])),
       filled: `${projectPacksDir(root)}/${n}.md`,
     };
   }

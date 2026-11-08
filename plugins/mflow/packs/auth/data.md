@@ -25,11 +25,15 @@ Every account table reuses the `id` of its row in the audit pack's `actor` regis
 | id | uuid | primary key |
 | portal | text | the portal the session belongs to |
 | account_id | uuid | references `actor.id` |
-| token_hash | text | hash of the session cookie's value; unique |
-| csrf_token_hash | text | hash of the CSRF token given at sign-in |
+| kind | text | Cookie (a web rendered on the server) or Token (an app that calls the API) (AUTH-D09) |
+| token_hash | text | hash of the session cookie's value, or of the current refresh token; unique |
+| previous_token_hash | text | Token only: hash of the refresh token before the last rotation; accepted for 30 seconds after `rotated_at` (AUTH-D31) |
+| rotated_at | timestamptz | Token only: time of the last rotation |
+| csrf_token_hash | text | Cookie only: hash of the CSRF token given at sign-in |
 | created_at | timestamptz | sign-in time; the session ends `auth.session_max_minutes` after it |
-| expires_at | timestamptz | pushed to request time plus `auth.session_idle_minutes` on every request |
-| ended_at | timestamptz | set by sign out or an account change; an ended session never works again |
+| expires_at | timestamptz | pushed to the time of each use plus `auth.session_idle_minutes` (a request with the cookie, or a refresh) |
+| ended_at | timestamptz | set by sign out, an account change or a reused refresh token; an ended session never works again |
+| end_reason | text | SignOut, AccountChange, TokenReused or Switch |
 
 ## login_attempt
 

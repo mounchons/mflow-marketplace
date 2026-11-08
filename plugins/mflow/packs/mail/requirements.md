@@ -5,7 +5,7 @@ Example people in the scenarios: Malee, the administrator; Somchai, a staff memb
 ## Queue and sending
 
 ### Requirement: E-mail is queued with the change that causes it
-Every e-mail SHALL be written to `mail_outbox` as Queued in the same transaction as the business change that raises it. No request SHALL open an SMTP connection; the mail line SHALL send queued e-mails on its own. Queuing an e-mail SHALL write no Activity Log entry of its own; the change that queued it is logged once (MAIL-D01).
+Every e-mail SHALL be written to `mail_outbox` as Queued in the same transaction as the business change that raises it. No request SHALL open an SMTP connection, except Send test on the settings page (MAIL-D30); the mail line SHALL send queued e-mails on its own. Queuing an e-mail SHALL write no Activity Log entry of its own; the change that queued it is logged once (MAIL-D01).
 
 #### Scenario: Change rolled back
 - **WHEN** Somchai approves an order, the approval queues an e-mail, and the save fails on a later check
@@ -126,7 +126,7 @@ The mail line SHALL send at most {mail.max_per_hour} messages in any 60 minutes,
 - **THEN** the sign-in code is sent and the announcement waits
 
 ### Requirement: What a sent e-mail holds
-A sent e-mail SHALL be plain text in UTF-8, from the one system sender `SMTP_FROM` with the display name `SMTP_FROM_NAME`, to one recipient. Its subject and body SHALL be its template filled with the tags its event fills. `{{company_name}}` SHALL be `mail.company_name` read when the e-mail is sent, `{{portal_url}}` the address of the recipient's {portal}, and `{{contact_name}}` the recipient's name. Dates SHALL render as {mail.date_format} in the system time zone. No e-mail SHALL carry an attachment or a download link (MAIL-D08, MAIL-D20).
+A sent e-mail SHALL be plain text in UTF-8, from the one system sender {mail.from_address} with the display name {mail.from_name}, both read when the e-mail is sent, to one recipient. Its subject and body SHALL be its template filled with the tags its event fills. `{{company_name}}` SHALL be `mail.company_name` read when the e-mail is sent, `{{portal_url}}` the address of the recipient's {portal}, and `{{contact_name}}` the recipient's name. Dates SHALL render as {mail.date_format} in the system time zone. No e-mail SHALL carry an attachment or a download link (MAIL-D08, MAIL-D20).
 
 #### Scenario: One order to two accounts
 - **WHEN** an order e-mail of Acme Parts goes to Napa and Wit
@@ -137,12 +137,12 @@ A sent e-mail SHALL be plain text in UTF-8, from the one system sender `SMTP_FRO
 - **THEN** the sent e-mail carries the new company name
 
 ### Requirement: The SMTP connection
-The mail line SHALL send only over TLS: STARTTLS on the port given (`SMTP_TLS=starttls`, the default, port {mail.smtp_port_starttls} unless set) or TLS from the first byte (`SMTP_TLS=tls`, port {mail.smtp_port_tls} unless set). It SHALL fail the attempt when the server offers no STARTTLS, and SHALL never send in plain text.
+The SMTP values SHALL come from the system settings page and SHALL be read when an attempt starts, so a saved change applies to the next attempt without a restart. The mail line SHALL send only over TLS: STARTTLS ({mail.smtp_tls} = `starttls`, the default, on {mail.smtp_port} or else port {mail.smtp_port_starttls}) or TLS from the first byte ({mail.smtp_tls} = `tls`, on {mail.smtp_port} or else port {mail.smtp_port_tls}). It SHALL fail the attempt when the server offers no STARTTLS, and SHALL never send in plain text.
 
-When `SMTP_CERT_SHA256` is set, the server's certificate SHALL be accepted only when its SHA-256 fingerprint equals it; otherwise it SHALL pass the system's certificate checks. The mail line SHALL authenticate only when both `SMTP_USER` and `SMTP_PASSWORD` are set. Host, port, user, password and fingerprint SHALL come only from the environment and SHALL never appear in a log, an error answer or `mail_log` (MAIL-D09, MAIL-D10).
+When {mail.smtp_cert_sha256} is set, the server's certificate SHALL be accepted only when its SHA-256 fingerprint equals it; otherwise it SHALL pass the system's certificate checks. The mail line SHALL authenticate only when both {mail.smtp_user} and {mail.smtp_password} are set. {mail.smtp_password} SHALL be a secret of the settings pack: stored encrypted, never sent back to the browser. Host, port, user, password and fingerprint SHALL never appear in a log, an error answer, `mail_log` or the Activity Log; a change of them SHALL write an Activity Log entry with the password masked. While {mail.smtp_host} or {mail.from_address} is empty, the mail line SHALL leave e-mails Queued without counting an attempt, and the settings page and the health answer SHALL say that SMTP is not set (MAIL-D09, MAIL-D10, MAIL-D25, MAIL-D26).
 
 #### Scenario: Pinned self-signed certificate
-- **WHEN** `SMTP_CERT_SHA256` holds the fingerprint of the server's self-signed certificate
+- **WHEN** {mail.smtp_cert_sha256} holds the fingerprint of the server's self-signed certificate
 - **THEN** the connection is accepted and the e-mail is sent
 
 #### Scenario: Another certificate
@@ -150,8 +150,31 @@ When `SMTP_CERT_SHA256` is set, the server's certificate SHALL be accepted only 
 - **THEN** the attempt fails with a certificate refusal in `mail_log`, and nothing is sent
 
 #### Scenario: No STARTTLS
-- **WHEN** `SMTP_TLS` is `starttls` and the server does not offer it
+- **WHEN** {mail.smtp_tls} is `starttls` and the server does not offer it
 - **THEN** the attempt fails, and nothing is sent in plain text
+
+#### Scenario: Server changed on the page
+- **WHEN** Malee saves a new SMTP host on the settings page while e-mails wait in the queue
+- **THEN** the next attempt uses the new host without a restart, and the Activity Log holds the change
+
+#### Scenario: SMTP not set yet
+- **WHEN** the switch is on and {mail.smtp_host} is empty
+- **THEN** e-mails stay Queued with no attempt counted, and the settings page says SMTP is not set
+
+### Requirement: Test the SMTP settings
+The e-mail tab of the settings page SHALL offer Send test, which sends one short message with the saved SMTP values to the address typed, by default the e-mail of the user who presses it. It SHALL open the SMTP connection within that request, outside the queue, and answer within {mail.test_timeout_seconds} seconds with Sent or the failure and the SMTP answer, holding no setting value. The address SHALL pass the allow-list. With the switch off it SHALL answer that the environment does not allow sending and open no connection. Every test SHALL write one `mail_log` row and an Activity Log entry naming the address. Only users who may manage the settings page SHALL send a test (MAIL-D30).
+
+#### Scenario: Test after changing the server
+- **WHEN** Malee saves a new password for the SMTP user and presses Send test to her own address
+- **THEN** the page shows Sent within {mail.test_timeout_seconds} seconds, and Malee gets the message
+
+#### Scenario: Wrong password
+- **WHEN** the SMTP server refuses the saved user and password
+- **THEN** the page shows the refusal from the server, and neither the password nor the user name appears in it
+
+#### Scenario: Switch off
+- **WHEN** `MAIL_SEND` is off and Malee presses Send test
+- **THEN** the page says the environment does not allow sending, and no connection is opened
 
 ### Requirement: Retries and the send log
 Each message attempt SHALL write one `mail_log` row with the e-mail, the time, the attempt number, the recipient, the subject, the body with every secret masked, the result (Sent, Failed or Skipped) and the SMTP answer or the error without any setting value. A Skipped e-mail, and a recipient left out by the allow-list, SHALL write one row with the reason. A `mail_log` row SHALL never be changed or deleted, and SHALL write no Activity Log entry.
@@ -198,17 +221,21 @@ A Skipped or Failed e-mail SHALL keep its secret until one of these clears it. `
 - **THEN** its starting password is cleared, and the mailbox says it has expired
 
 ### Requirement: Mail settings at start-up
-With the switch on, the API SHALL refuse to start, with a message that names the setting and shows no value, when any of `SMTP_HOST`, `SMTP_FROM`, the absolute http(s) address of every {portal} or `MAIL_SECRET_KEY` is missing or unreadable. `SMTP_TLS` SHALL be `starttls` or `tls`; `SMTP_CERT_SHA256`, when set, 64 hex digits with or without colons. With the switch off, none of these SHALL be required (MAIL-D26).
+With the switch on, the API SHALL refuse to start, with a message that names the setting and shows no value, when the absolute http(s) address of every {portal} or `MAIL_SECRET_KEY` is missing or unreadable. With the switch off, none of these SHALL be required. The SMTP values on the settings page SHALL never stop the start; saving them SHALL check that {mail.smtp_tls} is `starttls` or `tls`, {mail.smtp_port} is empty or 1–65535, {mail.smtp_cert_sha256} is empty or 64 hex digits with or without colons, and {mail.from_address} is one e-mail address (MAIL-D26).
 
-Env values that seed screen settings (rate, allow-list, company name) SHALL be readable whenever they are set, switch on or off, and SHALL be used only to seed a setting that does not exist yet; afterwards only the stored setting SHALL count, and a differing env value SHALL write one start-up warning naming the env name and no value (MAIL-D25).
+Env values that seed screen settings (rate, allow-list, company name, and the SMTP values when the project moved them from env) SHALL be readable whenever they are set, switch on or off, and SHALL be used only to seed a setting that does not exist yet; afterwards only the stored setting SHALL count, and a differing env value SHALL write one start-up warning naming the env name and no value (MAIL-D25).
 
 #### Scenario: Missing secret key
 - **WHEN** the API starts with `MAIL_SEND=true` and no `MAIL_SECRET_KEY`
 - **THEN** it stops with a message naming `MAIL_SECRET_KEY`
 
 #### Scenario: Switch off needs nothing
-- **WHEN** the API starts with `MAIL_SEND` unset and no SMTP setting
+- **WHEN** the API starts with `MAIL_SEND` unset and no SMTP value on the settings page
 - **THEN** it starts
+
+#### Scenario: Switch on before SMTP is set
+- **WHEN** the API starts with `MAIL_SEND=true`, the secret key and the portal addresses set, and the SMTP host still empty on the settings page
+- **THEN** it starts, e-mails stay Queued, and the settings page says SMTP is not set
 
 #### Scenario: Env no longer wins
 - **WHEN** `mail.max_per_hour` is stored as 300 and the API restarts with the env rate set to 50

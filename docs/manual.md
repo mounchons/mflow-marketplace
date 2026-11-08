@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.40.1 |
+| เวอร์ชัน plugin | 0.41.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -828,7 +828,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | briefing บอกว่า CLI ใช้ไม่ได้ config อ่านไม่ได้ หรือรู้สึกว่ามีอะไรผิด | `/mflow:help check setup` (ตรวจอย่างเดียว บอกวิธีแก้ทุกข้อ) |
 | จะเปลี่ยน stack ก่อน `/mflow:theme` (หลังจากนั้นต้องสร้าง kit และหน้าจอใหม่) | แก้ `## Stack` ใน AGENTS.md หรือรัน `/mflow:init` ซ้ำให้ถามใหม่ |
 | ลูกค้าส่งเอกสารหรือฉบับใหม่ | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` |
-| อยากใช้ business logic มาตรฐานของทีม (sign-in รหัสผ่าน OTP, จัดการบัญชี, สิทธิ์, อีเมล, audit) แทนการตอบคำถามเดิมซ้ำ | บอกในแชต "ใช้แพ็ก auth, users, permission, mail" แล้ว `/mflow:discuss sign-in` (`user-accounts`, `access-control`, `notifications`, `audit-history`) → approve → `/opsx:propose` เริ่มจาก `docs/decisions/packs/<ชื่อ>.md` (README หัวข้อแพ็ก) |
+| อยากใช้ business logic มาตรฐานของทีม (requirement template สำเร็จรูป: sign-in รหัสผ่าน OTP JWT, จัดการบัญชี, สิทธิ์และเมนู, อีเมล, audit, หน้าตั้งค่าระบบ, ข้อตกลง API, อัปโหลดไฟล์, โครงเว็บ) แทนการตอบคำถามเดิมซ้ำ | บอกในแชต "ใช้แพ็ก auth, users, permission, mail" (แพ็กที่ต้องมีก่อน เช่น settings, audit ถูกเพิ่มให้เอง) แล้ว `/mflow:discuss sign-in` (`user-accounts`, `access-control`, `notifications`, `audit-history`, `system-settings`, `api-conventions`, `file-upload`, `web-shell`) → approve → `/opsx:propose` เริ่มจาก `docs/decisions/packs/<ชื่อ>.md` ซึ่งมีส่วน `## Stack: dotnet` เมื่อ back end เป็น .NET (README หัวข้อแพ็ก) |
 | จะเลือก tech stack, library, ฐานข้อมูล, Docker หรือโครงสร้างโฟลเดอร์ | `/mflow:discuss tech-stack` แล้ว `/mflow:discuss code-structure` |
 | อยากรู้ว่าควร discuss หัวข้อไหนบ้าง | ดู `docs/decisions/discuss/AGENDA.md` หรือ `/mflow:discuss` (สร้างหรือเรียงใหม่ด้วย `/mflow:discuss agenda`) |
 | อยากเช็กว่า Claude เข้าใจเรื่องหนึ่งตรงกับที่คิด (สิทธิ์, เมนู, ข้อมูลเฉพาะ role …) | `/mflow:discuss <หัวข้อ> [@ไฟล์]` |
@@ -882,7 +882,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.40.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.41.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

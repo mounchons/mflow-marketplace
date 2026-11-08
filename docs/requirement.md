@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.40.1 |
+| เวอร์ชันที่อธิบาย | 0.41.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -400,6 +400,17 @@ flowchart TD
 | FR-246 | สั่งครั้งเดียวจบทั้ง change: `/opsx:apply` เมื่อ task เสร็จและเพิ่มแถวใน `pending.md` แล้ว archive change ใน turn เดียวกันแบบ `/opsx:archive` (รวม delta spec เข้า `openspec/specs/` ย้ายโฟลเดอร์ไป archive) เว้นแต่ผู้ใช้บอกให้หยุดหลัง apply แล้ว commit งานกับ archive เป็น commit เดียว รายงานว่า applied and archived (บรรทัดสุดท้ายของ `operations.apply.guidance`) `operations.archive.guidance` เพิ่มบรรทัดว่า task ที่ตั้งใจปล่อยไว้ไม่ติ๊ก (gate task, task ที่มีแค่ E2E) ไม่ทำให้หยุดถาม ให้ archive แล้วบอกชื่อหนึ่งบรรทัด และ commit ของ archive บอกว่าเมื่อ apply archive ใน turn ของตัวเอง commit เดียวมีทั้งสองอย่าง help, manual และ template `CLAUDE.md` บอกว่าพิมพ์ "ทำ X ให้จบ" แล้ว Claude ทำ propose → apply → archive ต่อกัน ถามเฉพาะข้อที่ผู้ใช้ต้องตัดสิน (อาศัยกติกา "Who decides" ของ AGENTS.md ไม่มีคำสั่งหรือ flag ใหม่) `/mflow:review` หลัง approve ไม่สั่ง `/opsx:archive` แล้ว เว้นแต่ change ยังไม่ archive | มีแล้ว |
 | FR-247 | งานเล็กไม่ต้องเปิด OpenSpec change: งานที่ไม่เปลี่ยนพฤติกรรมที่ `openspec/specs/` เขียนไว้ (แก้โค้ดให้กลับไปตรงกับ spec, แก้ label, style หรือข้อความ, แก้เอกสาร) Claude ตัดสินเอง แก้พร้อม unit test แล้ว commit พร้อม entry ของ STATUS และบอกหนึ่งบรรทัดในคำตอบว่าทำโดยไม่เปิด change เพราะอะไร พฤติกรรมที่ใหม่ เปลี่ยน หรือยังไม่อยู่ใน spec ยังเป็น OpenSpec change กติกาอยู่ใน Boundaries ของ template `AGENTS.md` บรรทัดคำแนะนำของ template `CLAUDE.md` และ help ข้อแลกเปลี่ยน: งานเล็กไม่มีแถวใน `pending.md` จึงไม่อยู่ใน `/mflow:review pending` (สั่ง `/mflow:review <branch>` เองได้) และ spec จะเพี้ยนถ้า Claude ตัดสินเส้นแบ่งผิด บรรทัดที่บอกเหตุผลมีไว้ให้ผู้ใช้แย้งได้ทันที | มีแล้ว |
 
+### 6.20 แพ็กชุดสองและชั้น .NET (0.41)
+
+ที่มา: คำสั่งของผู้ใช้ 2026-11-08 ให้มี requirement template สำเร็จรูปจากการตัดสินใจของ StemHub สำหรับระบบอื่น (อีเมลและ OTP ที่ตั้งค่าบนหน้าตั้งค่าได้, JWT และ ASP.NET Core Identity เมื่อเป็น .NET, เมนู กลุ่ม ผู้ใช้, เรื่องพื้นฐานอื่น) คำตอบ 1 b (เซสชันตาม profile) และ 2 a b c (แพ็ก api, upload, shell) แพ็ก approval และ import-export ยังไม่ทำ
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-248 | แพ็ก `auth` รุ่น 2: ทุกการเข้าระบบเป็นเซสชันหนึ่งแถวฝั่ง server ส่วนวิธีถือเซสชันตามชนิดแอป: เว็บที่ render ฝั่ง server (`mvc-htmx`) ใช้ cookie ที่ตรวจกับแถวทุกคำขอ, แอปที่เรียก API (`react-vite`, mobile, ระบบอื่นที่ทำแทนผู้ใช้) ใช้ JWT access token อายุ `auth.access_token_minutes` (15 นาที) ใน header คู่กับ refresh token ที่หมุนทุกครั้ง เก็บ hash, ตัวเก่าที่กลับมาภายใน 30 วินาทีได้ access token ใหม่ (หลายแท็บ) หลังจากนั้นตัดเซสชันและลง `SessionRevoked` (AUTH-D31), token ถือแค่ id บัญชี พอร์ทัล (audience) id เซสชัน เวลา และสิทธิ์ เซ็นด้วยกุญแจ env `AUTH_JWT_KEY` อย่างน้อย 32 ไบต์ (AUTH-D32), การเปลี่ยนบัญชีตัด refresh ทันทีและ access token หมดภายในอายุของมัน สวิตช์ OTP ย้ายจาก env มาเป็น `auth.otp_enabled` ต่อพอร์ทัลบนหน้าตั้งค่า เหลือ env `AUTH_OTP_OFF` ไว้ปิดฉุกเฉินเมื่ออีเมลล่ม (AUTH-D24) | มีแล้ว |
+| FR-249 | แพ็ก `mail` รุ่น 2: ค่า SMTP ทั้งชุด (host, port, โหมด TLS, ผู้ใช้, รหัสที่เป็นค่าความลับ, ลายนิ้วมือใบรับรอง, ที่อยู่และชื่อผู้ส่ง) อยู่บนหน้าตั้งค่า อ่านทุกครั้งที่ส่ง, SMTP ที่ยังไม่ได้ตั้งไม่หยุดการ start แต่คงอีเมลไว้ใน Queued และบอกบนหน้าตั้งค่าและ health (MAIL-D26), ปุ่มส่งทดสอบที่ส่งทันทีด้วยค่าที่บันทึกแล้วและแสดงคำตอบของ server โดยไม่มีค่าตั้ง (MAIL-D30), สวิตช์ส่ง `MAIL_SEND` และ `MAIL_SECRET_KEY` คงอยู่ใน env เพื่อให้ฐานข้อมูลที่คัดลอกไปเครื่องทดสอบไม่ส่งถึงคนจริง | มีแล้ว |
+| FR-250 | แพ็กใหม่สี่ชุด: `settings` (หน้าตั้งค่าระบบ ชนิดค่า ค่าความลับ เวลาที่ค่ามีผล การยืนยันการเปลี่ยนที่อันตราย บันทึกทีละแท็บพร้อม version, หัวข้อ `system-settings`), `api` (route มี version, error body แบบเดียว, list แบ่งหน้า, วันเวลา, health, OpenAPI, log, limit, environment, หัวข้อ `api-conventions`), `upload` (ไฟล์ที่รับ ตรวจชนิดจริง พักก่อนผูก เก็บนอก web root ดาวน์โหลดตามสิทธิ์ของระเบียน ลบไฟล์ค้าง, หัวข้อ `file-upload`), `shell` (layout ตาม kit ภาษา วันเวลา ตาราง ฟอร์ม ข้อความ หน้า error, หัวข้อ `web-shell`) `auth` และ `mail` ต้องมี `settings` ก่อน เพราะค่าของทั้งสองอยู่บนหน้าตั้งค่า | มีแล้ว |
+| FR-251 | ชั้น stack ของแพ็ก: `packs/<ชื่อ>/stack/dotnet.md` (อังกฤษ) บอกว่าแต่ละข้อของแพ็กใช้ feature ไหนของ ASP.NET Core และอะไรต้องเขียนเอง ไม่ใช่โค้ดให้คัดลอก ทุกแพ็กมีครบ `auth` ใช้ ASP.NET Core Identity (`AddIdentityCore`, `PasswordHasher`, security stamp) กับ cookie + `ITicketStore` หรือ JwtBearer + `JsonWebTokenHandler` และบอกข้อที่ Identity ไม่ตอบ (ล็อกต่อชื่อที่ไม่มีจริง ประวัติรหัส ลิงก์ใช้ครั้งเดียว OTP ตามค่าตั้ง) `packs.mjs check` รับเฉพาะ stack ที่รู้จัก (`dotnet`) ตรวจ frontmatter (`pack`, `stack`) หัวข้อ `## Decision by decision` เลขข้อที่มีจริง และคำต้องห้าม `list` และ `selected` บอก stack ของแต่ละแพ็ก ตอน approve โปรเจกต์ที่ back end เป็น ASP.NET Core ได้ส่วน `## Stack: dotnet` ต่อท้ายไฟล์แพ็กที่เติมคำตอบแล้ว โดยตัดส่วนของ profile ที่ไม่ใช้ discuss ไม่อ่านไฟล์ stack | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -480,10 +491,10 @@ mflow-marketplace/
     │   ├─ night.mjs                 ← สถานะของ /mflow:night: start, log, status, finish (docs/reviews/night/)
     │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
     │   ├─ vendor.mjs                ← สำเนา plugin สำหรับ Claude Code on the web (.claude/skills/mflow/): plan, write, status
-    │   ├─ packs.mjs                 ← แพ็ก business logic: list, check (รูปแบบ, requires, คำต้องห้าม), selected, use
+    │   ├─ packs.mjs                 ← แพ็ก business logic: list, check (รูปแบบ, requires, ชั้น stack, คำต้องห้าม), selected, use
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
     ├─ skills/<20 คำสั่ง>/SKILL.md   (+ references/, assets/)
-    ├─ packs/<ชื่อ>/                 ← แพ็ก business logic (audit, auth, users, permission, mail): 7 ไฟล์ต่อแพ็ก, รูปแบบใน packs/README.md
+    ├─ packs/<ชื่อ>/                 ← แพ็ก business logic (audit, settings, mail, auth, permission, users, api, upload, shell): 7 ไฟล์ต่อแพ็ก + stack/dotnet.md, รูปแบบใน packs/README.md
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -707,4 +718,4 @@ OpenSpec ตั้งแต่ 1.16.0 ที่ติดตั้งผ่าน
 | 4 | ยืนยันคำสั่ง opencode/gemini แล้วเปลี่ยนเป็น `verified: true` | ใช้ tool นั้นจริง |
 | 5 | ทดสอบคำสั่ง PowerShell บน Windows จริง | ก่อนใช้ delegate บน Windows ครั้งแรก |
 | 6 | แพ็กเฟส 2: `/mflow:pack list \| extract <ชื่อ> --from <โปรเจกต์>`, `/mflow:init` ถามว่าใช้แพ็กไหน, อัปเดตโปรเจกต์เมื่อแพ็กขึ้นรุ่นใหม่ | หลังโปรเจกต์ที่สองใช้แพ็กแล้ว (กติกา 2–3 ครั้ง) |
-| 7 | แพ็กเฟส 3: ชั้น stack ต่อ profile (`packs/<ชื่อ>/stack/<profile>.md`) และแพ็ก `settings`, `upload`, `api`, `approval`, `import-export` | หลังเฟส 2 |
+| 7 | แพ็กเฟส 3 ส่วนที่เหลือ: แพ็ก `approval`, `import-export` และ stack อื่นนอกจาก `dotnet` (ชั้น stack, `settings`, `upload`, `api`, `shell` ทำแล้วใน 0.41 ตามคำสั่งของผู้ใช้) | เมื่อผู้ใช้สั่ง |

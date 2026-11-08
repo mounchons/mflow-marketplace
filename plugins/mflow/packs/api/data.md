@@ -1,0 +1,3 @@
+# Data dictionary of the api pack
+
+This pack stores no table of its own. What it touches in the database belongs to other packs: the concurrency token that becomes `version` on the wire is the `row_version` column (or the stack's own token) in the audit pack's columns of every business table, and instants are stored as `timestamptz` in UTC by the same rule. Logs go to standard output, not to the database, and the API contract is a file in the repository at `api.contract_path`. The tables of the background-job library live in their own schema and are not part of the application's migrations (API-D21).

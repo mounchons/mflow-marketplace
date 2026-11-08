@@ -8,7 +8,7 @@ A pack is the team's settled answer to a topic every system has (sign-in, user a
 - The user chooses packs in plain words ("ใช้แพ็ก auth, mail"): run `packs.mjs use <name>,<name>` and report what it added. `packs.mjs list` shows what exists.
 - A topic uses a pack when its slug is in `topics`. Read that pack's `discuss` files only (`pack.md`, `decisions.md`, `params.md`); never every pack, never its approve files before approve.
 - A topic whose slug is in `available` but not in `topics` belongs to a pack the project has **not** selected: say so when scoping the topic (step 1 of the new-topic mode) and let the user choose, in the same question as the slug if one is asked. The choice of packs is the user's.
-- Packs build on the packs they require (`order`: audit, mail, auth, permission, users): a filled `auth` uses the `actor` and `activity_log` tables of `audit` and the e-mails of `mail`. Take the topics in that order. When a required pack has no approved filled file yet, the doc still goes ahead; say in the hand-over which pack topic should be approved first, and why.
+- Packs build on the packs they require (`order`, for example audit, settings, mail, auth, permission, users): a filled `auth` uses the `actor` and `activity_log` tables of `audit` and the e-mails of `mail`. Take the topics in that order. When a required pack has no approved filled file yet, the doc still goes ahead; say in the hand-over which pack topic should be approved first, and why.
 
 ## Where an answer comes from
 
@@ -47,8 +47,10 @@ For each pack the doc used, write `<projectDir>/<name>.md` from the pack's appro
 ## Data             (the pack's tables, with the project's names)
 ## Screens
 ## Checks
+## Stack: <stack>  (only when the project's back end has a stack file of the pack, see below)
 ```
 
+- **Stack:** `selected` gives each pack's `stack` files (`{dotnet: path}`). When AGENTS.md `## Stack` names an ASP.NET Core back end (profiles `mvc-htmx` and `react-vite` do), append the pack's `stack/dotnet.md` under `## Stack: dotnet`, keeping its tables, dropping the profile section (`## mvc-htmx` or `## react-vite`) that does not apply and every decision row the project left out. Another back end, or no stack file: no section. The stack section never changes an answer above it; where it cannot follow one, say so in one line under Decisions.
 - Replace every `{<pack>.<key>}` with the value used and every project term (`{portal}`, `{scope}`, `{org}`) with the project's word; a requirement that holds per portal names each portal. Nothing in braces is left.
 - A requirement the project does not need (a D answered "no") is left out, with one line under Decisions saying so.
 - The other merge rows still apply: screens to `docs/ui/screens.md` when it exists, tables as a pointer section in `PrototypeData/README.md` when the prototype exists, durable constraints to AGENTS.md. Each points to the filled pack file instead of copying it.

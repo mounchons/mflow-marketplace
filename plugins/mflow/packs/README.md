@@ -1,6 +1,6 @@
 # Packs
 
-A pack is the team's standard answer to a topic that every system has: sign-in, user accounts, permissions, e-mail, audit. It holds the decisions already settled, the requirement text, the data dictionary, the screens and the checks, so `/mflow:discuss` answers what the pack settles and asks the user only what belongs to the project. A pack is documents only: no code, no stack. Design: `docs/mflow-pack-proposal.md` in the marketplace repo.
+A pack is the team's standard answer to a topic that every system has: sign-in, user accounts, permissions, e-mail, audit, system settings, API conventions, file upload, the web shell. It holds the decisions already settled, the requirement text, the data dictionary, the screens and the checks, so `/mflow:discuss` answers what the pack settles and asks the user only what belongs to the project. A pack is documents only: no code. Its seven files hold no stack; an optional stack layer (below) says how to build it on one back end. Design: `docs/mflow-pack-proposal.md` in the marketplace repo.
 
 A project chooses its packs in `.mflow/config.json` (`"packs": [...]`, written by `node scripts/packs.mjs use <name>,…`). How discuss applies them: `skills/discuss/references/packs.md`.
 
@@ -68,9 +68,31 @@ OpenSpec spec text: `### Requirement: <name>` with SHALL statements, and at leas
 
 One `## <table>` per stored table, then `| Column | Type | Rule |`. Types are neutral (`text`, `int`, `bigint`, `bool`, `timestamptz`, `uuid`, `jsonb`); the stack chooses the real ones.
 
+## Stack layer
+
+`stack/<stack>.md` (English, optional) says how the pack is built on one back end: which framework feature carries each decision and what has to be written by hand. It is guidance for `/opsx:propose` and apply, not code to paste. Known stacks: `dotnet` (ASP.NET Core back end, profiles `mvc-htmx` and `react-vite`). discuss never reads it; approve appends it to the filled pack file when the project's back end matches (`skills/discuss/references/packs.md`).
+
+```markdown
+---
+pack: auth
+stack: dotnet
+---
+
+# auth on ASP.NET Core
+## Building blocks          (| Concern | Use | Note |)
+## Decision by decision     (| Decision | .NET | Write yourself |, required)
+## mvc-htmx                 (only where the profile differs)
+## react-vite
+## Pitfalls
+```
+
+- `pack` is the folder name and `stack` the file name; another file in `stack/` is refused.
+- Decision IDs must be of the pack or a pack it requires. Name packages and APIs exactly, checked against the vendor's documentation or a project the team built; mark the rest `(unverified)`.
+- A stack file changes no decision. When the stack cannot follow a decision, the decision changes (a new pack version), not the stack file.
+
 ## Content rules
 
-A pack is published with the plugin, in a public repository, and serves any customer. `packs.mjs check` refuses:
+A pack is published with the plugin, in a public repository, and serves any customer. `packs.mjs check` refuses, in the seven files and the stack files:
 
 - customer and project names (the `origin` line excepted), customer document IDs (`DR001`, `NFR-SEC-01`, SRS, SDS, UAT case IDs), project decision and task numbers (`decision-12`, `TASK-34`), numbered templates (`#14`);
 - IP addresses, e-mail addresses other than `example.com` and `example.org`, and personal names or nicknames;

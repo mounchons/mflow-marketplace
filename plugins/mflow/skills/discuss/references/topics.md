@@ -265,6 +265,46 @@ Pack: `users`.
 
 Visuals: a `stateDiagram-v2` of the account statuses and what moves an account between them.
 
+## system-settings: values an administrator changes on screen
+
+Pack: `settings` (the screen, value types, secrets, when a change applies; each other pack names its own keys).
+
+- Which values the customer changes without a deploy, and which stay with the people who deploy (env).
+- Secrets on the page (the SMTP password): who may replace them; never shown back.
+- Who may view and who may change the settings; is a change of a security value confirmed?
+
+Visuals: a table of tabs and their values is usually enough.
+
+## api-conventions: API shape, errors, environments
+
+Pack: `api` (routes, error body, paging, dates, health, logs, limits, environments).
+
+- Other clients of the API besides the project's own web (a mobile app, another system), and whether they need a published contract.
+- Environments the customer runs (Development, Staging, Production), who deploys, and what may differ between them.
+- Limits the customer's network sets (proxy, request size, allowed origins).
+
+Visuals: a `flowchart LR` of the deployment when there is more than one host.
+
+## file-upload: files attached to records
+
+Pack: `upload` (accepted files, staging, storage, download rights, purge).
+
+- Which records take files, which types and sizes, and how many per record.
+- Where files live (a server volume, object storage, an external document store) and how long they are kept.
+- Files from outside users: is a malware scan required?
+
+Visuals: a `sequenceDiagram` of upload, save of the form, and download.
+
+## web-shell: layout, language, dates, tables, forms, messages
+
+Pack: `shell` (behaviour of every screen; the UI kit decides the look, `navigation` decides the menu tree).
+
+- Languages on screen (Thai and English labels, or a language switch) and the calendar of dates (พ.ศ. or ค.ศ.).
+- One layout or one per portal; supported browsers and devices.
+- The standard table and form behaviour the customer expects (page sizes, search, export).
+
+Visuals: a wireframe of the layout with the sidebar, top bar and one table page.
+
 ## import-export-print
 
 - Imports from Excel: templates, validation, partial failure, and who may import.

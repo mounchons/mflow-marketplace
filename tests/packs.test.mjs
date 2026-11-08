@@ -53,15 +53,35 @@ test("every shipped pack passes its check", () => {
   assert.ok(r.json.checked.length >= 5, `packs checked: ${r.json.checked.join(", ")}`);
 });
 
-test("the shipped packs are the five core ones, each topic served by one pack", () => {
+test("the shipped packs are the core nine, each topic served by one pack", () => {
   p = project();
   const r = run(p, "packs.mjs", ["list"]);
   assert.equal(r.status, 0, r.stderr);
   const byName = Object.fromEntries(r.json.packs.map((x) => [x.name, x]));
-  for (const n of ["audit", "auth", "users", "permission", "mail"]) assert.ok(byName[n], `${n} missing`);
+  for (const n of ["audit", "auth", "users", "permission", "mail", "settings", "api", "upload", "shell"]) assert.ok(byName[n], `${n} missing`);
   assert.deepEqual(byName.auth.topics, ["sign-in"]);
   assert.deepEqual(byName.permission.topics, ["access-control"]);
+  assert.deepEqual(byName.settings.topics, ["system-settings"]);
+  assert.ok(byName.auth.requires.includes("settings"), "auth values live on the settings page");
+  assert.ok(byName.mail.requires.includes("settings"), "SMTP values live on the settings page");
   assert.ok(fs.existsSync(path.join(SHIPPED, "README.md")));
+});
+
+test("every shipped pack has its .NET stack file", () => {
+  p = project();
+  const r = run(p, "packs.mjs", ["list"]);
+  for (const x of r.json.packs) assert.deepEqual(x.stacks, ["dotnet"], `${x.name} has no stack/dotnet.md`);
+});
+
+test("auth version 2: tokens for apps that call the API, the OTP switch on the settings page", () => {
+  const read = (f) => fs.readFileSync(path.join(SHIPPED, "auth", f), "utf8");
+  assert.match(read("pack.md"), /^version: 2$/m);
+  assert.match(read("decisions.md"), /### AUTH-D31:/);
+  assert.match(read("decisions.md"), /### AUTH-D32:/);
+  assert.match(read("params.md"), /`auth\.otp_enabled`/);
+  assert.match(read("params.md"), /`auth\.access_token_minutes`/);
+  assert.doesNotMatch(read("requirements.md"), /AUTH_OTP_<PORTAL>/);
+  assert.match(read("stack/dotnet.md"), /AddIdentityCore<TUser>/);
 });
 
 test("a valid pack passes", () => {
@@ -81,6 +101,32 @@ test("check refuses what belongs to one customer or one project", () => {
   assert.equal(r.status, 1);
   const found = r.json.problems.map((x) => x.problem).join("\n");
   for (const what of ["customer screen ID", "customer requirement ID", "customer document name", "test-case ID", "project decision number", "project task number", "numbered template", "IP address", "e-mail address", "personal name"]) {
+    assert.ok(found.includes(what), `not caught: ${what}\n${found}`);
+  }
+});
+
+test("a stack file passes when it names its pack and stack and cites real decisions", () => {
+  const dir = packsDir();
+  writePack(dir, "base");
+  fs.mkdirSync(path.join(dir, "base", "stack"));
+  fs.writeFileSync(path.join(dir, "base", "stack", "dotnet.md"), "---\npack: base\nstack: dotnet\n---\n\n# base on ASP.NET Core\n\n## Decision by decision\n\n| Decision | .NET | Write yourself |\n|---|---|---|\n| BASE-D01 | x | y |\n");
+  const r = check(dir);
+  assert.equal(r.status, 0, JSON.stringify(r.json.problems));
+  p ??= project();
+  const l = run(p, "packs.mjs", ["list", "--dir", dir]);
+  assert.deepEqual(l.json.packs[0].stacks, ["dotnet"]);
+});
+
+test("check refuses a stack file that is unknown, misnamed, cites a missing decision or carries a customer name", () => {
+  const dir = packsDir();
+  writePack(dir, "base");
+  fs.mkdirSync(path.join(dir, "base", "stack"));
+  fs.writeFileSync(path.join(dir, "base", "stack", "dotnet.md"), "---\npack: other\nstack: java\n---\n\n# base\n\n| BASE-D09 | as built for StemHub | |\n");
+  fs.writeFileSync(path.join(dir, "base", "stack", "rails.md"), "---\npack: base\nstack: rails\n---\n");
+  const r = check(dir);
+  assert.equal(r.status, 1);
+  const found = r.json.problems.map((x) => `${x.file}: ${x.problem}`).join("\n");
+  for (const what of ["stack/rails.md: not a known stack file", "frontmatter pack must be", "frontmatter stack must be", "## Decision by decision missing", "BASE-D09 is not a decision", "stack/dotnet.md: a customer or project name"]) {
     assert.ok(found.includes(what), `not caught: ${what}\n${found}`);
   }
 });
@@ -165,6 +211,7 @@ test("selected maps topics, names missing requirements and puts filled packs bes
   assert.equal(r.json.projectDir, "docs/decisions/packs");
   assert.equal(r.json.packs.auth.filled, "docs/decisions/packs/auth.md");
   assert.equal(r.json.packs.auth.discuss.length, 3);
+  assert.deepEqual(r.json.packs.auth.stack, {}, "no stack file, no stack entry");
   assert.equal(r.json.warnings.length, 2);
 
   const old = project({ discussDir: "docs/discuss" });

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.40.0 |
+| เวอร์ชันที่อธิบาย | 0.40.1 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -569,11 +569,13 @@ mflow-marketplace/
 | เครื่องมือ | เวอร์ชัน |
 |---|---|
 | Claude Code | 2.1.282 |
-| OpenSpec | 1.13.2 |
+| OpenSpec | 1.16.1 |
 | Backlog.md | 1.53.0 |
 | Node.js | 20, 22, 24 (CI) |
 
 ตารางนี้กับ `plugins/mflow/compat.json` ต้องตรงกัน (`tests/release.test.mjs` ตรวจทุกครั้งที่รัน test) compat.json มีรุ่นขั้นต่ำที่ doctor ใช้ด้วย (Node 20, OpenSpec 1.10, Backlog.md 1.51) เครื่องมือที่เก่ากว่าขั้นต่ำเป็น fail ส่วนที่ใหม่หรือเก่ากว่ารุ่นที่ทดสอบแต่ไม่ต่ำกว่าขั้นต่ำเป็น warn ว่ายังไม่ได้ทดสอบ
+
+OpenSpec ตั้งแต่ 1.16.0 ที่ติดตั้งผ่าน npm ต้องใช้ Node 22.12 ขึ้นไป (1.15.0 เป็นรุ่นสุดท้ายที่รับ Node 20) script ของ mflow ยังรันบน Node 20 ได้ แต่เครื่องที่ใช้ OpenSpec รุ่นที่ทดสอบควรใช้ Node 22 หรือ 24 LTS
 
 ## 13. นอกขอบเขต
 
@@ -673,6 +675,8 @@ mflow-marketplace/
 | hook ตอน commit, review ที่แก้เอง และคำสั่งที่ commit เอง (0.39) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | ทำงานกระชับ (0.40): briefing มีกติกา commit งานทุกชิ้นและถาม push/merge/deploy บรรทัดเดียว (ยาวไม่เกิน 9,000 ตัวอักษรเหมือนเดิม), template `CLAUDE.md` และ `AGENTS.md` มีกติกา commit, การสั่งครั้งเดียวจบ และงานเล็กที่ไม่เปิด change, บรรทัดใหม่ของ apply และ archive เป็น YAML แบบไม่ต้องครอบ quote และ `openspec instructions archive --json` ของ OpenSpec 1.13.2 คืนทั้งสองบรรทัด | ผ่าน |
 | ทำงานกระชับ (0.40) ใน session จริง: apply ที่ archive ต่อเลย, เส้นแบ่งของงานเล็ก, จำนวน prompt ที่เป็นพิธีต่อ change (คาดจากราว 6 เหลือราว 2) | ยังไม่ได้รันใน session จริง (R-03) |
+| OpenSpec 1.16.1 (0.40.1): ในโปรเจกต์ที่ `openspec init --tools claude,codex` แล้ว merge บรรทัดของ mflow, `openspec list --json` มีรูปแบบเดียวกับ 1.13.2, `instructions proposal/specs/tasks --json` คืน context และ rules ครบ, `instructions apply` และ `archive` คืน `operationGuidance` 8 และ 2 บรรทัด, `update --force` ไม่แตะ `config.yaml` ทั้งโปรเจกต์ใหม่และโปรเจกต์ที่ตั้งด้วย 1.13.2 แล้วอัปเกรด, merge ซ้ำไม่เปลี่ยนอะไร, `validate --all` ผ่าน และ test ทั้งชุดผ่านบน Node 24.22.2 | ผ่าน |
+| OpenSpec 1.16.1 ใน session จริง: ตั้งแต่ 1.14.1 skill apply ของ OpenSpec จบด้วย "แนะนำให้ review หรือ verify ก่อน archive" แทน "แนะนำให้ archive" ซึ่งดึงสวนกับ apply ที่ archive ต่อในรอบเดียวกันของ 0.40 | ยังไม่ได้รันใน session จริง (R-03) |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot
 

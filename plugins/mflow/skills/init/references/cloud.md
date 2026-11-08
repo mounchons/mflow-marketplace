@@ -39,8 +39,8 @@ folder under `.claude/skills/` loads there. The first web session is that test.
      apt-get update
      # .NET, when the project uses it (not on the image): the Ubuntu packages, or Microsoft's dotnet-install.sh
      apt-get install -y dotnet-sdk-10.0
-     # mflow's command-line tools
-     npm i -g @fission-ai/openspec@1.13.2 backlog.md@1.53.0
+     # mflow's command-line tools (OpenSpec 1.16 needs Node 22.12 or newer; on an older Node use @1.15.0)
+     npm i -g @fission-ai/openspec@1.16.1 backlog.md@1.53.0
      # E2E only: Playwright's browser, from the folder of the E2E tests
      # (cd tests/e2e && npm ci && npx playwright install --with-deps chromium)
      ```

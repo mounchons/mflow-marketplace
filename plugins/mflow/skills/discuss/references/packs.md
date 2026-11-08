@@ -10,6 +10,15 @@ A pack is the team's settled answer to a topic every system has (sign-in, user a
 - A topic whose slug is in `available` but not in `topics` belongs to a pack the project has **not** selected: say so when scoping the topic (step 1 of the new-topic mode) and let the user choose, in the same question as the slug if one is asked. The choice of packs is the user's.
 - Packs build on the packs they require (`order`, for example audit, settings, mail, auth, permission, users): a filled `auth` uses the `actor` and `activity_log` tables of `audit` and the e-mails of `mail`. Take the topics in that order. When a required pack has no approved filled file yet, the doc still goes ahead; say in the hand-over which pack topic should be approved first, and why.
 
+## A stack that matches the template: confirm first
+
+The user's rule: when the stack chosen for a project matches the stack template (pack `foundation`), show the details of every topic and ask for a yes before anything starts. It applies at `/mflow:discuss tech-stack` or `code-structure`, whichever comes first, when AGENTS.md `## Stack` has profile `mvc-htmx` or `react-vite`, or the user names a stack that matches the pack's answers. Read the pack's `decisions.md` and `params.md` even when the pack is not selected yet.
+
+1. **Show, before writing any file.** In the chat, one table per `## <topic>` heading of `decisions.md`: `| เรื่อง | จะใช้ | เหตุผล | ถ้าผิด |`, one row per decision, the `ไม่ถาม` ones too, nothing summarised away. An answer the sources or the user already changed shows the changed value with `(แพ็ก: …)`. A `ทุกโปรเจกต์` item, or a condition that holds for this project, shows its recommendation and the word `ต้องเลือก`, with its other options; a condition that does not hold says so in the row.
+2. **Ask once, and wait:** a) ใช้ตามนี้ทั้งหมด b) ใช้ตามนี้ ยกเว้นข้อที่บอก (the user names the IDs and what to use instead) c) ไม่ใช้ template. Nothing replaces this answer: an unattended run does not start the topic, and a recommendation is never taken as a yes.
+3. **a or b:** run `packs.mjs use foundation` when it is not selected, and write the doc with the confirmed rows tagged `[ยืนยัน]` and no D for them; an exception is the user's word (rule 2 below). One confirmation covers both topics of the pack: the second topic shows its rows again in its doc and asks nothing further. **c:** discuss the topic as usual, without the pack.
+4. A stack that does not match (profile `custom`, or another back end, database or front end than the pack's): no confirmation; the topic goes as usual and the pack is not used.
+
 ## Where an answer comes from
 
 In this order: the customer's sources and the user's word in this project; then the pack; then a team knowledge base; then Claude's proposal. For each decision of the pack:
@@ -52,6 +61,7 @@ For each pack the doc used, write `<projectDir>/<name>.md` from the pack's appro
 
 - **Stack:** `selected` gives each pack's `stack` files (`{dotnet: path}`). When AGENTS.md `## Stack` names an ASP.NET Core back end (profiles `mvc-htmx` and `react-vite` do), append the pack's `stack/dotnet.md` under `## Stack: dotnet`, keeping its tables, dropping the profile section (`## mvc-htmx` or `## react-vite`) that does not apply and every decision row the project left out. Another back end, or no stack file: no section. The stack section never changes an answer above it; where it cannot follow one, say so in one line under Decisions.
 - Replace every `{<pack>.<key>}` with the value used and every project term (`{portal}`, `{scope}`, `{org}`) with the project's word; a requirement that holds per portal names each portal. Nothing in braces is left.
+- A pack with two topics (`foundation`): the first approve writes the file with that topic's decisions, the second adds its own to the same file.
 - A requirement the project does not need (a D answered "no") is left out, with one line under Decisions saying so.
 - The other merge rows still apply: screens to `docs/ui/screens.md` when it exists, tables as a pointer section in `PrototypeData/README.md` when the prototype exists, durable constraints to AGENTS.md. Each points to the filled pack file instead of copying it.
 - `/opsx:propose` starts the change of that capability from this file (a line in `openspec/config.yaml` says so).

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.41.0 |
+| เวอร์ชันที่อธิบาย | 0.42.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -411,6 +411,15 @@ flowchart TD
 | FR-250 | แพ็กใหม่สี่ชุด: `settings` (หน้าตั้งค่าระบบ ชนิดค่า ค่าความลับ เวลาที่ค่ามีผล การยืนยันการเปลี่ยนที่อันตราย บันทึกทีละแท็บพร้อม version, หัวข้อ `system-settings`), `api` (route มี version, error body แบบเดียว, list แบ่งหน้า, วันเวลา, health, OpenAPI, log, limit, environment, หัวข้อ `api-conventions`), `upload` (ไฟล์ที่รับ ตรวจชนิดจริง พักก่อนผูก เก็บนอก web root ดาวน์โหลดตามสิทธิ์ของระเบียน ลบไฟล์ค้าง, หัวข้อ `file-upload`), `shell` (layout ตาม kit ภาษา วันเวลา ตาราง ฟอร์ม ข้อความ หน้า error, หัวข้อ `web-shell`) `auth` และ `mail` ต้องมี `settings` ก่อน เพราะค่าของทั้งสองอยู่บนหน้าตั้งค่า | มีแล้ว |
 | FR-251 | ชั้น stack ของแพ็ก: `packs/<ชื่อ>/stack/dotnet.md` (อังกฤษ) บอกว่าแต่ละข้อของแพ็กใช้ feature ไหนของ ASP.NET Core และอะไรต้องเขียนเอง ไม่ใช่โค้ดให้คัดลอก ทุกแพ็กมีครบ `auth` ใช้ ASP.NET Core Identity (`AddIdentityCore`, `PasswordHasher`, security stamp) กับ cookie + `ITicketStore` หรือ JwtBearer + `JsonWebTokenHandler` และบอกข้อที่ Identity ไม่ตอบ (ล็อกต่อชื่อที่ไม่มีจริง ประวัติรหัส ลิงก์ใช้ครั้งเดียว OTP ตามค่าตั้ง) `packs.mjs check` รับเฉพาะ stack ที่รู้จัก (`dotnet`) ตรวจ frontmatter (`pack`, `stack`) หัวข้อ `## Decision by decision` เลขข้อที่มีจริง และคำต้องห้าม `list` และ `selected` บอก stack ของแต่ละแพ็ก ตอน approve โปรเจกต์ที่ back end เป็น ASP.NET Core ได้ส่วน `## Stack: dotnet` ต่อท้ายไฟล์แพ็กที่เติมคำตอบแล้ว โดยตัดส่วนของ profile ที่ไม่ใช้ discuss ไม่อ่านไฟล์ stack | มีแล้ว |
 
+### 6.21 แพ็กชุดสาม และการยืนยัน stack (0.42)
+
+ที่มา: วิเคราะห์โค้ด 26 โปรเจกต์ .NET ที่ยังมี commit ในปี 2026 เมื่อ 2026-11-08 (excel 15, งานเบื้องหลัง 13, เชื่อมระบบอื่น 8) กับเอกสาร `tech-stack` และ `code-structure` ที่ทุกโปรเจกต์ต้องคุย คำตอบของผู้ใช้: ทำลำดับ 1–4 และ "ถ้าเลือกใช้ stack ตรงกับ template ให้ถามยืนยันก่อน โดยแสดงรายละเอียดแต่ละหัวข้อ ก่อนเริ่ม"
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-252 | แพ็กใหม่สี่ชุด: `foundation` (tech stack และโครงโค้ดมาตรฐาน หัวข้อ `tech-stack` และ `code-structure` จัดข้อตัดสินใจเป็นหมวดด้วย `## <หัวข้อ>` ไม่เก็บเลขรุ่นย่อยของ library และไม่มี CI), `jobs` (งานเบื้องหลัง รอบเวลา การลองใหม่ จอติดตาม หัวข้อ `background-jobs`), `import-export` (นำเข้าและส่งออก Excel หัวข้อ `import-export-print` ส่วนการพิมพ์ยังคุยตาม checklist), `integration` (เรียกระบบภายนอก การลองใหม่ log จอติดตาม ระบบจำลอง หัวข้อ `integration`) ทุกแพ็กมี `stack/dotnet.md` | มีแล้ว |
+| FR-253 | เมื่อ stack ที่เลือกตรงกับ template (profile `mvc-htmx` หรือ `react-vite` หรือผู้ใช้ระบุ stack ที่ตรงกับคำตอบของ `foundation`) `/mflow:discuss tech-stack` หรือ `code-structure` ต้องแสดงทุกข้อของแพ็กในแชตเป็นตารางแยกตามหมวด รวมข้อ `ไม่ถาม` ก่อนเขียนไฟล์ใดๆ แล้วถามครั้งเดียว a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template และรอคำตอบ งานที่รันเองโดยไม่มีคนดูไม่เริ่มหัวข้อนี้ คำแนะนำไม่นับเป็นการยืนยัน การยืนยันครั้งเดียวใช้กับทั้งสองหัวข้อ stack ที่ไม่ตรงไม่ถาม และไม่ใช้แพ็กนี้ `/mflow:init` บอกใน hand-over เมื่อเลือก profile ที่ตรง | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -494,7 +503,7 @@ mflow-marketplace/
     │   ├─ packs.mjs                 ← แพ็ก business logic: list, check (รูปแบบ, requires, ชั้น stack, คำต้องห้าม), selected, use
     │   └─ context-pack.mjs          ← รวมไฟล์ให้ chat UI
     ├─ skills/<20 คำสั่ง>/SKILL.md   (+ references/, assets/)
-    ├─ packs/<ชื่อ>/                 ← แพ็ก business logic (audit, settings, mail, auth, permission, users, api, upload, shell): 7 ไฟล์ต่อแพ็ก + stack/dotnet.md, รูปแบบใน packs/README.md
+    ├─ packs/<ชื่อ>/                 ← แพ็ก business logic (13 แพ็ก เช่น foundation, audit, settings, mail, auth, permission, users, api, upload, shell, jobs, import-export, integration): 7 ไฟล์ต่อแพ็ก + stack/dotnet.md, รูปแบบใน packs/README.md
     ├─ templates/                    ← ไฟล์ที่ init วางลงโปรเจกต์
     └─ README.md
 ```
@@ -718,4 +727,4 @@ OpenSpec ตั้งแต่ 1.16.0 ที่ติดตั้งผ่าน
 | 4 | ยืนยันคำสั่ง opencode/gemini แล้วเปลี่ยนเป็น `verified: true` | ใช้ tool นั้นจริง |
 | 5 | ทดสอบคำสั่ง PowerShell บน Windows จริง | ก่อนใช้ delegate บน Windows ครั้งแรก |
 | 6 | แพ็กเฟส 2: `/mflow:pack list \| extract <ชื่อ> --from <โปรเจกต์>`, `/mflow:init` ถามว่าใช้แพ็กไหน, อัปเดตโปรเจกต์เมื่อแพ็กขึ้นรุ่นใหม่ | หลังโปรเจกต์ที่สองใช้แพ็กแล้ว (กติกา 2–3 ครั้ง) |
-| 7 | แพ็กเฟส 3 ส่วนที่เหลือ: แพ็ก `approval`, `import-export` และ stack อื่นนอกจาก `dotnet` (ชั้น stack, `settings`, `upload`, `api`, `shell` ทำแล้วใน 0.41 ตามคำสั่งของผู้ใช้) | เมื่อผู้ใช้สั่ง |
+| 7 | แพ็กเฟส 3 ส่วนที่เหลือ: แพ็ก `approval`, `privacy` และ stack อื่นนอกจาก `dotnet` (ชั้น stack, `settings`, `upload`, `api`, `shell` ทำแล้วใน 0.41 และ `foundation`, `jobs`, `import-export`, `integration` ใน 0.42 ตามคำสั่งของผู้ใช้) | เมื่อผู้ใช้สั่ง |

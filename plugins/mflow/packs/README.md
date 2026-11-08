@@ -1,6 +1,6 @@
 # Packs
 
-A pack is the team's standard answer to a topic that every system has: sign-in, user accounts, permissions, e-mail, audit, system settings, API conventions, file upload, the web shell. It holds the decisions already settled, the requirement text, the data dictionary, the screens and the checks, so `/mflow:discuss` answers what the pack settles and asks the user only what belongs to the project. A pack is documents only: no code. Its seven files hold no stack; an optional stack layer (below) says how to build it on one back end. Design: `docs/mflow-pack-proposal.md` in the marketplace repo.
+A pack is the team's standard answer to a topic that every system has: sign-in, user accounts, permissions, e-mail, audit, system settings, API conventions, file upload, the web shell, the stack and code structure, background jobs, Excel import and export, external integrations. It holds the decisions already settled, the requirement text, the data dictionary, the screens and the checks, so `/mflow:discuss` answers what the pack settles and asks the user only what belongs to the project. A pack is documents only: no code. Its seven files hold no stack, except `foundation`, whose subject is the stack; an optional stack layer (below) says how to build it on one back end. Design: `docs/mflow-pack-proposal.md` in the marketplace repo.
 
 A project chooses its packs in `.mflow/config.json` (`"packs": [...]`, written by `node scripts/packs.mjs use <name>,…`). How discuss applies them: `skills/discuss/references/packs.md`.
 

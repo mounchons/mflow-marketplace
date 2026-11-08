@@ -12,6 +12,8 @@ Two topics stand first on every agenda, because everything after them is built o
 
 ## tech-stack: apps, frameworks, libraries, database, containers
 
+Pack: `foundation`. When the stack matches the template, confirm first as [packs.md](packs.md) says, before writing the doc.
+
 Split it by app if it grows past ~200 lines, for example `tech-stack-web` and `tech-stack-mobile`.
 
 Checklist:
@@ -47,6 +49,8 @@ Visuals: a `flowchart LR` of the apps, the API, the database and the external sy
 
 ## code-structure: repository, solution and folders
 
+Pack: `foundation` (one confirmation covers this topic and `tech-stack`).
+
 Checklist:
 - **Project name:** the name in code that every project, folder and namespace starts with: `Project name (code)` in AGENTS.md `## Stack`, chosen at `/mflow:init`. It is not the display name in the AGENTS.md title, which may be Thai. When it is missing or `TODO` (projects set up before mflow 0.22), it is a decision (D) with three suggestions, as "Project name" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/stacks.md` describes; at approval it is written to `## Stack`.
 - **App names:** every deployable app is `<ProjectName>.<Kind>` or `<ProjectName>.<Kind>.<Part>`, for its project, its folder and its root namespace alike.
@@ -61,7 +65,7 @@ Checklist:
   - `<ProjectName>.Application`: use cases, DTOs, validation, and the interfaces the outer layers implement (repositories, file storage, e-mail).
   - `<ProjectName>.Infrastructure`: the EF Core DbContext, entity configurations and migrations, repositories, external services, Excel, PDF and file storage.
   - The apps (`<ProjectName>.Api`, each `<ProjectName>.Web.<Part>` that is an MVC app): endpoints or controllers, authentication, middleware, and the composition root that wires the DI.
-  - References point inward only: the Api and Web apps → Infrastructure → Application → Domain. An architecture test enforces it (NetArchTest or ArchUnitNET, both free).
+  - References point inward only: the Api and Web apps → Infrastructure → Application → Domain. An architecture test enforces it (ArchUnitNET; NetArchTest only after checking its licence, as the licence rule of `tech-stack` says).
 - **Modules:** a folder per bounded context inside each layer (`Domain/<Module>/`), or a project per context only when separate teams or deployments need it; a shared building-blocks project only when two contexts truly share code.
 - **Inside Application:** folders by feature (`Features/<Module>/<UseCase>/`, recommended) or by kind (Commands, Queries, Dtos).
 - **Tests:** a test project per project it tests, named after it plus `.Tests` (`<ProjectName>.Domain.Tests` with its golden data, `<ProjectName>.Application.Tests`, `<ProjectName>.Api.Tests` for integration, `<ProjectName>.Web.Backend.Tests`), `<ProjectName>.ArchitectureTests`, and the E2E folder.
@@ -305,7 +309,18 @@ Pack: `shell` (behaviour of every screen; the UI kit decides the look, `navigati
 
 Visuals: a wireframe of the layout with the sidebar, top bar and one table page.
 
+## background-jobs: recurring and queued work
+
+Pack: `jobs` (how jobs run, retry, what a run records, the monitor screen; the list of jobs stays the project's).
+
+- Which work runs in the background, on what schedule, and who needs to know when it fails.
+- Does it run in the API process or in a separate worker?
+
+Visuals: a table of jobs, schedules and owners is usually enough.
+
 ## import-export-print
+
+Pack: `import-export` (Excel import and export; printing and PDF stay in this checklist).
 
 - Imports from Excel: templates, validation, partial failure, and who may import.
 - Exports: which lists, which columns, and whether the data scope applies (it should).
@@ -314,6 +329,8 @@ Visuals: a wireframe of the layout with the sidebar, top bar and one table page.
 Visuals: a `flowchart LR` of import validation and partial failure; a wireframe of the printed layout.
 
 ## integration
+
+Pack: `integration` (how calls, retries, logs and the monitor work; which systems and what data stay the project's).
 
 - External systems: the direction, frequency, triggering event, and data owner.
 - Failure handling: retry, manual resend, and who is alerted.

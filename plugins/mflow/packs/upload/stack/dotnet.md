@@ -21,7 +21,7 @@ Target: .NET 10, EF Core 10 with Npgsql, PostgreSQL. Names checked against Micro
 | Download | `ControllerBase.File(Stream, contentType, fileDownloadName, enableRangeProcessing)` or `TypedResults.File(stream, contentType, fileDownloadName)` | Passing `fileDownloadName` makes an `attachment` disposition with `filename` and `filename*`; for a hand-built header use `ContentDispositionHeaderValue.SetHttpFileName` (`Microsoft.Net.Http.Headers`) |
 | Upload rate | `AddRateLimiter` + `UseRateLimiter`, a named policy built with `RateLimitPartition.GetSlidingWindowLimiter` (unverified) keyed by account id, applied with `RequireRateLimiting` or `[EnableRateLimiting]` | `RejectionStatusCode` defaults to 503: set 429 and add `Retry-After` in `OnRejected` |
 | Purge jobs | `BackgroundService` + `PeriodicTimer.WaitForNextTickAsync`, a scope from `IServiceScopeFactory.CreateScope()` for the `DbContext` | Or the project's scheduler when it has one (for example a Hangfire recurring job) |
-| Registry access rule | An architecture test over the assemblies, for example NetArchTest.Rules (unverified), or a reflection test of your own | Only the file service and link-table queries may touch `DbSet<StoredFile>` |
+| Registry access rule | An architecture test over the assemblies, with the architecture test library of the foundation pack, or a reflection test of your own | Only the file service and link-table queries may touch `DbSet<StoredFile>` |
 
 ## Decision by decision
 

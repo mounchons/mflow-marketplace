@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.41)
+## คำสั่ง (v0.42)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -40,7 +40,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/decisions/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
 | | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
-| | `/mflow:discuss <หัวข้อ>` กับแพ็ก (0.37) | หัวข้อที่มีแพ็กที่โปรเจกต์เลือก (`sign-in`, `user-accounts`, `access-control`, `notifications`, `audit-history`, `system-settings`, `api-conventions`, `file-upload`, `web-shell`) ตอบข้อที่แพ็กตัดสินไว้แล้วเอง ถามเฉพาะข้อของโปรเจกต์ เลือกแพ็กด้วยการบอกในแชต เช่น "ใช้แพ็ก auth, users" (ดูหัวข้อแพ็กด้านล่าง) |
+| | `/mflow:discuss <หัวข้อ>` กับแพ็ก (0.37) | หัวข้อที่มีแพ็กที่โปรเจกต์เลือก (`sign-in`, `user-accounts`, `access-control`, `notifications`, `audit-history`, `system-settings`, `api-conventions`, `file-upload`, `web-shell`, `background-jobs`, `import-export-print`, `integration`, `tech-stack`, `code-structure`) ตอบข้อที่แพ็กตัดสินไว้แล้วเอง ถามเฉพาะข้อของโปรเจกต์ เลือกแพ็กด้วยการบอกในแชต เช่น "ใช้แพ็ก auth, users" (ดูหัวข้อแพ็กด้านล่าง) |
 | | `/mflow:discuss tech-stack` / `code-structure` | สองหัวข้อแรกของทุกโปรเจกต์ (ก่อน `/mflow:theme`): แยก web / API / mobile, framework, library ที่เป็น open source และตรวจ licence แล้ว, PostgreSQL + EF Core, Docker, ตัวเสริมที่ใส่ภายหลัง (Redis, queue) และโครง solution แยก layer ตามมาตรฐานของทีม (อ่านจาก knowledge base เช่น Graph Brain ถ้าเชื่อมไว้) |
 | | `/mflow:discuss agenda [skip <slug> <เหตุผล>]` | สร้างหรือเรียง `docs/decisions/discuss/AGENDA.md` ใหม่: หัวข้อที่ควร discuss พร้อมเหตุผล ที่มา และควรคุยก่อนขั้นไหน (capture และ screen inventory เพิ่มให้เอง สถานะอัปเดตเอง) เป็นคำแนะนำ ไม่บังคับ |
 | หน้าจอ | `/mflow:theme [แบรนด์]` / `update <อะไร>` | tokens, layout แบบ responsive (เมนูเต็ม/ไอคอน/drawer ที่เปิดด้วย ☰), components (ตารางแบ่งหน้าที่ server พร้อม pager ‹ 1 … 4 5 6 … 20 ›, header search เปิดเฉพาะคอลัมน์ที่ต้องการ, คอลัมน์ไอคอนที่เทียบกันระหว่างแถว, `QuickView` ดูรายละเอียดใน Dialog หรือ SidePanel โดยไม่เปลี่ยนหน้า, DatePicker ปฏิทินอังกฤษ/ไทยที่ตั้ง format ได้, Button, Card, Dialog, SidePanel, Alert, Tabs, Dropdown …), หน้าตามาตรฐานของ mflow (house style: sidebar สีกรมท่า, top bar สีขาวมีช่องค้นหา กระดิ่ง ป้ายสาขา และผู้ใช้, สีฟ้า `#0ea5e9`, ชุดสีสด 10 เฉดให้สถานะ avatar การ์ด KPI และไอคอนประเภท, ฟอนต์ Inter + Noto Sans Thai, ไอคอน Font Awesome 6) ปรับสีตาม CI ของลูกค้าได้ (ใช้ skill `frontend-design` ช่วยถ้าติดตั้งไว้), หน้า style guide, กฎ UI สำหรับ agent; `update look` ทำหน้าตาใหม่, `update responsive` และ `update components` เติมส่วนที่ kit ยังไม่มี |
@@ -155,12 +155,13 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 - นอกจาก `config.yaml`: `/mflow:test` ติ๊ก gate task เก่าใน `tasks.md`, `/mflow:hotspot` ใส่ path ของ golden data ใน tasks ตอน graduate
 
 
-## แพ็ก business logic (0.37, ชุดสองและชั้น .NET 0.41)
+## แพ็ก business logic (0.37, ชุดสองและชั้น .NET 0.41, ชุดสาม 0.42)
 
 แพ็กคือคำตอบที่ทีมตัดสินไว้แล้วของเรื่องที่ทุกระบบมี (requirement template สำเร็จรูป) เป็นเอกสาร ไม่ใช่โค้ด จึงใช้ได้ทุก stack แต่ละแพ็กมีข้อตัดสินใจพร้อมเหตุผล ค่าตัวเลขเริ่มต้น requirement แบบ OpenSpec พจนานุกรมข้อมูล หน้าจอ และจุดทดสอบ ทำจาก spec ของ StemHub ที่สร้างและทดสอบแล้ว บวกคำสั่งของทีม (JWT สำหรับแอปที่เรียก API, ค่า SMTP และสวิตช์ OTP บนหน้าตั้งค่า) ทุกแพ็กมี `stack/dotnet.md` บอกวิธีสร้างบน ASP.NET Core (auth ใช้ ASP.NET Core Identity) ซึ่งต่อท้ายไฟล์แพ็กของโปรเจกต์ตอน approve เมื่อ back end เป็น .NET
 
 | แพ็ก | เรื่อง | หัวข้อ discuss | ต้องมีก่อน |
 |---|---|---|---|
+| `foundation` | tech stack และโครงโค้ดมาตรฐาน: ถ้า stack ตรงกับ template จะแสดงทุกหัวข้อให้ยืนยันก่อนเริ่ม | `tech-stack`, `code-structure` | — |
 | `audit` | ผู้ทำและเวลา, soft delete, Activity Log | `audit-history` | — |
 | `settings` | หน้าตั้งค่าระบบ ชนิดค่า ค่าความลับ เวลาที่ค่ามีผล | `system-settings` | audit |
 | `mail` | คิวอีเมล ตัวส่ง เทมเพลต ค่า SMTP บนจอ ปุ่มส่งทดสอบ | `notifications` | audit, settings |
@@ -170,6 +171,9 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 | `api` | route error body list แบ่งหน้า วันเวลา health OpenAPI log environment | `api-conventions` | — |
 | `upload` | อัปโหลดและดาวน์โหลดไฟล์ ตรวจชนิดจริง พักก่อนผูก สิทธิ์ดาวน์โหลด | `file-upload` | audit, settings |
 | `shell` | layout ภาษา วันเวลา ตาราง ฟอร์ม ข้อความ หน้า error | `web-shell` | — |
+| `jobs` | งานเบื้องหลัง รอบเวลา การลองใหม่ จอติดตาม | `background-jobs` | audit |
+| `import-export` | นำเข้าและส่งออก Excel ตรวจทั้งไฟล์ก่อนบันทึก รายงานแถวที่ผิด | `import-export-print` | audit, upload |
+| `integration` | เรียกระบบภายนอก การลองใหม่ log จอติดตาม ระบบจำลอง | `integration` | audit, settings, jobs |
 
 1. เลือกแพ็ก: บอกในแชต เช่น "ใช้แพ็ก auth, users" Claude รัน `packs.mjs use` ซึ่งเขียนลง `.mflow/config.json` (`packs`) และเพิ่มแพ็กที่ต้องมีก่อนให้เอง
 2. `/mflow:discuss sign-in` (หรือหัวข้ออื่นในตาราง): ข้อที่แพ็กตัดสินไว้และเอกสารลูกค้าไม่พูดถึง Claude ตอบเองในตาราง "จากแพ็ก" ของหัวข้อ 2 พร้อมป้าย `[ที่มา: pack auth §AUTH-D01]` เอกสารลูกค้าที่ระบุต่างไปชนะเสมอ ถามคุณเฉพาะข้อที่เป็นของโปรเจกต์ (เช่น มีกี่พอร์ทัล เปิด OTP ไหม) แย้งข้อไหนก็ได้ด้วย `> ความเห็น:`
@@ -224,7 +228,7 @@ mflow/
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)
-├─ packs/<ชื่อ>/           ← แพ็ก business logic (9 แพ็ก) + stack/dotnet.md รูปแบบใน packs/README.md
+├─ packs/<ชื่อ>/           ← แพ็ก business logic (13 แพ็ก) + stack/dotnet.md รูปแบบใน packs/README.md
 └─ templates/              ← ไฟล์ที่ init วางลงโปรเจกต์
 ```
 

@@ -53,18 +53,31 @@ test("every shipped pack passes its check", () => {
   assert.ok(r.json.checked.length >= 5, `packs checked: ${r.json.checked.join(", ")}`);
 });
 
-test("the shipped packs are the core nine, each topic served by one pack", () => {
+test("the shipped packs are the core thirteen, each topic served by one pack", () => {
   p = project();
   const r = run(p, "packs.mjs", ["list"]);
   assert.equal(r.status, 0, r.stderr);
   const byName = Object.fromEntries(r.json.packs.map((x) => [x.name, x]));
-  for (const n of ["audit", "auth", "users", "permission", "mail", "settings", "api", "upload", "shell"]) assert.ok(byName[n], `${n} missing`);
+  for (const n of ["audit", "auth", "users", "permission", "mail", "settings", "api", "upload", "shell", "foundation", "jobs", "import-export", "integration"]) assert.ok(byName[n], `${n} missing`);
+  assert.deepEqual(byName.foundation.topics, ["tech-stack", "code-structure"]);
   assert.deepEqual(byName.auth.topics, ["sign-in"]);
   assert.deepEqual(byName.permission.topics, ["access-control"]);
   assert.deepEqual(byName.settings.topics, ["system-settings"]);
   assert.ok(byName.auth.requires.includes("settings"), "auth values live on the settings page");
   assert.ok(byName.mail.requires.includes("settings"), "SMTP values live on the settings page");
   assert.ok(fs.existsSync(path.join(SHIPPED, "README.md")));
+});
+
+test("a stack that matches the template is confirmed topic by topic before anything starts", () => {
+  const decisions = fs.readFileSync(path.join(SHIPPED, "foundation", "decisions.md"), "utf8");
+  assert.ok((decisions.match(/^## \S/gm) || []).length >= 4, "foundation decisions are grouped by topic");
+  const refs = path.join(SHIPPED, "..", "skills", "discuss", "references");
+  const packs = fs.readFileSync(path.join(refs, "packs.md"), "utf8");
+  assert.match(packs, /## A stack that matches the template: confirm first/);
+  assert.match(packs, /before writing any file/);
+  assert.match(packs, /an unattended run does not start the topic/);
+  assert.match(fs.readFileSync(path.join(refs, "topics.md"), "utf8"), /Pack: `foundation`\. When the stack matches the template, confirm first/);
+  assert.match(fs.readFileSync(path.join(refs, "..", "SKILL.md"), "utf8"), /wait for the user's yes/);
 });
 
 test("every shipped pack has its .NET stack file", () => {

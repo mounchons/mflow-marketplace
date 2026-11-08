@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.38)
+## คำสั่ง (v0.39)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -59,7 +59,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
 | | `/mflow:assess @docs/ai/inbox/<ไฟล์>` | ตรวจความเข้าใจ + ไฟล์ที่อ่านก่อน แล้วตรวจ finding ทีละข้อกับโค้ด/spec จริง |
-| | `/mflow:review [branch \| pending [<change>]] [--short]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) เต็มสำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ไม่ต้อง review ถ้าแก้แค่เอกสาร style หรือข้อความ label |
+| | `/mflow:review [branch \| pending [<change>]] [--short]` | รีวิวโค้ดกับ spec, AGENTS.md, UI kit, domain rules + ใช้ผล `/mflow:test` ที่ commit ที่ตรวจ หรือรัน `/mflow:test since` ต่อจากการรันทั้งชุดครั้งก่อน (ถามเฉพาะเมื่อต้องรันทั้งชุด) เต็มสำหรับกฎธุรกิจ สิทธิ์ data scope query migration การเชื่อมระบบอื่น หรือ startup, `--short` สำหรับโค้ดอื่นและรอบแก้หลัง review, ไม่ต้อง review ถ้าแก้แค่เอกสาร style หรือข้อความ label (0.39) แก้ blocker และ major เองโดยไม่ถาม (แถว pending แก้ใน `fix/<change>-review`) ข้อที่ต้องตัดสินใจเรื่องธุรกิจ minor และ nit รอคุณสั่ง |
 | สร้างจริง | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` (Sonnet 5.5, xhigh) ที่ `/opsx:apply` ส่งงานเขียนโค้ดให้ **ค่าเริ่มต้นคือปิด** จนกว่าจะสั่ง `on` เฉพาะเครื่องนี้ หรือทั้งทีมด้วย `--shared` |
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]] | flow <capability หรือค่าตั้ง>` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียว หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37: เชิญ supplier → ตอบ → กวาดข้อมูล → ส่งกลับ/เก็บเข้าคลัง → สร้าง doc → approve/reject/withdraw → acknowledge; 0.37.1: ค่าตั้งที่ตั้งบน admin web แล้วแสดงบน supplier web ทุกสถานะ; 0.38.3: flow ต่อเนื่องที่เริ่มจากข้อมูลของระบบภายนอก → job → admin approve → อีเมล → supplier acknowledge ใน test เดียวแบ่งด้วย `test.step`) แล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
@@ -81,10 +81,11 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 ## Hooks (ทำงานเฉพาะ repo ที่มี `.mflow/config.json`)
 
 - **SessionStart**: ฉีด briefing เข้า context ทุกครั้งที่เริ่ม/resume/clear/compact: ส่วน Now ของ STATUS.md, log ล่าสุด, OpenSpec change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active พร้อมจำนวน ticket ที่หยิบได้, เอกสารลูกค้าที่ยังไม่ได้ประมวลผล, ผลจาก AI อื่นที่ยังไม่ได้ assess, เอกสาร discuss ที่รอคุณอ่าน และส่วนแยก "Discussion agenda (optional)" ที่บอกหัวข้อแนะนำที่ยังไม่เริ่ม
-- **Stop**: ถ้ามีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด (แก้ เพิ่ม ลบ เปลี่ยนชื่อ หรือ commit ไปแล้วใน session นี้ใน commit ที่ไม่มี STATUS.md) จะให้ Claude เขียน handoff ก่อนหยุดโดยไม่แตะ log เก่า ไม่ถามใน 10 นาทีแรกของ session และถามซ้ำไม่เกินทุก 30 นาที ปรับได้ใน `.mflow/config.json`:
+  briefing มีหัวข้อ "Not yet in STATUS.md" เมื่อมีไฟล์ที่เปลี่ยนหลัง entry ล่าสุดของ STATUS.md (เช่น session ก่อน `/clear` โดยไม่ได้ commit) (0.39)
+- **PreToolUse** (Bash และ PowerShell, `git commit`, 0.39 แทน Stop hook เดิม): ถ้า commit มีงานที่ STATUS.md ยังไม่ครอบ (แก้ เพิ่ม ลบ เปลี่ยนชื่อ หรือ commit ไปแล้วใน session นี้ใน commit ที่ไม่มี STATUS.md) hook ขวาง commit หนึ่งครั้งให้ Claude เขียนบันทึกโดยไม่แตะ log เก่า ใส่ใน commit เดียวกัน แล้ว commit ใหม่ โดยไม่พูดถึงในคำตอบ บันทึกจึงเกิดก่อนคำตอบ ไม่ต่อท้ายคำตอบแบบ Stop hook เดิม ลองซ้ำที่ commit เดิมผ่านเสมอ ทุก commit ที่มีงานยังไม่ลงถามหนึ่งครั้ง และไม่ถามบน branch ที่มีแต่โค้ด (`fix/<change>-review`, `fix/night-…`, `e2e/night-…`) ปิดได้หรือเว้นช่วงเป็นนาทีใน `.mflow/config.json` (ชื่อเดิม `stopGuard` ยังเปิดปิดได้ ส่วนค่าเวลาของชื่อเดิมไม่ใช้แล้ว):
 
 ```json
-{ "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 } }
+{ "statusGuard": { "enabled": true, "repeatMinutes": 0 } }
 ```
 
 - **PreToolUse** (เครื่องมือ Agent): ปฏิเสธการเรียก subagent `mflow:dev` เมื่อโปรเจกต์ยังไม่ได้เปิดด้วย `/mflow:subagent on` (ค่าเริ่มต้นคือปิด) subagent ตัวอื่นผ่านตามปกติ ถ้าอ่านค่าไม่ได้จะปฏิเสธไว้ก่อน และ hook นี้ทำงานในทุกโปรเจกต์ที่เปิด plugin ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้เลย
@@ -114,6 +115,7 @@ hook ของ mflow ทำงานเฉพาะใน Claude Code (Codex ร
 test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดตอนที่คุณสั่งเท่านั้น และตั้งแต่ 0.35 รันครั้งเดียวสำหรับทุก change ที่รอ แทนครั้งละ change
 
 - **รายการรอ test และ review (0.35):** จบ `/opsx:apply` แล้ว Claude เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review ที่ต้องใช้พร้อมเหตุผล, หน้าจอที่ E2E ต้องตาม) แล้วบอกแค่ว่าพร้อม archive ไม่บอกให้สั่ง `/mflow:test` หรือ `/mflow:review` งานจึงเดินต่อ change ถัดไปได้ คุณสั่งเองทีหลังบน main: `/mflow:test` ครั้งเดียวเติมช่อง Test ให้ทุกแถวที่ commit นั้นมีงานของ change แล้ว (ดูจากประวัติ git ด้วย `scripts/pending.mjs`) แล้ว `/mflow:review pending` ตรวจทีละ change ตาม diff ของ change นั้น (ตั้งแต่ก่อน proposal ถึง archive) ใช้ผล test จากแถวนั้น แถวที่ผ่านทั้งสองอย่างย้ายไป `## Done` change ที่ archive แล้วแต่ไม่อยู่ในรายการ `/mflow:test` และ `/mflow:review pending` เพิ่มให้เองตั้งแต่วันที่ `Since:` session เริ่มใหม่ไม่เตือนเรื่องนี้
+- **commit เอง (0.39):** `/opsx:apply` (เมื่อพร้อม archive), `/opsx:archive`, `/mflow:test` และ `/mflow:review` commit งานของตัวเองบน branch ที่ checkout อยู่โดยไม่ถาม เพิ่มไฟล์ด้วยชื่อ ไม่ใช้ `git add -A` ส่วน push และ merge ยังถามทุกครั้ง apply และ archive ได้กฎนี้ผ่าน `operations.apply.guidance` และ `operations.archive.guidance` ใน `openspec/config.yaml` โปรเจกต์เดิมสั่ง `/mflow:init` หลังอัปเกรด
 
 - `/opsx:apply` รันเฉพาะ build, unit test ทั้งหมด และ test ที่ task เพิ่มหรือแก้ (filter ไปที่ test เหล่านั้น) ไม่รันทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - test ระหว่าง apply รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งให้จบในราว 8 นาที ถ้ายาวกว่านั้นแบ่งตามคลาส (0.34) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำของเครื่องใกล้หมด แล้วไม่ได้ผลอะไรเลย
@@ -197,7 +199,7 @@ mflow/
 │   ├─ scaffold.mjs        ← วาง template ลงโปรเจกต์ (ลง folder ตามค่าตั้งใน .mflow/config.json)
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
 │   ├─ status-trim.mjs     ← ย้าย block เก่าของ ## Now และ log เก่าจาก STATUS.md ไป docs/status-log.md คำต่อคำ
-│   ├─ stop-guard.mjs
+│   ├─ status-guard.mjs    ← hook ก่อน git commit: ขอ entry ของ STATUS.md ใน commit เดียวกัน (0.39)
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
 │   ├─ discuss.mjs         ← เลขเอกสาร discuss + ตรวจข้อที่ยังค้างก่อนอนุมัติ + สถานะของ AGENDA.md + task ทดสอบใช้งานที่ค้าง
 │   ├─ delegate-cmd.mjs    ← สร้างคำสั่ง PowerShell/Bash ของแต่ละ tool

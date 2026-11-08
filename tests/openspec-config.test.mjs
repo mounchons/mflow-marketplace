@@ -120,6 +120,21 @@ test("apply ends with a row in docs/reviews/pending.md, never with /mflow:test o
   assert.ok(!Object.values(LINES).flat().some((l) => /once per change/.test(l)));
 });
 
+// StemHub 2026-10-08..11-07: about 140 of the user's replies picked commit, push or merge from a menu. The
+// user chose (2026-11-08) that apply and archive commit their own work; push and merge still wait for a yes.
+test("apply and archive commit their own work by name, and push or merge only on the user's yes", () => {
+  const apply = LINES["operations.apply.guidance"].at(-1);
+  assert.match(apply, /^Once the change is ready to archive, commit its work on the branch checked out without asking/);
+  assert.match(apply, /never with `git add -A`/);
+  const archive = LINES["operations.archive.guidance"];
+  assert.equal(archive.length, 1);
+  assert.match(archive[0], /^After the archive, commit it on the branch checked out without asking/);
+  for (const line of [apply, archive[0]]) {
+    assert.match(line, /Push and merge only on the user's yes\.$/);
+    assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
+  }
+});
+
 // StemHub 2026-10-31: landing-content ran integration classes 9 times in 8 tasks, 22 of its 24 test minutes; 15–17
 // of them were classes the change did not add, which the whole suite on main runs again anyway.
 test("apply runs each task's own integration tests only, and the shared checks once at the end", () => {
@@ -143,8 +158,8 @@ test("a new project gets every line between markers, keeps OpenSpec's comments, 
   const text = p.read("openspec/config.yaml");
   assert.match(text, /^schema: spec-driven\n\ncontext: \|\n  Read AGENTS\.md/);
   assert.match(text, /docs\/decisions\/hotspots\/<slug>\/rules\.md/);
-  for (const line of LINES["operations.apply.guidance"]) assert.ok(text.includes(`      - ${line}`), line.slice(0, 60));
-  assert.equal(text.split(`# mflow:begin ${VERSION}`).length - 1, 4, "one marker pair per list");
+  for (const line of [...LINES["operations.apply.guidance"], ...LINES["operations.archive.guidance"]]) assert.ok(text.includes(`      - ${line}`), line.slice(0, 60));
+  assert.equal(text.split(`# mflow:begin ${VERSION}`).length - 1, 5, "one marker pair per list");
   assert.ok(text.trimEnd().endsWith("#         - Keep test summaries concise"), "OpenSpec's comments stay at the end");
   assert.equal(merge().changed, false, "a rerun changes nothing");
 });
@@ -195,7 +210,7 @@ test("a later version replaces exactly what sits between the markers", () => {
   const text = p.read("openspec/config.yaml");
   assert.doesNotMatch(text, /never write again/);
   assert.match(text, /# mflow:end\n    - Keep the tasks small\./);
-  assert.equal(text.split("# mflow:begin").length - 1, 4);
+  assert.equal(text.split("# mflow:begin").length - 1, 5);
 });
 
 test("forms the merge does not handle are reported and left alone; the rest is merged", () => {
@@ -243,4 +258,6 @@ test("OpenSpec reads the merged file: the context, the task rules and every appl
   assert.ok(tasks.rules.some((r) => r.startsWith("Every task that changes code")));
   const proposal = JSON.parse(spawnSync("openspec instructions proposal --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
   assert.ok(proposal.rules.some((r) => r.startsWith("In the proposal, list every choice") && r.includes("docs/discuss/") && r.includes("`1 a, 2 b, 3 a`")), JSON.stringify(proposal.rules));
+  const archive = JSON.parse(spawnSync("openspec instructions archive --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
+  assert.deepEqual(archive.operationGuidance, LINES["operations.archive.guidance"]);
 });

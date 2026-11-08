@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The lines mflow writes into openspec/config.yaml, and the merge that puts them there. OpenSpec hands this
-// file to the AI on every /opsx:* run (the context, rules per artifact and the apply guidance), and
+// file to the AI on every /opsx:* run (the context, rules per artifact and the apply and archive guidance), and
 // `openspec update` never rewrites it, so these lines are the only way mflow steers OpenSpec: it never edits
 // OpenSpec's skills, commands or schema.
 //
@@ -60,6 +60,10 @@ export const LINES = {
     "When the other tasks are done and the shared checks have passed or were not needed, add a row for the change to docs/reviews/pending.md, and create the file with the table header `| Change | Branch | Applied | Review level | Test | Review | E2E screens |` when it is missing. The row holds the change name, its branch, today's date, the review level from the files the change touched (full for business rules, permissions or data scope, queries, migrations, integrations or startup wiring; skip for documents, styles or label text only; short for anything else) with the reason in a few words, `—` under Test and Review, and the screens it touched, whose E2E tests /mflow:e2e can write or update. Then tell the user that the change is ready to archive, and nothing more about tests or review. Do not give /mflow:test, /mflow:review or /mflow:e2e as the next step, in the reply or in STATUS.md; the user runs them later, once for every change in that list.",
     "Run tests in the foreground, one command at a time, each expected to end within about 8 minutes, and split a longer filtered run into parts by class. Never send a test run to the background, because a background run is stopped when the machine runs low on memory and then proves nothing.",
     "Never run E2E tests or the build only they need (Playwright, an E2E build script), and never write or change E2E test files, even when a task's text asks for it. Do the rest of the task, prove it with unit tests and the build, and add `E2E on request (/mflow:e2e <screen>)` to the task. A task whose only work is E2E stays unticked. When the change touched screens, write them under E2E screens in its row of docs/reviews/pending.md, not in the reply.",
+    "Once the change is ready to archive, commit its work on the branch checked out without asking (the files this apply changed, such as code, tests, tasks.md, docs/reviews/pending.md and STATUS.md, added by name and never with `git add -A`), with a message that names the change. Push and merge only on the user's yes.",
+  ],
+  "operations.archive.guidance": [
+    "After the archive, commit it on the branch checked out without asking (the moved change folder, the specs it updated under openspec/specs and STATUS.md, added by name), with a message that names the change. Push and merge only on the user's yes.",
   ],
 };
 
@@ -294,7 +298,7 @@ export function plan(root) {
   const lines = original === null ? ["schema: spec-driven"] : original.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
   const report = { file, created: original === null, removed: [], added: [], problems: [] };
   mergeContext(lines, dirs, report);
-  for (const key of ["rules.proposal", "rules.specs", "rules.tasks", "operations.apply.guidance"]) mergeList(lines, key, dirs, report);
+  for (const key of ["rules.proposal", "rules.specs", "rules.tasks", "operations.apply.guidance", "operations.archive.guidance"]) mergeList(lines, key, dirs, report);
   let text = lines.join(eol) + eol;
   // The version on a marker says which mflow last changed the lines; the same lines from a later one keep it.
   const unversioned = (t) => t.replace(/# mflow:begin \S+/g, "# mflow:begin");

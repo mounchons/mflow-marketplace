@@ -5,10 +5,9 @@
   "inboxDir": "docs/ai/inbox",
   "discussDir": "docs/decisions/discuss",
   "statusLogEntriesInContext": 2,
-  "stopGuard": {
+  "statusGuard": {
     "enabled": true,
-    "graceMinutes": 10,
-    "repeatMinutes": 30
+    "repeatMinutes": 0
   },
   "tools": {}
 }

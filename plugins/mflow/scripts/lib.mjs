@@ -142,7 +142,10 @@ export function loadConfig(root) {
     inboxDir: "docs/ai/inbox",
     discussDir: "docs/decisions/discuss",
     statusLogEntriesInContext: 2,
-    stopGuard: { enabled: true, graceMinutes: 10, repeatMinutes: 30 },
+    // The STATUS.md check at a git commit (status-guard.mjs): every commit holding work the log does not
+    // cover asks once. `stopGuard`, its name before 0.39 when a Stop hook asked after every answer, still
+    // switches it on or off; its timings were tuned for asking every turn and no longer apply.
+    statusGuard: { enabled: true, repeatMinutes: 0 },
     // The apply subagent (mflow:dev) is off until switched on; .mflow/local.json overrides per machine.
     applySubagent: { enabled: false },
     // Browsers a Playwright run may start at once (e2e-guard.mjs); more has crashed a laptop's graphics driver.
@@ -177,8 +180,8 @@ export function loadConfig(root) {
   if ("e2eMaxWorkers" in user && (!Number.isInteger(user.e2eMaxWorkers) || user.e2eMaxWorkers < 1)) {
     wrong("e2eMaxWorkers", "a whole number of 1 or more");
   }
-  if ("stopGuard" in user && typeof user.stopGuard !== "boolean" && !isObject(user.stopGuard)) {
-    wrong("stopGuard", "true, false or an object");
+  for (const key of ["statusGuard", "stopGuard"]) {
+    if (key in user && typeof user[key] !== "boolean" && !isObject(user[key])) wrong(key, "true, false or an object");
   }
   if ("packs" in user && !(Array.isArray(user.packs) && user.packs.every((n) => typeof n === "string" && /^[a-z][a-z0-9-]*$/.test(n)))) {
     wrong("packs", "a list of pack names in kebab-case");
@@ -195,11 +198,13 @@ export function loadConfig(root) {
       if (v !== undefined && !(Array.isArray(v) && v.every((s) => typeof s === "string"))) wrong(`asBuilt.facts.${k}`, "a list of regular expressions as strings");
     }
   }
-  const sg = typeof user.stopGuard === "boolean" ? { enabled: user.stopGuard } : user.stopGuard || {};
+  const asObject = (v) => (typeof v === "boolean" ? { enabled: v } : v || {});
+  const old = asObject(user.stopGuard);
+  const sg = "statusGuard" in user ? asObject(user.statusGuard) : "enabled" in old ? { enabled: old.enabled } : {};
   return {
     ...defaults,
     ...user,
-    stopGuard: { ...defaults.stopGuard, ...sg },
+    statusGuard: { ...defaults.statusGuard, ...sg },
     applySubagent: { ...defaults.applySubagent, ...(user.applySubagent || {}) },
     tools: { ...DEFAULT_TOOLS, ...(user.tools || {}) },
   };
@@ -369,6 +374,56 @@ export function mtimeMs(file) {
   } catch {
     return 0;
   }
+}
+
+/**
+ * The project's files changed since STATUS.md was last written (`since`, in ms), which its log does not
+ * cover yet. Uncommitted: a file edited after `since` (its mtime), or deleted or renamed and not in
+ * `baseline`, the `git status` keys a session started from (a deleted file has no mtime and a renamed one
+ * keeps its old one; no baseline counts them all, which can ask once too often but never misses one).
+ * Committed: the files of the commits after it, walked back along HEAD's first parents to `head` (the
+ * commit a session started from) or, without one, over the last 200. The count starts after the newest
+ * commit that is older than `since` or carries STATUS.md itself (the entry's commit, or work committed
+ * with its entry), so committing the entry settles what came before it, and work brought in by a merge
+ * before it is not counted again. Commit times have whole seconds, so a commit in the same second counts.
+ * Paths are limited to this project (`-- .`), which may sit below the git top level in a monorepo.
+ */
+export function unloggedWork(root, git, { since, head = null, baseline = null }) {
+  const ignored = (p) =>
+    p === "STATUS.md" || p === "docs/status-log.md" || p.startsWith(".mflow/") || p.startsWith(".claude/") || p.startsWith(".agents/");
+  const files = new Set();
+  const started = new Set(baseline || []);
+  for (const e of git.entries) {
+    if (ignored(e.rel)) continue;
+    if (mtimeMs(e.abs) > since || (/[DRC]/.test(e.code) && !started.has(e.key))) files.add(e.rel);
+  }
+  let commits = 0;
+  const sha = /^[0-9a-f]{40,64}$/;
+  const now = run("git rev-parse HEAD", root, 8000)?.trim();
+  const from0 = sha.test(head || "") ? head : null;
+  if (sha.test(now || "") && now !== from0) {
+    const range = from0 ? `${from0}..HEAD` : "-n 200 HEAD";
+    const lines = (out) => (out || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const chain = lines(run(`git log --first-parent "--format=%H %ct" ${range}`, root, 8000));
+    const carried = new Set(lines(run(`git log --first-parent --format=%H ${range} -- STATUS.md`, root, 8000)));
+    let from = from0 ?? chain.at(-1)?.split(" ")[0] ?? now;
+    for (const line of chain) {
+      const [c, ct] = line.split(" ");
+      if (carried.has(c) || Number(ct) < Math.floor(since / 1000)) {
+        from = c;
+        break;
+      }
+      commits++;
+    }
+    if (from !== now) {
+      const names = run(`git -c core.quotePath=false diff --name-only -z ${from} HEAD -- .`, root, 8000) || "";
+      for (const p of names.split("\0").filter(Boolean)) {
+        const rel = projectRel(git, root, p);
+        if (!ignored(rel)) files.add(rel);
+      }
+    }
+  }
+  return { files: [...files], commits };
 }
 
 /** Per-session scratch state lives in the OS temp dir, so nothing needs gitignoring. */

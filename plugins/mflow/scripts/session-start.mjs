@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   readStdinJson, findRoot, loadConfig, run, runJson, readText, readJsonFile,
-  sessionStateFile, frontmatter, truncate, gitStatus, compareVersions,
+  sessionStateFile, frontmatter, truncate, gitStatus, compareVersions, mtimeMs, unloggedWork,
 } from "./lib.mjs";
 import { fileURLToPath } from "node:url";
 import { scan as scanSources } from "./source-index.mjs";
@@ -38,10 +38,14 @@ try {
   configError = err.message;
 }
 
-// Remember when this session started, for the Stop guard, with the commit and the uncommitted changes
-// it started from, so the guard can tell files deleted, renamed or committed during the session from
-// ones that were already that way. A compaction keeps the same session_id: keep the original record
-// so edits made before the compaction still count and the grace period does not restart.
+// `git status` once, for the session record and the work STATUS.md does not cover yet.
+let gitNow;
+const getGit = () => (gitNow === undefined ? (gitNow = gitStatus(root)) : gitNow);
+
+// Remember when this session started, for the STATUS.md check at a commit (status-guard.mjs), with the
+// commit and the uncommitted changes it started from, so the check can tell files deleted, renamed or
+// committed during the session from ones that were already that way. A compaction keeps the same
+// session_id: keep the original record so edits made before the compaction still count.
 try {
   const stateFile = sessionStateFile(input.session_id);
   let state = null;
@@ -49,7 +53,7 @@ try {
     try { state = JSON.parse(fs.readFileSync(stateFile, "utf8")); } catch { /* no earlier record */ }
   }
   if (!state || state.root !== root) {
-    const git = gitStatus(root);
+    const git = getGit();
     state = {
       root,
       startedAt: Date.now(),
@@ -80,6 +84,26 @@ if (status) {
   if (entries.length) {
     parts.push("## STATUS.md: latest log\n" + entries.slice(0, cfg?.statusLogEntriesInContext ?? 2).join("\n").trim());
   }
+  // Work since the last entry, from an earlier session that ended without a commit or committed without
+  // the entry. Uncommitted deletions and renames have no time of their own and are left out here.
+  try {
+    const git = getGit();
+    if (git) {
+      const { files, commits } = unloggedWork(root, git, {
+        since: mtimeMs(path.join(root, "STATUS.md")),
+        baseline: git.entries.map((e) => e.key),
+      });
+      if (files.length) {
+        const sample = files.slice(0, 5).map((f) => oneLine(f, 120)).join(", ") + (files.length > 5 ? ", …" : "");
+        parts.push(
+          "## Not yet in STATUS.md\n" +
+            `- ${files.length} file(s) changed since STATUS.md was last written (${sample})` +
+            (commits ? `, ${commits} commit(s) of them without it` : "") +
+            ".\n- Their entry goes into the next commit (the commit hook asks once); `/mflow:handoff` writes it now.",
+        );
+      }
+    }
+  } catch { /* best effort */ }
 } else {
   parts.push("## STATUS.md\n(missing: create it from the mflow template before working)");
 }
@@ -253,8 +277,9 @@ try {
 
 parts.push(
   "## Session ritual\n" +
-    "Work from the state above. Before ending a session that changed code or decisions, " +
-    "update STATUS.md: rewrite '## Now' and add one log entry (Did / Decided / Next). " +
+    "Work from the state above. STATUS.md is written as part of a commit: when a commit holds work its log " +
+    "does not cover, the commit hook asks once for the entry ('## Now' rewritten, one log entry with Did / Decided / Next) " +
+    "to go into that commit. Do not add a STATUS.md update after an answer. " +
     "When the user has to choose, number the questions and label the options a), b), c), never ก ข ค, " +
     "so the answer is one line such as `1 a, 2 b, 3 a`, typed without switching keyboard language.",
 );

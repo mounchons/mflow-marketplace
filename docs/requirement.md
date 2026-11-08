@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.38.3 |
+| เวอร์ชันที่อธิบาย | 0.39.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -111,8 +111,8 @@ flowchart TD
 |---|---|---|
 | FR-10 | SessionStart (เริ่ม, resume, clear, compact) ใส่ briefing: ส่วน Now และ log ล่าสุดของ STATUS.md, OpenSpec change ที่ค้าง, Backlog task ที่ In Progress, hotspot ที่ active และจำนวนตั๋วที่หยิบได้ | มีแล้ว |
 | FR-11 | Briefing แจ้งเอกสารลูกค้าที่ยังไม่ได้ประมวลผล และรายงานจาก AI อื่นที่ยังไม่ได้ assess | มีแล้ว |
-| FR-12 | Stop hook ขอให้เขียน STATUS.md เมื่อมีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด นับทั้งไฟล์ที่แก้ เพิ่ม ลบ เปลี่ยนชื่อ และที่ commit ไประหว่าง session: SessionStart จด commit และไฟล์ที่ค้างอยู่ตอนเริ่ม ไฟล์ที่ลบหรือเปลี่ยนชื่อไว้ก่อนเริ่มจึงไม่นับ ส่วน record จาก mflow รุ่นก่อนที่ไม่มีข้อมูลนี้ นับไฟล์ที่ลบทุกไฟล์ (อาจเตือนเกิน แต่ไม่พลาด) ไฟล์ที่ commit แล้วนับเฉพาะที่ commit หลัง STATUS.md ถูกเขียนครั้งล่าสุด: ไล่ย้อนตาม first parent ของ HEAD แล้วเริ่มนับหลัง commit ล่าสุดที่เก่ากว่า STATUS.md หรือที่มี STATUS.md อยู่ด้วย (commit handoff หรือ commit งานพร้อม entry) commit handoff จึงไม่ทำให้ถามซ้ำ และงานที่ลง log แล้วหรือที่ merge เข้ามาก่อนนั้นไม่ถูกนับอีก คำขอของ hook ไม่สั่งย่อ log และบอกให้คง entry เก่าไว้ตามเดิม และไม่นับ `docs/status-log.md` ที่ handoff ย้าย entry เก่าไป (0.34.1) ที่มา: StemHub 2026-10-23 commit STATUS.md อย่างเดียวหลัง merge แล้ว hook นับ 141 ไฟล์ตั้งแต่ต้น session และสั่งย่อ log จน entry 9 รายการถูกรวมเหลือบรรทัดเดียว | มีแล้ว |
-| FR-13 | Stop hook ไม่เตือนใน 10 นาทีแรก และเตือนซ้ำไม่เกินทุก 30 นาที ปรับได้ใน config | มีแล้ว |
+| FR-12 | (ตั้งแต่ 0.39 เป็น hook ตอน `git commit` ตาม FR-242 แทน Stop hook กติกานับไฟล์ข้างล่างใช้เหมือนเดิม) Stop hook ขอให้เขียน STATUS.md เมื่อมีไฟล์เปลี่ยนหลัง STATUS.md ถูกเขียนครั้งล่าสุด นับทั้งไฟล์ที่แก้ เพิ่ม ลบ เปลี่ยนชื่อ และที่ commit ไประหว่าง session: SessionStart จด commit และไฟล์ที่ค้างอยู่ตอนเริ่ม ไฟล์ที่ลบหรือเปลี่ยนชื่อไว้ก่อนเริ่มจึงไม่นับ ส่วน record จาก mflow รุ่นก่อนที่ไม่มีข้อมูลนี้ นับไฟล์ที่ลบทุกไฟล์ (อาจเตือนเกิน แต่ไม่พลาด) ไฟล์ที่ commit แล้วนับเฉพาะที่ commit หลัง STATUS.md ถูกเขียนครั้งล่าสุด: ไล่ย้อนตาม first parent ของ HEAD แล้วเริ่มนับหลัง commit ล่าสุดที่เก่ากว่า STATUS.md หรือที่มี STATUS.md อยู่ด้วย (commit handoff หรือ commit งานพร้อม entry) commit handoff จึงไม่ทำให้ถามซ้ำ และงานที่ลง log แล้วหรือที่ merge เข้ามาก่อนนั้นไม่ถูกนับอีก คำขอของ hook ไม่สั่งย่อ log และบอกให้คง entry เก่าไว้ตามเดิม และไม่นับ `docs/status-log.md` ที่ handoff ย้าย entry เก่าไป (0.34.1) ที่มา: StemHub 2026-10-23 commit STATUS.md อย่างเดียวหลัง merge แล้ว hook นับ 141 ไฟล์ตั้งแต่ต้น session และสั่งย่อ log จน entry 9 รายการถูกรวมเหลือบรรทัดเดียว | มีแล้ว |
+| FR-13 | (0.39) ทุก commit ที่มีงานยังไม่ลง STATUS.md ถามหนึ่งครั้ง (`statusGuard.repeatMinutes` ค่าเริ่มต้น 0 ตั้งเป็นนาทีเพื่อเว้นช่วงได้) ไม่มีช่วงงดถามตอนต้น session เพราะงานแก้ด่วน 5 นาทีที่ commit ก็ควรมี entry ชื่อเดิม `stopGuard` ให้แค่ `enabled` ส่วน `graceMinutes` และ `repeatMinutes` ของชื่อเดิมไม่ใช้ เพราะตั้งไว้สำหรับ hook ที่ถามทุกครั้งที่ตอบจบ (ถึง 0.38: ไม่เตือนใน 10 นาทีแรก และซ้ำไม่เกินทุก 30 นาที) | มีแล้ว |
 | FR-14 | Hook ทำงานเฉพาะ repo ที่มี `.mflow/config.json` เงียบใน repo อื่น ยกเว้น hook PreToolUse ที่ปฏิเสธ subagent `mflow:dev` ใน repo ที่ไม่ใช่ mflow (FR-174) และไม่แตะ subagent ตัวอื่น | มีแล้ว |
 | FR-15 | hook ของ mflow ทำงานเฉพาะใน Claude Code: AI ตัวอื่น (Codex, OpenCode ฯลฯ) ทำตาม "Session ritual" ใน AGENTS.md (Codex รุ่น 0.162 มี hook ของตัวเองแล้ว แต่ mflow ไม่ได้ใช้) | มีแล้ว |
 | FR-16 | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog, ผล test) และสร้าง brief ให้ tool อื่นได้ ตัด log ให้เหลือ 10 รายการโดยย้าย entry เก่าไปไว้บนสุดของ `docs/status-log.md` คำต่อคำ ไม่ย่อหรือรวม (0.34.1) | มีแล้ว |
@@ -380,6 +380,16 @@ flowchart TD
 | FR-240 | สำเนา mflow สำหรับ Claude Code on the web (0.38.1): cloud ไม่ติดตั้ง plugin ทั้งของเครื่องผู้ใช้และที่ `.claude/settings.json` ประกาศ แต่โหลดสิ่งที่ repo มีใต้ `.claude/` จึงให้ `/mflow:init` ถามครั้งเดียว (a เขียน แนะนำเมื่อผู้ใช้ทำงานบน claude.ai/code หรือ repo มี branch `claude/…`, b ไม่) แล้ว `scripts/vendor.mjs plan / write / status` เขียนสำเนาทั้ง plugin (skills, scripts, hooks, agents, packs, templates, `compat.json` ไม่รวม README) ที่ `.claude/skills/mflow/` พร้อม `.mflow-vendor.json` (version และ hash ต่อไฟล์) รันซ้ำหลังอัปเกรดเขียนเฉพาะไฟล์ที่เปลี่ยนและลบไฟล์ที่ plugin ไม่มีแล้ว ไม่แตะโฟลเดอร์ชื่อเดียวกันที่ไม่มี marker (`foreign`) ไม่ลบชื่อใน marker ที่ชี้ออกนอกสำเนา ไม่เขียนผ่าน link ออกนอกโปรเจกต์ briefing ตอนเปิด session และ `/mflow:help check setup` เตือนเมื่อสำเนาเก่ากว่า plugin การค้นไฟล์ของ discuss และ doctor ข้ามสำเนา และ `/mflow:review` ไม่ตรวจสำเนาเป็นโค้ดของโปรเจกต์ `skills/init/references/cloud.md` บอกสิ่งที่ผู้ใช้ทำ (commit สำเนาแยก, environment: network Trusted, setup script เป็น root บน Ubuntu 24.04 ที่มี Docker แต่ไม่มี .NET, permission mode Auto, ตรวจด้วย `/mflow:help` ใน session แรก และวิธีสำรองเมื่อสำเนาไม่โหลด) และข้อจำกัด (เครื่องพักเมื่อว่างและอาจถูกเรียกคืนเหลือแค่แชต, command รอได้ไม่เกิน 10 นาที, container ไม่ถูก cache) `/mflow:night` และ `/mtest:night` บน web push ทุก commit ทันที (session branch หลัง commit เอกสาร, branch แก้ไขหรือ E2E หลัง commit โค้ด) และ push ซ้ำตอนจบ การโหลด plugin จาก `.claude/skills/` บน web ยังไม่ได้พิสูจน์ ที่มา: คำตอบของผู้ใช้ 2026-11-07 (1 a, 2 a) หลังตรวจเอกสาร Claude Code on the web | มีแล้ว |
 | FR-241 | E2E ของ flow ต่อเนื่อง (0.38.3): `/mflow:e2e flow` และ `/mtest:e2e flow` ไล่ขั้นที่ไม่มีคนทำ (ข้อมูลจากระบบภายนอก, import หรือ job ตามเวลา, อีเมลที่ระบบส่ง) พร้อมวิธีที่ test ทำให้เกิด (fake ของระบบนั้นและ test endpoint, trigger ของ job, fake mailer) และวิธีที่เห็นว่าเกิดแล้ว ขั้นที่ไม่มีช่องทางรายงานพร้อมช่องทางที่ต้องเพิ่ม อีเมลเป็นหนึ่งขั้น: รอให้ส่งแล้ว ตรวจผู้รับและผู้ที่ไม่ได้รับ (supplier A ไม่ใช่ B) หัวเรื่อง ค่าที่ผู้ส่งตั้ง และลิงก์เปิดบนเว็บฝั่งรับ ข้อมูลจากระบบภายนอกวางใน fake ของระบบนั้นแบบที่ระบบจริงส่ง ชื่อไม่ซ้ำต่อรอบ สั่ง import ผ่าน trigger ไม่รอ schedule แล้ว poll จน run ที่ใหม่กว่าจุดเริ่ม test จบและมี record ไม่เรียกระบบจริง flow ยาวใน test เดียว ใช้ `test.step` ตามเลขขั้นเพื่อให้รู้ว่าล้มที่ขั้นไหน timeout ทั้ง chain ทางแยก (reject, withdraw, revision ใหม่) เป็น test ของตัวเองที่เตรียมขั้นก่อนจุดแยกผ่าน API helper ของโปรเจกต์แล้วเดินแค่ทางแยกบนหน้าจอ รันใน project ที่ใช้ stack จริง ใช้ helper ของโปรเจกต์ก่อน (login ต่อเว็บ, CSRF, fake ของระบบภายนอก, trigger, mailer, นาฬิกาทดสอบ, การเก็บกวาด) `skills/e2e/references/chain.md` มีตารางวิธีทำแต่ละขั้นและโครง test ตัวอย่างแบบทั่วไป ไม่มีคำสั่ง flag หรือรูปแบบ flow doc ใหม่ ที่มา: คำขอของผู้ใช้ 2026-11-07 (flow แบบ StemHub: ข้อมูลจาก API → admin ตั้งค่า จัดการเนื้อหา approve ส่งอีเมล → supplier เปิดดูและ acknowledge) และ `documents.writes.spec.ts` ของ StemHub ที่เดิน fake DMS → job → approve → supplier ดาวน์โหลดใน test เดียว | มีแล้ว |
 
+### 6.18 ลดรอบถามตอบ (0.39)
+
+ที่มา: การนับ transcript ของ StemHub ช่วง 2026-10-08 ถึง 11-07 (1,393 prompt ในนั้น 361 ครั้งเป็นการตอบตัวเลขเลือกจากเมนู ราว 200 ครั้งหลังรายงานของ `/mflow:review` และราว 140 ครั้งเป็นเมนู commit, push หรือ merge) กับ LA-NetSuite ที่ใช้ Spec Kit (205 prompt ตอบตัวเลข 7 ครั้ง) และคำของผู้ใช้ 2026-11-08 ว่า Stop hook ทำให้เนื้อหาคำตอบไม่ต่อเนื่อง คำตอบของผู้ใช้วันเดียวกัน: 1 a, 2 a, 3 a
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-242 | STATUS.md เขียนตอน commit ไม่ใช่หลังคำตอบ: ไม่มี Stop hook แล้ว `scripts/status-guard.mjs` เป็น hook PreToolUse ของ Bash และ PowerShell ทำงานเฉพาะคำสั่งที่มี `git commit` (หลัง `cd …`, `VAR=x`, `rtk`, `&`, `git -C`/`-c`; ไม่นับ `commit-tree`, merge, cherry-pick, revert หรือคำว่า commit ในข้อความ) เมื่อมีงานที่ STATUS.md ยังไม่ครอบ (กติกานับเดียวกับ FR-12 ย้ายไปเป็น `unloggedWork` ใน `lib.mjs` นับจากเวลาที่ STATUS.md ถูกเขียนครั้งล่าสุด) ปฏิเสธ commit หนึ่งครั้งพร้อมขอให้แทน `## Now` เพิ่ม entry ใน `## Log` (Did / Decided / Next) stage STATUS.md เข้า commit เดียวกัน (ใส่ชื่อด้วยเมื่อ commit ระบุไฟล์) แล้ว commit ใหม่ และไม่พูดถึงเรื่องนี้ในคำตอบ entry จึงเกิดก่อนคำตอบเสมอและอยู่ใน commit ของงาน ลองซ้ำที่ HEAD เดิมภายใน 10 นาทีผ่าน hook จึงไม่วน ทุก commit ที่มีงานยังไม่ลงถามหนึ่งครั้ง (FR-13) commit ของ apply และของ archive จึงได้ entry ทั้งคู่ ผ่านเงียบเมื่อไม่มี STATUS.md (briefing ขอให้สร้างแล้ว) และบน branch ที่มีแต่โค้ดของ mflow (`fix/<change>-review`, `fix/night-…`, `e2e/night-…`) ซึ่งเอกสาร commit ที่ main ค่าตั้งชื่อ `statusGuard` (`enabled`, `repeatMinutes`) ยังอ่านชื่อเดิม `stopGuard` briefing ตอนเปิด session มีหัวข้อ `## Not yet in STATUS.md` เมื่อมีไฟล์ที่เปลี่ยนหลัง entry ล่าสุด (จำนวนไฟล์ ตัวอย่าง จำนวน commit ที่ไม่มี STATUS.md) บอกว่า entry จะไปกับ commit ถัดไปหรือ `/mflow:handoff` เขียนตอนนี้ "Session ritual" ของ briefing และ AGENTS.md เปลี่ยนเป็นเขียน entry ใน commit ห้ามเขียนเป็นขั้นเพิ่มหลังคำตอบ template `CLAUDE.md` บอกเรื่อง hook นี้ ข้อแลกเปลี่ยน: session ที่ไม่ commit แล้ว `/clear` ยังไม่มี entry จนกว่า briefing ของ session ถัดไปบอก | มีแล้ว |
+| FR-243 | `/mflow:review` แก้ blocker และ major เองโดยไม่ถาม (section 4 ของ skill): แถว `pending` แก้ใน `fix/<change>-review` จาก main, เป้าหมายที่เป็น branch แก้ใน branch นั้น, `--uncommitted` แก้ใน working tree และไม่ commit แต่ละข้อมี unit test ที่พิสูจน์ รัน build, unit test และ test ที่เพิ่มหรือแก้แบบกรองเหมือน apply ทั้งชุดเป็นของ `/mflow:test since` commit การแก้บน branch นั้นด้วยชื่อไฟล์ (ไม่ใช้ `git add -A`) branch แก้มีแต่โค้ด รายงาน `pending.md` และ STATUS.md ติดมาตอนสลับ branch แล้ว commit ที่ branch เริ่มต้น สิ่งที่ไม่แก้และบอกผู้ใช้ในคำตอบ: ข้อที่ต้องเลือกสิ่งที่ spec เอกสาร discuss ที่อนุมัติ และ hotspot ไม่ได้กำหนด (กฎธุรกิจ สิทธิ์หรือขอบเขตข้อมูล สิ่งที่ลูกค้าหรือคนนอกเห็น) เป็นคำถามมีเลข ตัวเลือก a) b) c), การแก้ที่ต้องมีตาราง หน้าจอ หรือ endpoint ใหม่เป็น `/opsx:propose`, test ที่ล้มเพราะเหตุนอก diff ส่วน minor และ nit อยู่ในรายงาน แก้เมื่อผู้ใช้สั่ง ขั้นถัดไปยังเป็น `/mflow:test since` แล้ว `/mflow:review … --short` เหมือนเดิม `/mflow:night` ใช้ขั้น 5 (แก้เป็นรอบตาม `--rounds`) แทน section 4 | มีแล้ว |
+| FR-244 | คำสั่ง commit งานของตัวเองโดยไม่ถาม push และ merge ยังถามทุกครั้ง: `/opsx:apply` เมื่อ change พร้อม archive (บรรทัดใหม่ใน `operations.apply.guidance`), `/opsx:archive` (`operations.archive.guidance` ใหม่ใน `openspec/config.yaml` ซึ่ง OpenSpec 1.13.2 ส่งให้ AI เป็น `operationGuidance` ของ `openspec instructions archive`), `/mflow:test` (record, `pending.md`, gate task ที่ติ๊ก, STATUS.md), `/mflow:review` (รายงาน, `pending.md`, STATUS.md และการแก้ตาม FR-243) ทุกตัว commit บน branch ที่ checkout อยู่ เพิ่มไฟล์ด้วยชื่อ ไม่ใช้ `git add -A` hook ของ FR-242 ทำให้ STATUS.md ไปกับ commit นั้น `/mflow:night` ยังใช้กฎ commit ของตัวเอง (เอกสารลง main เท่านั้น) template `CLAUDE.md` บอกกติกานี้ โปรเจกต์เดิมได้บรรทัดใหม่ของ `config.yaml`, CLAUDE.md และ AGENTS.md เมื่อรัน `/mflow:init` หลังอัปเกรด | มีแล้ว |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -438,13 +448,13 @@ mflow-marketplace/
     ├─ .claude-plugin/plugin.json
     ├─ compat.json                   ← Node ขั้นต่ำ วันหมดอายุของแต่ละรุ่น และรุ่นเครื่องมือที่ทดสอบแล้ว (doctor อ่าน)
     ├─ agents/dev.md                 ← subagent `mflow:dev` (Sonnet 5.5) ที่ /opsx:apply ส่งงานเขียนโค้ดให้
-    ├─ hooks/hooks.json              ← SessionStart, PreToolUse (Agent), Stop
+    ├─ hooks/hooks.json              ← SessionStart, PreToolUse (Agent; Bash และ PowerShell: E2E, STATUS.md ตอน commit)
     ├─ scripts/
     │   ├─ lib.mjs                   ← config + ทะเบียน tool ค่าเริ่มต้น
     │   ├─ scaffold.mjs              ← สร้างไฟล์จาก template ไม่ทับของเดิม (ลง folder ตามค่าตั้ง)
     │   ├─ session-start.mjs         ← briefing
     │   ├─ status-trim.mjs           ← plan, move: ย้าย block เก่าของ ## Now และ log เก่าไป docs/status-log.md คำต่อคำ
-    │   ├─ stop-guard.mjs            ← เตือน STATUS.md
+    │   ├─ status-guard.mjs          ← hook PreToolUse ขอ entry ของ STATUS.md ใน commit (0.39)
     │   ├─ source-index.mjs          ← ทะเบียนเอกสาร
     │   ├─ discuss.mjs               ← เลขเอกสาร discuss + ตรวจข้อค้างก่อนอนุมัติ + ซิงก์สถานะของ AGENDA.md
     │   ├─ apply-subagent.mjs        ← เปิด/ปิด mflow:dev (ค่าใน .mflow/, ค่าเริ่มต้นปิด)
@@ -510,7 +520,7 @@ mflow-marketplace/
   "inboxDir": "docs/ai/inbox",
   "discussDir": "docs/decisions/discuss",
   "statusLogEntriesInContext": 2,
-  "stopGuard": { "enabled": true, "graceMinutes": 10, "repeatMinutes": 30 },
+  "statusGuard": { "enabled": true, "repeatMinutes": 0 },
   "applySubagent": { "enabled": false },
   "e2eMaxWorkers": 2,
   "packs": ["audit", "auth", "users", "permission", "mail"],
@@ -540,6 +550,8 @@ mflow-marketplace/
 
 `packs` (0.37) คือแพ็กที่โปรเจกต์เลือก ค่าเริ่มต้นว่าง ตั้งด้วย `packs.mjs use <ชื่อ>` ซึ่งเพิ่มแพ็กที่ requires ให้เอง ชื่อต้องเป็น kebab-case (FR-232)
 
+`statusGuard` (0.39) คือ hook ที่ขอ entry ของ STATUS.md ตอน `git commit` (FR-242) ใส่ `false` เพื่อปิด `repeatMinutes` เว้นช่วงระหว่างการถาม (ค่าเริ่มต้น 0 คือถามทุก commit ที่มีงานยังไม่ลง) ชื่อเดิม `stopGuard` ยังเปิดปิดได้ แต่ `graceMinutes` และ `repeatMinutes` ของชื่อเดิมไม่ใช้แล้ว
+
 `applySubagent` ตั้งด้วย `/mflow:subagent on --shared` ส่วนค่าเฉพาะเครื่องอยู่ใน `.mflow/local.json` (รูปแบบเดียวกัน ไม่ commit) และทับค่าในไฟล์นี้
 
 ## 12. เวอร์ชันของเครื่องมือที่ใช้ทดสอบ
@@ -568,7 +580,7 @@ mflow-marketplace/
 | R-01 | OpenSpec เคยมีกรณี archive แล้ว `openspec/specs/` ไม่ถูก merge | spec หลักเก่าโดยไม่มี error | เช็ก `git diff --stat openspec/specs` ทุกครั้ง |
 | R-02 | คำสั่งของ opencode และ gemini ยังไม่ได้รันกับตัวจริง | flag อาจเปลี่ยนตามเวอร์ชัน | ทะเบียนเป็น `verified: false` ให้เช็ก `--help` |
 | R-03 | Skill ทั้ง 15 ตัวยังไม่ได้รันใน Claude Code session จริง (ทดสอบแค่ script และ validate) | ขั้นตอนอาจต้องปรับ | ใช้ครั้งแรกแบบนั่งดูทีละขั้น |
-| R-04 | Stop hook ทำงานทุกครั้งที่ AI ตอบจบ ไม่ใช่แค่ตอนจบ session | อาจเตือนระหว่างทำงาน | throttle ตาม config |
+| R-04 | (ถึง 0.38) Stop hook ทำงานทุกครั้งที่ AI ตอบจบ ไม่ใช่แค่ตอนจบ session | entry ของ STATUS.md ต่อท้ายคำตอบ เนื้อหาไม่ต่อเนื่อง | 0.39 ย้ายไปตอน `git commit` (FR-242) ความเสี่ยงที่เหลือ: session ที่ไม่ commit แล้ว `/clear` ยังไม่มี entry จน briefing ของ session ถัดไปบอก |
 | R-05 | ยังไม่รองรับการเปิดตั๋วที่ตอบแล้วหรือ map ที่ graduate แล้วขึ้นใหม่ (FR-69) | ต้องทำด้วยมือ | สร้างตั๋ว supersede หรือ hotspot ใหม่ |
 | R-06 | Windows PowerShell 5.1 เปลี่ยนภาษาไทยเป็น `?` ถ้าไม่ตั้ง encoding | brief เพี้ยน | คำสั่งที่สร้างให้ตั้ง UTF-8 ไว้แล้ว แนะนำ PowerShell 7 |
 | R-07 | รายงานจาก AI อื่นอาจอ้างไฟล์ที่ไม่ได้อ่าน | finding ผิดแต่ดูน่าเชื่อ | assess ตรวจ Files read และความเข้าใจก่อน |
@@ -647,6 +659,8 @@ mflow-marketplace/
 | OpenCode กับ skill ที่สร้าง (0.33) | ยังไม่ได้ทดสอบ: CLI ไม่อยู่ใน PATH ของเครื่องที่ทดสอบ รองรับตามเอกสาร opencode.ai/docs/skills |
 | `/mflow:analyze units`, `unit:<ชื่อ>`, การรวมผลแบบ as built และการส่งเข้า OpenSpec (0.32) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 | คำสั่ง PowerShell บน Windows จริง | ยังไม่ได้ทดสอบ |
+| hook STATUS.md ตอน commit (0.39): คำสั่งที่นับเป็น commit และที่ไม่นับ, ปฏิเสธครั้งเดียวแล้วลองซ้ำผ่าน, ไม่มีช่วงงดถาม, ค่าเริ่มต้นถาม commit ของ apply และของ archive ทั้งคู่, `repeatMinutes` ที่ตั้งเอง, ชื่อเดิม `stopGuard` (ค่าเวลาของ StemHub ไม่ถูกใช้), branch ที่มีแต่โค้ด, ไม่มี STATUS.md, briefing บอกงานที่ยังไม่ลง และไม่มี Stop hook ใน `hooks.json` กติกานับไฟล์ของ 0.34.1 ผ่านครบในรูปแบบใหม่ `openspec instructions archive --json` ของ OpenSpec 1.13.2 คืน `operationGuidance` ของ archive ครบ | ผ่าน |
+| hook ตอน commit, review ที่แก้เอง และคำสั่งที่ commit เอง (0.39) ใน session จริง | ยังไม่ได้รันใน session จริง (R-03) |
 
 ## 16. เกณฑ์ความสำเร็จของช่วง pilot
 

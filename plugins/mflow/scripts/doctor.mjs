@@ -43,7 +43,7 @@ else add("node", "ok", `Node ${node}`);
 
 const git = versionIn(run("git --version", cwd, 8000));
 if (git) add("git", "ok", `git ${git}`);
-else add("git", "warn", "git not found: the Stop hook and `discuss.mjs cited` work without it only in part", "Install git");
+else add("git", "warn", "git not found: the STATUS.md check at a commit, the briefing's work not yet in STATUS.md and `discuss.mjs cited` work without it only in part", "Install git");
 
 function tool(id, cmd, install) {
   const tested = compat.testedWith[id];

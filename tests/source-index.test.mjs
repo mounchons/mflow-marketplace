@@ -151,7 +151,7 @@ test("an option without a value is refused", () => {
   assert.equal(p.exists(".mflow/sources.json"), false);
 });
 
-test("a broken config.json: the briefing says so, the Stop hook stays quiet, delegate-cmd stops", () => {
+test("a broken config.json: the briefing says so, the commit check stays quiet, delegate-cmd stops", () => {
   p = project();
   p.write(".mflow/config.json", "<<<<<<< HEAD\n{}\n=======\n{}\n>>>>>>> theirs\n");
   p.write("STATUS.md", "# Status\n\n## Now\n- focus\n");
@@ -161,7 +161,7 @@ test("a broken config.json: the briefing says so, the Stop hook stays quiet, del
   assert.match(context, /mflow config unreadable/);
   assert.match(context, /merge conflict markers/);
   assert.match(context, /- focus/);
-  const stop = run(p, "stop-guard.mjs", [], { input: { session_id: "t-cfg", cwd: p.root } });
+  const stop = run(p, "status-guard.mjs", [], { input: { session_id: "t-cfg", cwd: p.root, tool_name: "Bash", tool_input: { command: "git commit -m x" } } });
   assert.equal(stop.status, 0);
   assert.equal(stop.stdout, "");
   const cmd = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "codex", "--brief", "b.md", "--out", "r.md"]);

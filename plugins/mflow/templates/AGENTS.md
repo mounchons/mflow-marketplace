@@ -90,7 +90,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 
 ## Session ritual
 Start: read `STATUS.md`, run `openspec list` and `backlog task list -s "In Progress" --plain`.
-End (if code or decisions changed): rewrite `## Now` in `STATUS.md`, add one log entry (Did / Decided / Next) with task IDs and change names.
+Commit (if code or decisions changed): in the same commit, rewrite `## Now` in `STATUS.md` and add one log entry (Did / Decided / Next) with task IDs and change names. Claude Code's commit hook asks for it once; never write it as an extra step after the answer.
 <!-- Claude Code does this automatically through mflow hooks; Codex follows this text. -->
 
 ## Working as a tool other than Claude Code

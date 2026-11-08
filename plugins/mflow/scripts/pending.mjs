@@ -58,7 +58,7 @@ const today = () => {
 };
 const open = (cell) => !cell || /^[—–-]*$/.test(cell.trim());
 const clean = (text) => String(text ?? "").replace(/\|/g, "/").replace(/[\r\n]+/g, " ").trim() || "—";
-const isDoc = (f) => /\.md$/i.test(f) || /^(openspec|backlog|docs)\//.test(f) || f === "STATUS.md";
+export const isDoc = (f) => /\.md$/i.test(f) || /^(openspec|backlog|docs)\//.test(f) || f === "STATUS.md";
 
 // ---------- git ----------
 

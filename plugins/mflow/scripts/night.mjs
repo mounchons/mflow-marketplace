@@ -30,15 +30,15 @@ export const STATES = ["started", "round", "done", "skipped", "stopped"];
 const FINISHED = new Set(["done", "skipped", "stopped"]);
 const ROW = /^\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*(.*?)\s*\|\s*$/;
 
-const now = () => (process.env.NIGHT_NOW ? new Date(process.env.NIGHT_NOW) : new Date());
+export const now = () => (process.env.NIGHT_NOW ? new Date(process.env.NIGHT_NOW) : new Date());
 const pad = (n) => String(n).padStart(2, "0");
-const localDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const localTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-const local = (d) => `${localDay(d)} ${localTime(d)}`;
-const cell = (s) => String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|").trim();
+export const localDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const localTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+export const local = (d) => `${localDay(d)} ${localTime(d)}`;
+export const cell = (s) => String(s ?? "").replace(/\r?\n/g, " ").replace(/\|/g, "\\|").trim();
 const uncell = (s) => s.replace(/\\\|/g, "|");
 
-function git(root, ...args) {
+export function git(root, ...args) {
   try {
     return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   } catch {
@@ -125,7 +125,7 @@ export function summary(file, at = now()) {
   };
 }
 
-function args(argv) {
+export function args(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];

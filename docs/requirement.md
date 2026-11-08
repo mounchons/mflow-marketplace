@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.43.0 |
+| เวอร์ชันที่อธิบาย | 0.44.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -436,6 +436,14 @@ flowchart TD
 |---|---|---|
 | FR-255 | แพ็ก `auth` รุ่น 3 (AUTH-D09): เว็บที่อยู่ origin เดียวกับ API ทั้งที่ render ฝั่ง server และเว็บที่เรียก API (React, Vue, Angular) ถือเซสชันด้วย cookie ที่ script อ่านไม่ได้ และส่ง CSRF token ใน header ทุกคำขอที่เขียนข้อมูล ส่วน JWT กับ refresh token ที่หมุนใช้กับแอป mobile ระบบอื่นที่ทำแทนผู้ใช้ และเว็บคนละ origin ที่อยู่ site เดียวกับ API เว็บคนละ site แพ็กไม่รองรับ เพราะ cookie ของ refresh token เป็น `SameSite=Strict` ตอน approve โปรเจกต์ `custom` ที่ระบุ back end ASP.NET Core ได้ `stack/dotnet.md` และเก็บส่วน `## react-vite` หรือ `## mvc-htmx` ตามชนิดของเว็บ โดยอ่าน React เป็น framework ของโปรเจกต์ | มีแล้ว |
 
+### 6.24 สร้างทุก change ที่ propose แล้วด้วยคำสั่งเดียว (`/mflow:apply-all`, 0.44)
+
+ที่มา: BunTukTransport 2026-11-08 มีหลายหัวข้อ approve แล้ว ผู้ใช้ต้องการคำสั่งเดียวที่แตก branch, apply, archive, commit, merge main แล้ววนทำข้อต่อไปจนหมด `/mflow:night` ทำแค่ test กับ review และห้าม merge คำตอบของผู้ใช้วันเดียวกัน: b (ผู้ใช้ propose เอง คำสั่งวนเฉพาะ change ที่มีอยู่) ชื่อ `/mflow:apply-all` และรวม test กับ review วนแก้จนผ่านแบบ night
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-256 | `/mflow:apply-all [<change> ...] [--rounds <n>]` รับ change ใน `openspec/changes/` ตามลำดับ proposal เก่าสุดก่อน หรือตามชื่อที่ระบุ แล้วทำทีละ change บน branch `change/<change>` จาก main: `/opsx:apply` (archive และ commit), `/mflow:test since`, `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบต่อขั้น (ค่าเริ่มต้น 3) แล้ว merge แบบ `--no-ff` เข้า main เฉพาะเมื่อ `apply-all.mjs gate` อ่านจากไฟล์แล้วพบว่า change ถูก archive, แถวอยู่ใน `## Done` ของ `docs/reviews/pending.md`, มี record ที่ผ่าน และรายงานที่ approve โดยหลังจากนั้น commit มีแค่เอกสาร change แรกที่ไม่ผ่านหรือต้องให้ผู้ใช้ตัดสินใจจะหยุดทั้งรอบ เริ่มได้เมื่ออยู่บน main, tree สะอาด และทำงานบนเครื่องเท่านั้น ไม่ push ไม่ลบ branch ไม่เขียนหรือรัน E2E สถานะระหว่างรันอยู่ใน `.git/mflow/apply-all.md` เพื่อไม่ให้ tree สกปรก จบแล้วย้ายไป `docs/reviews/apply-all/` | มีแล้ว ยังไม่เคยรันจริง |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -514,6 +522,7 @@ mflow-marketplace/
     │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
     │   ├─ pending.mjs               ← รายการรอ test และ review: status, range, add, init, tick-test, tick-review
     │   ├─ night.mjs                 ← สถานะของ /mflow:night: start, log, status, finish (docs/reviews/night/)
+    │   ├─ apply-all.mjs             ← สถานะของ /mflow:apply-all: start, log, status, gate, finish (docs/reviews/apply-all/)
     │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
     │   ├─ vendor.mjs                ← สำเนา plugin สำหรับ Claude Code on the web (.claude/skills/mflow/): plan, write, status
     │   ├─ packs.mjs                 ← แพ็ก business logic: list, check (รูปแบบ, requires, ชั้น stack, คำต้องห้าม), selected, use
@@ -552,6 +561,7 @@ mflow-marketplace/
 | `/mflow:review [branch \| --uncommitted \| change \| TASK \| pending [<change>]] [--short]` | ตรวจโค้ดก่อน merge (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) เต็มหรือสั้นตามไฟล์ที่ change แตะ |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:night [--until HH:MM] [--rounds <n>] [--no-e2e] [--stack]` | ก่อนปล่อยเครื่องไว้ เวลาไหนก็ได้: test, review, แก้และ test กับ review ซ้ำ, E2E, ตรวจ และรายการให้ดูตอนกลับมา โดยไม่มีใครดู |
+| `/mflow:apply-all [<change> ...] [--rounds <n>]` | มีหลาย change ที่ propose แล้ว: สร้างต่อกันจนหมด ทีละ branch, test กับ review วนแก้จนผ่าน แล้ว merge เข้า main โดยไม่มีใครดู |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
 
 คำสั่ง OpenSpec ที่ใช้ร่วม: `/opsx:explore`, `/opsx:propose`, `/opsx:apply`, `/opsx:archive`

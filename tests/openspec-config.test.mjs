@@ -140,6 +140,19 @@ test("apply archives the change in the same turn and commits once; archive commi
   for (const line of [apply, ...archive]) assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
 });
 
+// BunTukTransport 2026-11-08: /mflow:init saw "commit on the user's word" in the project, asked about it, recommended
+// keeping it and wrote that into CLAUDE.md and AGENTS.md, so /opsx:apply did not commit. The user chose that init
+// takes the plugin's line and asks nothing.
+test("init replaces a project's own commit line with the template's and asks nothing", () => {
+  const read = (rel) => fs.readFileSync(path.join(SCRIPTS, "..", rel), "utf8");
+  const skill = read("skills/init/SKILL.md");
+  assert.match(skill, /says something else about commits[^\n]*replace it with the template's line/);
+  assert.match(skill, /Do not ask about it, whatever work is waiting or failing/);
+  assert.match(skill, /which line was replaced/);
+  for (const name of ["templates/CLAUDE.md", "templates/AGENTS.md"]) assert.match(read(name), /Commit each finished piece of work without asking/);
+  assert.match(read("templates/CLAUDE.md"), /`\/opsx:apply` archives the change in the same turn and commits once/);
+});
+
 // StemHub 2026-10-31: landing-content ran integration classes 9 times in 8 tasks, 22 of its 24 test minutes; 15–17
 // of them were classes the change did not add, which the whole suite on main runs again anyway.
 test("apply runs each task's own integration tests only, and the shared checks once at the end", () => {

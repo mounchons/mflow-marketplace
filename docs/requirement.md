@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.44.1 |
+| เวอร์ชันที่อธิบาย | 0.44.2 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -442,7 +442,7 @@ flowchart TD
 
 | ID | ความต้องการ | สถานะ |
 |---|---|---|
-| FR-256 | `/mflow:apply-all [<change> ...] [--rounds <n>]` รับ change ใน `openspec/changes/` ตามลำดับ proposal เก่าสุดก่อน หรือตามชื่อที่ระบุ แล้วทำทีละ change บน branch `change/<change>` จาก main: `/opsx:apply` (archive และ commit), `/mflow:test since`, `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบต่อขั้น (ค่าเริ่มต้น 3) แล้ว merge แบบ `--no-ff` เข้า main เฉพาะเมื่อ `apply-all.mjs gate` อ่านจากไฟล์แล้วพบว่า change ถูก archive, แถวอยู่ใน `## Done` ของ `docs/reviews/pending.md`, มี record ที่ผ่าน และรายงานที่ approve โดยหลังจากนั้น commit มีแค่เอกสาร (0.44.1: ไฟล์ Markdown ใต้ `docs/`, `openspec/`, `backlog/` และ `STATUS.md` ไม่นับ `CLAUDE.md`, `AGENTS.md`, `.claude/` และนับทั้งสองฝั่งของการย้ายไฟล์) ชื่อ change ต้องเป็นตัวพิมพ์เล็ก ตัวเลข และขีดเท่านั้น change แรกที่ไม่ผ่านหรือต้องให้ผู้ใช้ตัดสินใจจะหยุดทั้งรอบ เริ่มได้เมื่ออยู่บน main, tree สะอาด และทำงานบนเครื่องเท่านั้น ไม่ push ไม่ลบ branch ไม่เขียนหรือรัน E2E สถานะระหว่างรันอยู่ใน `.git/mflow/apply-all.md` เพื่อไม่ให้ tree สกปรก จบแล้วย้ายไป `docs/reviews/apply-all/` | มีแล้ว ยังไม่เคยรันจริง |
+| FR-256 | `/mflow:apply-all [<change> ...] [--rounds <n>]` รับ change ใน `openspec/changes/` ตามลำดับ proposal เก่าสุดก่อน หรือตามชื่อที่ระบุ แล้วทำทีละ change บน branch `change/<change>` จาก main: `/opsx:apply` (archive และ commit), `/mflow:test since`, `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบต่อขั้น (ค่าเริ่มต้น 3) แล้ว merge แบบ `--no-ff` เข้า main เฉพาะเมื่อ `apply-all.mjs gate` อ่านจากไฟล์แล้วพบว่า change ถูก archive, แถวอยู่ใน `## Done` ของ `docs/reviews/pending.md`, มี record ที่ผ่าน และรายงานที่ approve โดยหลังจากนั้น commit มีแค่เอกสาร (0.44.2: เฉพาะไฟล์ Markdown ที่รอบนี้เขียนหลัง review คือ `docs/reviews/`, `docs/status-log.md`, `STATUS.md`, `openspec/changes/archive/` และ `backlog/tasks/` ไม่นับไฟล์ที่สั่งงาน AI อย่าง `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.claude/`, `.agents/`, `.codex/` ไม่ว่าอยู่ลึกแค่ไหน และนับทั้งสองฝั่งของการย้ายไฟล์) ชื่อ change ต้องเป็นตัวพิมพ์เล็ก ตัวเลข และขีดเท่านั้น change แรกที่ไม่ผ่านหรือต้องให้ผู้ใช้ตัดสินใจจะหยุดทั้งรอบ เริ่มได้เมื่ออยู่บน main, tree สะอาด และทำงานบนเครื่องเท่านั้น ไม่ push ไม่ลบ branch ไม่เขียนหรือรัน E2E สถานะระหว่างรันอยู่ใน `.git/mflow/apply-all.md` เพื่อไม่ให้ tree สกปรก จบแล้วย้ายไป `docs/reviews/apply-all/` | มีแล้ว ยังไม่เคยรันจริง |
 
 ## 7. Non-functional requirements
 

@@ -167,10 +167,12 @@ function log(root, step, state, opts) {
   return { event: { time: localTime(at), step, target: opts.target, state, note: opts.note ?? "" }, roundsLeft };
 }
 
-// What may follow the proven commit: Markdown under docs/, openspec/ and backlog/, and STATUS.md. Not every .md,
-// because CLAUDE.md, AGENTS.md and .claude/ steer the AI and no test or review read them. --no-renames lists both
-// sides of a move, so code moved under docs/ still counts as code.
-export const isDocument = (f) => f === "STATUS.md" || /^(docs|openspec|backlog)\/.*\.md$/i.test(f);
+// What may follow the proven commit: only the Markdown a run writes after its tests and review (records, reports,
+// the list, STATUS.md, a ticked gate task, a task's note). Never a file that steers an AI, at any depth, because no
+// test or review read it. --no-renames lists both sides of a move, so code moved into one of these folders is code.
+const WRITTEN_AFTER_REVIEW = /^(?:docs\/reviews\/.*|docs\/status-log|STATUS|openspec\/changes\/archive\/.*|backlog\/tasks\/.*)\.md$/;
+const STEERS_AN_AI = /(?:^|\/)(?:\.claude|\.agents|\.codex)\/|(?:^|\/)(?:CLAUDE|AGENTS|GEMINI)\.md$/i;
+export const isDocument = (f) => WRITTEN_AFTER_REVIEW.test(f) && !STEERS_AN_AI.test(f);
 const onlyDocumentsSince = (root, commit) => {
   const out = git(root, "-c", "core.quotePath=false", "diff", "--no-renames", "--name-only", commit, "HEAD");
   return out !== null && out.split("\n").filter(Boolean).every(isDocument);

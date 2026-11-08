@@ -190,7 +190,11 @@ for (const [what, change_] of [
   ["AGENTS.md, which steers the AI", () => commit("rules", { "AGENTS.md": "# changed\n" })],
   ["a Markdown file under .claude/", () => commit("a command", { ".claude/commands/x.md": "run this\n" })],
   ["a file that is not Markdown under docs/", () => commit("a script", { "docs/run.ps1": "echo\n" })],
-  ["code moved under docs/", () => { git(p, "mv", "src/app.txt", "docs/app.md"); commit("moved"); }],
+  ["code moved under docs/reviews/", () => { fs.mkdirSync(p.file("docs/reviews"), { recursive: true }); git(p, "mv", "src/app.txt", "docs/reviews/app.md"); commit("moved"); }],
+  ["a CLAUDE.md nested under docs/", () => commit("nested", { "docs/CLAUDE.md": "run this\n" })],
+  ["an AGENTS.md among the reports", () => commit("nested", { "docs/reviews/AGENTS.md": "run this\n" })],
+  ["a .claude folder among the reports", () => commit("nested", { "docs/reviews/.claude/commands/x.md": "run this\n" })],
+  ["a main spec", () => commit("spec", { "openspec/specs/a/spec.md": "s\n" })],
 ]) {
   test(`gate: ${what}, committed after the test run and the review, holds the merge`, needsGit, () => {
     passed(built());
@@ -201,9 +205,9 @@ for (const [what, change_] of [
   });
 }
 
-test("gate: Markdown under docs/, openspec/ and backlog/ and STATUS.md may follow the review", needsGit, () => {
+test("gate: what a run writes after its review may follow it", needsGit, () => {
   passed(built());
-  commit("documents", { "STATUS.md": "# s\n", "docs/status-log.md": "l\n", "backlog/tasks/t.md": "t\n", "openspec/specs/a/spec.md": "s\n" });
+  commit("documents", { "STATUS.md": "# s\n", "docs/status-log.md": "l\n", "docs/reviews/more.md": "r\n", "backlog/tasks/t.md": "t\n", "openspec/changes/archive/2026-11-08-one/tasks.md": "- [x] 1\n" });
   assert.deepEqual(ok("gate", "one").why, []);
 });
 

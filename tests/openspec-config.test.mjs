@@ -120,19 +120,24 @@ test("apply ends with a row in docs/reviews/pending.md, never with /mflow:test o
   assert.ok(!Object.values(LINES).flat().some((l) => /once per change/.test(l)));
 });
 
-// StemHub 2026-10-08..11-07: about 140 of the user's replies picked commit, push or merge from a menu. The
-// user chose (2026-11-08) that apply and archive commit their own work; push and merge still wait for a yes.
-test("apply and archive commit their own work by name, and push or merge only on the user's yes", () => {
+// StemHub 2026-10-08..11-07: about 140 of the user's replies picked commit, push or merge from a menu, and each
+// change took /opsx:propose, /opsx:apply and /opsx:archive typed apart. The user chose (2026-11-08) that apply
+// and archive commit their own work (0.39), and that apply archives the change in the same turn with one commit
+// (0.40); push and merge are asked once, in one line.
+test("apply archives the change in the same turn and commits once; archive commits by name; push or merge asked in one line", () => {
   const apply = LINES["operations.apply.guidance"].at(-1);
-  assert.match(apply, /^Once the change is ready to archive, commit its work on the branch checked out without asking/);
+  assert.match(apply, /^Then archive the change in this same turn, the way \/opsx:archive does/);
+  assert.match(apply, /unless the user said to stop after apply/);
+  assert.match(apply, /in one commit on the branch checked out, without asking/);
   assert.match(apply, /never with `git add -A`/);
+  assert.ok(!LINES["operations.apply.guidance"].some((l) => /tell the user that the change is ready to archive/.test(l)), "apply no longer stops at 'ready to archive'");
   const archive = LINES["operations.archive.guidance"];
-  assert.equal(archive.length, 1);
-  assert.match(archive[0], /^After the archive, commit it on the branch checked out without asking/);
-  for (const line of [apply, archive[0]]) {
-    assert.match(line, /Push and merge only on the user's yes\.$/);
-    assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
-  }
+  assert.equal(archive.length, 2);
+  assert.match(archive[0], /does not stop the archive\. Archive, and name it in one line of the reply instead of asking/);
+  assert.match(archive[1], /^After the archive, commit it on the branch checked out without asking/);
+  assert.match(archive[1], /when \/opsx:apply ran the archive in its turn, its one commit holds both/);
+  for (const line of [apply, archive[1]]) assert.match(line, /Push and merge only on the user's word, asked once in one line\.$/);
+  for (const line of [apply, ...archive]) assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
 });
 
 // StemHub 2026-10-31: landing-content ran integration classes 9 times in 8 tasks, 22 of its 24 test minutes; 15–17

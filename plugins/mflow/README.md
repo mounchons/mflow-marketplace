@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.39)
+## คำสั่ง (v0.40)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -115,7 +115,9 @@ hook ของ mflow ทำงานเฉพาะใน Claude Code (Codex ร
 test ทั้งชุดของบางโปรเจกต์ใช้เวลาเป็นสิบนาทีขึ้นไป mflow จึงรันทั้งชุดตอนที่คุณสั่งเท่านั้น และตั้งแต่ 0.35 รันครั้งเดียวสำหรับทุก change ที่รอ แทนครั้งละ change
 
 - **รายการรอ test และ review (0.35):** จบ `/opsx:apply` แล้ว Claude เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review ที่ต้องใช้พร้อมเหตุผล, หน้าจอที่ E2E ต้องตาม) แล้วบอกแค่ว่าพร้อม archive ไม่บอกให้สั่ง `/mflow:test` หรือ `/mflow:review` งานจึงเดินต่อ change ถัดไปได้ คุณสั่งเองทีหลังบน main: `/mflow:test` ครั้งเดียวเติมช่อง Test ให้ทุกแถวที่ commit นั้นมีงานของ change แล้ว (ดูจากประวัติ git ด้วย `scripts/pending.mjs`) แล้ว `/mflow:review pending` ตรวจทีละ change ตาม diff ของ change นั้น (ตั้งแต่ก่อน proposal ถึง archive) ใช้ผล test จากแถวนั้น แถวที่ผ่านทั้งสองอย่างย้ายไป `## Done` change ที่ archive แล้วแต่ไม่อยู่ในรายการ `/mflow:test` และ `/mflow:review pending` เพิ่มให้เองตั้งแต่วันที่ `Since:` session เริ่มใหม่ไม่เตือนเรื่องนี้
-- **commit เอง (0.39):** `/opsx:apply` (เมื่อพร้อม archive), `/opsx:archive`, `/mflow:test` และ `/mflow:review` commit งานของตัวเองบน branch ที่ checkout อยู่โดยไม่ถาม เพิ่มไฟล์ด้วยชื่อ ไม่ใช้ `git add -A` ส่วน push และ merge ยังถามทุกครั้ง apply และ archive ได้กฎนี้ผ่าน `operations.apply.guidance` และ `operations.archive.guidance` ใน `openspec/config.yaml` โปรเจกต์เดิมสั่ง `/mflow:init` หลังอัปเกรด
+- **commit เอง (0.39, 0.40):** งานที่เสร็จทุกชิ้น commit บน branch ที่ checkout อยู่โดยไม่ถาม ทั้งงานของคำสั่งและงานที่สั่งเป็นข้อความธรรมดา เพิ่มไฟล์ด้วยชื่อ ไม่ใช้ `git add -A` ส่วน push, merge และ deploy ถามครั้งเดียวเป็นบรรทัดเดียวตอนจบงาน ไม่เป็นเมนูมีเลข (กติกาอยู่ใน briefing, template `CLAUDE.md` และ `AGENTS.md`)
+- **apply แล้ว archive ต่อเลย (0.40):** `/opsx:apply` archive change ใน turn เดียวกันแล้ว commit ครั้งเดียว เว้นแต่สั่งให้หยุดหลัง apply ส่วน task ที่ตั้งใจปล่อยไว้ไม่ติ๊ก (gate, E2E) ไม่ทำให้ archive หยุดถาม พิมพ์ "ทำ X ให้จบ" ได้ Claude ทำ propose → apply → archive ต่อกัน ถามเฉพาะข้อที่ต้องตัดสิน apply และ archive ได้กฎนี้ผ่าน `operations.apply.guidance` และ `operations.archive.guidance` ใน `openspec/config.yaml` โปรเจกต์เดิมสั่ง `/mflow:init` หลังอัปเกรด
+- **งานเล็กไม่ต้องเปิด change (0.40):** งานที่ไม่เปลี่ยนพฤติกรรมที่ `openspec/specs/` เขียนไว้ (แก้บั๊กให้กลับไปตรง spec, label, style, ข้อความ, เอกสาร) บอก Claude ตรงๆ Claude แก้พร้อม unit test แล้ว commit และบอกหนึ่งบรรทัดว่าทำไมไม่เปิด change งานเหล่านี้ไม่มีแถวใน `docs/reviews/pending.md` อยากให้ review สั่ง `/mflow:review <branch>`
 
 - `/opsx:apply` รันเฉพาะ build, unit test ทั้งหมด และ test ที่ task เพิ่มหรือแก้ (filter ไปที่ test เหล่านั้น) ไม่รันทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change เดิมมีอยู่แล้ว apply จะปล่อยไว้ไม่ติ๊ก
 - test ระหว่าง apply รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งให้จบในราว 8 นาที ถ้ายาวกว่านั้นแบ่งตามคลาส (0.34) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำของเครื่องใกล้หมด แล้วไม่ได้ผลอะไรเลย

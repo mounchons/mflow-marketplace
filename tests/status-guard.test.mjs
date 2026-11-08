@@ -325,6 +325,7 @@ test("the briefing's ritual writes STATUS.md with a commit, not after an answer,
   const context = start("t-ask");
   assert.match(context, /STATUS\.md is written as part of a commit/);
   assert.match(context, /Do not add a STATUS\.md update after an answer/);
+  assert.match(context, /Commit each finished piece of work without asking, its files added by name; push, merge or deploy only on the user's word, asked once in one line at the end, never as a numbered menu/);
   assert.ok(context.includes("label the options a), b), c), never ก ข ค, so the answer is one line such as `1 a, 2 b, 3 a`"));
 });
 
@@ -339,6 +340,23 @@ test("a long STATUS.md is shortened in the briefing, and what is waiting and the
   assert.match(context, /shortened to fit the briefing/);
   assert.match(context, /1 new source doc\(s\) not processed/);
   assert.match(context, /## Session ritual/);
+});
+
+// ComparePrice 2026-10..11: one request per item, every finished item committed, no numbered menus, 13% of the
+// prompts were ceremony against 44% in StemHub since 0.35. The user chose (2026-11-08) to bring that loop over.
+test("the templates commit finished work, ask push or merge once, chain the change, and let a fix skip OpenSpec", () => {
+  const read = (f) => fs.readFileSync(new URL(`../plugins/mflow/templates/${f}`, import.meta.url), "utf8");
+  const claude = read("CLAUDE.md");
+  const agents = read("AGENTS.md");
+  for (const text of [claude, agents]) {
+    assert.match(text, /Commit each finished piece of work without asking, its files added by name \(never `git add -A`\)/);
+    assert.match(text, /Push, merge and deploy only on the user's word, asked once in one line at the end, never as a numbered menu/);
+  }
+  assert.match(claude, /`\/opsx:apply` archives the change in the same turn and commits once/);
+  assert.match(claude, /"Do X to the end" runs propose, apply and archive in one go/);
+  assert.match(claude, /A fix that changes no behaviour the specs describe: just ask, no change/);
+  assert.match(agents, /A fix that changes no behaviour `openspec\/specs\/` describes .* needs no OpenSpec change/);
+  assert.match(agents, /say in one line of the reply that it went without a change and why\. Behaviour that is new, changed, or not in the specs yet is an OpenSpec change/);
 });
 
 test("the plugin has no Stop hook; the check runs before Bash and PowerShell", () => {

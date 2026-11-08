@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.39.0 |
+| เวอร์ชัน plugin | 0.40.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -45,7 +45,7 @@ flowchart TD
     Q -->|ไม่| P
     H --> P["6. /opsx:propose"]
     P --> A["/opsx:apply<br/>หรือ /mflow:delegate --mode code"]
-    A --> AR["/opsx:archive<br/>(apply เพิ่มแถวลง docs/reviews/pending.md)"]
+    A --> AR["archive ใน turn เดียวกับ apply<br/>(apply เพิ่มแถวลง docs/reviews/pending.md)"]
     AR -->|slice ถัดไป| S4
     AR -.->|ภายหลัง บน main| T["/mflow:test<br/>(ครั้งเดียวทุกแถวที่รอ ไม่รวม E2E)"]
     T --> V["/mflow:review pending<br/>(ทีละ change, + /mflow:assess ถ้า tool อื่นทำ)"]
@@ -64,7 +64,7 @@ flowchart TD
 | 3.5 | `/mflow:discuss <กลุ่มข้อมูล> data model` | ก่อนสร้างหน้าจอแรกของกลุ่มข้อมูลที่หลายหน้าจอใช้ร่วมกัน | ต่อกลุ่มข้อมูล (ไม่บังคับ) |
 | 4 | `/mflow:screen <ชื่อ> …` → `/mflow:review-notes` | สร้างหรือปรับหน้าจอ แล้วทดสอบใช้งานหรือรีวิว | วนหลายรอบ |
 | 5 | `/mflow:hotspot`, `/mflow:golden` | เจอกฎใหญ่หรือกฎที่คลุมเครือ | ครั้งละหนึ่งตั๋วต่อ session (ตอบตั๋วง่ายหลายใบพร้อมกันได้) |
-| 6 | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` แล้วภายหลังบน main `/mflow:test` → `/mflow:review pending` | สร้างของจริงทีละ slice, test และ review ทีเดียวทุก change ที่รอ | ต่อ slice / ต่อรอบที่คุณสั่ง |
+| 6 | `/opsx:propose` → `/opsx:apply` (archive ให้ใน turn เดียวกัน) หรือ `ทำ <เรื่อง> ให้จบ` แล้วภายหลังบน main `/mflow:test` → `/mflow:review pending` | สร้างของจริงทีละ slice, test และ review ทีเดียวทุก change ที่รอ (แก้ที่ไม่เปลี่ยนพฤติกรรมใน spec บอก Claude ตรงๆ ไม่ต้องเปิด change) | ต่อ slice / ต่อรอบที่คุณสั่ง |
 | 7 | `/mflow:e2e <หน้าจอ>` หรือ `/mflow:e2e flow <capability หรือชื่อค่าตั้ง>` | หน้าจอนิ่งแล้ว อยากได้ E2E test (Playwright) ของหน้านั้น หรือของ flow ที่ข้ามหลายหน้า หลายฝ่าย และหลายเว็บ (เช่น ตั้งค่าที่ admin web แล้วแสดงที่ supplier web) | ต่อหน้าจอหรือต่อ flow เมื่อคุณสั่งเท่านั้น |
 | เหตุการณ์ | `/mflow:change-request` | ขอเปลี่ยนสิ่งที่อนุมัติหรือสร้างแล้ว | เมื่อเกิดขึ้น |
 | เหตุการณ์ | `/mflow:delegate` → `/mflow:assess` | ให้ AI ตัวอื่นวิเคราะห์ รีวิว หรือเขียนโค้ด | เมื่อต้องการ |
@@ -415,7 +415,8 @@ docs/
    - **ขนาดของ change (0.35):** หนึ่ง change คือหนึ่ง feature ทั้งฝั่ง server และหน้าจอ จึงทดสอบใช้งานได้ทันทีหลัง apply แยกเฉพาะเมื่อจะเกินราว 25 task หรือคุณสั่ง และแยกตาม feature (แต่ละส่วนมีทั้ง server และหน้าจอของตัวเอง) ไม่แยกเป็น change ของ API กับ change ของหน้าจอ ส่วนที่ยังไม่ propose อยู่ใต้ Later changes ให้คุณสั่งต่อ apply ที่ยาวไม่ต้องแยก: context เต็มก็ `/clear` แล้ว `/opsx:apply <change>` ทำต่อจาก task แรกที่ยังไม่ติ๊ก ที่มา: StemHub 2026-10-31 CR-009 วางไว้ 4 change พร้อมหน้าจอ แต่กฎของ 0.34 (เกิน 15 task หรือแก้โค้ดกลางพร้อมหน้าจอ) แยกสองตัวเป็น change ของ server กับของหน้าจอ แต่ละตัวต้อง propose archive และ merge เอง ส่วน `owning-site-names` ที่ทำ API กับหน้าจอใน change เดียว 11 task apply เสร็จใน 1 ชั่วโมง
    - **คำถามตอน propose (0.34.2):** มีเลขข้อ และตัวเลือกเป็น `a)` `b)` `c)` ตอบบรรทัดเดียวได้เลย เช่น `1 a, 2 b, 3 a` ไม่ต้องสลับภาษาแป้นพิมพ์ ใช้กติกาเดียวกับ `/mflow:discuss` และ `/mflow:analyze` ส่วนคำตอบที่พิมพ์ ก ข ค มา Claude อ่านตามลำดับให้
 2. `/opsx:apply` ให้ Claude ทำ หรือ `/mflow:delegate <ชื่อ change> --mode code --to codex` ให้ tool อื่นทำใน worktree แยก ค่าเริ่มต้นคือ Claude ทำเองทุก task ถ้าสั่ง `/mflow:subagent on` (แล้ว `/clear`) Claude จะส่งงานเขียนโค้ดของแต่ละ task ให้ subagent `mflow:dev` ที่รันบน Sonnet 5.5 แล้วตรวจ diff กับผล test เองก่อนติ๊ก task (ตั้งไว้ใน `operations.apply.guidance` ของ `openspec/config.yaml` อัปเดต OpenSpec แล้วไม่หาย) ปิดกลับด้วย `/mflow:subagent off` ระหว่างที่เปิด ถ้าไม่ใช้แค่รอบเดียว ให้บอกในข้อความ `/opsx:apply` ระหว่าง apply แต่ละ task รันเฉพาะ build, unit test และ test ที่ task เพิ่มหรือแก้ ไม่รัน test ทั้งชุด และ `tasks.md` ไม่มี task สุดท้ายที่รันทั้งชุด (gate task) ถ้า change มี gate task อยู่ apply ปล่อยไว้ไม่ติ๊ก apply ไม่เขียนและไม่รัน E2E test task จบด้วย unit test ส่วน task เก่าที่สั่งให้รัน Playwright Claude ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E on request (/mflow:e2e <หน้าจอ>)` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และเขียนชื่อหน้าจอที่ change แตะไว้ในแถวของ change ใน `docs/reviews/pending.md` ให้สั่ง `/mflow:e2e` ทีหลัง
-   - **จบ apply (0.35):** Claude เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review ที่ต้องใช้พร้อมเหตุผล, ช่อง Test และ Review ที่ยังว่าง, หน้าจอที่ E2E ต้องตาม) แล้วบอกแค่ว่าพร้อม archive ไม่บอกให้สั่ง `/mflow:test`, `/mflow:review` หรือ `/mflow:e2e` ทั้งในคำตอบและใน STATUS.md งานจึงเดินต่อ change ถัดไปได้เลย คุณสั่ง test และ review เองทีหลังบน main ครั้งเดียวสำหรับทุกแถว session เริ่มใหม่ก็ไม่เตือน เปิดไฟล์นี้ดูเองเมื่ออยากรู้ว่าค้างอะไร
+   - **apply แล้ว archive ต่อเลย (0.40):** เมื่อ task เสร็จ Claude archive change ใน turn เดียวกัน (รวม delta spec เข้า `openspec/specs/` และย้ายโฟลเดอร์ไป archive) แล้ว commit งานกับ archive เป็น commit เดียว เว้นแต่คุณบอกให้หยุดหลัง apply task ที่ตั้งใจปล่อยไว้ไม่ติ๊ก (gate task หรือ task ที่มีแค่ E2E) ไม่ทำให้หยุดถาม Claude archive แล้วบอกชื่อ task นั้นหนึ่งบรรทัด อยากให้จบในข้อความเดียวตั้งแต่ต้น พิมพ์เช่น `ทำ <เรื่อง> ให้จบ` Claude ทำ propose → apply → archive ต่อกัน ถามเฉพาะข้อที่คุณต้องตัดสิน (ตามกติกา "Who decides" ใน AGENTS.md ที่ว่าคำสั่งให้ทำครอบทุกขั้นที่คำสั่งนั้นพูดถึง) ที่มา: StemHub 31 ต.ค.–7 พ.ย. พิมพ์ `/opsx:*` และ `/mflow:*` 59 ครั้ง ส่วนใหญ่เป็นการสั่งทีละขั้นของ change เดียวกัน
+   - **จบ apply (0.35):** Claude เพิ่มแถวของ change ลง `docs/reviews/pending.md` (branch, วันที่, ระดับ review ที่ต้องใช้พร้อมเหตุผล, ช่อง Test และ Review ที่ยังว่าง, หน้าจอที่ E2E ต้องตาม) ไม่บอกให้สั่ง `/mflow:test`, `/mflow:review` หรือ `/mflow:e2e` ทั้งในคำตอบและใน STATUS.md งานจึงเดินต่อ change ถัดไปได้เลย คุณสั่ง test และ review เองทีหลังบน main ครั้งเดียวสำหรับทุกแถว session เริ่มใหม่ก็ไม่เตือน เปิดไฟล์นี้ดูเองเมื่ออยากรู้ว่าค้างอะไร
    - **test ระหว่าง apply (0.34):** รันทีละคำสั่งโดยไม่ใช้เบื้องหลัง แต่ละคำสั่งจบในราว 8 นาที (ยาวกว่านั้นแบ่งตามคลาส) เพราะ test ที่รันเบื้องหลังถูกหยุดได้เมื่อหน่วยความจำใกล้หมดและไม่ได้ผลอะไรเลย
    - **integration ระหว่าง apply (0.36):** หลังแต่ละ task รัน build, unit test ทั้งหมด (ไม่กี่วินาที) และ integration class ที่ task เพิ่มหรือแก้เอง ในคำสั่งเดียว ไม่รัน integration class อื่น เมื่อจบ task สุดท้าย ถ้า change แตะ migration หรือ data model, startup/DI, สิทธิ์ หรือ seed จะรัน `- Shared checks:` ใน `## Commands` ของ AGENTS.md (class ที่ตรวจทุกตาราง ทุก migration startup และ seed) รอบเดียว แล้วแก้ที่ล้มก่อนบอกว่าพร้อม archive ถ้า AGENTS.md ไม่มีบรรทัดนี้ Claude บอกหนึ่งบรรทัดว่าการตรวจนี้รอ `/mflow:test` ส่วน integration อื่นทั้งหมดรอ `/mflow:test` บน main ซึ่งครอบทุกอย่างที่ apply ไม่ได้รัน ที่มา: StemHub 2026-10-31 landing-content รัน integration 9 รอบใน 8 task รวม 22 นาที ในนั้น 15–17 นาทีเป็น class เดิมที่ whole suite บน main รันซ้ำอยู่แล้ว แต่ TemplateDatabaseTests ที่ล้มเพราะตารางใหม่ก็เจอระหว่าง apply จึงคงไว้เป็น shared checks ตอนจบ
      บรรทัดที่เสนอให้ StemHub (คุณเพิ่มเองตอน upgrade):
@@ -448,7 +449,7 @@ docs/
    - **บน web (claude.ai/code):** ใช้สำเนา plugin ที่ `/mflow:init` เขียนไว้ใน `.claude/skills/mflow/` (ดูหัวข้อ "mflow บน Claude Code on the web" ด้านล่าง ยังไม่เคยลองบน web จริง) เลือก permission mode เป็น Auto และ push ทุก commit ทันที (session branch หลัง commit เอกสาร, branch แก้ไขหลัง commit โค้ด) เพราะเครื่องบน web ที่ว่างนานจะพัก และอาจถูกเรียกคืนเหลือแค่ประวัติแชต ถ้าหลุดกลางทาง เปิด session ใหม่บน branch ที่ push ไว้แล้วสั่ง `/mflow:night` อีกครั้ง จะทำต่อจากขั้นที่ค้าง
    - **สถานะ:** อยู่ที่ `docs/reviews/night/<วันที่>-<เวลา>.md` เขียนทุกครั้งที่จบขั้น ถ้า context เต็มหรือ session หลุด สั่ง `/mflow:night` อีกครั้งแล้ว Claude ทำต่อจากขั้นที่ค้าง ถ้าใส่ `--until` เมื่อถึงเวลาจะข้ามไปขั้นตรวจและ handoff ทันที `--no-e2e` ข้ามขั้น E2E
    - **`--stack` (0.38.2):** ให้ Claude เปิด stack ที่ E2E ต้องใช้เอง (เช่น StemHub: `cp deploy/.env.example deploy/.env` เฉพาะเมื่อยังไม่มีไฟล์ แล้ว `docker compose -f deploy/docker-compose.yml up -d --build` ตาม `## Commands`) ก่อนขั้นเขียน E2E แล้วรอจน health address ตอบ (ไม่เกิน 10 นาที) ถ้า stack เปิดอยู่แล้วใช้ตัวนั้นและไม่ปิด ถ้าเปิดเองจะปิดหลังรัน E2E ด้วย `down` ไม่ใส่ `-v` ข้อมูลใน stack ยังอยู่ ไฟล์ที่มีอยู่แล้วไม่ถูกแก้ ถ้า Docker ไม่ทำงาน (บน Windows ต้องเปิด Docker Desktop) หรือ stack ไม่ขึ้น Claude บันทึก log ท้ายๆ แล้วรันต่อโดยไม่มี project ที่ต้องใช้ stack ไม่ใส่ `--stack` จะรัน project แบบ stack เฉพาะเมื่อ stack เปิดอยู่แล้ว
-5. `/opsx:archive` แล้วเช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง
+5. เช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง (ตั้งแต่ 0.40 `/opsx:apply` archive ให้แล้ว ถ้าสั่งให้หยุดหลัง apply ค่อยสั่ง `/opsx:archive` เอง)
 6. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
 ### เมื่อมีเหตุการณ์
@@ -533,7 +534,7 @@ docs/
 | เวลา | เกิดอะไรขึ้น | คุณทำอะไร |
 |---|---|---|
 | เปิด session | hook ใส่ briefing ให้ Claude อัตโนมัติ: ส่วน Now ของ STATUS.md, log ล่าสุด, change ที่ค้าง, task ที่ In Progress, hotspot ที่ยัง active, เอกสารที่ยังไม่ได้ประมวลผล, รายงานของ AI อื่นที่ยังไม่ได้ assess, เอกสาร discuss ที่รอคุณอ่าน และส่วนแยกที่ไม่บังคับ: "Discussion agenda (optional)" (หัวข้อแนะนำที่ยังไม่เริ่ม ไม่เกินสามชื่อ และหัวข้อที่อนุมัติแล้วแต่มีเอกสารใหม่มากระทบ) กับ "Consultations (optional)" (งาน analyze/design/challenge ที่ยังไม่สรุป ถ้ามี) ถ้ามีอะไรผิด briefing บอกตรงๆ เช่น config อ่านไม่ได้, CLI ใช้ไม่ได้, template ของโปรเจกต์เก่ากว่า plugin ("mflow upgrade") ถ้า STATUS.md ยาวเกิน briefing ย่อส่วนที่ยาวที่สุดก่อน งานที่รอและ ritual จึงไม่หาย | สั่งงานต่อจาก Now ได้เลย ไม่ต้องอธิบายซ้ำ ส่วน Now มีคำสั่งถัดไปที่คำสั่งก่อนหน้าเขียนไว้ เห็นบรรทัดที่บอกว่าผิด ให้ `/mflow:help check setup` |
-| ระหว่างทำงาน | (0.39) STATUS.md ถูกเขียนตอน `git commit` ไม่ใช่หลังคำตอบ: ถ้า commit มีงานที่ STATUS.md ยังไม่ครอบ (นับทั้งไฟล์ที่ลบ เปลี่ยนชื่อ และที่ commit ไปแล้วใน session นี้หลังเขียน STATUS.md ครั้งล่าสุด ส่วน commit ที่มี STATUS.md อยู่ด้วยนับว่าลงแล้ว) hook ขวาง commit ไว้หนึ่งครั้ง Claude เขียนบันทึกสั้นโดยไม่แตะ log เก่า ใส่ใน commit เดียวกัน แล้วตอบเรื่องงานตามปกติโดยไม่พูดถึง STATUS.md ทุก commit ที่มีงานยังไม่ลงถามหนึ่งครั้ง ลอง commit ซ้ำผ่านเสมอจึงไม่วน `/opsx:apply`, `/opsx:archive`, `/mflow:test` และ `/mflow:review` commit งานของตัวเองเมื่อจบโดยไม่ถาม ส่วน push และ merge ยังถามทุกครั้ง | ไม่ต้องทำอะไร ปรับหรือปิดได้ใน `.mflow/config.json` (`statusGuard`, ชื่อเดิม `stopGuard` ยังใช้ได้) |
+| ระหว่างทำงาน | (0.39) STATUS.md ถูกเขียนตอน `git commit` ไม่ใช่หลังคำตอบ: ถ้า commit มีงานที่ STATUS.md ยังไม่ครอบ (นับทั้งไฟล์ที่ลบ เปลี่ยนชื่อ และที่ commit ไปแล้วใน session นี้หลังเขียน STATUS.md ครั้งล่าสุด ส่วน commit ที่มี STATUS.md อยู่ด้วยนับว่าลงแล้ว) hook ขวาง commit ไว้หนึ่งครั้ง Claude เขียนบันทึกสั้นโดยไม่แตะ log เก่า ใส่ใน commit เดียวกัน แล้วตอบเรื่องงานตามปกติโดยไม่พูดถึง STATUS.md ทุก commit ที่มีงานยังไม่ลงถามหนึ่งครั้ง ลอง commit ซ้ำผ่านเสมอจึงไม่วน (0.40) งานที่เสร็จทุกชิ้น commit เองโดยไม่ถาม ทั้งงานของคำสั่งและงานที่สั่งเป็นข้อความธรรมดา เพิ่มไฟล์ด้วยชื่อ ส่วน push, merge และ deploy ถามเป็นบรรทัดเดียวตอนจบงาน ไม่เป็นเมนูให้เลือกเลข (ที่มา: StemHub ตั้งแต่ 31 ต.ค. การตอบตัวเลข 65 จาก 67 ครั้งเกิดหลังเมนู commit/push/merge/deploy) | ไม่ต้องทำอะไร ปรับหรือปิดได้ใน `.mflow/config.json` (`statusGuard`, ชื่อเดิม `stopGuard` ยังใช้ได้) |
 | จบวัน | | `/mflow:handoff` เขียน STATUS.md แบบละเอียดจากข้อเท็จจริง (git, openspec, backlog และผล test) ให้คนที่ไม่เห็นแชตวันนี้ทำต่อได้ ตั้งแต่ 0.36.1 `## Now` เหลือแค่สถานะปัจจุบันกับรายการ `Still open:` บรรทัดละข้อ block ของ session ก่อนๆ และหัวข้อที่อยู่ระหว่าง `## Now` กับ `## Log` ย้ายไปท้าย `docs/status-log.md` ใต้ `## Now blocks moved on <วันที่>` ส่วน log เกิน 10 รายการย้ายไปบนสุดของไฟล์เดียวกัน ทั้งหมดคำต่อคำด้วย script `status-trim.mjs` ไม่มีการย่อหรือสรุป `/mflow:help check setup` เตือนเมื่อ STATUS.md เกิน 100 KB |
 | ก่อนสลับไปใช้ tool อื่น | | `/mflow:handoff --for codex` ได้ brief ของงานถัดไปด้วย |
 | ก่อนปล่อยเครื่องไว้ (ข้ามคืน พักเที่ยง หรือประชุม) ถ้ามี change รอ test และ review | | เปิด session ด้วย `claude --permission-mode auto` แล้วสั่ง `/mflow:night` (0.38, `--until HH:MM` ถ้าอยากให้หยุดตามเวลา) ตอนกลับมาเปิด `## Now` ของ STATUS.md: branch ที่รอคุณสั่ง merge, สิ่งที่หยุดเพราะครบรอบหรือหมดเวลา, สิ่งที่ล้มแล้วยังไม่แก้ และคำถามที่ Claude เลือกคำตอบแทน |
@@ -862,7 +863,8 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | พร้อมตอบตั๋ว `ask` หรือได้คำตอบจากคนที่ไปถามมาแล้ว | `/mflow:hotspot <slug> <TASK-ID> <คำตอบ>` |
 | ทำคำสั่งเสร็จแล้วไม่รู้จะทำอะไรต่อ | ดูส่วน Now ของ STATUS.md หรือ `/mflow:help <เล่าสถานการณ์>` |
 | มี Excel จริงที่ใช้พิสูจน์กฎได้ | `/mflow:golden @ไฟล์.xlsx <slug>` |
-| งานเล็กที่ชัดแล้ว | `/opsx:propose` → `/opsx:apply` → `/opsx:archive` (test และ review ทีหลังจากรายการ `docs/reviews/pending.md`) |
+| แก้บั๊กให้กลับไปตรง spec, แก้ label/style/ข้อความ, แก้เอกสาร (ไม่เปลี่ยนพฤติกรรมที่ spec เขียนไว้) | บอก Claude ตรงๆ ได้เลย (0.40) Claude แก้พร้อม unit test แล้ว commit โดยไม่เปิด OpenSpec change และบอกหนึ่งบรรทัดว่าทำไมไม่เปิด |
+| งานที่เปลี่ยนพฤติกรรมและชัดแล้ว | `ทำ <เรื่อง> ให้จบ` หรือ `/opsx:propose` → `/opsx:apply` (archive ให้ใน turn เดียวกัน) test และ review ทีหลังจากรายการ `docs/reviews/pending.md` |
 | อยากรู้ว่า change ไหนยังไม่ได้ test หรือ review | เปิด `docs/reviews/pending.md` แล้วบน main สั่ง `/mflow:test` (ครั้งเดียวครอบทุกแถว) ตามด้วย `/mflow:review pending` |
 | test ทั้งชุดใช้เวลานาน อยากรันครั้งเดียวตอนเครื่องว่าง (apply รันเฉพาะ build, unit test และ test ของแต่ละ task กับ shared checks ตอนจบ ที่เหลือ `/mflow:test` รันครบ) | `/mflow:test` (`/mflow:test <ส่วน>` สำหรับบางส่วน) ไม่รวม E2E |
 | หน้าจอนิ่งแล้ว อยากได้ E2E test ของหน้านั้น (ไม่มีคำสั่งอื่นเขียนหรือรัน E2E) | `/mflow:e2e <หน้าจอ>` (E2E ทั้งหมด: `/mflow:test e2e`) |
@@ -880,7 +882,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.39.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.40.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -899,6 +901,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | STATUS.md ที่ใหญ่มากจาก session ก่อน 0.36.1 (เช่น `## Now` หลายร้อย block) | สั่ง `/mflow:handoff` หนึ่งครั้ง ครั้งแรกให้ดูว่า Claude เลือกจำนวน block ที่เป็นสถานะปัจจุบันถูก (`--keep`) และรายการ `Still open:` ครบ ของเดิมอยู่ใน `docs/status-log.md` ครบทุกคำ |
 | hook ตอน commit (0.39) นับงานของ session นี้กับไฟล์ที่ยังไม่ commit แต่ commit ของ session ก่อนที่ไม่มี STATUS.md ไม่นับ | briefing ตอนเปิด session บอกงานนั้นใต้ "Not yet in STATUS.md" ถ้าอยากให้ลงทันทีสั่ง `/mflow:handoff` |
 | hook ตอน commit, review ที่แก้ blocker/major เอง และคำสั่งที่ commit เอง (0.39) ยังไม่เคยรันใน session จริง | ครั้งแรกให้ดูว่าคำตอบจบที่เนื้องาน ไม่มีข้อความเรื่อง STATUS.md ต่อท้าย commit มี STATUS.md ไปด้วย และ branch `fix/<change>-review` มีแต่โค้ด โปรเจกต์เดิมสั่ง `/mflow:init` หลังอัปเกรดเพื่อรับบรรทัด commit ใหม่ใน `openspec/config.yaml` |
+| commit งานทุกชิ้นเอง, apply ที่ archive ต่อเลย และงานเล็กที่ไม่เปิด change (0.40) ยังไม่เคยรันใน session จริง และงานเล็กที่ไม่เปิด change ไม่มีแถวใน `docs/reviews/pending.md` จึงไม่อยู่ใน `/mflow:review pending` | ครั้งแรกให้ดูว่าบรรทัดที่ Claude บอกว่า "ไม่เปิด change เพราะ…" สมเหตุผล ถ้าเห็นว่าควรเป็น change บอกได้เลย งานเล็กที่อยากให้ review สั่ง `/mflow:review <branch>` หรือ `--uncommitted` บรรทัด commit กับงานเล็กมาจาก template `CLAUDE.md` และ `AGENTS.md` ที่ `/mflow:init` เสนอหลังอัปเกรด ส่วนบรรทัดใน briefing ใช้ได้ทันทีหลังอัปเดต plugin |
 | STATUS.md ของโปรเจกต์ที่สร้างก่อน 0.34.1 ยังมี comment ใต้ `## Log` ที่บอกให้ย่อ entry เก่าเหลือบรรทัดเดียว | `/mflow:handoff` ครั้งถัดไปเปลี่ยน comment ให้ตาม template หรือแก้เอง ถ้า log ถูกย่อไปแล้ว entry เดิมยังอยู่ใน git (`git show <commit>:STATUS.md`) |
 | wireframe ตัวอักษรที่มีภาษาไทย ขอบขวาไม่ตรงกัน เพราะสระบน/ล่างและวรรณยุกต์ไม่กินช่องในฟอนต์ความกว้างคงที่ | Claude จะวาดกล่องแบบเปิดด้านขวา หรือวางข้อความไทยไว้ท้ายบรรทัด ถ้ามีหน้าจอจริงแล้วจะใช้ภาพหน้าจอแทน |
 | แพ็กชุดแรก (0.37) ทำจากโปรเจกต์เดียว (StemHub) และยังไม่เคยใช้กับโปรเจกต์ที่สอง | ข้อที่ Claude ตอบจากแพ็กอยู่ในตาราง "จากแพ็ก" ของเอกสาร discuss ทุกข้อ อ่านข้อที่ **ถ้าผิด** เป็นแก้ยาก แล้วแย้งด้วย `> ความเห็น:` ได้ |

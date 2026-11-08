@@ -90,7 +90,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 
 ## Session ritual
 Start: read `STATUS.md`, run `openspec list` and `backlog task list -s "In Progress" --plain`.
-Commit (if code or decisions changed): in the same commit, rewrite `## Now` in `STATUS.md` and add one log entry (Did / Decided / Next) with task IDs and change names. Claude Code's commit hook asks for it once; never write it as an extra step after the answer.
+Commit each finished piece of work without asking, its files added by name (never `git add -A`). If code or decisions changed, the same commit rewrites `## Now` in `STATUS.md` and adds one log entry (Did / Decided / Next) with task IDs and change names; Claude Code's commit hook asks for it once, and it is never an extra step after the answer. Push, merge and deploy only on the user's word, asked once in one line at the end, never as a numbered menu.
 <!-- Claude Code does this automatically through mflow hooks; Codex follows this text. -->
 
 ## Working as a tool other than Claude Code
@@ -109,5 +109,6 @@ A task or change is done when its acceptance criteria are covered by tests that 
 ## Boundaries
 - Edit Backlog.md files only through the `backlog` CLI.
 - Change `openspec/specs/` only through an OpenSpec change + archive; `openspec/changes/archive/` is history, read-only.
+- A fix that changes no behaviour `openspec/specs/` describes (code brought back to what the specs say, a label, style or text, documents) needs no OpenSpec change: make it with its unit test, commit it with its STATUS entry, and say in one line of the reply that it went without a change and why. Behaviour that is new, changed, or not in the specs yet is an OpenSpec change.
 - Leave generated agent files alone: `.claude/skills/openspec-*`, `.claude/commands/opsx/`, `.agents/skills/`, and content between tool marker comments.
 - Ask before: schema migrations on shared databases, deleting data, changing auth.

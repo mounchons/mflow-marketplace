@@ -280,6 +280,8 @@ parts.push(
     "Work from the state above. STATUS.md is written as part of a commit: when a commit holds work its log " +
     "does not cover, the commit hook asks once for the entry ('## Now' rewritten, one log entry with Did / Decided / Next) " +
     "to go into that commit. Do not add a STATUS.md update after an answer. " +
+    "Commit each finished piece of work without asking, its files added by name; push, merge or deploy only on the " +
+    "user's word, asked once in one line at the end, never as a numbered menu. " +
     "When the user has to choose, number the questions and label the options a), b), c), never ก ข ค, " +
     "so the answer is one line such as `1 a, 2 b, 3 a`, typed without switching keyboard language.",
 );

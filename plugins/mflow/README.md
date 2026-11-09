@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.44)
+## คำสั่ง (v0.45)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -64,7 +64,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:test [since \| unit \| e2e \| <ส่วน> \| <filter>]` | รัน test ทั้งชุด (ไม่รวม E2E) พร้อม build, format, lint และ `openspec validate` เมื่อคุณสั่ง ปกติบน main ครั้งเดียวสำหรับทุก change ใน `docs/reviews/pending.md` รันทีละส่วน ส่วนละไม่เกินราว 8 นาที แล้วบันทึกผลกับ commit ที่ `docs/reviews/tests/` (ระหว่าง `/opsx:apply` รันเฉพาะ test ของแต่ละ task และ test class ของโค้ดที่ task แก้) E2E ทั้งหมดรันเมื่อสั่ง `/mflow:test e2e` เท่านั้น |
 | | `/mflow:e2e [<หน้าจอ> [สิ่งที่จะทดสอบ]] | flow <capability หรือค่าตั้ง>` | เขียนหรือปรับ E2E test (Playwright) ของหน้าจอเดียว หรือของ flow ที่ข้ามหลายหน้าและหลายฝ่าย (0.37: เชิญ supplier → ตอบ → กวาดข้อมูล → ส่งกลับ/เก็บเข้าคลัง → สร้าง doc → approve/reject/withdraw → acknowledge; 0.37.1: ค่าตั้งที่ตั้งบน admin web แล้วแสดงบน supplier web ทุกสถานะ; 0.38.3: flow ต่อเนื่องที่เริ่มจากข้อมูลของระบบภายนอก → job → admin approve → อีเมล → supplier acknowledge ใน test เดียวแบ่งด้วย `test.step`) แล้วรันเฉพาะไฟล์นั้น ใช้เมื่อหน้าจอนิ่งแล้วและคุณสั่งเอง เปิด browser พร้อมกันไม่เกิน 2 ตัว ไม่ใส่ชื่อหน้าจอ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test ล่าสุด |
 | | `/mflow:night [--until HH:MM] [--rounds n] [--no-e2e] [--stack]` | (0.38) สั่งเมื่อจะปล่อยเครื่องไว้ เวลาไหนก็ได้ (ชื่อ night เป็นแค่ชื่อ) แล้วรันเองจนจบโดยไม่มีใครดู: `/mflow:test` → แก้ test ที่ล้ม → `/mflow:review pending` → แก้ตาม review ใน `fix/<change>-review` แล้ว test และ review ซ้ำ (ไม่เกิน `--rounds` รอบ ค่าเริ่มต้น 3) → เขียน E2E ที่หน้าจอในช่อง E2E screens ยังขาด → `/mflow:test e2e` → ตรวจ → `/mflow:handoff` เป็นรายการให้ดูตอนกลับมา ไม่ merge เอง main ได้แค่ commit เอกสาร push เฉพาะบน web ไม่ใส่ `--until` รันจนจบทุกขั้น ใส่แล้วหยุดเมื่อถึงเวลานั้น (0.38.1) สถานะอยู่ที่ `docs/reviews/night/` ทำต่อจากขั้นที่ค้างได้ บนเครื่องเปิด session ด้วย `claude --permission-mode auto` `--stack` (0.38.2) เปิด stack ที่ E2E ต้องใช้ (เช่น `docker compose … up -d --build` ตาม `## Commands`) แล้วรอ health address ตอบ และปิดเฉพาะที่เปิดเองหลังจบ E2E (`down` ไม่ใส่ `-v` ข้อมูลยังอยู่) |
-| | `/mflow:apply-all [<change> ...] [--rounds n]` | (0.44) สร้างทุก change ที่ propose ไว้แล้วใน `openspec/changes/` ต่อกันจนหมดโดยไม่มีใครดู ทีละ change: แตก branch `change/<change>` จาก main → `/opsx:apply` (archive และ commit) → `/mflow:test since` → `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบ (ค่าเริ่มต้น 3) → merge เข้า main เมื่อด่านตรวจ `apply-all.mjs gate` ผ่าน แล้วทำ change ถัดไป change แรกที่ไม่ผ่านหยุดทั้งรอบ ไม่ push ไม่รัน E2E ต้องอยู่บน main และ tree สะอาด เปิด session ด้วย `claude --permission-mode auto` |
+| | `/mflow:apply-all [<NN> ...] [--rounds n]` | (0.45) นำสิ่งที่ approve ใน `/mflow:discuss` แล้วไปจนถึง main: จัดเอกสารที่ยังไม่ได้สร้างเป็นแผนรายการ change พร้อมลำดับ แสดงงานที่จะทำและหน้าจอที่ยังไม่มีต้นแบบพร้อมคำแนะนำ ให้คุณเลือกทำทั้งหมดหรือบางข้อครั้งเดียว แล้วรันเองทีละ change: แตก branch `change/<change>` จาก main → `/opsx:propose` จากเอกสารและแพ็กที่ approve → `/opsx:apply` (archive และ commit) → `/mflow:test since` → `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบ (ค่าเริ่มต้น 3) → merge เข้า main เมื่อด่านตรวจ `apply-all.mjs gate` ผ่าน แล้วทำ change ถัดไป หัวข้อที่ยังไม่ approve ใน discuss สั่งไม่ได้ เจอข้อที่เอกสารไม่ได้ตอบ หรือ change ที่ไม่ผ่าน จะหยุดทั้งรอบ ไม่ push ไม่รัน E2E ต้องอยู่บน main และ tree สะอาด เปิด session ด้วย `claude --permission-mode auto` |
 | ส่งต่อ | `/mflow:handoff [--for <tool>]` | STATUS.md ฉบับละเอียด ย้าย block เก่าของ `## Now` และ log เก่าไป `docs/status-log.md` คำต่อคำด้วย `status-trim.mjs` (0.36.1) (+ brief ให้ tool อื่นทำต่อ) |
 
 ## Stack
@@ -224,7 +224,7 @@ mflow/
 │   ├─ review-units.mjs    ← หน่วยตรวจ: ร่าง, ตรวจว่าทุกไฟล์มีหน่วย, ไฟล์ข้อเท็จจริงที่ดึงจากโค้ด
 │   ├─ pending.mjs         ← รายการรอ test และ review (docs/reviews/pending.md): range ของ change, ติ๊ก Test ตามประวัติ git, ติ๊ก Review
 │   ├─ night.mjs           ← สถานะของ /mflow:night (docs/reviews/night/): ขั้นถัดไป, รอบต่อเป้าหมาย, เวลาที่เหลือ
-│   ├─ apply-all.mjs       ← สถานะของ /mflow:apply-all (ระหว่างรันอยู่ใน .git จบแล้วที่ docs/reviews/apply-all/): ขั้นถัดไป, เพดานรอบ, ด่านตรวจก่อน merge
+│   ├─ apply-all.mjs       ← สถานะของ /mflow:apply-all (ระหว่างรันอยู่ใน .git จบแล้วที่ docs/reviews/apply-all/): แผนจากเอกสาร discuss ที่ approve แล้ว, ขั้นถัดไป, เพดานรอบ, ด่านตรวจก่อน merge
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
 │   ├─ vendor.mjs          ← สำเนา plugin ใน .claude/skills/mflow/ สำหรับ Claude Code on the web: plan, write, status (0.38.1)
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)

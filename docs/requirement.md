@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.44.2 |
+| เวอร์ชันที่อธิบาย | 0.45.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -442,7 +442,15 @@ flowchart TD
 
 | ID | ความต้องการ | สถานะ |
 |---|---|---|
-| FR-256 | `/mflow:apply-all [<change> ...] [--rounds <n>]` รับ change ใน `openspec/changes/` ตามลำดับ proposal เก่าสุดก่อน หรือตามชื่อที่ระบุ แล้วทำทีละ change บน branch `change/<change>` จาก main: `/opsx:apply` (archive และ commit), `/mflow:test since`, `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบต่อขั้น (ค่าเริ่มต้น 3) แล้ว merge แบบ `--no-ff` เข้า main เฉพาะเมื่อ `apply-all.mjs gate` อ่านจากไฟล์แล้วพบว่า change ถูก archive, แถวอยู่ใน `## Done` ของ `docs/reviews/pending.md`, มี record ที่ผ่าน และรายงานที่ approve โดยหลังจากนั้น commit มีแค่เอกสาร (0.44.2: เฉพาะไฟล์ Markdown ที่รอบนี้เขียนหลัง review คือ `docs/reviews/`, `docs/status-log.md`, `STATUS.md`, `openspec/changes/archive/` และ `backlog/tasks/` ไม่นับไฟล์ที่สั่งงาน AI อย่าง `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.claude/`, `.agents/`, `.codex/` ไม่ว่าอยู่ลึกแค่ไหน และนับทั้งสองฝั่งของการย้ายไฟล์) ชื่อ change ต้องเป็นตัวพิมพ์เล็ก ตัวเลข และขีดเท่านั้น change แรกที่ไม่ผ่านหรือต้องให้ผู้ใช้ตัดสินใจจะหยุดทั้งรอบ เริ่มได้เมื่ออยู่บน main, tree สะอาด และทำงานบนเครื่องเท่านั้น ไม่ push ไม่ลบ branch ไม่เขียนหรือรัน E2E สถานะระหว่างรันอยู่ใน `.git/mflow/apply-all.md` เพื่อไม่ให้ tree สกปรก จบแล้วย้ายไป `docs/reviews/apply-all/` | มีแล้ว ยังไม่เคยรันจริง |
+| FR-256 | `/mflow:apply-all [<change> ...] [--rounds <n>]` รับ change ใน `openspec/changes/` ตามลำดับ proposal เก่าสุดก่อน หรือตามชื่อที่ระบุ แล้วทำทีละ change บน branch `change/<change>` จาก main: `/opsx:apply` (archive และ commit), `/mflow:test since`, `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน `--rounds` รอบต่อขั้น (ค่าเริ่มต้น 3) แล้ว merge แบบ `--no-ff` เข้า main เฉพาะเมื่อ `apply-all.mjs gate` อ่านจากไฟล์แล้วพบว่า change ถูก archive, แถวอยู่ใน `## Done` ของ `docs/reviews/pending.md`, มี record ที่ผ่าน และรายงานที่ approve โดยหลังจากนั้น commit มีแค่เอกสาร (0.44.2: เฉพาะไฟล์ Markdown ที่รอบนี้เขียนหลัง review คือ `docs/reviews/`, `docs/status-log.md`, `STATUS.md`, `openspec/changes/archive/` และ `backlog/tasks/` ไม่นับไฟล์ที่สั่งงาน AI อย่าง `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.claude/`, `.agents/`, `.codex/` ไม่ว่าอยู่ลึกแค่ไหน และนับทั้งสองฝั่งของการย้ายไฟล์) ชื่อ change ต้องเป็นตัวพิมพ์เล็ก ตัวเลข และขีดเท่านั้น change แรกที่ไม่ผ่านหรือต้องให้ผู้ใช้ตัดสินใจจะหยุดทั้งรอบ เริ่มได้เมื่ออยู่บน main, tree สะอาด และทำงานบนเครื่องเท่านั้น ไม่ push ไม่ลบ branch ไม่เขียนหรือรัน E2E สถานะระหว่างรันอยู่ใน `.git/mflow/apply-all.md` เพื่อไม่ให้ tree สกปรก จบแล้วย้ายไป `docs/reviews/apply-all/` | ที่มาของ change เปลี่ยนโดย FR-257 ส่วนที่เหลือมีแล้ว ยังไม่เคยรันจริง |
+
+### 6.25 `/mflow:apply-all` เริ่มจาก `/mflow:discuss` (0.45)
+
+ที่มา: คำขอของผู้ใช้ 2026-11-09 ให้รวม `/opsx:propose` เข้าไปในคำสั่ง เพราะข้อสรุปได้จาก `/mflow:discuss` แล้ว และคำสั่งนี้ต้องผ่าน discuss ก่อน คำตอบของผู้ใช้วันเดียวกัน: แสดงแผนก่อนเริ่ม โดยแสดงงานที่จะทำ ให้เลือกทำทั้งหมดหรือบางส่วน และหน้าจอที่ยังไม่มีต้นแบบให้แนะนำแล้วผู้ใช้ตัดสินใจเอง เหตุที่ต้องมีแผน: เอกสารหนึ่งฉบับไม่เท่ากับ change หนึ่งตัว และเลขเอกสารไม่ใช่ลำดับการสร้าง
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-257 | `/mflow:apply-all [<NN> ...] [--rounds <n>]` อ่านเอกสาร discuss ที่ `status: approved` บน main แล้วจัดเป็นแผนรายการ change: เอกสารที่ไม่มีอะไรต้องสร้างหรือสร้างแล้วไม่เข้าแผน เอกสารแบบข้อมูลรวมกับ change แรกที่สร้างตารางนั้น แพ็กที่ถูก require มาก่อน และหัวข้อที่รอ discuss แสดงแยก แสดงแผนเป็นภาษาไทยเป็นข้อตามลำดับ แต่ละข้อบอกงานที่จะทำ (ตาราง กฎและ endpoint หน้าจอ) และหน้าจอที่ยังไม่มีต้นแบบพร้อมคำแนะนำว่าสร้างเลยหรือทำต้นแบบก่อน การไม่มีต้นแบบไม่กันออกจากแผน ให้ตอบ a) ทำทั้งหมด b) ทำบางข้อ c) แก้แผน d) ยกเลิก ก่อนเขียนอะไร เมื่อตอบแล้ว แต่ละ change ที่เลือก จะ propose บน branch ของตัวเองจาก main ล่าสุด โดยให้ข้อที่ต้องถามตอบจากเอกสารและแพ็ก ข้อที่เอกสารไม่ได้ตอบจะหยุดทั้งรอบพร้อมคำถาม ไม่เดา ส่วนที่ §7 ส่งไป `/mflow:change-request` เขียน CR โดยถือคำตอบเริ่มเป็นการอนุมัติ ส่วนที่ proposal แยกไป Later changes ต่อคิวถัดจาก change นั้น `apply-all.mjs start` รับเฉพาะ `<change>=<NN>[,<NN>...]` และปฏิเสธเอกสารที่ไม่ใช่ `approved` | มีแล้ว ยังไม่เคยรันจริง |
 
 ## 7. Non-functional requirements
 
@@ -522,7 +530,7 @@ mflow-marketplace/
     │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
     │   ├─ pending.mjs               ← รายการรอ test และ review: status, range, add, init, tick-test, tick-review
     │   ├─ night.mjs                 ← สถานะของ /mflow:night: start, log, status, finish (docs/reviews/night/)
-    │   ├─ apply-all.mjs             ← สถานะของ /mflow:apply-all: start, log, status, gate, finish (docs/reviews/apply-all/)
+    │   ├─ apply-all.mjs             ← แผนและสถานะของ /mflow:apply-all: candidates, start, extend, log, status, gate, finish (docs/reviews/apply-all/)
     │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
     │   ├─ vendor.mjs                ← สำเนา plugin สำหรับ Claude Code on the web (.claude/skills/mflow/): plan, write, status
     │   ├─ packs.mjs                 ← แพ็ก business logic: list, check (รูปแบบ, requires, ชั้น stack, คำต้องห้าม), selected, use
@@ -561,7 +569,7 @@ mflow-marketplace/
 | `/mflow:review [branch \| --uncommitted \| change \| TASK \| pending [<change>]] [--short]` | ตรวจโค้ดก่อน merge (ใช้ผล `/mflow:test` ที่ commit เดียวกัน) เต็มหรือสั้นตามไฟล์ที่ change แตะ |
 | `/mflow:subagent [on \| off \| status] [--shared]` | เปิดหรือปิด subagent `mflow:dev` ที่ `/opsx:apply` ใช้ (ค่าเริ่มต้นปิด) |
 | `/mflow:night [--until HH:MM] [--rounds <n>] [--no-e2e] [--stack]` | ก่อนปล่อยเครื่องไว้ เวลาไหนก็ได้: test, review, แก้และ test กับ review ซ้ำ, E2E, ตรวจ และรายการให้ดูตอนกลับมา โดยไม่มีใครดู |
-| `/mflow:apply-all [<change> ...] [--rounds <n>]` | มีหลาย change ที่ propose แล้ว: สร้างต่อกันจนหมด ทีละ branch, test กับ review วนแก้จนผ่าน แล้ว merge เข้า main โดยไม่มีใครดู |
+| `/mflow:apply-all [<NN> ...] [--rounds <n>]` | discuss หลายหัวข้อแล้ว: จัดเป็นแผน change ตอบใช่ครั้งเดียว แล้ว propose สร้าง test กับ review วนแก้จนผ่าน และ merge เข้า main ต่อกันจนหมดโดยไม่มีใครดู |
 | `/mflow:handoff [--for <tool>]` | จบวัน หรือก่อนสลับ tool |
 
 คำสั่ง OpenSpec ที่ใช้ร่วม: `/opsx:explore`, `/opsx:propose`, `/opsx:apply`, `/opsx:archive`

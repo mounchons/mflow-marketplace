@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.45.0 |
+| เวอร์ชันที่อธิบาย | 0.46.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -452,6 +452,14 @@ flowchart TD
 |---|---|---|
 | FR-257 | `/mflow:apply-all [<NN> ...] [--rounds <n>]` อ่านเอกสาร discuss ที่ `status: approved` บน main แล้วจัดเป็นแผนรายการ change: เอกสารที่ไม่มีอะไรต้องสร้างหรือสร้างแล้วไม่เข้าแผน เอกสารแบบข้อมูลรวมกับ change แรกที่สร้างตารางนั้น แพ็กที่ถูก require มาก่อน และหัวข้อที่รอ discuss แสดงแยก แสดงแผนเป็นภาษาไทยเป็นข้อตามลำดับ แต่ละข้อบอกงานที่จะทำ (ตาราง กฎและ endpoint หน้าจอ) และหน้าจอที่ยังไม่มีต้นแบบพร้อมคำแนะนำว่าสร้างเลยหรือทำต้นแบบก่อน การไม่มีต้นแบบไม่กันออกจากแผน ให้ตอบ a) ทำทั้งหมด b) ทำบางข้อ c) แก้แผน d) ยกเลิก ก่อนเขียนอะไร เมื่อตอบแล้ว แต่ละ change ที่เลือก จะ propose บน branch ของตัวเองจาก main ล่าสุด โดยให้ข้อที่ต้องถามตอบจากเอกสารและแพ็ก ข้อที่เอกสารไม่ได้ตอบจะหยุดทั้งรอบพร้อมคำถาม ไม่เดา ส่วนที่ §7 ส่งไป `/mflow:change-request` เขียน CR โดยถือคำตอบเริ่มเป็นการอนุมัติ ส่วนที่ proposal แยกไป Later changes ต่อคิวถัดจาก change นั้น `apply-all.mjs start` รับเฉพาะ `<change>=<NN>[,<NN>...]` และปฏิเสธเอกสารที่ไม่ใช่ `approved` | มีแล้ว ยังไม่เคยรันจริง |
 
+### 6.26 ดูงานทั้งหมดในหน้าเดียว (`/mflow:monitor`, 0.46)
+
+ที่มา: คำขอของผู้ใช้ 2026-11-09 ว่าเมื่อใช้ mflow แล้วมี discuss, branch และการรวม branch จำนวนมาก จึงต้องการ UI ดูงานทั้งหมด (ขั้นที่ 1 ของ factory, `docs/mflow-factory-proposal.md` ข้อ 10 และ 11) คำตอบของผู้ใช้ 2026-11-09: ทีละโปรเจกต์ก่อน วางโครงให้เพิ่มหลายโปรเจกต์ได้ คำตอบ 2026-11-13: เป็นคำสั่ง `/mflow:monitor` ที่เขียนหน้า HTML แล้วเปิดใน browser
+
+| ID | ความต้องการ | สถานะ |
+|---|---|---|
+| FR-258 | `/mflow:monitor [--no-open]` อ่านอย่างเดียวแล้วเขียนหน้า HTML ไฟล์เดียวที่ `.git/mflow/monitor.html` (tree ไม่สกปรก `/mflow:apply-all` จึงยังเริ่มได้) และเปิดใน browser ยกเว้นบน web: feature ทุกข้อใน story map ของ `docs/vision.md` (ข้อที่มีเลข เช่น `6a` ใต้หัว phase `**P1: …**` และบรรทัดที่ขึ้นด้วยตัวหนาแล้วมีข้อความต่อ) พร้อมเอกสาร discuss ของแต่ละข้อ: เอกสารที่ระบุ `feature:` ใน frontmatter (`6a` หรือ `P1-6a`) ผูกตรง ถ้าไม่มีใช้เอกสารที่บรรทัดนั้นอ้างถึงและแสดงว่าเป็นค่าประมาณ story map ที่อ่านไม่ได้บอกเหตุแทนการเดา, เอกสาร discuss และหัวข้อใน AGENDA, branch แบ่งกลุ่มจากจำนวน commit ที่นำและตาม main (ไม่นำคืออยู่ใน main แล้ว นำและ commit ล่าสุดเกิน 14 วันคือค้าง), merge และ commit ล่าสุดบน main, change ที่เปิดอยู่พร้อมจำนวน task, แถวใน `docs/reviews/pending.md`, CR, hotspot, รอบของ apply-all และ night และรายการรอคุณที่คำนวณจากไฟล์ เรียงจากเร่งสุด ไม่เขียนไฟล์ใดใน tree ไม่ refresh index (`GIT_OPTIONAL_LOCKS=0`) ไม่เรียก `apply-all.mjs candidates` ข้อความจากไฟล์ของโปรเจกต์ถูก escape และหน้าไม่โหลดอะไรจากเน็ต | มีแล้ว ยังไม่เคยรันผ่านคำสั่งใน session จริง (script รันกับ BunTukTransport แล้ว) |
+
 ## 7. Non-functional requirements
 
 | รหัส | Requirement |
@@ -530,6 +538,7 @@ mflow-marketplace/
     │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
     │   ├─ pending.mjs               ← รายการรอ test และ review: status, range, add, init, tick-test, tick-review
     │   ├─ night.mjs                 ← สถานะของ /mflow:night: start, log, status, finish (docs/reviews/night/)
+    │   ├─ monitor.mjs               ← หน้า /mflow:monitor อ่านอย่างเดียว: feature จาก story map, discuss, branch เทียบ main, merge, change, รายการรอคุณ (.git/mflow/monitor.html)
     │   ├─ apply-all.mjs             ← แผนและสถานะของ /mflow:apply-all: candidates, start, extend, log, status, gate, finish (docs/reviews/apply-all/)
     │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
     │   ├─ vendor.mjs                ← สำเนา plugin สำหรับ Claude Code on the web (.claude/skills/mflow/): plan, write, status

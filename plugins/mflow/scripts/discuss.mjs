@@ -456,7 +456,7 @@ function docsOfChange(root, name) {
 }
 
 /** A YAML list under `key:` in a Backlog task's frontmatter (the shared parser reads scalars only). */
-function fmList(text, key) {
+export function fmList(text, key) {
   const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] || "";
   const lines = fm.split(/\r?\n/);
   const at = lines.findIndex((l) => new RegExp(`^${key}:`).test(l));

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.45.0 |
+| เวอร์ชัน plugin | 0.46.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -450,6 +450,7 @@ docs/
    - **สถานะ:** อยู่ที่ `docs/reviews/night/<วันที่>-<เวลา>.md` เขียนทุกครั้งที่จบขั้น ถ้า context เต็มหรือ session หลุด สั่ง `/mflow:night` อีกครั้งแล้ว Claude ทำต่อจากขั้นที่ค้าง ถ้าใส่ `--until` เมื่อถึงเวลาจะข้ามไปขั้นตรวจและ handoff ทันที `--no-e2e` ข้ามขั้น E2E
    - **`--stack` (0.38.2):** ให้ Claude เปิด stack ที่ E2E ต้องใช้เอง (เช่น StemHub: `cp deploy/.env.example deploy/.env` เฉพาะเมื่อยังไม่มีไฟล์ แล้ว `docker compose -f deploy/docker-compose.yml up -d --build` ตาม `## Commands`) ก่อนขั้นเขียน E2E แล้วรอจน health address ตอบ (ไม่เกิน 10 นาที) ถ้า stack เปิดอยู่แล้วใช้ตัวนั้นและไม่ปิด ถ้าเปิดเองจะปิดหลังรัน E2E ด้วย `down` ไม่ใส่ `-v` ข้อมูลใน stack ยังอยู่ ไฟล์ที่มีอยู่แล้วไม่ถูกแก้ ถ้า Docker ไม่ทำงาน (บน Windows ต้องเปิด Docker Desktop) หรือ stack ไม่ขึ้น Claude บันทึก log ท้ายๆ แล้วรันต่อโดยไม่มี project ที่ต้องใช้ stack ไม่ใส่ `--stack` จะรัน project แบบ stack เฉพาะเมื่อ stack เปิดอยู่แล้ว
    - **ทำทุกหัวข้อที่ discuss แล้วต่อกันจนหมด (0.45):** approve หัวข้อด้วย `/mflow:discuss` ก่อน แล้วสั่ง `/mflow:apply-all` บน `main` ที่ tree สะอาด ใน session ที่เปิดด้วย `claude --permission-mode auto` Claude จะจัดเอกสารเป็นแผนรายการ change พร้อมลำดับ และบอกว่าฉบับไหนไม่ต้องเป็น change หรือยังต้อง discuss ก่อน แต่ละข้อบอกงานที่จะทำและหน้าจอที่ยังไม่มีต้นแบบพร้อมคำแนะนำ ตอบครั้งเดียว a) ทำทั้งหมด b) ทำบางข้อ (เช่น `b 1,3`) c) แก้แผน d) ยกเลิก จากนั้นทำทีละ change บน branch `change/<change>`: propose จากเอกสารและแพ็กที่ approve, apply, archive, commit, `/mflow:test since`, `/mflow:review` แก้และ test กับ review ซ้ำไม่เกิน 3 รอบต่อขั้น แล้ว merge เข้า main เมื่อ `apply-all.mjs gate` ผ่าน ข้อที่เอกสารไม่ได้ตอบ หรือ change ที่ไม่ผ่าน จะหยุดทั้งรอบ ค่าใช้จ่ายคือแต่ละ change มี test และ review ของตัวเอง ไม่ใช่รันรวมครั้งเดียวเหมือน `/mflow:night` ไม่ push และไม่รัน E2E
+   - **ดูงานทั้งหมดในหน้าเดียว (0.46):** สั่ง `/mflow:monitor` เมื่อไรก็ได้ ไม่ต้องอยู่บน main Claude เขียนหน้า `.git/mflow/monitor.html` แล้วเปิดใน browser และบอกรายการรอคุณในแชต หน้านี้แสดง feature ทุกข้อใน story map พร้อมเอกสาร discuss ของแต่ละข้อ เอกสาร discuss และ AGENDA, branch เทียบ main (กำลังทำ ค้างเกิน 14 วัน อยู่ใน main แล้ว), merge, change, แถวที่รอ test และ review, CR และ hotspot เอกสารที่มีเครื่องหมาย ≈ คือค่าประมาณจากการที่บรรทัดใน story map อ้างถึงเอกสารนั้น ใส่ `feature: P1-6a` (หรือ `feature: [6a, 6b]`) ใน frontmatter ของเอกสาร discuss เพื่อผูกให้ตรง คำสั่งนี้อ่านอย่างเดียว ไม่แก้ ไม่สลับ branch และไม่ commit สั่งซ้ำเพื่อได้หน้าใหม่
 5. เช็ก `git diff --stat openspec/specs` ว่า spec หลักเปลี่ยนจริง (ตั้งแต่ 0.40 `/opsx:apply` archive ให้แล้ว ถ้าสั่งให้หยุดหลัง apply ค่อยสั่ง `/opsx:archive` เอง)
 6. กลับไปขั้น 4 สำหรับ slice ถัดไป
 
@@ -880,13 +881,14 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | แก้ตาม review แล้ว อยากพิสูจน์ commit ใหม่โดยไม่รันทั้งชุด | `/mflow:test since` |
 | อยากให้ test, review, แก้ตาม review, E2E และตรวจ รันเองโดยไม่ต้องนั่งดู (เวลาไหนก็ได้) แล้วกลับมามีรายการให้ดู | `/mflow:night [--until HH:MM] [--stack]` ใน session ที่เปิดด้วย `claude --permission-mode auto` (หรือบน web) ไม่ merge เอง |
 | discuss และ approve หลายหัวข้อแล้ว อยากให้สร้างต่อกันจนหมด ทั้ง propose, apply, test, review, แก้จนผ่าน และ merge เข้า main โดยไม่ต้องนั่งดู | อยู่บน `main` tree สะอาด เปิด session ด้วย `claude --permission-mode auto` แล้วสั่ง `/mflow:apply-all [<NN> ...] [--rounds 3]` Claude แสดงงานที่จะทำและหน้าจอที่ยังไม่มีต้นแบบ ให้เลือกทำทั้งหมดหรือบางข้อครั้งเดียว ใส่เลขเอกสารเพื่อจำกัดแผน หัวข้อที่ยังไม่ approve สั่งไม่ได้ ข้อที่เอกสารไม่ได้ตอบหรือ change ที่ไม่ผ่านจะหยุดทั้งรอบ ไม่ push ไม่รัน E2E ตอนกลับมาเปิด `## Now` ของ STATUS.md สั่งซ้ำได้เพื่อทำต่อจาก change ที่หยุด |
+| อยากเห็นงานทั้งหมด: feature ไหนยังไม่มีเอกสาร, เอกสารไหนยังคุยไม่จบ, branch ไหนค้าง, อะไรรอคุณ | `/mflow:monitor` (เปิดหน้า `.git/mflow/monitor.html` ใน browser อ่านอย่างเดียว) |
 | งานใหญ่ apply นานหลายชั่วโมง หรือ context เต็มกลางงาน | `/clear` แล้ว `/opsx:apply <change>` ทำต่อจาก task แรกที่ยังไม่ติ๊ก งานที่จะเกินราว 25 task Claude แบ่งตาม feature ให้ตอน propose (0.35) และรัน `/mflow:test` บนเครื่องที่สอง หรือให้ Codex รัน `$mflow-test` ระหว่างที่ทำส่วนถัดไป |
 | จบวัน หรือจะสลับ tool | `/mflow:handoff [--for <tool>]` |
 | ไม่แน่ใจ | `/mflow:help <เล่าสถานการณ์>` |
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.45.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.46.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -919,6 +921,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | E2E ของค่าตั้งที่ข้ามเว็บ (0.37.1, 0.38) ปรับตาม test สองเว็บของ StemHub แล้ว แต่ยังไม่เคยสั่ง `/mflow:e2e flow` ในโปรเจกต์จริง | ครั้งแรกให้ดูรายการค่าตั้งที่ Claude แสดงก่อนเขียน (ตั้งที่ไหน แสดงที่ไหน กี่สถานะ ไปถึงใคร มีผลเมื่อไร และ test ของแต่ละท่อนหรือ `missing`) และดูว่า test ที่เปลี่ยนข้อมูลที่ทุก test อ่านคืนค่าใน `finally` |
 | `/mflow:night` (0.38) ยังไม่เคยรันในโปรเจกต์จริง และสำเนา plugin ใน `.claude/skills/mflow/` ที่ `/mflow:init` เขียน (0.38.1) ยังไม่เคยลองบน web | ครั้งแรกให้สั่งด้วย `--until` ที่ใกล้ (เช่นอีก 2 ชั่วโมง) แล้วดูไฟล์ใน `docs/reviews/night/` ว่าทุกขั้นจบหรือหยุดพร้อมเหตุผล branch ที่สร้างตรงกับรายการใน `## Now` และ `git diff --name-only <commit เริ่ม>..main` มีแค่เอกสาร |
 | `/mflow:apply-all` (0.45) ยังไม่เคยรันในโปรเจกต์จริง | ครั้งแรกให้ใส่เลขเอกสารเล็กๆ แค่ฉบับเดียว แล้วดูไฟล์ใน `docs/reviews/apply-all/` และ `git log --first-parent main` ก่อนสั่งทั้งหมด |
+| `/mflow:monitor` (0.46) ยังไม่เคยรันผ่านคำสั่งใน session จริง (script รันกับ BunTukTransport แล้ว) และอ่าน story map จากข้อที่มีเลขใต้ `## Scope` ของ `docs/vision.md` ข้อที่เขียนแบบอื่นไม่นับ และเอกสาร discuss ส่วนใหญ่ยังไม่มี `feature:` จึงผูกได้แค่ค่าประมาณจากการอ้างถึง (BunTukTransport 2026-11-13: 8 จาก 24 ข้อ) | ดูหน้าครั้งแรกแล้วเทียบกับ story map ถ้าข้อไหนผิด ใส่ `feature:` ในเอกสาร discuss ของข้อนั้น |
 | ถ้าหน้าต่างขออนุญาตขึ้นระหว่าง `/mflow:night` งานจะรอจนมีคนตอบ | เปิด session ด้วย `claude --permission-mode auto` ก่อนสั่ง ถ้ายังมีคำสั่งที่ถูกถาม ให้เพิ่มใน allow list ของ `.claude/settings.local.json` หลังรันครั้งแรก |
 | hook `e2e-guard` ปฏิเสธ `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกิน `e2eMaxWorkers` (ค่าเริ่มต้น 2) ดูเฉพาะคำสั่งที่เรียก Playwright ตรงๆ ไม่เห็น npm script ที่ห่อ Playwright หรือ Microsoft.Playwright ใต้ `dotnet test` | ตั้ง `workers: 2` ใน `playwright.config` ด้วย (`/mflow:help check setup` เตือนให้) อยากให้เปิด browser พร้อมกันมากกว่านั้น ตั้ง `e2eMaxWorkers` ใน `.mflow/config.json` |
 | `openspec-config.mjs` แก้ `config.yaml` ทีละบรรทัด ไม่ได้อ่าน YAML ทุกรูปแบบ: `context` ที่เขียนบรรทัดเดียวหรือแบบ `>` และ key ที่ไม่ใช่ list จะถูกรายงานใน `problems` และไม่แตะ | แก้ส่วนนั้นเอง แล้วรัน script อีกครั้ง |

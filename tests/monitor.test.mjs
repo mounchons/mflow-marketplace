@@ -11,7 +11,7 @@ import path from "node:path";
 import { afterEach, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { git, hasGit, project, run } from "./helpers.mjs";
-import { featureRefs, storyMap } from "../plugins/mflow/scripts/monitor.mjs";
+import { featureRefs, opener, storyMap } from "../plugins/mflow/scripts/monitor.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "plugins", "mflow");
@@ -180,6 +180,15 @@ test("text from the project's files is escaped on the page", needsGit, () => {
   assert.ok(html.includes("&lt;script&gt;alert(1)&lt;/script&gt;"));
   assert.ok(!/<script|<link|https?:\/\//i.test(html), "no script, stylesheet or network address");
   assert.ok(!fs.existsSync(p.file(".git/mflow/monitor.html")), "--out writes only there");
+});
+
+test("the page opens with no shell: a path with & or ^ is one argument, never a command (0.46.1)", () => {
+  const file = "D:\\R&D ^x\\proj\\.git\\mflow\\monitor.html";
+  assert.deepEqual(opener(file, "win32"), ["explorer.exe", [file]]);
+  assert.deepEqual(opener(file, "darwin"), ["open", [file]]);
+  assert.deepEqual(opener(file, "linux"), ["xdg-open", [file]]);
+  const source = fs.readFileSync(path.join(PLUGIN, "scripts", "monitor.mjs"), "utf8");
+  assert.ok(!/["']cmd(\.exe)?["']|shell:\s*true/.test(source), "no cmd.exe and no shell option");
 });
 
 test("outside an mflow project it refuses and says why", () => {

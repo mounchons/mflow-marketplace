@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.46.0 |
+| เวอร์ชันที่อธิบาย | 0.46.1 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -458,7 +458,7 @@ flowchart TD
 
 | ID | ความต้องการ | สถานะ |
 |---|---|---|
-| FR-258 | `/mflow:monitor [--no-open]` อ่านอย่างเดียวแล้วเขียนหน้า HTML ไฟล์เดียวที่ `.git/mflow/monitor.html` (tree ไม่สกปรก `/mflow:apply-all` จึงยังเริ่มได้) และเปิดใน browser ยกเว้นบน web: feature ทุกข้อใน story map ของ `docs/vision.md` (ข้อที่มีเลข เช่น `6a` ใต้หัว phase `**P1: …**` และบรรทัดที่ขึ้นด้วยตัวหนาแล้วมีข้อความต่อ) พร้อมเอกสาร discuss ของแต่ละข้อ: เอกสารที่ระบุ `feature:` ใน frontmatter (`6a` หรือ `P1-6a`) ผูกตรง ถ้าไม่มีใช้เอกสารที่บรรทัดนั้นอ้างถึงและแสดงว่าเป็นค่าประมาณ story map ที่อ่านไม่ได้บอกเหตุแทนการเดา, เอกสาร discuss และหัวข้อใน AGENDA, branch แบ่งกลุ่มจากจำนวน commit ที่นำและตาม main (ไม่นำคืออยู่ใน main แล้ว นำและ commit ล่าสุดเกิน 14 วันคือค้าง), merge และ commit ล่าสุดบน main, change ที่เปิดอยู่พร้อมจำนวน task, แถวใน `docs/reviews/pending.md`, CR, hotspot, รอบของ apply-all และ night และรายการรอคุณที่คำนวณจากไฟล์ เรียงจากเร่งสุด ไม่เขียนไฟล์ใดใน tree ไม่ refresh index (`GIT_OPTIONAL_LOCKS=0`) ไม่เรียก `apply-all.mjs candidates` ข้อความจากไฟล์ของโปรเจกต์ถูก escape และหน้าไม่โหลดอะไรจากเน็ต | มีแล้ว ยังไม่เคยรันผ่านคำสั่งใน session จริง (script รันกับ BunTukTransport แล้ว) |
+| FR-258 | `/mflow:monitor [--no-open]` อ่านอย่างเดียวแล้วเขียนหน้า HTML ไฟล์เดียวที่ `.git/mflow/monitor.html` (tree ไม่สกปรก `/mflow:apply-all` จึงยังเริ่มได้) และเปิดใน browser ยกเว้นบน web: feature ทุกข้อใน story map ของ `docs/vision.md` (ข้อที่มีเลข เช่น `6a` ใต้หัว phase `**P1: …**` และบรรทัดที่ขึ้นด้วยตัวหนาแล้วมีข้อความต่อ) พร้อมเอกสาร discuss ของแต่ละข้อ: เอกสารที่ระบุ `feature:` ใน frontmatter (`6a` หรือ `P1-6a`) ผูกตรง ถ้าไม่มีใช้เอกสารที่บรรทัดนั้นอ้างถึงและแสดงว่าเป็นค่าประมาณ story map ที่อ่านไม่ได้บอกเหตุแทนการเดา, เอกสาร discuss และหัวข้อใน AGENDA, branch แบ่งกลุ่มจากจำนวน commit ที่นำและตาม main (ไม่นำคืออยู่ใน main แล้ว นำและ commit ล่าสุดเกิน 14 วันคือค้าง), merge และ commit ล่าสุดบน main, change ที่เปิดอยู่พร้อมจำนวน task, แถวใน `docs/reviews/pending.md`, CR, hotspot, รอบของ apply-all และ night และรายการรอคุณที่คำนวณจากไฟล์ เรียงจากเร่งสุด ไม่เขียนไฟล์ใดใน tree ไม่ refresh index (`GIT_OPTIONAL_LOCKS=0`) ไม่เรียก `apply-all.mjs candidates` ข้อความจากไฟล์ของโปรเจกต์ถูก escape และหน้าไม่โหลดอะไรจากเน็ต (0.46.1) เปิดหน้าโดยไม่ผ่าน shell: Windows ใช้ `explorer.exe` ส่ง path เป็น argument เดียว ไม่ใช่ `cmd /c start` ที่ทำให้ path มี `&` หรือ `^` (เช่นโฟลเดอร์ `R&D`) กลายเป็นคำสั่ง | มีแล้ว ยังไม่เคยรันผ่านคำสั่งใน session จริง (script รันกับ BunTukTransport แล้ว) |
 
 ## 7. Non-functional requirements
 

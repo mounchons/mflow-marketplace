@@ -480,9 +480,15 @@ ${projects.map(renderProject).join("\n")}
 
 // ---------- the command ----------
 
+/** The page in the default browser. No shell anywhere: a path with & or ^ (a folder named R&D) would run as a command under cmd. */
+export function opener(file, platform = process.platform) {
+  if (platform === "win32") return ["explorer.exe", [file]];
+  return [platform === "darwin" ? "open" : "xdg-open", [file]];
+}
+
 function openInBrowser(file) {
   if (/^(1|true|yes|on)$/i.test(process.env.CLAUDE_CODE_REMOTE ?? "")) return false;
-  const [cmd, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", file]] : process.platform === "darwin" ? ["open", [file]] : ["xdg-open", [file]];
+  const [cmd, args] = opener(file);
   try {
     const child = spawn(cmd, args, { detached: true, stdio: "ignore", windowsHide: true });
     child.on("error", () => {});

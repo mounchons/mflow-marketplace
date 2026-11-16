@@ -11,7 +11,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PLUGIN = "plugins/tamra";
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), "utf8");
 const SKILLS = ["search", "save", "get", "update", "space", "tag", "archive", "withdraw"];
-const TOOLS = new Set(["kb_overview", "kb_template", "kb_search", "kb_get", "kb_history", "kb_save", "kb_restore", "kb_admin"]);
+const TOOLS = new Set(["kb_overview", "kb_template", "kb_search", "kb_get", "kb_history", "kb_save", "kb_restore", "kb_admin", "kb_space_create"]);
 // Only explicit admin commands may pre-approve kb_admin; /tamra:withdraw is irreversible, so it always asks.
 const ADMIN_PREAPPROVED = new Set(["space", "tag", "archive"]);
 

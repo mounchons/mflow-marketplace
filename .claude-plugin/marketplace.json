@@ -25,9 +25,9 @@
     },
     {
       "name": "tamra",
-      "version": "0.2.0",
+      "version": "0.3.1",
       "source": "./plugins/tamra",
-      "description": "Tamra knowledge base: connects the Tamra MCP server (URL and token asked at install); search, save, read and revise knowledge, and with an owner token manage spaces, tags, archive and withdraw."
+      "description": "Tamra knowledge base: connects the Tamra MCP server (URL and token asked at install); search, save, read and revise knowledge, create spaces for new projects or topics, and with an owner token manage members, tags, archive and withdraw."
     }
   ]
 }

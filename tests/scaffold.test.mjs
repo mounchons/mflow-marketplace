@@ -27,6 +27,21 @@ test("AGENTS.md asks for answers typed without switching keyboard language", () 
   assert.ok(p.read("AGENTS.md").includes("label each one's options `a)`, `b)`, `c)`, never ก ข ค, so the answer is one line such as `1 a, 2 b, 3 a`"));
 });
 
+// 2026-11-16: requirements typed in chat never went through /mflow:capture, and nothing else pointed at
+// /mflow:hotspot, which Claude cannot run itself, so it was never used. The user chose a one-line hint, no new step.
+test("CLAUDE.md names /mflow:hotspot in one line for a costly rule typed in chat, without waiting on it", () => {
+  emptyProject();
+  scaffold();
+  const line = p.read("CLAUDE.md").split("\n").find((l) => l.includes("describes in chat, without a command"));
+  assert.ok(line, "the hint line");
+  assert.match(line, /crosses screens or is costly if wrong/);
+  assert.match(line, /more answers or worked examples than this conversation can settle/);
+  assert.match(line, /say once, in one line before the work, that `\/mflow:hotspot <idea>` charts it first/);
+  assert.match(line, /mflow commands run only when the user types them/);
+  assert.match(line, /advice, not a question to wait on/);
+  assert.match(line, /A rule this conversation can settle gets no line/);
+});
+
 test("the first run creates every template and records what it offered", () => {
   emptyProject();
   const r = scaffold();

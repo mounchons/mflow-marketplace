@@ -82,6 +82,25 @@ test("the proposal asks its questions numbered, with options a) b) c)", () => {
   assert.ok(LINES["rules.proposal"].some((l) => l.includes("label each one's options a), b), c), never ก ข ค") && l.includes("`1 a, 2 b, 3 a`")));
 });
 
+// StemHub effort test 2026-11-16: four designs of one task, two at effort high and two at xhigh, judged blind. Every
+// design held at least one false "only / always / never" sentence about the current code, at both levels, and the one
+// design defect was such a sentence (a guard on a field that another valid save also changes). One design read the
+// customer document's section on the screen, never its error table, and so missed that its resend went against it.
+test("a sentence that says only, always or never about the current system is checked against every caller or writer", () => {
+  const line = LINES.context.find((l) => l.startsWith("Before a proposal, design or spec says the current system"));
+  assert.ok(line, "the context line");
+  assert.match(line, /only, always or never one way/);
+  assert.match(line, /a guard that can never reject a valid write/);
+  assert.match(line, /find every caller or writer of it by search, or say where you looked instead/);
+});
+
+test("the proposal looks up each case it decides in the customer documents, not only their part on the screen", () => {
+  const rule = LINES["rules.proposal"].find((l) => l.startsWith("In the proposal, list every choice"));
+  assert.match(rule, /or where the choice departs from a customer document\. To find the departures, look up each case the choice decides in the customer documents themselves/);
+  assert.match(rule, /an error code or answer from another system, a status, a retry or resend, a limit/);
+  assert.match(rule, /not only their part on the screen or feature the change is about\. Ask the user about the marked ones/);
+});
+
 // 0.37.1, 0.38.0: a setting made once on the admin web and shown on the supplier web had no Scenario for its other
 // state, whom it reaches or when it takes effect, so /mflow:e2e flow had nothing to test it against.
 test("the specs ask for every state of a setting another role or web shows, whom it reaches and when it takes effect", () => {
@@ -276,6 +295,9 @@ test("OpenSpec reads the merged file: the context, the task rules and every appl
   assert.ok(tasks.rules.some((r) => r.startsWith("Every task that changes code")));
   const proposal = JSON.parse(spawnSync("openspec instructions proposal --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
   assert.ok(proposal.rules.some((r) => r.startsWith("In the proposal, list every choice") && r.includes("docs/discuss/") && r.includes("`1 a, 2 b, 3 a`")), JSON.stringify(proposal.rules));
+  // The design artifact has no mflow rules of its own; the context is what reaches it.
+  const design = JSON.parse(spawnSync("openspec instructions design --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
+  assert.match(design.context, /find every caller or writer of it by search/);
   const archive = JSON.parse(spawnSync("openspec instructions archive --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
   assert.deepEqual(archive.operationGuidance, LINES["operations.archive.guidance"]);
 });

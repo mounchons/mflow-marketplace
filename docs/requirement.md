@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.46.3 |
+| เวอร์ชันที่อธิบาย | 0.47.0 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -461,6 +461,7 @@ flowchart TD
 | ID | ความต้องการ | สถานะ |
 |---|---|---|
 | FR-258 | `/mflow:monitor [--no-open]` อ่านอย่างเดียวแล้วเขียนหน้า HTML ไฟล์เดียวที่ `.git/mflow/monitor.html` (tree ไม่สกปรก `/mflow:apply-all` จึงยังเริ่มได้) และเปิดใน browser ยกเว้นบน web: feature ทุกข้อใน story map ของ `docs/vision.md` (ข้อที่มีเลข เช่น `6a` ใต้หัว phase `**P1: …**` และบรรทัดที่ขึ้นด้วยตัวหนาแล้วมีข้อความต่อ) พร้อมเอกสาร discuss ของแต่ละข้อ: เอกสารที่ระบุ `feature:` ใน frontmatter (`6a` หรือ `P1-6a`) ผูกตรง ถ้าไม่มีใช้เอกสารที่บรรทัดนั้นอ้างถึงและแสดงว่าเป็นค่าประมาณ story map ที่อ่านไม่ได้บอกเหตุแทนการเดา, เอกสาร discuss และหัวข้อใน AGENDA, branch แบ่งกลุ่มจากจำนวน commit ที่นำและตาม main (ไม่นำคืออยู่ใน main แล้ว นำและ commit ล่าสุดเกิน 14 วันคือค้าง), merge และ commit ล่าสุดบน main, change ที่เปิดอยู่พร้อมจำนวน task, แถวใน `docs/reviews/pending.md`, CR, hotspot, รอบของ apply-all และ night และรายการรอคุณที่คำนวณจากไฟล์ เรียงจากเร่งสุด ไม่เขียนไฟล์ใดใน tree ไม่ refresh index (`GIT_OPTIONAL_LOCKS=0`) ไม่เรียก `apply-all.mjs candidates` ข้อความจากไฟล์ของโปรเจกต์ถูก escape และหน้าไม่โหลดอะไรจากเน็ต (0.46.1) เปิดหน้าโดยไม่ผ่าน shell: Windows ใช้ `explorer.exe` ส่ง path เป็น argument เดียว ไม่ใช่ `cmd /c start` ที่ทำให้ path มี `&` หรือ `^` (เช่นโฟลเดอร์ `R&D`) กลายเป็นคำสั่ง | มีแล้ว ยังไม่เคยรันผ่านคำสั่งใน session จริง (script รันกับ BunTukTransport แล้ว) |
+| FR-261 | `/mflow:monitor` บอกลำดับงาน (`guide` ใน JSON, หัวข้อ "ลำดับงาน" บนหน้าและในแชต) แทนรายการรอคุณเดิม: งานที่เหลือแบ่ง 7 หัวข้อตามลำดับที่งานพึ่งกัน คือ ต้องแก้ก่อน (รอบ apply-all ที่เปิด, test ทั้งชุดหรือ since รอบล่าสุดที่ fail, `Blocked on`, ไฟล์ที่ยังไม่ commit), งานที่ทำค้าง (change ที่ task ไม่ครบหรือครบแต่ยังไม่ archive, branch ที่นำ main), Test ที่ยังไม่ได้ทำ, Review ที่ยังไม่ได้ทำ (หลัง test เพราะ review ที่ไม่มี test ให้ verdict ไม่ได้), E2E ที่ยังไม่ได้ทำ, รอคุณตัดสินใจ และตรวจอื่นๆ ทุกข้อมีคำสั่งที่ใช้ทำ เลขข้อนับต่อกันทุกหัวข้อ และทุกหัวข้ออยู่ใน JSON แม้ว่าง เพื่อให้ตอบว่า ไม่มี สถานะ test และ review มาจาก `pending.mjs status` (แถว changes-requested ยังเปิด, level skip ไม่ต้อง review, แถวที่ HEAD ยังไม่มีแยกไว้) E2E ดูจาก record `Scope: e2e <หน้าจอ>` ใน `docs/reviews/tests/` เทียบหน้าจอในคอลัมน์ E2E screens (หลังวันที่ apply) และใน `docs/ui/screens.md` และบอกว่า ไม่พบ record ไม่ใช่ ไม่มี test skill ไม่รันคำสั่งใดในรายการเอง (0.47.0; ที่มา: คำขอของผู้ใช้ 2026-11-17 ให้มีคำสั่งตรวจงานค้าง งานที่ต้องทำต่อตามลำดับ และ test, review, e2e ที่ยังไม่ได้ทำ แยกหัวข้อ แล้วผู้ใช้บอกว่าถ้ามีคำสั่งอยู่แล้วให้ใช้คำสั่งเดิมแต่เพิ่มรายละเอียดคำสั่ง จึงเพิ่มใน `/mflow:monitor` แทนการสร้าง `/mflow:check`) | มีแล้ว ยังไม่เคยรันใน session จริง |
 
 ## 7. Non-functional requirements
 
@@ -540,7 +541,7 @@ mflow-marketplace/
     │   ├─ review-units.mjs          ← หน่วยตรวจ: draft, check, files, facts (ข้อเท็จจริงที่ดึงจากโค้ด)
     │   ├─ pending.mjs               ← รายการรอ test และ review: status, range, add, init, tick-test, tick-review
     │   ├─ night.mjs                 ← สถานะของ /mflow:night: start, log, status, finish (docs/reviews/night/)
-    │   ├─ monitor.mjs               ← หน้า /mflow:monitor อ่านอย่างเดียว: feature จาก story map, discuss, branch เทียบ main, merge, change, รายการรอคุณ (.git/mflow/monitor.html)
+    │   ├─ monitor.mjs               ← หน้า /mflow:monitor อ่านอย่างเดียว: feature จาก story map, discuss, branch เทียบ main, merge, change, ลำดับงาน 7 หัวข้อพร้อมคำสั่ง (.git/mflow/monitor.html)
     │   ├─ apply-all.mjs             ← แผนและสถานะของ /mflow:apply-all: candidates, start, extend, log, status, gate, finish (docs/reviews/apply-all/)
     │   ├─ agent-skills.mjs          ← skill mflow-test และ mflow-review ของ Codex/OpenCode: plan, write, status
     │   ├─ vendor.mjs                ← สำเนา plugin สำหรับ Claude Code on the web (.claude/skills/mflow/): plan, write, status

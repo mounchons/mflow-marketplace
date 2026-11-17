@@ -3,7 +3,8 @@
 // phase 1 of §10). The features of the story map in docs/vision.md with the discussion documents that cover each,
 // every discussion document and agenda topic, the branches against main, the merges and latest commits on main, the
 // changes in openspec/changes, the rows waiting in docs/reviews/pending.md, change requests, hotspots, the runs of
-// /mflow:apply-all and /mflow:night, and the list of what waits for the user.
+// /mflow:apply-all and /mflow:night, and the guide: what is left to do, by topic, in the order to do it, each with
+// the command that does it (0.47).
 //
 // Read-only: it writes nothing in the tree and takes no git lock (GIT_OPTIONAL_LOCKS=0, so `git status` leaves the
 // index alone). Its one file is the page, inside .git (`git rev-parse --git-path mflow/monitor.html`), so the tree
@@ -20,7 +21,15 @@
 // Branches are grouped by ahead/behind against main, never by name or merge commits: nothing ahead is in main
 // already; ahead and last committed more than STALE_DAYS ago is left behind; the rest is open.
 //
-//   node monitor.mjs [--open] [--out <file>]   -> writes the page, prints JSON { file, opened, project, counts, waiting }
+// The guide's topics come in the order the work depends on: what blocks everything (an open apply-all run, a
+// failing whole-suite run, STATUS's Blocked on, uncommitted files), the changes not finished, the test, the review
+// (after the test: a review without one gives no verdict), the E2E tests, the decisions that wait for the user, and
+// the rest (branches, features with no document, the agenda). Test and review come from `pending.mjs status`, so a
+// row with changes-requested stays open. E2E is looked up in the records of /mflow:e2e and /mflow:test e2e in
+// docs/reviews/tests (`Scope: e2e <screen>`), for the screens of the waiting rows and of docs/ui/screens.md; it
+// says "no record found", never "no tests", since where the test files live is the stack's business.
+//
+//   node monitor.mjs [--open] [--out <file>]   -> writes the page, prints JSON { file, opened, project, counts, guide }
 //   node monitor.mjs --json                    -> prints all the page shows as JSON { projects: [...] }, writes nothing
 //
 // The page takes a list of projects, so more than one can be shown later; today it is the one the command runs in.
@@ -32,7 +41,7 @@ import { fileURLToPath } from "node:url";
 import { findRoot, frontmatter, loadConfig, readText } from "./lib.mjs";
 import { fmList, list as listDiscussions } from "./discuss.mjs";
 import { local, localDay, now, parse as parseRun } from "./night.mjs";
-import { FILE as PENDING, parse as parsePending } from "./pending.mjs";
+import { FILE as PENDING, parse as parsePending, readRecord, status as pendingStatus } from "./pending.mjs";
 
 process.env.GIT_OPTIONAL_LOCKS = "0";
 
@@ -187,6 +196,69 @@ function statusNow(root) {
   return m ? m[1].split("\n").map((l) => l.trim()).filter(Boolean) : [];
 }
 
+const TESTS = "docs/reviews/tests";
+const SCREENS = "docs/ui/screens.md";
+export const screenKey = (name) => String(name ?? "").replace(/[`*]/g, "").replace(/\s+/g, " ").trim().replace(/^\/+/, "").toLowerCase();
+
+/**
+ * The screens of an E2E screens cell: split at commas outside parentheses, each without its note in parentheses
+ * (`firm/users (new: list, filters, add), /firm/roles` gives `firm/users` and `/firm/roles`).
+ */
+export function screensOf(cell) {
+  const text = String(cell ?? "").replace(/[`*]/g, "").trim();
+  if (!text || /^[—–-]+$/.test(text)) return [];
+  const parts = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of text) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth = Math.max(0, depth - 1);
+    if ((ch === "," || ch === ";") && depth === 0) {
+      parts.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  parts.push(cur);
+  return parts.map((s) => s.replace(/\([^)]*\)?/g, "").replace(/\s+/g, " ").trim()).filter((s) => s && !/^[—–-]+$/.test(s));
+}
+
+/**
+ * The records of /mflow:test and /mflow:e2e: the newest whole-suite or since run, and the E2E runs. Newest by the
+ * tested commit's time, not the file name: runs of one day are named by their commit's hash, which says nothing of
+ * their order.
+ */
+function testRecords(root) {
+  const all = filesIn(path.join(root, TESTS), /^\d{4}-\d{2}-\d{2}.*\.md$/).map((f) => {
+    const rec = readRecord(readText(path.join(root, TESTS, f)) ?? "");
+    return { file: `${TESTS}/${f}`, date: f.slice(0, 10), branch: rec.branch, commit: rec.commit, scope: rec.scope, result: rec.result };
+  });
+  const whole = all.filter((r) => r.scope === "whole suite" || /^since\s/.test(r.scope)).slice(-20);
+  const time = (r) => Number(r.commit && /^[0-9a-f]{7,64}$/.test(r.commit) ? git(root, "log", "-1", "--format=%ct", r.commit) : 0) || 0;
+  for (const r of whole) r.time = time(r);
+  whole.sort((a, b) => a.date.localeCompare(b.date) || a.time - b.time || a.file.replace(/\.md$/, "").localeCompare(b.file.replace(/\.md$/, "")));
+  const e2e = all.filter((r) => /^e2e\b/i.test(r.scope)).map((r) => {
+    const target = r.scope.replace(/^e2e\s*/i, "").trim();
+    return { file: r.file, date: r.date, result: r.result, all: !target, flow: /^flow\s/i.test(target), target: screenKey(target.replace(/^flow\s+/i, "")) };
+  });
+  return { lastWhole: whole[whole.length - 1] ?? null, e2e };
+}
+
+/** The screens of docs/ui/screens.md (the first cell of each table row past the header), or null without the file. */
+function screenNames(root) {
+  const text = readText(path.join(root, SCREENS));
+  if (text === null) return null;
+  const out = [];
+  const all = text.replace(/\r\n/g, "\n").split("\n").map((l) => l.trim());
+  const separator = (t) => /^\|[\s:|-]+\|?$/.test(t);
+  all.forEach((t, i) => {
+    // A header is the row right above a separator, in whatever language.
+    if (!t.startsWith("|") || separator(t) || separator(all[i + 1] ?? "")) return;
+    const name = t.replace(/^\|/, "").split("|")[0].replace(/[`*]/g, "").trim();
+    if (name && !out.includes(name)) out.push(name);
+  });
+  return out;
+}
+
 /** Everything the page shows of one project. */
 export function collect(root, at = now()) {
   let cfg;
@@ -247,6 +319,12 @@ export function collect(root, at = now()) {
   // Pending rows, change requests, hotspots, runs.
   const pendingText = readText(path.join(root, PENDING));
   const pendingList = pendingText === null ? null : parsePending(pendingText);
+  // Where each waiting row stands, as /mflow:test and /mflow:review read it: open or settled, and whether HEAD holds it.
+  let pendingState = null;
+  try {
+    pendingState = pendingList && isRepo ? pendingStatus(root) : null;
+  } catch { /* a list that leads outside the project shows its rows without their state */ }
+  const checks = new Map((pendingState?.rows ?? []).map((r) => [r.change, { testOpen: r.testOpen, reviewOpen: r.reviewOpen, levelKind: r.levelKind, landed: r.landed }]));
   const crDir = "docs/reviews/change-requests";
   const crs = filesIn(path.join(root, crDir), /^CR-\d+.*\.md$/).map((f) => {
     const text = readText(path.join(root, crDir, f)) ?? "";
@@ -288,50 +366,174 @@ export function collect(root, at = now()) {
     commits: isRepo && main ? commitRows(git(root, "log", "--first-parent", `-n${LIMIT.commits}`, "--format=%h%x09%cs%x09%s", `refs/heads/${main}`)) : [],
     changes: all.filter((c) => !c.archived).map(({ name, done, total }) => ({ name, done, total })),
     archived: { count: all.filter((c) => c.archived).length, latest: all.filter((c) => c.archived).map((c) => c.folder.replace(/^archive\//, "")).reverse().slice(0, LIMIT.archived) },
-    pending: pendingList ? { file: PENDING, waiting: pendingList.rows.map(({ change, branch, applied, level, test, review, screens }) => ({ change, branch, applied, level, test, review, screens })), done: pendingList.doneRows.length } : null,
+    pending: pendingList ? { file: PENDING, waiting: pendingList.rows.map(({ change, branch, applied, level, test, review, screens }) => ({ change, branch, applied, level, test, review, screens, ...checks.get(change) })), done: pendingList.doneRows.length, missing: pendingState?.missing ?? [] } : null,
+    tests: testRecords(root),
+    screens: screenNames(root),
     crs,
     hotspots,
     statusNow: now_,
     runs: { open: openRun, applyAll: runFiles(root, "docs/reviews/apply-all"), night: runFiles(root, "docs/reviews/night") },
   };
-  project.waiting = waiting(project);
+  project.guide = guide(project);
   project.counts = counts(project);
   return project;
 }
 
 const settled = (cell) => cell && !/^[—–-]*$/.test(cell.trim());
 
-/** What waits for the user, most urgent first, each a line in Thai for the page and the chat. */
-export function waiting(p) {
-  const out = [];
-  const add = (kind, text, ref = "") => out.push({ kind, text, ref });
-  if (p.runs.open) add("run", `รอบ /mflow:apply-all ยังเปิดอยู่${p.runs.open.last ? ` ขั้นล่าสุด ${p.runs.open.last.step} ${p.runs.open.last.state} (${p.runs.open.last.target})` : ""}`, ".git/mflow/apply-all.md");
+/** The guide's topics, in the order the work depends on. */
+export const TOPICS = [
+  ["blocked", "ต้องแก้ก่อน"],
+  ["changes", "งานที่ทำค้าง"],
+  ["test", "Test ที่ยังไม่ได้ทำ"],
+  ["review", "Review ที่ยังไม่ได้ทำ"],
+  ["e2e", "E2E ที่ยังไม่ได้ทำ"],
+  ["decide", "รอคุณตัดสินใจ"],
+  ["other", "ตรวจอื่นๆ"],
+];
+const MAX_NAMES = 6;
+const names = (list) => (list.length > MAX_NAMES ? `${list.slice(0, MAX_NAMES).join(", ")} และอีก ${list.length - MAX_NAMES}` : list.join(", "));
+const unquote = (cell) => String(cell ?? "").replace(/`/g, "").trim();
+const changesRequested = (r) => /^\s*changes-requested\b/i.test(r.review || "");
+// The state pending.mjs gave the row; without it (no git), the cells as written.
+const testOpen = (r) => r.testOpen ?? !settled(r.test);
+const reviewOpen = (r) => r.reviewOpen ?? !/^\s*(approve|not needed)\b/i.test(r.review || "");
+const levelSkip = (r) => (r.levelKind ?? (/^\s*(full|short|skip)\b/i.exec(r.level || "")?.[1] || "").toLowerCase()) === "skip";
+
+/**
+ * What is left to do, by topic, in the order to do it: each item a line in Thai, the command that does it (or the
+ * words to type), and the file it comes from. Every topic is there, empty or not, so the reply can say "ไม่มี" for
+ * one with nothing left. Items are numbered across topics: the number is the order.
+ */
+export function guide(p) {
+  const by = Object.fromEntries(TOPICS.map(([id]) => [id, []]));
+  const add = (topic, kind, text, command = "", ref = "") => by[topic].push({ kind, text, command, ref });
+  const main = p.head?.main ?? "main";
+  const rows = p.pending?.waiting ?? [];
+  const pendingFile = p.pending?.file ?? PENDING;
+
+  // 1. What blocks everything else.
+  if (p.runs.open) add("blocked", "run", `รอบ /mflow:apply-all ยังเปิดอยู่${p.runs.open.last ? ` ขั้นล่าสุด ${p.runs.open.last.step} ${p.runs.open.last.state} (${p.runs.open.last.target})` : ""}`, "/mflow:apply-all (ทำต่อจากขั้นที่ค้าง)", ".git/mflow/apply-all.md");
+  const last = p.tests?.lastWhole;
+  if (last && last.result === "fail") add("blocked", "test-fail", `test รอบล่าสุด (${last.scope}) fail บน ${last.branch ?? "?"} ที่ ${String(last.commit ?? "").slice(0, 7)} เมื่อ ${last.date}`, "แก้ test ที่ fail แล้ว commit จากนั้น /mflow:test since", last.file);
   for (const l of p.statusNow) {
     const m = /^[-*]\s*(Blocked on|Waiting for the user):\s*(.+)$/i.exec(l);
-    if (m && !/^(none|ไม่มี|-|—)\.?$/i.test(m[2].trim())) add(/^blocked/i.test(m[1]) ? "blocked" : "status", `${/^blocked/i.test(m[1]) ? "ติด" : "STATUS รอคุณ"}: ${short(m[2])}`, "STATUS.md");
+    if (!m || /^(none|ไม่มี|-|—)\.?$/i.test(m[2].trim())) continue;
+    if (/^blocked/i.test(m[1])) add("blocked", "blocked", `ติด: ${short(m[2])}`, "", "STATUS.md");
+    else add("decide", "status", `STATUS รอคุณ: ${short(m[2])}`, "", "STATUS.md");
   }
-  if (p.head && p.head.main && p.head.branch !== p.head.main) add("checkout", `checkout อยู่บน ${p.head.branch} ไม่ใช่ ${p.head.main} (/mflow:apply-all เริ่มได้จาก ${p.head.main} เท่านั้น)`);
-  if (p.head && p.head.dirty) add("checkout", `มีไฟล์ที่ยังไม่ commit ${p.head.dirty} รายการ`);
+  if (p.head && p.head.dirty) add("blocked", "dirty", `มีไฟล์ที่ยังไม่ commit ${p.head.dirty} รายการ (run ของ /mflow:test ตอนนี้จะไม่นับให้ change ใน ${PENDING} และ /mflow:apply-all ไม่เริ่ม)`, "git status แล้ว commit หรือเก็บไฟล์ที่ค้าง");
+
+  // 2. The changes not finished, and branches with work not in main.
+  for (const c of p.changes) {
+    if (c.total && c.done === c.total) add("changes", "archive", `change ${c.name} ทำ task ครบ ${c.done}/${c.total} แล้ว ยังไม่ archive`, `/opsx:archive ${c.name}`, `openspec/changes/${c.name}`);
+    else add("changes", "apply", c.total ? `change ${c.name} ทำ task แล้ว ${c.done}/${c.total}` : `change ${c.name} ยังไม่มี task`, `/opsx:apply ${c.name}`, `openspec/changes/${c.name}`);
+  }
+  // A branch an item of the test or the review names is left out of the branches below; every other one ahead of
+  // main is listed, a fix branch waiting for its merge too.
+  const namedBranches = new Set();
+  const branchOf = (r) => (settled(r.branch) && unquote(r.branch) !== main ? unquote(r.branch) : "");
+
+  // 3. The test: one whole run proves every row HEAD holds.
+  const testHere = rows.filter((r) => testOpen(r) && r.landed !== false);
+  if (testHere.length) add("test", "pending", `${testHere.length} change รอ test ทั้งชุด: ${names(testHere.map((r) => r.change))}`, "/mflow:test", pendingFile);
+  for (const r of rows.filter((x) => testOpen(x) && x.landed === false)) {
+    const branch = branchOf(r);
+    if (branch) namedBranches.add(branch);
+    add("test", "elsewhere", `change ${r.change} ยังไม่อยู่ใน ${p.head?.branch ?? main}${branch ? ` (อยู่บน ${branch})` : ""} /mflow:test ที่นี่จึงยังไม่นับให้`, branch ? `/mflow:review ${branch} แล้ว merge เข้า ${main}` : `commit งานของ ${r.change} ก่อน`, pendingFile);
+  }
+  const missing = p.pending?.missing ?? [];
+  if (missing.length) add("test", "missing", `${missing.length} change archive แล้วแต่ไม่อยู่ใน ${PENDING}: ${names(missing.map((m) => m.change))} (/mflow:test และ /mflow:review pending เพิ่มให้)`, "/mflow:test", pendingFile);
+
+  // 4. The review, after the test: a review without one gives no verdict.
+  for (const r of rows.filter(changesRequested)) {
+    const report = unquote(r.review).replace(/^changes-requested\s*/i, "") || pendingFile;
+    const fix = `fix/${r.change}-review`;
+    const b = p.branches.find((x) => x.name === fix);
+    if (b && b.ahead > 0) {
+      namedBranches.add(fix);
+      add("review", "fix", `change ${r.change} review ขอให้แก้ (changes-requested) แก้แล้วบน ${fix} ${b.ahead} commit`, `/mflow:test since บน ${fix} แล้ว /mflow:review ${fix} --short`, report);
+    } else {
+      add("review", "fix", `change ${r.change} review ขอให้แก้ (changes-requested) ${b ? `${fix} อยู่ใน ${main} แล้ว` : `ไม่พบ branch ${fix}`} แถวจึงยังไม่ปิด`, b ? `/mflow:review pending ${r.change} (review ใหม่จากที่แก้แล้วใน ${main})` : `อ่าน ${report} แล้วแก้ตาม finding หรือ /mflow:review pending ${r.change}`, report);
+    }
+  }
+  const open = rows.filter((r) => reviewOpen(r) && !changesRequested(r) && !levelSkip(r));
+  const ready = open.filter((r) => !testOpen(r) && r.landed !== false);
+  const afterTest = open.filter((r) => testOpen(r));
+  if (ready.length) add("review", "pending", `${ready.length} change test ผ่านแล้ว รอ review: ${names(ready.map((r) => r.change))}`, "/mflow:review pending", pendingFile);
+  for (const r of open.filter((x) => !testOpen(x) && x.landed === false)) {
+    const branch = branchOf(r);
+    if (branch) namedBranches.add(branch);
+    add("review", "elsewhere", `change ${r.change} test แล้ว รอ review แต่ยังไม่อยู่ใน ${p.head?.branch ?? main}${branch ? ` (อยู่บน ${branch})` : ""}`, branch ? `/mflow:review ${branch}` : `commit งานของ ${r.change} ก่อน`, pendingFile);
+  }
+  if (afterTest.length) add("review", "after-test", `${afterTest.length} change รอ review หลัง test: ${names(afterTest.map((r) => r.change))}`, "/mflow:test ก่อน แล้ว /mflow:review pending", pendingFile);
+
+  // 2 (continued). Branches ahead of main that no item above names.
+  for (const b of p.branches.filter((x) => x.group === "open" && !namedBranches.has(x.name))) {
+    add("changes", "branch", `branch ${b.name} มี ${b.ahead} commit ที่ยังไม่อยู่ใน ${main} (ล่าสุด ${b.date})`, /-review$/.test(b.name) ? `ดู report ของ review ล่าสุดของ branch นี้ แล้ว merge เมื่อ approve` : `/mflow:review ${b.name} แล้ว merge`);
+  }
+
+  // 5. E2E: the screens of the waiting rows first, then every screen with no record, then a run of them all.
+  const e2e = p.tests?.e2e ?? [];
+  // Each screen belongs to the newest row that names it: its record must come after that change was applied.
+  const latest = new Map();
+  for (const r of rows) {
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(r.applied || "") ? r.applied : "";
+    for (const s of screensOf(r.screens)) {
+      const at = latest.get(screenKey(s));
+      if (!at || date >= at.date) latest.set(screenKey(s), { screen: s, change: r.change, date });
+    }
+  }
+  // A record counts for one screen: the longest known name its target is, or starts with (`e2e billing/notices
+  // detail` is the detail screen's, not billing/notices').
+  const known = [...new Set([...latest.keys(), ...(p.screens ?? []).map(screenKey)])].sort((a, b) => b.length - a.length);
+  const screenOfRecord = (target) => known.find((k) => target === k || target.startsWith(`${k} `)) ?? target;
+  const covered = e2e.filter((e) => !e.all && !e.flow && e.target).map((e) => ({ key: screenOfRecord(e.target), date: e.date }));
+  const recorded = (screen, since = "") => covered.some((c) => c.key === screenKey(screen) && c.date >= since);
+  const named = new Set(latest.keys());
+  const byChange = new Map();
+  for (const { screen, change, date } of latest.values()) {
+    if (recorded(screen, date)) continue;
+    if (!byChange.has(change)) byChange.set(change, { date, screens: [] });
+    byChange.get(change).screens.push(screen);
+  }
+  for (const r of rows.filter((x) => byChange.has(x.change))) {
+    const { date, screens } = byChange.get(r.change);
+    add("e2e", "screen", `change ${r.change}: หน้าจอ ${screens.length} หน้ายังไม่พบ record ของ /mflow:e2e${date ? ` ตั้งแต่ ${date}` : ""}: ${names(screens)}`, `/mflow:e2e ${screens[0]}${screens.length > 1 ? " (ทีละหน้า)" : ""}`, pendingFile);
+  }
+  const noRecord = (p.screens ?? []).filter((s) => !named.has(screenKey(s)) && !recorded(s));
+  if (noRecord.length) add("e2e", "screens", `หน้าจอใน ${SCREENS} ${noRecord.length} จาก ${p.screens.length} หน้ายังไม่พบ record ของ /mflow:e2e: ${names(noRecord)}`, "/mflow:e2e (ไม่ใส่ชื่อ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test)", SCREENS);
+  const allRuns = e2e.filter((e) => e.all);
+  const lastAll = allRuns[allRuns.length - 1];
+  if (lastAll && lastAll.result === "fail") add("e2e", "fail", `E2E ทั้งหมดรอบล่าสุด fail เมื่อ ${lastAll.date}`, "แก้แล้ว /mflow:test e2e", lastAll.file);
+  else if (!lastAll && e2e.length) add("e2e", "all", "มี E2E รายหน้าจอหรือ flow แล้ว แต่ยังไม่เคยรัน E2E ทั้งหมดพร้อมกัน", "/mflow:test e2e");
+
+  // 6. The decisions that wait for the user.
   for (const d of p.docs.filter((x) => x.status === "draft")) {
-    const text = d.readyToApprove ? "พร้อมอนุมัติ" : d.open ? `ยังเปิด ${d.open} ข้อ` : "ยังไม่พร้อมอนุมัติ";
-    add(d.readyToApprove ? "approve" : "discuss", `เอกสาร ${d.id} ${d.slug} ${text}`, d.file);
+    if (d.readyToApprove) add("decide", "approve", `เอกสาร ${d.id} ${d.slug} พร้อมอนุมัติ`, `/mflow:discuss ${d.id} approve`, d.file);
+    else add("decide", "discuss", `เอกสาร ${d.id} ${d.slug} ${d.open ? `ยังเปิด ${d.open} ข้อ` : "ยังไม่พร้อมอนุมัติ"}`, `/mflow:discuss ${d.id}`, d.file);
   }
-  for (const d of p.docs.filter((x) => x.unknownFeatures.length)) add("discuss", `เอกสาร ${d.id} ${d.slug}: feature: ${d.unknownFeatures.join(", ")} ไม่ตรงกับข้อใดใน story map`, d.file);
-  for (const r of p.pending?.waiting ?? []) {
-    const left = [!settled(r.test) && "test", !settled(r.review) && "review"].filter(Boolean);
-    if (left.length) add("pending", `change ${r.change} รอ ${left.join(" และ ")}`, p.pending.file);
-  }
+  for (const d of p.docs.filter((x) => x.unknownFeatures.length)) add("decide", "feature-ref", `เอกสาร ${d.id} ${d.slug}: feature: ${d.unknownFeatures.join(", ")} ไม่ตรงกับข้อใดใน story map`, `/mflow:discuss ${d.id} แก้ feature: ให้ตรง story map`, d.file);
   for (const c of p.crs) {
-    if (!c.approved) add("cr", `${c.id} รออนุมัติ: ${short(c.title, 80)}`, c.file);
-    else if (!c.startedBy.length) add("cr", `${c.id} อนุมัติแล้ว ยังไม่มี change: ${short(c.title, 80)}`, c.file);
+    if (!c.approved) add("decide", "cr", `${c.id} รออนุมัติ: ${short(c.title, 80)}`, `พิมพ์ "ทำ ${c.id}" หรือ "ไม่ทำ ${c.id}"`, c.file);
+    else if (!c.startedBy.length) add("decide", "cr", `${c.id} อนุมัติแล้ว ยังไม่มี change: ${short(c.title, 80)}`, `/opsx:propose จาก ${c.file}`, c.file);
   }
-  for (const b of p.branches.filter((x) => x.group === "stale")) add("branch", `branch ${b.name} ค้าง ${b.ageDays} วัน มี ${b.ahead} commit ที่ยังไม่อยู่ใน main`);
-  for (const h of p.hotspots.filter((x) => x.inNow)) add("hotspot", `hotspot ${h.slug} อยู่ใน STATUS ## Now`, h.file);
+  const notBuilt = p.docs.filter((d) => d.state === "approved");
+  if (notBuilt.length) add("decide", "build", `เอกสารอนุมัติแล้ว ${notBuilt.length} ฉบับยังไม่มี change อ้างถึง: ${names(notBuilt.map((d) => `${d.id} ${d.slug}`))} (ฉบับที่เป็นการตัดสินใจกลาง เช่น stack หรือสิทธิ์ อาจไม่ต้องมี change ของตัวเอง)`, "/mflow:apply-all (แสดงแผนก่อนถามคุณ) หรือ /opsx:propose");
+
+  // 7. The rest.
+  if (p.head && p.head.main && p.head.branch !== p.head.main) add("other", "checkout", `checkout อยู่บน ${p.head.branch} ไม่ใช่ ${p.head.main} (/mflow:test ของรายการรอ และ /mflow:apply-all ทำบน ${p.head.main})`, `git switch ${p.head.main}`);
+  for (const b of p.branches.filter((x) => x.group === "stale")) add("other", "branch", `branch ${b.name} ค้าง ${b.ageDays} วัน มี ${b.ahead} commit ที่ยังไม่อยู่ใน ${main}`, `/mflow:review ${b.name} แล้ว merge หรือลบเมื่อไม่ใช้แล้ว`);
+  const merged = p.branches.filter((x) => x.group === "merged" && x.name !== p.head?.branch);
+  if (merged.length) add("other", "merged", `branch ${merged.length} อันอยู่ใน ${main} หมดแล้ว ลบได้: ${names(merged.map((b) => b.name))}`, `git branch -d ${merged.slice(0, MAX_NAMES).map((b) => b.name).join(" ")}`);
+  for (const h of p.hotspots.filter((x) => x.inNow)) add("other", "hotspot", `hotspot ${h.slug} อยู่ใน STATUS ## Now`, `/mflow:hotspot ${h.slug}`, h.file);
   const noDoc = p.storyMap.phases.flatMap((ph) => ph.features).filter((f) => f.state === "no-doc");
-  if (noDoc.length) add("feature", `feature ${noDoc.length} ข้อยังไม่มีเอกสาร discuss: ${short(noDoc.map((f) => f.key).join(", "), 120)}`, p.storyMap.file);
+  if (noDoc.length) add("other", "feature", `feature ${noDoc.length} ข้อยังไม่มีเอกสาร discuss: ${short(noDoc.map((f) => f.key).join(", "), 120)}`, "/mflow:discuss <หัวข้อ> สำหรับข้อที่ต้องตกลงก่อนสร้าง", p.storyMap.file);
   const notStarted = (p.agenda?.topics ?? []).filter((t) => !t.doc && t.status === "ยังไม่เริ่ม");
-  if (notStarted.length) add("agenda", `หัวข้อใน AGENDA ยังไม่เริ่ม ${notStarted.length} ข้อ: ${short(notStarted.map((t) => t.slug).join(", "), 120)}`, p.agenda.file);
-  return out;
+  if (notStarted.length) add("other", "agenda", `หัวข้อใน AGENDA ยังไม่เริ่ม ${notStarted.length} ข้อ: ${short(notStarted.map((t) => t.slug).join(", "), 120)}`, `/mflow:discuss ${notStarted[0].slug}`, p.agenda.file);
+
+  let n = 0;
+  return TOPICS.map(([id, title]) => ({ id, title, items: by[id].map((item) => ({ n: ++n, ...item })) }));
 }
 
 function counts(p) {
@@ -344,7 +546,7 @@ function counts(p) {
     branches: { open: 0, stale: 0, merged: 0, ...by(p.branches, "group") },
     changes: p.changes.length,
     pending: p.pending?.waiting.length ?? 0,
-    waiting: p.waiting.length,
+    todo: p.guide.reduce((sum, t) => sum + t.items.length, 0),
   };
 }
 
@@ -364,10 +566,7 @@ const STATES = {
   building: ["violet", "มี change เปิดอยู่"], built: ["emerald", "change archive แล้ว"], dropped: ["slate", "ยกเลิก"], superseded: ["slate", "แทนแล้ว"],
 };
 const GROUPS = { stale: ["red", `ค้างเกิน ${STALE_DAYS} วัน`], open: ["sky", "กำลังทำ"], merged: ["green", "อยู่ใน main แล้ว"] };
-const KINDS = {
-  run: "violet", blocked: "red", status: "amber", checkout: "slate", approve: "blue", discuss: "amber", pending: "yellow",
-  cr: "indigo", branch: "red", hotspot: "cyan", feature: "red", agenda: "amber",
-};
+const TOPIC_HUES = { blocked: "red", changes: "violet", test: "yellow", review: "blue", e2e: "cyan", decide: "amber", other: "slate" };
 const pill = (hue, text, title = "") => `<span class="pill h-${hue}"${title ? ` title="${esc(title)}"` : ""}>${esc(text)}</span>`;
 const state = (s) => pill(...(STATES[s] ?? ["slate", s || "—"]));
 const section = (id, title, body, note = "") => `<section id="${id}"><h2>${esc(title)}${note ? ` <small>${esc(note)}</small>` : ""}</h2>${body}</section>`;
@@ -392,9 +591,13 @@ function renderProject(p) {
     ["green", "branch อยู่ใน main", `${c.branches.merged}`],
   ].map(([hue, label, value]) => `<div class="tile h-${hue}"><b>${esc(value)}</b><span>${esc(label)}</span></div>`).join("");
 
-  const wait = p.waiting.length
-    ? `<ol class="waiting">${p.waiting.map((w) => `<li class="k-${KINDS[w.kind] ?? "slate"}">${esc(w.text)}${w.ref ? ` <code>${esc(w.ref)}</code>` : ""}</li>`).join("")}</ol>`
-    : `<p class="empty">ไม่มีงานรอคุณ</p>`;
+  const todo = p.guide.map((t) => {
+    const hue = TOPIC_HUES[t.id] ?? "slate";
+    const items = t.items.length
+      ? `<ol class="waiting" start="${t.items[0].n}">${t.items.map((w) => `<li class="k-${hue}">${esc(w.text)}${w.command ? `<br><span class="go">→ <code>${esc(w.command)}</code></span>` : ""}${w.ref ? ` <small>${esc(w.ref)}</small>` : ""}</li>`).join("")}</ol>`
+      : `<p class="empty">ไม่มี</p>`;
+    return `<h3>${pill(hue, `${t.title} ${t.items.length}`)}</h3>${items}`;
+  }).join("");
 
   const map = p.storyMap.problem
     ? `<p class="problem">${esc(p.storyMap.problem)}</p>`
@@ -441,8 +644,8 @@ function renderProject(p) {
 <header><h1>${esc(p.name)}</h1><p class="meta"><code>${esc(p.root)}</code> · ${head} · สร้างเมื่อ ${esc(p.generated)}</p>
 ${p.problems.map((x) => `<p class="problem">${esc(x)}</p>`).join("")}
 <div class="tiles">${tiles}</div>
-<nav><a href="#wait">รอคุณ</a><a href="#features">feature</a><a href="#discuss">discuss</a><a href="#branches">branch</a><a href="#main">main</a><a href="#work">change</a></nav></header>
-${section("wait", `รอคุณ ${p.waiting.length}`, wait)}
+<nav><a href="#todo">ลำดับงาน</a><a href="#features">feature</a><a href="#discuss">discuss</a><a href="#branches">branch</a><a href="#main">main</a><a href="#work">change</a></nav></header>
+${section("todo", `ลำดับงาน ${p.counts.todo}`, todo, "เรียงตามลำดับที่ควรทำ แต่ละข้อมีคำสั่งที่ใช้ทำ E2E ทำเมื่อหน้าจอนิ่งแล้วและคุณสั่ง")}
 ${section("features", "Feature จาก story map", map, "≈ คือเอกสารที่ประมาณจากการอ้างถึงใน story map ใส่ feature: ใน frontmatter ของเอกสารเพื่อผูกให้ตรง")}
 ${section("discuss", `เอกสาร discuss ${p.docs.length}`, docs + agenda)}
 ${section("branches", `Branch เทียบ ${p.head?.main ?? "main"}`, branchGroups, "จัดกลุ่มจากจำนวน commit ที่นำและตาม main")}
@@ -466,7 +669,7 @@ section{background:var(--surface);border:1px solid var(--line);border-radius:12p
 .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600;white-space:nowrap}td:first-child{white-space:nowrap}
 tr.release td{text-align:center;color:#b45309;font-weight:600;background:#fffbeb}
 .pill{display:inline-block;border:1px solid;border-radius:999px;padding:0 8px;font-size:12px;white-space:nowrap;margin:1px 0}
-.waiting{margin:0;padding-left:28px}.waiting li{border-left-width:4px;border-left-style:solid;padding:6px 10px;margin:6px 0;background:var(--bg);border-radius:0 8px 8px 0}
+.waiting{margin:0;padding-left:28px}.waiting li{border-left-width:4px;border-left-style:solid;padding:6px 10px;margin:6px 0;background:var(--bg);border-radius:0 8px 8px 0}.go{color:var(--muted)}.go code{color:var(--accent);font-weight:600}
 code{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#f1f5f9;border-radius:4px;padding:0 4px}
 .empty{color:var(--muted)}.problem{color:#b91c1c;background:#fef2f2;border:1px solid #ef4444;border-radius:8px;padding:8px 12px}.warn{color:#b91c1c;font-style:normal;font-size:12px}
 .bar{display:inline-block;width:120px;height:8px;background:var(--line);border-radius:4px;vertical-align:middle;overflow:hidden}.bar i{display:block;height:100%;background:#10b981}
@@ -515,7 +718,7 @@ function main(argv) {
   }
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, render([project]));
-  return { file: toPosix(file), opened: opt.open ? openInBrowser(file) : false, project: project.name, problems: project.problems, storyMap: project.storyMap.problem, counts: project.counts, waiting: project.waiting };
+  return { file: toPosix(file), opened: opt.open ? openInBrowser(file) : false, project: project.name, problems: project.problems, storyMap: project.storyMap.problem, counts: project.counts, guide: project.guide };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

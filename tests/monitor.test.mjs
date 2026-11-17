@@ -11,7 +11,7 @@ import path from "node:path";
 import { afterEach, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { git, hasGit, project, run } from "./helpers.mjs";
-import { featureRefs, opener, storyMap } from "../plugins/mflow/scripts/monitor.mjs";
+import { featureRefs, opener, screenKey, screensOf, storyMap } from "../plugins/mflow/scripts/monitor.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
 const PLUGIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "plugins", "mflow");
@@ -81,6 +81,14 @@ test("feature: in a discussion's frontmatter names features as one value, a list
   assert.deepEqual(featureRefs("---\ntitle: x\n---\n"), []);
 });
 
+test("an E2E screens cell splits at commas outside parentheses, each screen without its note", () => {
+  assert.deepEqual(screensOf("firm/users (new: list, filters, add), /firm/roles (as the second tab), the menu"), ["firm/users", "/firm/roles", "the menu"]);
+  assert.deepEqual(screensOf("`Jobs list`; Job detail"), ["Jobs list", "Job detail"]);
+  assert.deepEqual(screensOf("—"), []);
+  assert.deepEqual(screensOf(""), []);
+  assert.equal(screenKey("/Firm/Roles"), screenKey("firm/roles"), "a leading slash and the case do not count");
+});
+
 /** A project on main with a story map, discussions, a built change, branches, a waiting row, a CR and STATUS. */
 function fixture() {
   p = project();
@@ -145,7 +153,11 @@ test("features take the documents that name them, else the ones their line cites
   assert.deepEqual(proj.changes, [{ name: "tenants", done: 1, total: 2 }]);
 });
 
-test("branches are grouped by ahead/behind against main, and what waits for the user comes most urgent first", needsGit, () => {
+/** The guide as [topic, [kinds]], to compare its order. */
+const kinds = (proj) => proj.guide.map((t) => [t.id, t.items.map((i) => i.kind)]);
+const item = (proj, kind) => proj.guide.flatMap((t) => t.items).find((i) => i.kind === kind);
+
+test("branches are grouped by ahead/behind against main, and the guide lists what is left by topic, in order, each with its command (0.47)", needsGit, () => {
   fixture();
   const [proj] = monitor(["--json"]).json.projects;
   assert.deepEqual(proj.branches.map((b) => [b.name, b.group, b.ahead, b.behind]), [
@@ -153,22 +165,152 @@ test("branches are grouped by ahead/behind against main, and what waits for the 
     ["chore/old", "stale", 1, 0],
     ["chore/merged", "merged", 0, 0],
   ]);
-  assert.deepEqual(proj.waiting.map((w) => w.kind), ["status", "discuss", "discuss", "pending", "cr", "branch", "hotspot", "feature", "agenda"]);
-  assert.match(proj.waiting[0].text, /answer D2/);
-  assert.ok(!proj.waiting.some((w) => w.kind === "blocked"), "Blocked on: none is not a wait");
-  assert.match(proj.waiting.find((w) => w.kind === "feature").text, /P2-3a, Add-ons/);
+  assert.deepEqual(kinds(proj), [
+    ["blocked", []],
+    ["changes", ["apply", "branch"]],
+    ["test", ["pending"]],
+    ["review", ["after-test"]],
+    ["e2e", []],
+    ["decide", ["status", "discuss", "feature-ref", "cr"]],
+    ["other", ["branch", "merged", "hotspot", "feature", "agenda"]],
+  ]);
+  const all = proj.guide.flatMap((t) => t.items);
+  assert.deepEqual(all.map((i) => i.n), all.map((_, i) => i + 1), "numbered across topics, in order");
+  assert.equal(proj.counts.todo, all.length);
+  assert.equal(item(proj, "apply").command, "/opsx:apply tenants");
+  assert.equal(item(proj, "branch").command, "/mflow:review change/tenants แล้ว merge");
+  assert.equal(item(proj, "pending").command, "/mflow:test");
+  assert.match(item(proj, "after-test").command, /^\/mflow:test ก่อน แล้ว \/mflow:review pending$/);
+  assert.equal(item(proj, "discuss").command, "/mflow:discuss 02");
+  assert.match(item(proj, "status").text, /answer D2/);
+  assert.ok(!all.some((i) => i.kind === "blocked"), "Blocked on: none blocks nothing");
+  assert.match(item(proj, "feature").text, /P2-3a, Add-ons/);
+  assert.equal(item(proj, "merged").command, "git branch -d chore/merged");
 });
 
-test("off main with uncommitted work, the list says so, since /mflow:apply-all starts only from a clean main", needsGit, () => {
+test("off main with uncommitted work, the guide says so: the files block, the checkout is noted", needsGit, () => {
   fixture();
   git(p, "switch", "-q", "change/tenants");
   p.write("notes.txt", "draft\n");
   const [proj] = monitor(["--json"]).json.projects;
-  assert.deepEqual(proj.waiting.filter((w) => w.kind === "checkout").map((w) => w.text), [
-    "checkout อยู่บน change/tenants ไม่ใช่ main (/mflow:apply-all เริ่มได้จาก main เท่านั้น)",
-    "มีไฟล์ที่ยังไม่ commit 1 รายการ",
-  ]);
+  assert.deepEqual(proj.guide[0].items.map((i) => i.kind), ["dirty"]);
+  assert.match(proj.guide[0].items[0].text, /^มีไฟล์ที่ยังไม่ commit 1 รายการ/);
+  assert.equal(item(proj, "checkout").command, "git switch main");
   assert.ok(!fs.existsSync(p.file(".git/mflow/monitor.html")), "--json writes no page");
+});
+
+const RECORD = (scope, result, commit = "abcdef1") => `Tested: main at ${commit}\nBy: claude\nScope: ${scope}\nResult: ${result}\nDuration: 1m\n`;
+
+test("test, review and E2E: one /mflow:test for the rows HEAD holds, review only after it, changes-requested stays open, screens with no E2E record", needsGit, () => {
+  fixture();
+  const ticked = "docs/reviews/tests/2026-11-01-abcdef1.md";
+  commitAt("2026-11-12T12:00:00Z", "more rows", {
+    "openspec/changes/archive/2026-10-03-stops/tasks.md": "- [x] 1\n",
+    "openspec/changes/archive/2026-10-04-docs-only/tasks.md": "- [x] 1\n",
+    "openspec/changes/archive/2026-10-05-extra/tasks.md": "- [x] 1\n",
+    "docs/reviews/pending.md": "# Waiting\n\n| Change | Branch | Applied | Review level | Test | Review | E2E screens |\n|---|---|---|---|---|---|---|\n"
+      + `| jobs | main | 2026-10-02 | full | ${ticked} | — | Jobs list, Job detail |\n`
+      + `| stops | main | 2026-10-03 | short | ${ticked} | changes-requested docs/reviews/code/2026-11-02-stops.md | — |\n`
+      + "| docs-only | main | 2026-10-04 | skip: documents | — | — | — |\n"
+      + "| feature-x | change/x | 2026-11-10 | full | — | — | — |\n",
+    [ticked]: RECORD("whole suite", "pass"),
+    "docs/reviews/tests/2026-11-02-abcdef1.md": RECORD("e2e jobs list", "pass"),
+    "docs/ui/screens.md": "# Screens\n\n| Screen | Route | Role(s) | Shows | Actions | Calculations / rules | Status |\n|---|---|---|---|---|---|---|\n| Jobs list | /jobs | admin | | | | prototype |\n| Job detail | /jobs/1 | admin | | | | prototype |\n| Settings | /settings | admin | | | | prototype |\n",
+  });
+  git(p, "switch", "-q", "-c", "change/x");
+  commitAt("2026-11-12T13:00:00Z", "x", { "openspec/changes/feature-x/tasks.md": "- [x] 1\n" });
+  git(p, "switch", "-q", "main");
+  const [proj] = monitor(["--json"]).json.projects;
+  const topic = (id) => proj.guide.find((t) => t.id === id).items;
+
+  assert.deepEqual(topic("test").map((i) => i.kind), ["pending", "elsewhere", "missing"]);
+  assert.match(item(proj, "pending").text, /^1 change รอ test ทั้งชุด: docs-only$/, "only the open row HEAD holds");
+  assert.match(item(proj, "elsewhere").text, /feature-x .*change\/x/);
+  assert.equal(item(proj, "elsewhere").command, "/mflow:review change/x แล้ว merge เข้า main");
+  assert.match(item(proj, "missing").text, /extra/);
+
+  assert.deepEqual(topic("review").map((i) => [i.kind, i.text.replace(/:.*$/, "")]), [
+    ["fix", "change stops review ขอให้แก้ (changes-requested) ไม่พบ branch fix/stops-review แถวจึงยังไม่ปิด"],
+    ["pending", "1 change test ผ่านแล้ว รอ review"],
+    ["after-test", "1 change รอ review หลัง test"],
+  ], "skip needs no review; changes-requested is not settled");
+  assert.match(topic("review")[2].text, /feature-x$/, "docs-only (skip) is not there");
+  assert.equal(topic("review")[0].command, "อ่าน docs/reviews/code/2026-11-02-stops.md แล้วแก้ตาม finding หรือ /mflow:review pending stops", "no fix branch: no command that names one");
+  assert.ok(!topic("changes").some((i) => i.text.includes("change/x")), "the branch the test item names is not listed again");
+  assert.equal(topic("review")[0].ref, "docs/reviews/code/2026-11-02-stops.md");
+  assert.match(topic("review")[1].text, /jobs$/);
+
+  assert.deepEqual(topic("e2e").map((i) => [i.kind, i.command]), [
+    ["screen", "/mflow:e2e Job detail"],
+    ["screens", "/mflow:e2e (ไม่ใส่ชื่อ: บอกว่าหน้าไหนยังไม่มี test หรือแก้หลัง test)"],
+    ["all", "/mflow:test e2e"],
+  ], "Jobs list has its record; Settings has none; no run of every E2E test yet");
+  assert.match(topic("e2e")[0].text, /^change jobs: หน้าจอ 1 หน้ายังไม่พบ record ของ \/mflow:e2e ตั้งแต่ 2026-10-02: Job detail$/);
+  assert.match(topic("e2e")[1].text, /1 จาก 3 หน้า.*Settings$/);
+  assert.deepEqual(topic("blocked"), []);
+});
+
+test("a changes-requested row with its fix branch points at it; a fix branch no row names is still listed", needsGit, () => {
+  fixture();
+  commitAt("2026-11-12T12:00:00Z", "reviewed", {
+    "docs/reviews/pending.md": "# Waiting\n\n| Change | Branch | Applied | Review level | Test | Review | E2E screens |\n|---|---|---|---|---|---|---|\n| jobs | main | 2026-10-02 | full | docs/reviews/tests/x.md | changes-requested docs/reviews/code/2026-11-12-jobs.md | — |\n",
+  });
+  git(p, "switch", "-q", "-c", "fix/jobs-review");
+  commitAt("2026-11-12T13:00:00Z", "fix(jobs): review fixes", { "src/fix.txt": "x\n" });
+  git(p, "switch", "-q", "-c", "fix/old-review", "main");
+  commitAt("2026-11-12T14:00:00Z", "fix(old): review fixes", { "src/old-fix.txt": "x\n" });
+  git(p, "switch", "-q", "main");
+  const [proj] = monitor(["--json"]).json.projects;
+  const fix = item(proj, "fix");
+  assert.equal(fix.command, "/mflow:test since บน fix/jobs-review แล้ว /mflow:review fix/jobs-review --short");
+  assert.equal(fix.ref, "docs/reviews/code/2026-11-12-jobs.md");
+  const branches = proj.guide.find((t) => t.id === "changes").items.filter((i) => i.kind === "branch").map((i) => i.text.split(" ")[1]);
+  assert.deepEqual(branches.sort(), ["change/tenants", "fix/old-review"], "fix/jobs-review is named by the review item; fix/old-review by nothing, so it is listed");
+});
+
+test("the newest run is the one whose commit is newest, not the file name; an E2E record counts for the longest screen name it starts with", needsGit, () => {
+  fixture();
+  commitAt("2026-11-12T12:00:00Z", "older", { "src/a.txt": "a\n" });
+  const older = git(p, "rev-parse", "HEAD").trim();
+  commitAt("2026-11-12T13:00:00Z", "newer", { "src/b.txt": "b\n" });
+  const newer = git(p, "rev-parse", "HEAD").trim();
+  // Same day: the fail at the newer commit gets the name that sorts first.
+  const [failName, passName] = ["2026-11-12-0000000.md", "2026-11-12-fffffff.md"];
+  commitAt("2026-11-12T15:00:00Z", "runs", {
+    [`docs/reviews/tests/${failName}`]: RECORD("whole suite", "fail", newer),
+    [`docs/reviews/tests/${passName}`]: RECORD("whole suite", "pass", older),
+    "docs/reviews/tests/2026-11-12-e2e.md": RECORD("e2e billing/notices detail", "pass", newer),
+    "docs/ui/screens.md": "# Screens\n\n| หน้าจอ | Route |\n|---|---|\n| billing/notices | /n |\n| billing/notices detail | /n/1 |\n",
+  });
+  const [proj] = monitor(["--json"]).json.projects;
+  assert.equal(item(proj, "test-fail")?.ref, `docs/reviews/tests/${failName}`, "the run at the newer commit is the latest");
+  assert.match(item(proj, "test-fail").text, /fail บน main/);
+  assert.deepEqual(proj.screens, ["billing/notices", "billing/notices detail"], "a Thai header is still a header");
+  assert.match(item(proj, "screens").text, /1 จาก 2 หน้า.*: billing\/notices$/, "the detail screen's record does not count for billing/notices");
+});
+
+test("a failing last whole-suite run blocks everything else, and a failing run of every E2E test is in the E2E topic", needsGit, () => {
+  fixture();
+  commitAt("2026-11-12T12:00:00Z", "runs", {
+    "docs/reviews/tests/2026-11-01-abcdef1.md": RECORD("whole suite", "pass"),
+    "docs/reviews/tests/2026-11-03-abcdef2.md": RECORD("since abcdef1", "fail", "abcdef2"),
+    "docs/reviews/tests/2026-11-04-abcdef2.md": RECORD("e2e", "fail", "abcdef2"),
+  });
+  const [proj] = monitor(["--json"]).json.projects;
+  assert.deepEqual(proj.guide[0].items.map((i) => [i.n, i.kind, i.command]), [[1, "test-fail", "แก้ test ที่ fail แล้ว commit จากนั้น /mflow:test since"]]);
+  assert.equal(proj.guide[0].items[0].ref, "docs/reviews/tests/2026-11-03-abcdef2.md");
+  assert.deepEqual(proj.guide.find((t) => t.id === "e2e").items.map((i) => i.kind), ["fail"]);
+});
+
+test("with no pending list, no screens and no records, every topic is still there", needsGit, () => {
+  p = project();
+  git(p, "init", "-q", "-b", "main");
+  commitAt("2026-11-01T10:00:00Z", "first", { "README.md": "x\n" });
+  const [proj] = monitor(["--json"]).json.projects;
+  assert.deepEqual(proj.guide.map((t) => t.id), ["blocked", "changes", "test", "review", "e2e", "decide", "other"]);
+  for (const id of ["blocked", "changes", "test", "review", "e2e"]) assert.deepEqual(proj.guide.find((t) => t.id === id).items, [], id);
+  assert.equal(proj.pending, null);
+  assert.equal(proj.screens, null);
 });
 
 test("text from the project's files is escaped on the page", needsGit, () => {
@@ -203,5 +345,7 @@ test("the skill runs the script, opens the page, and reads only", () => {
   const skill = fs.readFileSync(path.join(PLUGIN, "skills", "monitor", "SKILL.md"), "utf8");
   assert.match(skill, /^name: monitor$/m);
   assert.match(skill, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/monitor\.mjs" --open/);
+  assert.match(skill, /\*\*ลำดับงาน\*\*/, "the reply gives the guide");
+  assert.match(skill, /Run none of the commands in the guide/);
   assert.match(fs.readFileSync(path.join(PLUGIN, "skills", "help", "SKILL.md"), "utf8"), /\/mflow:monitor/);
 });

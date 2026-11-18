@@ -232,6 +232,7 @@ The read-only view of one record: label and value pairs in the kit's grid, group
 - **Icons:** every item has an icon, because the rail shows nothing else. An optional badge shows a pending count.
 - **Groups and footer:** items sit in named groups (such as หลัก, ข้อมูลหลัก, ตั้งค่า); an optional footer line shows the app version and its status. The active item is marked by more than color (the house style adds a bar at the sidebar's edge).
 - **States:** expanded, rail and drawer, as `AppShell` describes.
+- **Scroll:** the brand block and the footer stay put; only the groups between them scroll, inside the sidebar, in all three states. The scrollbar is the sidebar's own, never the browser's light track with arrow buttons on the dark menu: a thin bar (6px, rounded, no arrow buttons) on a transparent track, shown while the pointer is over the menu or keyboard focus is inside it. Its room is always kept (`scrollbar-gutter: stable`), so the items do not shift when it appears. The kit's stylesheet sets both the standard properties (`scrollbar-width`, `scrollbar-color`) and the `::-webkit-scrollbar` ones, on one class for the menu's scrolling box. A rail tooltip closes when the menu scrolls.
 
 ## PrototypeBanner
 

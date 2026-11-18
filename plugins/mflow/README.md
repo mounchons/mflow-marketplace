@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.47)
+## คำสั่ง (v0.48)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -54,7 +54,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/ai/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
 | | `/mflow:analyze units` → `unit:<ชื่อ> [--to …]` | (ไม่บังคับ) ตรวจระบบที่ทำแล้ว "ตามที่ทำจริง" ทีละหน่วย: Claude แตกโค้ดเป็นหน่วยตรวจจากไฟล์ที่ git เก็บไว้ (`.mflow/review-units.json`, script ยืนยันว่าทุกไฟล์มีหน่วยหรือมีเหตุผลที่ไม่ตรวจ) แล้ว brief ให้ AI ตัวอื่นเข้าใจระบบจากข้อเท็จจริงที่ดึงจากโค้ด spec และโค้ด โดยห้ามอ่านเอกสารลูกค้าและ discuss |
-| | `$mflow-test` / `$mflow-review` (Codex), `/mflow-test` / `/mflow-review` (OpenCode) | ให้ Codex หรือ OpenCode รัน test หรือรีวิว จาก skill ที่ `/mflow:init` สร้างใน `.agents/skills/` ผลใช้ร่วมกับ Claude ได้ (ไม่รัน E2E) |
+| | `$mflow-test` / `$mflow-review` / `$mflow-e2e` (Codex), `/mflow-test` / `/mflow-review` / `/mflow-e2e` (OpenCode) | ให้ Codex หรือ OpenCode รัน test รีวิว หรือเขียนและรัน E2E จาก skill ที่ `/mflow:init` สร้างใน `.agents/skills/` ผลใช้ร่วมกับ Claude ได้ (0.48) E2E รันใน Codex เฉพาะเมื่อ guard ของ mflow ใน `.codex/hooks.json` ทำงาน OpenCode เขียน test E2E ได้แต่ไม่รัน |
 | | `/mflow:analyze <AN-NNN> แก้ F1,F3; Q1=a; ที่เหลือตามแนะนำ` | เลือกข้อที่ให้แก้และตอบคำถามที่ต้องตัดสินก่อนในคำสั่งเดียว: ข้อที่ทำให้ spec เปลี่ยนเข้า OpenSpec change ของหน่วย (`<หน่วย>-review-fixes`), ข้อที่ spec ถูกอยู่แล้วเป็น task, คำถามที่แก้ยากไป `/mflow:discuss` |
 | | `/mflow:design "หัวข้อ" [--from @ไฟล์] [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวเสนอแบบ แล้วรวมเป็นแบบเสนอเดียวพร้อมทางเลือกและข้อที่ต้องตัดสินใจที่ `docs/ai/design/DS-NNN/` ไม่ต้องผ่าน analyze ก่อน |
 | | `/mflow:challenge @ไฟล์ [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัวหาจุดที่แบบหรือเอกสารจะพัง (สถานการณ์ที่ผิดพลาด สมมติฐานที่อ่อน) ก่อนสร้างจริง แล้วรวมผลที่ `docs/ai/challenge/CH-NNN/` |
@@ -93,7 +93,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 - **PreToolUse** (เครื่องมือ Agent): ปฏิเสธการเรียก subagent `mflow:dev` เมื่อโปรเจกต์ยังไม่ได้เปิดด้วย `/mflow:subagent on` (ค่าเริ่มต้นคือปิด) subagent ตัวอื่นผ่านตามปกติ ถ้าอ่านค่าไม่ได้จะปฏิเสธไว้ก่อน และ hook นี้ทำงานในทุกโปรเจกต์ที่เปิด plugin ไว้ โปรเจกต์ที่ไม่ใช่ mflow จึงใช้ `mflow:dev` ไม่ได้เลย
 - **PreToolUse** (Bash และ PowerShell): ปฏิเสธการรัน `playwright test` ที่ไม่ใส่ `--workers` หรือใส่เกินเพดาน (`e2eMaxWorkers` ใน `.mflow/config.json` ค่าเริ่มต้น 2) เพราะค่าเริ่มต้นของ Playwright เปิด browser เท่าครึ่งหนึ่งของ CPU thread จนเคยทำให้เครื่อง restart ดูเฉพาะคำสั่งที่ขึ้นต้นด้วย Playwright (หลัง `cd`, ตัวแปร env, `timeout`) การค้นข้อความอย่าง `grep "playwright test"` ผ่านได้ `--list` ผ่านได้ ถ้าอ่านค่าตั้งไม่ได้ hook ปล่อยผ่าน ไม่บล็อกคำสั่งอื่น
 
-hook ของ mflow ทำงานเฉพาะใน Claude Code (Codex รุ่นใหม่มี hook ของตัวเอง แต่ mflow ไม่ได้ใช้): ใน Codex และ OpenCode ให้ทำตามส่วน "Session ritual" ใน AGENTS.md แทน skill `mflow-test` และ `mflow-review` ที่ mflow สร้างให้สองเครื่องมือนี้เขียนกฎข้อนี้ไว้ในตัว
+hook ของ mflow ทำงานเฉพาะใน Claude Code ยกเว้น E2E guard ที่ `/mflow:init` ใส่ใน `.codex/hooks.json` ให้ Codex ด้วย (0.48): ใน Codex และ OpenCode ให้ทำตามส่วน "Session ritual" ใน AGENTS.md แทน skill `mflow-test`, `mflow-review` และ `mflow-e2e` ที่ mflow สร้างให้สองเครื่องมือนี้เขียนกฎข้อนี้ไว้ในตัว
 
 ## Subagent ตอน apply
 
@@ -137,7 +137,7 @@ E2E test ที่เขียนตอนหน้าจอยังเปล�
 
 - task จบด้วย unit test เท่านั้น user flow พิสูจน์ด้วย unit test ของกฎและ service ที่อยู่เบื้องหลัง `/opsx:apply`, `mflow:dev`, `/mflow:screen` และ `/mflow:test` แบบทั้งชุดไม่เขียนและไม่รัน E2E test
 - task เก่าที่สั่งให้รัน Playwright: apply ทำส่วนอื่นของ task แล้วเขียนต่อท้ายว่า `E2E on request (/mflow:e2e <หน้าจอ>)` task ที่มีแค่ E2E ปล่อยไว้ไม่ติ๊ก และบอกชื่อหน้าจอที่ change แตะ
-- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:e2e flow <capability>` (0.37) เขียน test ทีละเส้นทางของ flow ที่ข้ามหลายหน้าและหลายฝ่าย ในเทสเดียวใช้ browser context ต่อ role (ไม่เพิ่มจำนวน browser) ลิงก์เชิญจาก fake mailer ของระบบ ตรวจว่าฝั่งรับเห็นสิ่งที่ฝั่งส่งตั้งไว้ตรงกัน ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองไม่เห็นงานของคนแรก (list, ลิงก์ตรง, ไฟล์, การแจ้งเตือน) scenario ที่ spec ยังไม่มีรายงานเป็นสิ่งที่ขาด ไม่แต่งเอง ค่าตั้งที่ตั้งเว็บหนึ่งแล้วแสดงอีกเว็บ (0.37.1): แต่ละ role เปิดบนเว็บของตัวเอง (`baseURL` และ login ของเว็บนั้น จาก `## Commands`) ตรวจทุกสถานะของค่าตั้ง (ตั้งแล้วเห็นตรง ปิดแล้วหายรวมถึงลิงก์ตรง) ผู้ที่ค่าตั้งไปถึงและคนที่ไม่ควรเห็น และเวลาที่มีผลตาม spec ค่าตั้งที่ทั้งระบบใช้ร่วมกันรันแยกแบบ serial และคืนค่าเดิมแม้ test ล้ม (0.38) project ที่ mock API พิสูจน์ค่าตั้งข้ามเว็บเป็นสามท่อน: หน้า admin ส่งค่าถูก (E2E), API ส่งค่าที่บันทึกไปถึงฝั่งรับ (integration), หน้าฝั่งรับแสดงจาก mock ค่าเดียวกัน (E2E) และแสดงท่อนที่ยัง `missing` test ข้ามสองเว็บบน API จริงหนึ่งตัวต่อค่าตั้งใน project แบบ stack ข้อมูลที่ทุก test อ่าน (ค่าตั้ง สิทธิ์ template นาฬิกาทดสอบ) อยู่ใน project ที่รันหลัง test อ่านอย่างเดียว (`dependencies`, `workers: 1`) และคืนค่าใน `finally` `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด
+- `/mflow:e2e <หน้าจอ>` เขียนหรือปรับ test ของหน้าจอเดียวตาม spec และ role ใน `docs/ui/screens.md` แล้วรันเฉพาะไฟล์นั้น `/mflow:e2e flow <capability>` (0.37) เขียน test ทีละเส้นทางของ flow ที่ข้ามหลายหน้าและหลายฝ่าย ในเทสเดียวใช้ browser context ต่อ role (ไม่เพิ่มจำนวน browser) ลิงก์เชิญจาก fake mailer ของระบบ ตรวจว่าฝั่งรับเห็นสิ่งที่ฝั่งส่งตั้งไว้ตรงกัน ทุกการตัดสินใจเห็นทั้งสองฝั่ง และ supplier คนที่สองไม่เห็นงานของคนแรก (list, ลิงก์ตรง, ไฟล์, การแจ้งเตือน) scenario ที่ spec ยังไม่มีรายงานเป็นสิ่งที่ขาด ไม่แต่งเอง ค่าตั้งที่ตั้งเว็บหนึ่งแล้วแสดงอีกเว็บ (0.37.1): แต่ละ role เปิดบนเว็บของตัวเอง (`baseURL` และ login ของเว็บนั้น จาก `## Commands`) ตรวจทุกสถานะของค่าตั้ง (ตั้งแล้วเห็นตรง ปิดแล้วหายรวมถึงลิงก์ตรง) ผู้ที่ค่าตั้งไปถึงและคนที่ไม่ควรเห็น และเวลาที่มีผลตาม spec ค่าตั้งที่ทั้งระบบใช้ร่วมกันรันแยกแบบ serial และคืนค่าเดิมแม้ test ล้ม (0.38) project ที่ mock API พิสูจน์ค่าตั้งข้ามเว็บเป็นสามท่อน: หน้า admin ส่งค่าถูก (E2E), API ส่งค่าที่บันทึกไปถึงฝั่งรับ (integration), หน้าฝั่งรับแสดงจาก mock ค่าเดียวกัน (E2E) และแสดงท่อนที่ยัง `missing` test ข้ามสองเว็บบน API จริงหนึ่งตัวต่อค่าตั้งใน project แบบ stack ข้อมูลที่ทุก test อ่าน (ค่าตั้ง สิทธิ์ template นาฬิกาทดสอบ) อยู่ใน project ที่รันหลัง test อ่านอย่างเดียว (`dependencies`, `workers: 1`) และคืนค่าใน `finally` `/mflow:test e2e` รันทั้งหมด ทั้งสองแบบเปิด browser พร้อมกันไม่เกิน 2 ตัว (`--workers=2`) และบันทึกผลที่ `docs/reviews/tests/` เป็น `Scope: e2e …` ซึ่งไม่นับเป็นการรันทั้งชุด ก่อนเขียน test (0.48) ถ้าเครื่องมี Playwright CLI (`playwright-cli`) และหน้าจอเปิดอยู่แล้วบนเครื่องนี้ (base URL จาก Playwright config หรือ `## Commands` ไม่ใช่ server ที่ใช้ร่วมกัน staging หรือ production) จะเปิดดูหน้าจริงใน session เดียวชื่อ `mflow-e2e` แบบ headless: `snapshot` ดู role ชื่อ และ test id ลองกดตาม scenario แล้วเขียน locator จากโค้ด Playwright ที่ CLI พิมพ์ออกมา (เช่น `getByTestId(...)`) ไม่ใช้ ref อย่าง `e3` ที่เปลี่ยนทุก snapshot หลาย role สลับกันใน session เดียว (`state-save` / `state-load`) จึงมี browser ของ CLI ไม่เกินหนึ่งตัว และปิดก่อนรัน test ไฟล์ใน `.playwright-cli/` (snapshot, log, login ที่บันทึก) ถูกใส่ `.gitignore` ไม่ commit ไม่มี CLI ก็เขียนจากโค้ดเหมือนเดิม และบอกวิธีติดตั้ง (`npm install -g @playwright/cli@latest`) โดยไม่ติดตั้งให้เอง
 - test ที่ล้มเพราะหน้าจอเปลี่ยนโดยตั้งใจถูกปรับตามของใหม่ ถ้าล้มเพราะหน้าจอผิด spec test ยังยึด spec และรายงานเป็น defect `/mflow:e2e` แก้แค่ไฟล์ test
 - `/mflow:review` ไม่นับการไม่มี E2E test เป็นข้อบกพร่อง แค่บอกหน้าจอที่ยังรอ (`E2E on request`)
 
@@ -227,7 +227,7 @@ mflow/
 │   ├─ night.mjs           ← สถานะของ /mflow:night (docs/reviews/night/): ขั้นถัดไป, รอบต่อเป้าหมาย, เวลาที่เหลือ
 │   ├─ apply-all.mjs       ← สถานะของ /mflow:apply-all (ระหว่างรันอยู่ใน .git จบแล้วที่ docs/reviews/apply-all/): แผนจากเอกสาร discuss ที่ approve แล้ว, ขั้นถัดไป, เพดานรอบ, ด่านตรวจก่อน merge
 │   ├─ monitor.mjs         ← หน้า /mflow:monitor (.git/mflow/monitor.html): feature จาก story map, discuss, branch เทียบ main, merge, change, ลำดับงานพร้อมคำสั่ง อ่านอย่างเดียว
-│   ├─ agent-skills.mjs    ← สร้าง skill mflow-test และ mflow-review ให้ Codex และ OpenCode ใน .agents/skills/
+│   ├─ agent-skills.mjs    ← สร้าง skill mflow-test, mflow-review, mflow-e2e ให้ Codex และ OpenCode ใน .agents/skills/ และ E2E guard ใน .codex/hooks.json
 │   ├─ vendor.mjs          ← สำเนา plugin ใน .claude/skills/mflow/ สำหรับ Claude Code on the web: plan, write, status (0.38.1)
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
@@ -278,19 +278,21 @@ Codex และ tool อื่นไม่ได้เรียก `/mflow:*` (�
 ค่าเสริมใน `.mflow/config.json` (ไม่บังคับ): `asBuilt.openapi` path ของไฟล์ OpenAPI ที่โปรเจกต์ export ไว้ (mflow ไม่รันแอปเอง) และ `asBuilt.facts.tests` / `asBuilt.facts.routes` regular expression เพิ่มเติม (มี capture group เดียวเป็นชื่อ test หรือ route)
 
 
-### ให้ Codex หรือ OpenCode รัน test และรีวิว
+### ให้ Codex หรือ OpenCode รัน test รีวิว และ E2E
 
-`/mflow:init` สร้าง `/mflow:test` และ `/mflow:review` เป็น skill ใน `.agents/skills/mflow-test/` และ `mflow-review/` (ถามก่อนเขียน) ซึ่ง Codex และ OpenCode อ่านจากโฟลเดอร์เดียวกัน:
+`/mflow:init` สร้าง `/mflow:test`, `/mflow:review` และ `/mflow:e2e` (0.48) เป็น skill ใน `.agents/skills/mflow-test/`, `mflow-review/` และ `mflow-e2e/` (ถามก่อนเขียน) ซึ่ง Codex และ OpenCode อ่านจากโฟลเดอร์เดียวกัน:
 
 | เครื่องมือ | เรียก |
 |---|---|
-| Claude Code | `/mflow:test`, `/mflow:review` (เหมือนเดิม) |
-| Codex | `$mflow-test`, `$mflow-review` (หรือเลือกจาก `/skills`) |
-| OpenCode | `/mflow-test`, `/mflow-review` |
+| Claude Code | `/mflow:test`, `/mflow:review`, `/mflow:e2e` (เหมือนเดิม) |
+| Codex | `$mflow-test`, `$mflow-review`, `$mflow-e2e` (หรือเลือกจาก `/skills`) |
+| OpenCode | `/mflow-test`, `/mflow-review`, `/mflow-e2e` |
 
 - ผลใช้ข้ามเครื่องมือได้: record ของ test มี `By:` และ `/mflow:review` ของ Claude ใช้ record ที่ Codex หรือ OpenCode รันได้ตามกฎเดิม รายงาน review มี `Reviewer:` และ `Author:` ถ้า Codex หรือ OpenCode รีวิวโค้ดที่ตัวเองเขียน รายงานนั้นไม่นับเป็นเงื่อนไข merge
-- E2E ไม่รันใน Codex และ OpenCode เพราะไม่มี hook จำกัดจำนวน browser ให้รัน `/mflow:test e2e` ใน Claude Code
-- ตรวจกับ Codex จริงบนเครื่องไหนก็ได้ที่มี Codex CLI ที่ login แล้ว: ใน checkout ของ mflow-marketplace รัน `node tests/smoke/codex-skills.mjs` (กรณี `test`, `review`, `e2e`, `self` เลือกได้ด้วย `--cases`) script สร้างโปรเจกต์จำลองใน temp ให้ Codex รันแต่ละกรณีแล้วตรวจสิ่งที่ Codex เขียน ใช้ token ของ Codex ราว 30-40k ต่อกรณี จึงไม่อยู่ใน `node --test` และ CI
+- E2E ใน Codex (0.48): `/mflow:init` ใส่ hook ของ mflow ลง `.codex/hooks.json` ของโปรเจกต์ (hook อื่นในไฟล์อยู่เหมือนเดิม) ให้ Codex รัน `e2e-guard.mjs` ตัวเดียวกับใน Claude Code ซึ่งปฏิเสธ Playwright ที่ไม่มี `--workers` หรือเกิน `e2eMaxWorkers` Codex รัน hook นี้เมื่อ (1) trust โปรเจกต์แล้ว (Codex ถามตอนเปิดโฟลเดอร์ครั้งแรก หรือ `codex exec --trust`) และ (2) อนุมัติ hook ใน `/hooks` แล้ว (Codex จำการอนุมัติตาม hash ของ hook และอาจถามใหม่เมื่อไฟล์เปลี่ยน ข้อความ entry ของ mflow เหมือนเดิมทุกรุ่น การอัปเกรด mflow จึงไม่เปลี่ยน entry นี้) ก่อนรัน Playwright ครั้งแรก `$mflow-e2e` และ `$mflow-test e2e` ตรวจด้วยคำสั่ง `node -e "process.exit(1)" && npx playwright test` ถ้า hook บล็อกแปลว่า guard ทำงาน ถ้าไม่บล็อก node ล้มก่อนจึงไม่มี browser เปิด แล้ว skill หยุดและบอกวิธีเปิด guard
+- OpenCode ไม่มี hook แบบนี้: `/mflow-e2e` เขียน test ได้แต่ไม่รัน และ `/mflow-test e2e` ไม่รัน ให้รันใน Codex หรือ Claude Code
+- Playwright CLI ใน Codex: การเปิดดูหน้าด้วย `playwright-cli` ไม่ใช่การรัน test จึงทำได้แม้ guard ยังไม่เปิด แต่บน Windows sandbox ของ Codex รันคำสั่งด้วยบัญชีแยก (`CodexSandboxOffline`) ซึ่งหา `playwright-cli` ที่ติดตั้งไว้กับ user ไม่เจอ skill จึงขออนุมัติให้รันนอก sandbox ก่อนสรุปว่าไม่ได้ติดตั้ง ใน `codex exec` ที่ถามไม่ได้ จะบอกหนึ่งบรรทัดว่าไม่ได้เปิดดูหน้าเพราะเหตุนี้ (รันแบบไม่มี sandbox แล้ว Codex เปิดดูหน้า เขียน test จาก locator ที่ CLI ให้ และปิด session ได้ครบ)
+- ตรวจกับ Codex จริงบนเครื่องไหนก็ได้ที่มี Codex CLI ที่ login แล้ว: ใน checkout ของ mflow-marketplace รัน `node tests/smoke/codex-skills.mjs` (กรณี `test`, `review`, `e2e`, `e2e-screen`, `self` เลือกได้ด้วย `--cases`) script สร้างโปรเจกต์จำลองใน temp ให้ Codex รันแต่ละกรณีแล้วตรวจสิ่งที่ Codex เขียน (กรณี `e2e`: โปรเจกต์ใน temp ยังไม่ trusted จึงต้องรัน guard check แล้วไม่เปิด Playwright) ใช้ token ของ Codex ราว 30-40k ต่อกรณี จึงไม่อยู่ใน `node --test` และ CI
 - อย่าแก้ไฟล์ใน `.agents/skills/mflow-*` เอง `/mflow:init` เขียนใหม่ทุกครั้งที่ plugin เปลี่ยน (`doctor` เตือนเมื่อสำเนาเก่า) skill ของคุณเองที่ชื่อซ้ำจะไม่ถูกแตะ
 - Codex ต้องใช้ sandbox `workspace-write` สำหรับ test (build เขียนไฟล์) ตอนลองบน Windows sandbox บล็อกการหา path ของ Node ทั้งสองครั้ง แล้ว Codex รันคำสั่งนอก sandbox เองโดยไม่ถาม (โหมด `codex exec` กับค่า approval ของเครื่องนั้น) จะมีคำถามก่อนหรือไม่ขึ้นกับค่า approval ของ Codex ที่คุณตั้งไว้
 

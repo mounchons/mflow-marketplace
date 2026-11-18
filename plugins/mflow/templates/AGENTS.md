@@ -110,5 +110,5 @@ A task or change is done when its acceptance criteria are covered by tests that 
 - Edit Backlog.md files only through the `backlog` CLI.
 - Change `openspec/specs/` only through an OpenSpec change + archive; `openspec/changes/archive/` is history, read-only.
 - A fix that changes no behaviour `openspec/specs/` describes (code brought back to what the specs say, a label, style or text, documents) needs no OpenSpec change: make it with its unit test, commit it with its STATUS entry, and say in one line of the reply that it went without a change and why. Behaviour that is new, changed, or not in the specs yet is an OpenSpec change.
-- Leave generated agent files alone: `.claude/skills/openspec-*`, `.claude/commands/opsx/`, `.agents/skills/`, and content between tool marker comments.
+- Leave generated agent files alone: `.claude/skills/openspec-*`, `.claude/commands/opsx/`, `.agents/skills/`, mflow's E2E guard entry in `.codex/hooks.json`, and content between tool marker comments.
 - Ask before: schema migrations on shared databases, deleting data, changing auth.

@@ -95,6 +95,7 @@ Common icons: house, gauge (dashboard), truck, file-invoice, receipt, users, use
 - Active item: `--app-sidebar-active-bg`, a 3px bar in `--app-sidebar-accent` at the sidebar's left edge, label in `--app-sidebar-active-text`, icon in the accent.
 - Count badge on the right: a small pill, muted on dark; on the active item it takes the primary tint.
 - Footer: the app version and a status dot ("v1.0.0 · Online").
+- Scrollbar: 6px, the thumb in `--app-sidebar-hover-bg` on a transparent track, no arrow buttons, shown on hover and keyboard focus (`SidebarMenu`, "Scroll").
 - **Rail** (mflow's medium state, not in the kit): the same colors and active bar, icons only, labels in tooltips.
 
 **Top bar** (60px, white, 1px `--app-border` underneath):

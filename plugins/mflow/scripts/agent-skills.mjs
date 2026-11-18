@@ -1,16 +1,21 @@
 #!/usr/bin/env node
-// Skills for Codex and OpenCode: /mflow:test and /mflow:review, generated from this plugin's own skills
-// into .agents/skills/mflow-test and .agents/skills/mflow-review, the folder both tools read. Codex calls
-// them as $mflow-test, OpenCode as /mflow-test. Neither runs mflow's hooks, so each skill carries the
-// rules a hook enforces here: write the STATUS.md entry, and never run E2E (no hook caps the browsers).
+// Skills for Codex and OpenCode: /mflow:test, /mflow:review and /mflow:e2e, generated from this plugin's own
+// skills into .agents/skills/mflow-test, mflow-review and mflow-e2e, the folder both tools read. Codex calls
+// them as $mflow-test, OpenCode as /mflow-test. Neither runs mflow's Claude Code hooks, so each skill carries
+// the rules a hook enforces here (write the STATUS.md entry yourself). The one hook that matters for safety,
+// the E2E guard that caps the browsers a Playwright run opens, is also written into the project's
+// .codex/hooks.json, which Codex runs once the user trusts the project and approves the hook in `/hooks`;
+// before any Playwright run the skills check that the guard is on. OpenCode has no such hook: it never runs E2E.
 //
 //   node agent-skills.mjs plan [--root <dir>]    -> JSON: what writing would create, update or remove
 //   node agent-skills.mjs write [--root <dir>]   -> write it; JSON: the same, as done
-//   node agent-skills.mjs status [--root <dir>]  -> JSON: which version each generated skill is
+//   node agent-skills.mjs status [--root <dir>]  -> JSON: which version each generated skill is, and the hook
 //
 // A folder of that name without mflow's marker (`mflow/generated` in the frontmatter's metadata) is the
-// user's own skill and is never touched. Nothing is written through a link that leads outside the
-// project. Writing again changes nothing unless the plugin changed.
+// user's own skill and is never touched. In .codex/hooks.json only mflow's entry (the one that runs the
+// guard copy in .agents/skills/mflow-e2e) is added or replaced; every other hook stays as it is, and a file
+// that is not valid JSON is left alone. Nothing is written through a link that leads outside the project.
+// Writing again changes nothing unless the plugin changed.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,23 +26,40 @@ export const VERSION = JSON.parse(fs.readFileSync(path.join(PLUGIN, ".claude-plu
 const BASE = ".agents/skills";
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+/** Where the E2E guard runs from in Codex: the copy in mflow-e2e, through the project's .codex/hooks.json. */
+export const HOOKS_FILE = ".codex/hooks.json";
+export const GUARD = `${BASE}/mflow-e2e/scripts/e2e-guard.mjs`;
+// The same text in every version, so the hash Codex keeps for the user's approval in `/hooks` stays valid
+// across mflow upgrades. `$(git rev-parse …)` works in sh and in PowerShell, which Codex uses on Windows.
+export const HOOK_ENTRY = {
+  matcher: "Bash",
+  hooks: [{ type: "command", command: `node "$(git rev-parse --show-toplevel)/${GUARD}"`, timeout: 10 }],
+};
+
+// Proves the guard is on without a browser: with no guard, `node` fails first and nothing more runs.
+const GUARD_CHECK = "E2E guard check, once in the session before its first Playwright run: run `node -e \"process.exit(1)\" && npx playwright test`, exactly so. It cannot start a browser: without the guard, `node` fails first and nothing after it runs. When a hook blocks it with mflow's reason (\"This Playwright run sets no --workers…\"), the guard is on: carry on, every Playwright run with `--workers=2` (at most `e2eMaxWorkers` in `.mflow/config.json`). When it is not blocked, the guard is off: run no `playwright test` command and write no test record (nothing ran), and tell the user how to turn it on: trust this project in Codex (Codex asks when it first opens the folder; `codex exec --trust` for exec), approve mflow's hook in `/hooks` (again after `.codex/hooks.json` changes, when Codex asks), and when `.codex/hooks.json` has no entry for `" + GUARD + "`, run `/mflow:init` in Claude Code.";
+const SANDBOX = "Playwright and Playwright CLI start browsers and the web servers listen on local ports, which Codex's sandbox may block: when a run fails for that, ask the user to approve the command outside the sandbox. On Windows, Codex's sandbox runs commands as its own account, which may not find the user's global npm tools or their browsers: when `playwright-cli --version` fails in the sandbox, run it once outside it (with the user's approval) before treating Playwright CLI as not installed; when you cannot ask (such as in `codex exec`), say in one line of the reply that the page was not looked at because Playwright CLI did not run in Codex's sandbox. Never raise `--workers` past the cap to get around a failure.";
+
 // What each generated skill takes from the plugin. `edits` are the lines of the source that only hold in
 // Claude Code; each must match exactly once, so a reworded source fails the tests instead of drifting.
+// `$&` in an edit's text keeps the source line it matched.
 export const SKILLS = [
   {
     name: "mflow-test",
     source: "test",
-    describe: " In Codex and OpenCode it never runs E2E: that stays in Claude Code.",
+    describe: " In Codex it runs E2E only while mflow's E2E guard in .codex/hooks.json is on; in OpenCode never.",
     references: ["init/references/stacks.md"],
     scripts: ["pending.mjs", "lib.mjs"],
     edits: [
       [/^In the same message, tell the user how to keep working while it runs\..*$/m,
-        "In the same message, tell the user how to keep working while it runs: this session is busy until the run ends, so work that only writes documents goes in a second session in the same folder (this tool or Claude Code). Leave anything that changes or builds code in this checkout until the run ends: it breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`)."],
+        "In the same message, tell the user how to keep working while it runs: this session is busy until the run ends, so work that only writes documents goes in a second session in the same folder (this tool or Claude Code). Leave anything that changes or builds code in this checkout until the run ends, `$mflow-e2e` included: it breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`)."],
       [/^- E2E, when the argument names it:.*$/m,
-        "- E2E never runs here: no hook in this tool caps the browsers a Playwright run opens, and an uncapped run has crashed a laptop's graphics driver. When the argument names `e2e`, stop and tell the user to run `/mflow:test e2e` in Claude Code."],
+        "$& In this tool: in Codex only after the E2E guard check of \"Running in Codex or OpenCode\" below finds the guard on; in OpenCode never, since no hook there caps the browsers: stop and tell the user to run `$mflow-test e2e` in Codex or `/mflow:test e2e` in Claude Code."],
     ],
     notes: [
-      "E2E never runs here, whatever the argument: for `e2e`, tell the user to run `/mflow:test e2e` in Claude Code.",
+      "E2E runs only when the argument names it, and only in Codex with the guard on. " + GUARD_CHECK,
+      "In OpenCode E2E never runs, whatever the argument: for `e2e`, tell the user to run `$mflow-test e2e` in Codex or `/mflow:test e2e` in Claude Code.",
+      SANDBOX,
       "Run each part in the foreground within this tool's time limit for one command; a part that cannot finish within it is split further, as \"Parts\" says.",
       "Write `By: codex` or `By: opencode` in the record, whichever tool you are.",
     ],
@@ -51,6 +73,24 @@ export const SKILLS = [
     notes: [
       "Write `Reviewer: codex` or `Reviewer: opencode` in the report, whichever tool you are, and the `Author:` line as Report says. A verdict counts toward a merge only when the reviewer is not the author.",
       "A review never runs E2E tests here either.",
+    ],
+  },
+  {
+    name: "mflow-e2e",
+    source: "e2e",
+    describe: " Codex runs them only while mflow's E2E guard in .codex/hooks.json is on; OpenCode writes them but never runs them.",
+    references: ["init/references/stacks.md", "theme/references/responsive.md", "e2e/references/chain.md"],
+    scripts: ["e2e-guard.mjs", "lib.mjs"],
+    edits: [
+      [/^- Only this screen's or this flow's test files, in the foreground,.*$/m,
+        "- In this tool, first: in Codex, run nothing below until the E2E guard check of \"Running in Codex or OpenCode\" finds the guard on; in OpenCode, run nothing: no hook there caps the browsers, so stop after section 2 and tell the user to run `$mflow-e2e <screen>` in Codex or `/mflow:e2e <screen>` in Claude Code.\n$&"],
+    ],
+    notes: [
+      "Before section 3 (Run): " + GUARD_CHECK,
+      "The one Playwright CLI session of section 2 (`-s=mflow-e2e`, closed at the end of that section) is not a test run: it may look at the page in Codex with the guard off and in OpenCode too.",
+      "In OpenCode, write the tests (sections 1 and 2) and stop before section 3: no hook there caps the browsers. Tell the user to run `$mflow-e2e <screen>` in Codex or `/mflow:e2e <screen>` in Claude Code.",
+      SANDBOX,
+      "Write `By: codex` or `By: opencode` in the record, whichever tool you are.",
     ],
   },
 ];
@@ -68,6 +108,12 @@ function rewritePaths(text, skill, { strict }) {
       if (skill.references.includes(rel)) return `${tick}${BASE}/${skill.name}/references/${path.posix.basename(rel)}${tick}`;
       if (strict) throw new Error(`${skill.name}: the source reads skills/${rel}, which the skill does not carry`);
       return `${tick}skills/${rel}${tick} of the mflow plugin (Claude Code only)`;
+    })
+    // A link to the skill's own references (`[references/chain.md](references/chain.md)`) becomes the path
+    // from the repository root, as every other path in the generated file is.
+    .replace(/\[references\/([\w.-]+\.md)\]\(references\/\1\)/g, (all, file) => {
+      if (!skill.references.some((r) => path.posix.basename(r) === file)) throw new Error(`${skill.name}: the source links references/${file}, which the skill does not carry`);
+      return `\`${BASE}/${skill.name}/references/${file}\``;
     });
 }
 
@@ -84,12 +130,12 @@ export function build(skill) {
   }
   body = rewritePaths(body, skill, { strict: true });
   if (body.includes("${CLAUDE_PLUGIN_ROOT}")) throw new Error(`${skill.name}: a plugin path is left in the body`);
+  if (/\]\(references\//.test(body)) throw new Error(`${skill.name}: a link relative to the skill is left in the body`);
   if (!NAME.test(skill.name)) throw new Error(`${skill.name}: not a valid skill name`);
   const description = (String(fm.description || "").trim() + (skill.describe || "")).trim();
   if (!description || description.length > 1024) throw new Error(`${skill.name}: the description must be 1 to 1024 characters (${description.length})`);
   const own = call(skill.name);
-  const test = call("mflow-test");
-  const review = call("mflow-review");
+  const [test, review, e2e] = ["mflow-test", "mflow-review", "mflow-e2e"].map(call);
   const head = [
     "---",
     `name: ${skill.name}`,
@@ -111,8 +157,8 @@ export function build(skill) {
     "",
     `- Run only when the user calls it: \`${own.codex}\` in Codex, \`${own.opencode}\` in OpenCode, with the arguments above.`,
     "- Run every command from the repository root: every path in this file is relative to it.",
-    `- \`/mflow:test\` in this text is \`${test.codex}\` / \`${test.opencode}\`, and \`/mflow:review\` is \`${review.codex}\` / \`${review.opencode}\`. Every other \`/mflow:*\` command named here runs only in Claude Code, and \`/opsx:*\` is Claude Code's or this tool's OpenSpec skill: name it for the user rather than trying it.`,
-    "- mflow's hooks run only in Claude Code. Write the STATUS.md entry yourself, as \"Session ritual\" in AGENTS.md says, and ask the user in plain text wherever this text says to ask.",
+    `- \`/mflow:test\` in this text is \`${test.codex}\` / \`${test.opencode}\`, \`/mflow:review\` is \`${review.codex}\` / \`${review.opencode}\`, and \`/mflow:e2e\` is \`${e2e.codex}\` / \`${e2e.opencode}\`. Every other \`/mflow:*\` command named here runs only in Claude Code, and \`/opsx:*\` is Claude Code's or this tool's OpenSpec skill: name it for the user rather than trying it. Where this text says \`/clear\`, start a fresh session of this tool instead.`,
+    `- mflow's hooks run only in Claude Code, except its E2E guard, which Codex runs from \`${HOOKS_FILE}\` once the user trusts the project and approves the hook in \`/hooks\`. Write the STATUS.md entry yourself, as "Session ritual" in AGENTS.md says, and ask the user in plain text wherever this text says to ask.`,
     ...skill.notes.map((n) => `- ${n}`),
     "",
   ].join("\n");
@@ -151,6 +197,39 @@ function filesUnder(root, rel) {
   return out;
 }
 
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const isGroupOfOurs = (g) => Array.isArray(g?.hooks) && g.hooks.some((h) => typeof h?.command === "string" && h.command.includes(GUARD));
+
+/** The project's .codex/hooks.json as data, or why mflow leaves it alone. */
+function readHooks(root) {
+  let now = null;
+  try { now = fs.readFileSync(path.join(root, HOOKS_FILE), "utf8"); } catch { /* none yet */ }
+  if (now === null) return { now, data: { hooks: {} } };
+  let data;
+  try { data = JSON.parse(now); } catch { return { now, problem: `${HOOKS_FILE} is not valid JSON` }; }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { now, problem: `${HOOKS_FILE} is not a JSON object` };
+  if (data.hooks === undefined) data.hooks = {};
+  if (!data.hooks || typeof data.hooks !== "object" || Array.isArray(data.hooks)) return { now, problem: `"hooks" in ${HOOKS_FILE} is not an object` };
+  if (data.hooks.PreToolUse !== undefined && !Array.isArray(data.hooks.PreToolUse)) return { now, problem: `"hooks.PreToolUse" in ${HOOKS_FILE} is not a list` };
+  return { now, data };
+}
+
+/** What writing does to .codex/hooks.json: mflow's entry added or replaced, every other hook kept. */
+function planHook(root, skills) {
+  const e2e = skills.find((s) => s.name === "mflow-e2e");
+  if (!e2e?.files) return { path: HOOKS_FILE, state: "skipped", note: `${BASE}/mflow-e2e is not mflow's here, so the guard copy the hook runs is not either` };
+  if (!realInside(root, HOOKS_FILE)) return { path: HOOKS_FILE, state: "refused", note: `${HOOKS_FILE}, or a folder above it, is a link that leads outside the project` };
+  const { now, data, problem } = readHooks(root);
+  if (problem) return { path: HOOKS_FILE, state: "refused", note: `${problem}: mflow leaves it as it is; add this entry under hooks.PreToolUse by hand: ${JSON.stringify(HOOK_ENTRY)}` };
+  const list = (data.hooks.PreToolUse ||= []);
+  const at = list.findIndex(isGroupOfOurs);
+  if (at >= 0 && same(list[at], HOOK_ENTRY) && list.filter(isGroupOfOurs).length === 1) return { path: HOOKS_FILE, state: "unchanged" };
+  const kept = list.filter((g) => !isGroupOfOurs(g));
+  kept.splice(at >= 0 ? Math.min(at, kept.length) : kept.length, 0, HOOK_ENTRY);
+  data.hooks.PreToolUse = kept;
+  return { path: HOOKS_FILE, state: now === null ? "create" : "update", text: JSON.stringify(data, null, 2) + "\n" };
+}
+
 export function plan(root) {
   const skills = SKILLS.map((skill) => {
     const was = installed(root, skill.name);
@@ -174,7 +253,7 @@ export function plan(root) {
     const state = was === undefined ? "create" : write.length || remove.length ? "update" : "unchanged";
     return { name: skill.name, state, from: was ?? null, to: VERSION, write, unchanged: unchanged.length, remove, files };
   });
-  return { version: VERSION, skills };
+  return { version: VERSION, skills, hook: planHook(root, skills) };
 }
 
 export function write(root) {
@@ -187,7 +266,16 @@ export function write(root) {
     }
     for (const rel of s.remove) fs.rmSync(path.join(root, rel), { force: true });
   }
+  if (p.hook.text !== undefined) writeFileAtomic(path.join(root, HOOKS_FILE), p.hook.text);
   return p;
+}
+
+/** Whether .codex/hooks.json runs the guard: current, outdated (mflow's entry differs), missing or unreadable. */
+function hookStatus(root) {
+  const { data, problem } = readHooks(root);
+  if (problem) return { path: HOOKS_FILE, state: "unreadable", note: problem };
+  const ours = (data.hooks.PreToolUse || []).filter(isGroupOfOurs);
+  return { path: HOOKS_FILE, state: !ours.length ? "missing" : ours.length === 1 && same(ours[0], HOOK_ENTRY) ? "current" : "outdated" };
 }
 
 export function status(root) {
@@ -198,6 +286,7 @@ export function status(root) {
       const state = was === undefined ? "missing" : was === null ? "foreign" : was === VERSION ? "current" : "outdated";
       return { name: s.name, state, version: was ?? null };
     }),
+    hook: hookStatus(root),
   };
 }
 
@@ -212,7 +301,8 @@ if (isMain) {
     let out;
     if (cmd === "plan" || cmd === "write") {
       const p = cmd === "plan" ? plan(root) : write(root);
-      out = { ...p, written: cmd === "write", skills: p.skills.map(({ files, ...rest }) => rest) };
+      const { text, ...hook } = p.hook;
+      out = { ...p, written: cmd === "write", skills: p.skills.map(({ files, ...rest }) => rest), hook };
     } else if (cmd === "status") out = status(root);
     else throw new Error("usage: agent-skills.mjs plan | write | status [--root <dir>]");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");

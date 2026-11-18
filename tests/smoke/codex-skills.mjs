@@ -1,22 +1,27 @@
 #!/usr/bin/env node
-// Smoke run of the skills mflow generates for Codex (.agents/skills/mflow-test and mflow-review) against
+// Smoke run of the skills mflow generates for Codex (.agents/skills/mflow-test, mflow-review, mflow-e2e) against
 // a real Codex CLI. Not part of `node --test` or CI: it needs a signed-in Codex and spends its tokens
 // (about 30-40k per case). Run it by hand on any machine that has Codex:
 //
-//   node tests/smoke/codex-skills.mjs [--cases test,review,e2e,self] [--dir <parent folder>] [--keep]
-//                                     [--timeout <minutes per case, default 15>]
+//   node tests/smoke/codex-skills.mjs [--cases test,review,e2e,e2e-screen,self] [--dir <parent folder>] [--keep]
+//                                     [--timeout <minutes per case, default 15>] [--sandbox <codex sandbox mode>]
 //
 // It builds a small Node project in a new temp folder (under --dir when given), generates the skills
 // from this checkout's plugin, runs Codex on each case and checks what Codex wrote:
 //   test    $mflow-test                         a whole-suite record with By: codex, a STATUS.md entry
 //   review  $mflow-review agent/claude/sub      a report with Reviewer: codex, Author: claude, a verdict
-//   e2e     $mflow-test e2e                     no E2E run, the user sent to Claude Code
+//   e2e     $mflow-test e2e                     the guard check runs; in this untrusted temp project the guard
+//                                               is off, so Playwright never starts and the user is told /hooks
+//   e2e-screen  $mflow-e2e orders               with the page served on a free port: a test file for the screen
+//                                               written, the guard check run, no Playwright test started, no
+//                                               test record; when playwright-cli is on PATH, the page looked at
+//                                               (open, snapshot), the session closed, .playwright-cli/ ignored
 //   self    $mflow-review agent/codex/self      Author: codex, named a self-review
 // Prints one line per check and a JSON summary; exits 1 when a check fails. The folder (project/, and
 // logs/ with Codex's transcript and last message per case) is removed on success unless --keep, and
 // kept on failure. A failing case also prints Codex's last message: a shell that would not start or an
 // approval service at capacity is Codex's environment, not the skill, and is worth one rerun.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -26,15 +31,18 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const GENERATOR = path.join(REPO, "plugins", "mflow", "scripts", "agent-skills.mjs");
 const args = process.argv.slice(2);
 const opt = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
-const CASES = opt("--cases", "test,review,e2e,self").split(",").map((c) => c.trim()).filter(Boolean);
+const CASES = opt("--cases", "test,review,e2e,e2e-screen,self").split(",").map((c) => c.trim()).filter(Boolean);
 const TIMEOUT = Number(opt("--timeout", "15")) * 60_000;
 const KEEP = args.includes("--keep");
+// Codex's sandbox for every case. On Windows the sandbox runs as its own account, which may not see a
+// global playwright-cli, so the e2e-screen case reports that the CLI was not found there.
+const SANDBOX = opt("--sandbox", "workspace-write");
 const WIN = process.platform === "win32";
 
 const fail = (msg) => { process.stderr.write(msg + "\n"); process.exit(2); };
 let base = os.tmpdir(); // the run's folder once made; git looks no higher than it
-const unknown = CASES.filter((c) => !["test", "review", "e2e", "self"].includes(c));
-if (unknown.length) fail(`unknown case(s): ${unknown.join(", ")} (test, review, e2e, self)`);
+const unknown = CASES.filter((c) => !["test", "review", "e2e", "e2e-screen", "self"].includes(c));
+if (unknown.length) fail(`unknown case(s): ${unknown.join(", ")} (test, review, e2e, e2e-screen, self)`);
 
 /** A command through the shell on Windows, where codex is an npm .cmd shim; arguments quoted. */
 function sh(cmd, argv, { cwd, input, timeout = 60_000 } = {}) {
@@ -69,7 +77,7 @@ const git = (...a) => {
 file(".mflow/config.json", '{ "version": 1 }\n');
 file("AGENTS.md", [
   "# Smoke", "", "## Stack", "Project name (code): Smoke", "Profile: custom", "",
-  "| Seam | Value |", "|---|---|", "| Runtime | Node 20 or newer, no dependencies |", "",
+  "| Seam | Value |", "|---|---|", "| Runtime | Node 20 or newer, no dependencies |", "| E2E tests | Playwright Test in `tests/e2e`, config `playwright.config.mjs` |", "",
   "## Commands",
   "- Build: none (plain Node, nothing to build)",
   "- Unit + domain tests: `node --test`",
@@ -98,7 +106,7 @@ const check = (name, ok, detail = "") => {
 function codex(caseName, prompt) {
   const last = path.join(logs, `${caseName}-last.md`);
   process.stdout.write(`\n== ${caseName}: codex exec ${prompt}\n`);
-  const r = sh("codex", ["exec", "-s", "workspace-write", "-C", dir, "-o", last, "-"], { cwd: dir, input: prompt, timeout: TIMEOUT });
+  const r = sh("codex", ["exec", "-s", SANDBOX, "-C", dir, "-o", last, "-"], { cwd: dir, input: prompt, timeout: TIMEOUT });
   fs.writeFileSync(path.join(logs, `${caseName}-log.txt`), r.out);
   const tokens = /tokens used\s*\r?\n\s*([\d,]+)/.exec(r.out)?.[1] || null;
   const message = (() => { try { return fs.readFileSync(last, "utf8"); } catch { return ""; } })();
@@ -168,12 +176,69 @@ if (CASES.includes("e2e")) {
   const before = list("docs/reviews/tests");
   const run = codex("e2e", "$mflow-test e2e");
   const recs = newer("docs/reviews/tests", before).map((f) => read(`docs/reviews/tests/${f}`));
-  check("e2e: no E2E record written", !recs.some((r) => /^Scope:.*e2e/im.test(r) && /^Result:\s*pass/m.test(r)));
-  check("e2e: sends the user to Claude Code", /Claude Code/.test(run.message) && /\/mflow:test e2e/.test(run.message));
+  check("e2e: no test record written (nothing ran)", recs.length === 0, recs.length ? `${recs.length} new` : "");
+  check("e2e: tells how to turn the guard on", /\/hooks/.test(run.message) && /trust/i.test(run.message));
   const ran = commandsRun(run.out);
-  check("e2e: Playwright never started", !ran.some((c) => /playwright\s+test/i.test(c) && !/\b(rg|grep|Select-String|findstr|Get-Content|cat|type)\b/.test(c)), `${ran.length} command(s) run`);
+  // The guard check (`node -e "process.exit(1)" && npx playwright test`) names Playwright but cannot start it.
+  const guardCheck = (c) => /process\.exit\(1\)/.test(c) && /&&/.test(c);
+  check("e2e: ran the guard check", ran.some(guardCheck), `${ran.length} command(s) run`);
+  check("e2e: Playwright never started", !ran.some((c) => !guardCheck(c) && /playwright\s+test/i.test(c) && !/\b(rg|grep|Select-String|findstr|Get-Content|cat|type)\b/.test(c)));
   explain("e2e", run);
   settle("smoke: e2e");
+}
+
+if (CASES.includes("e2e-screen")) {
+  // One screen: a static page served by a tiny server on a free port, its row in screens.md, a Scenario that
+  // crosses it, and a Playwright project with no tests yet (Playwright Test is not installed: nothing can start it).
+  const port = Number(spawnSync(process.execPath, ["-e", "const s=require('net').createServer().listen(0,()=>{console.log(s.address().port);s.close()})"], { encoding: "utf8" }).stdout.trim());
+  if (!port) fail("no free port for the page server");
+  file("docs/ui/screens.md", "# Screens\n\n| Screen | Route | Role(s) | Actions | Rules |\n|---|---|---|---|---|\n| orders | /orders | admin (no sign-in in this prototype) | list orders, filter by status | rows come from the page's own data |\n");
+  file("openspec/specs/orders/spec.md", "# orders\n\n## Requirements\n\n### Requirement: Order list\nThe admin SHALL see every order with its status.\n\n#### Scenario: Filter by status\n- **WHEN** the admin picks the status Paid on /orders\n- **THEN** only paid orders show\n");
+  file("web/orders.html", [
+    "<!doctype html><title>Orders</title>",
+    '<label>Status <select data-testid="status-filter"><option value="">All</option><option>Paid</option><option>Open</option></select></label>',
+    '<table data-testid="orders"><tbody></tbody></table>',
+    "<script>",
+    'const orders = [{ id: "A-1", status: "Paid" }, { id: "A-2", status: "Open" }, { id: "A-3", status: "Paid" }];',
+    'const body = document.querySelector("tbody"), pick = document.querySelector("select");',
+    'const draw = () => { body.innerHTML = orders.filter((o) => !pick.value || o.status === pick.value).map((o) => `<tr data-testid="order-row"><td>${o.id}</td><td>${o.status}</td></tr>`).join(""); };',
+    'pick.addEventListener("change", draw); draw();',
+    "</script>", "",
+  ].join("\n"));
+  file("web/server.mjs", 'import http from "node:http";\nimport fs from "node:fs";\nhttp.createServer((req, res) => {\n  if (req.url.split("?")[0] === "/orders") { res.writeHead(200, { "content-type": "text/html" }); res.end(fs.readFileSync(new URL("./orders.html", import.meta.url))); }\n  else { res.writeHead(404); res.end(); }\n}).listen(Number(process.env.PORT || 3000));\n');
+  file("playwright.config.mjs", `export default { testDir: "tests/e2e", workers: 2, use: { baseURL: "http://localhost:${port}" }, webServer: { command: "node web/server.mjs", env: { PORT: "${port}" }, url: "http://localhost:${port}/orders", reuseExistingServer: true } };\n`);
+  file("tests/e2e/README.md", "E2E tests (Playwright Test), one file per screen: <screen>.spec.mjs, using data-testid selectors.\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "smoke: a screen for E2E");
+  const testsBefore = fs.readdirSync(path.join(dir, "tests/e2e"));
+  const before = list("docs/reviews/tests");
+  const server = spawn(process.execPath, ["web/server.mjs"], { cwd: dir, env: { ...process.env, PORT: String(port) }, stdio: "ignore" });
+  const cli = sh("playwright-cli", ["--version"]).status === 0;
+  let run;
+  try { run = codex("e2e-screen", "$mflow-e2e orders"); } finally { server.kill(); }
+  const written = fs.readdirSync(path.join(dir, "tests/e2e")).filter((f) => !testsBefore.includes(f));
+  check("e2e-screen: wrote a test file for the screen", written.some((f) => /orders/i.test(f)), written.join(", ") || "none");
+  const ran = commandsRun(run.out);
+  const guardCheck = (c) => /process\.exit\(1\)/.test(c) && /&&/.test(c);
+  check("e2e-screen: ran the guard check", ran.some(guardCheck), `${ran.length} command(s) run`);
+  check("e2e-screen: Playwright never started", !ran.some((c) => !guardCheck(c) && /playwright\s+test/i.test(c) && !/\b(rg|grep|Select-String|findstr|Get-Content|cat|type)\b/.test(c)));
+  check("e2e-screen: no test record written (nothing ran)", newer("docs/reviews/tests", before).length === 0);
+  check("e2e-screen: tells how to turn the guard on", /\/hooks/.test(run.message));
+  if (cli) {
+    const looked = ran.some((c) => /playwright-cli\b.*\bopen\b/.test(c)) && ran.some((c) => /playwright-cli\b.*\bsnapshot\b/.test(c));
+    if (WIN && SANDBOX !== "danger-full-access" && !looked) {
+      // Windows: the sandbox account may not see a global playwright-cli, and exec mode cannot ask to go outside.
+      check("e2e-screen: says Playwright CLI needs a run outside the sandbox", /sandbox/i.test(run.message) && /playwright[- ]cli/i.test(run.message));
+    } else {
+      check("e2e-screen: looked at the page with Playwright CLI (open, snapshot)", looked);
+      check("e2e-screen: .playwright-cli/ is ignored, never committed", sh("git", ["check-ignore", "-q", ".playwright-cli"], { cwd: dir }).status === 0 && !git("ls-files", ".playwright-cli"));
+    }
+    const left = sh("playwright-cli", ["list"], { cwd: dir }).out;
+    check("e2e-screen: no Playwright CLI session left open", !/mflow-e2e:[\s\S]*?status: open/.test(left), left.includes("no browsers") ? "none" : left.trim().split(/\r?\n/).slice(0, 4).join(" "));
+    sh("playwright-cli", ["-s=mflow-e2e", "close"], { cwd: dir }); // in case Codex left it open
+  } else process.stdout.write("   (playwright-cli is not on PATH: the Playwright CLI checks are skipped)\n");
+  explain("e2e-screen", run);
+  settle("smoke: e2e-screen");
 }
 
 if (CASES.includes("self")) {

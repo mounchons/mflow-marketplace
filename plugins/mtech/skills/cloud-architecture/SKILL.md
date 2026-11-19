@@ -38,6 +38,8 @@ Write deliverables in the user's language, with numbers in USD and the customer'
 
 ## Tooling
 
+**Python:** the scripts need Python 3.10 or newer. Before the first script, find the interpreter once: the first of `python3 --version`, `python --version` and, on Windows, `py -3 --version` that prints 3.10 or newer. Use it wherever this skill and its references write `python3`; on Windows `python3` may be missing or the Microsoft Store stub, and `python` may be Python 2. Check `openpyxl` with `<python> -c "import openpyxl"` before the cost workbook; when it is missing, tell the user `<python> -m pip install openpyxl` and do not install it yourself. When no interpreter of 3.10 or newer answers, say so and stop before the scripts.
+
 | Need | Command |
 |---|---|
 | AWS official prices | `python3 "${CLAUDE_PLUGIN_ROOT}/skills/cloud-architecture/scripts/aws_price.py" regions AmazonRDS` · `… fetch AmazonRDS ap-southeast-7 --out <dir>` · `… query <file> --attr k=v` |
@@ -46,4 +48,4 @@ Write deliverables in the user's language, with numbers in USD and the customer'
 | Standalone SVG | `python3 "${CLAUDE_PLUGIN_ROOT}/skills/cloud-architecture/scripts/export_svg.py" page.html out.svg` |
 | PNG / visual check | `node "${CLAUDE_PLUGIN_ROOT}/skills/cloud-architecture/scripts/shot.js" svg out.svg out.png <w> <h> 2` · `node "${CLAUDE_PLUGIN_ROOT}/skills/cloud-architecture/scripts/shot.js" page page.html <prefix>` |
 
-Requirements: Python 3 with `openpyxl`; Node with Playwright + Chromium for screenshots; LibreOffice (headless) to recalculate a workbook before reading values back.
+Requirements: Python 3.10 or newer with `openpyxl`; Node with Playwright + Chromium for screenshots; LibreOffice (headless) to recalculate a workbook before reading values back.

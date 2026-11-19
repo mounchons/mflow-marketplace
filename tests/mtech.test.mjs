@@ -94,3 +94,20 @@ test("no file carries a credential-looking value", () => {
   }
   assert.deepEqual(hits, []);
 });
+
+test("every Python script stops on Python older than 3.10 and prints UTF-8 on Windows", () => {
+  const scripts = files.filter((f) => /^skills\/[^/]+\/scripts\/[^/]+\.py$/.test(f));
+  assert.ok(scripts.length > 0);
+  for (const rel of scripts) {
+    const src = fs.readFileSync(path.join(PLUGIN, rel), "utf8");
+    assert.match(src, /if sys\.version_info < \(3, 10\):\s*\n\s*sys\.exit\(/, `${rel}: version guard`);
+    assert.match(src, /sys\.stdout\.reconfigure\(encoding="utf-8"\)/, `${rel}: UTF-8 stdout`);
+    for (const line of src.split(/\r?\n/).filter((l) => /(?<![.\w])open\(/.test(l))) {
+      assert.match(line, /encoding="utf-8"|"[rw]b"/, `${rel}: every text open() names utf-8: ${line.trim()}`);
+    }
+  }
+  for (const skill of skills) {
+    const md = read(`plugins/mtech/skills/${skill}/SKILL.md`);
+    if (/python3/.test(md)) assert.match(md, /Python 3\.10 or newer/, `${skill}: names the minimum Python`);
+  }
+});

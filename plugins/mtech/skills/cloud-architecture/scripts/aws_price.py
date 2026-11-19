@@ -12,11 +12,18 @@ Each result line: usagetype | unit | USD per unit | range | description. The pub
 printed first: write it next to every price you use ("AWS Price List, published YYYY-MM-DD").
 EC2 region files are large (100+ MB): fetch once, then query the file as often as needed.
 """
+import sys
+
+if sys.version_info < (3, 10):
+    sys.exit("mtech needs Python 3.10 or newer, found %d.%d: run it with python3, python or py -3" % sys.version_info[:2])
+# Thai text and arrows must print on Windows too, where a console or pipe defaults to cp1252 / cp874.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 import argparse
 import json
 import os
 import re
-import sys
 import urllib.request
 
 BASE = "https://pricing.us-east-1.amazonaws.com"
@@ -48,7 +55,7 @@ def cmd_fetch(a):
 
 
 def cmd_query(a):
-    d = json.load(open(a.file))
+    d = json.load(open(a.file, encoding="utf-8"))
     print("publicationDate", d.get("publicationDate"), "| region file", os.path.basename(a.file))
     attrs = dict(kv.split("=", 1) for kv in a.attr)
     n = 0

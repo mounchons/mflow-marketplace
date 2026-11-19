@@ -31,7 +31,7 @@
     },
     {
       "name": "mtech",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./plugins/mtech",
       "description": "Technical studies: /mtech:cloud-architecture reads a legacy system and delivers a cloud modernization proposal with official AWS / Azure / GCP prices, a formula-driven cost workbook, SVG / HTML diagrams and an install, test and handover plan."
     }

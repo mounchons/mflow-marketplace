@@ -6,8 +6,15 @@ CSS variables are resolved to the light-theme values, only diagram rules (after 
 "/* ---- SVG ---- */" marker) are kept, and a sheet-coloured background is added, so the
 file opens correctly in browsers, Word / PowerPoint and image viewers.
 """
-import re
 import sys
+
+if sys.version_info < (3, 10):
+    sys.exit("mtech needs Python 3.10 or newer, found %d.%d: run it with python3, python or py -3" % sys.version_info[:2])
+# Thai text and arrows must print on Windows too, where a console or pipe defaults to cp1252 / cp874.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
+import re
 
 src, out = sys.argv[1], sys.argv[2]
 cls = sys.argv[3] if len(sys.argv) > 3 else "dia"

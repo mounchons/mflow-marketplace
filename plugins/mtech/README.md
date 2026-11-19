@@ -13,7 +13,7 @@ mtech ไม่แก้โค้ดของระบบ ผลงานทั�
 
 เครื่องที่ใช้ต้องมี:
 
-- Python 3 และ `pip install openpyxl` (สร้าง Excel ค่าใช้จ่าย)
+- Python 3.10 ขึ้นไป (ลองแล้วกับ 3.10 ถึง 3.13) และ `python -m pip install openpyxl` (สร้าง Excel ค่าใช้จ่าย) script จะหยุดพร้อมบอกรุ่นถ้า Python เก่ากว่านี้ บน Windows ถ้าไม่มีคำสั่ง `python3` หรือ `python` เป็น Python 2 skill จะใช้ `py -3` แทน ตรวจรุ่นได้ด้วย `py -0p`
 - Node 20+ และ `npm i -g playwright` แล้ว `npx playwright install chromium` (screenshot ตรวจผัง และแปลงเป็น PNG)
 - LibreOffice (ถ้าต้องการให้คำนวณ Excel ใหม่แบบไม่ต้องเปิดโปรแกรม)
 

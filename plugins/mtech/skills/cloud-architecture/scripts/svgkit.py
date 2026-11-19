@@ -21,6 +21,14 @@ Arrow kinds: req (blue), async (amber dashed), ops (grey dotted), auth (teal), t
 alert (red), query (green dashed). Box classes: see assets/base.css (b-region, b-vnet, b-sub + s-ing /
 s-aks / s-data / s-pe / s-egr, b-zone, b-paas, node, node-dash, edge, chip*, svc*, tile, grp).
 """
+import sys
+
+if sys.version_info < (3, 10):
+    sys.exit("mtech needs Python 3.10 or newer, found %d.%d: run it with python3, python or py -3" % sys.version_info[:2])
+# Thai text and arrows must print on Windows too, where a console or pipe defaults to cp1252 / cp874.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 import html as _html
 import os
 

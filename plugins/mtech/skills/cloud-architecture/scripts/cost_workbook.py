@@ -15,9 +15,16 @@ Every total is an Excel formula, so changing an assumption recalculates everythi
 openpyxl writes formulas without cached values: open the file in Excel / LibreOffice to see numbers,
 or recalculate headless (LibreOffice) before reading values back with a script.
 """
+import sys
+
+if sys.version_info < (3, 10):
+    sys.exit("mtech needs Python 3.10 or newer, found %d.%d: run it with python3, python or py -3" % sys.version_info[:2])
+# Thai text and arrows must print on Windows too, where a console or pipe defaults to cp1252 / cp874.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 import json
 import re
-import sys
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side

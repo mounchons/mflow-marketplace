@@ -1,0 +1,138 @@
+/* svgkit base theme: blueprint sheet. Tokens first (light), dark overrides, page layout, then SVG classes. */
+:root {
+  --bg: #F3F5F8; --sheet: #FFFFFF; --ink: #16202C; --muted: #5A6577; --hair: #D5DCE5;
+  --azure: #232F3E; --azure-soft: #E8EDF3; --azure-tint: rgba(35,47,62,.035); --tabbg: #F29100; --tabfg: #1B2430; --accent2: #B45F00;
+  --sub-ing: #EAF2FB; --sub-aks: #EEF4FB; --sub-data: #E8F4EF; --sub-pe: #F1ECF8; --sub-egr: #F6F1E7;
+  --zone: #FFFFFF; --chip: #F7F9FC; --chip-line: #C9D3DF;
+  --req: #0B63B5; --async: #B76A00; --ops: #6B7584; --trans: #9A4FB0; --auth: #0B8A78;
+  --data: #1F7A55; --cache: #B42F4A; --pe: #6A4BA8; --egr: #8A5A00;
+  --halo: #FFFFFF;
+  --f-sans: "IBM Plex Sans Thai", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F151D; --sheet: #151D27; --ink: #E4EAF2; --muted: #9AA7B8; --hair: #2A3644;
+  --azure: #C9D4E3; --azure-soft: #1E2B3B; --azure-tint: rgba(201,212,227,.04); --tabbg: #F5A524; --tabfg: #141B24; --accent2: #F5A524;
+  --sub-ing: #172638; --sub-aks: #162434; --sub-data: #142A22; --sub-pe: #221C33; --sub-egr: #2A2316;
+  --zone: #151D27; --chip: #1C2633; --chip-line: #33435A;
+  --req: #5AA8F0; --async: #E9A23B; --ops: #8E9AAB; --trans: #C68BDB; --auth: #3CC9B4;
+  --data: #4CC08D; --cache: #EE7A92; --pe: #A88BE6; --egr: #E0B060; --halo: #151D27; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F151D; --sheet: #151D27; --ink: #E4EAF2; --muted: #9AA7B8; --hair: #2A3644;
+  --azure: #C9D4E3; --azure-soft: #1E2B3B; --azure-tint: rgba(201,212,227,.04); --tabbg: #F5A524; --tabfg: #141B24; --accent2: #F5A524;
+  --sub-ing: #172638; --sub-aks: #162434; --sub-data: #142A22; --sub-pe: #221C33; --sub-egr: #2A2316;
+  --zone: #151D27; --chip: #1C2633; --chip-line: #33435A;
+  --req: #5AA8F0; --async: #E9A23B; --ops: #8E9AAB; --trans: #C68BDB; --auth: #3CC9B4;
+  --data: #4CC08D; --cache: #EE7A92; --pe: #A88BE6; --egr: #E0B060; --halo: #151D27; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-sans); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px }
+.wrap { max-width: 1560px; margin: 0 auto; display: grid; gap: 22px }
+.wrap > * { min-width: 0 }
+header { display: grid; gap: 10px }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2) }
+h1 { margin: 0; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.15; font-weight: 700; text-wrap: balance }
+.lede { margin: 0; color: var(--muted); max-width: 70ch }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
+.fact { display: flex; gap: 8px; align-items: baseline; padding: 6px 12px; border: 1px solid var(--hair); border-radius: 999px; background: var(--sheet); font-size: 13px }
+.fact b { font-family: var(--f-mono); font-weight: 600; color: var(--accent2); font-variant-numeric: tabular-nums }
+figure { margin: 0; background: var(--sheet); border: 1px solid var(--hair); border-radius: 14px; padding: 14px }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch }
+svg.dia { display: block; width: 100%; min-width: 1100px; height: auto; font-family: var(--f-sans) }
+figcaption { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 13px; color: var(--muted) }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center }
+.legend span { display: inline-flex; align-items: center; gap: 8px }
+.legend i { display: inline-block; width: 30px; height: 0; border-top: 2.5px solid; }
+.lg-req { border-color: var(--req) } .lg-async { border-color: var(--async); border-top-style: dashed !important }
+.lg-ops { border-color: var(--ops); border-top-style: dotted !important } .lg-trans { border-color: var(--trans); border-top-style: dashed !important }
+.lg-box { width: 22px !important; height: 14px !important; border: 1.5px solid var(--async) !important; border-radius: 3px }
+.lg-box.dash { border-style: dashed !important }
+.cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 22px; align-items: start }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr } }
+section.panel { background: var(--sheet); border: 1px solid var(--hair); border-radius: 14px; padding: 18px 20px; min-width: 0 }
+h2 { margin: 0 0 10px; font-size: 17px; font-weight: 600 }
+h2 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px }
+ol.flows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px }
+ol.flows li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 7px 8px; border-radius: 8px; cursor: default; outline: none }
+ol.flows li:hover, ol.flows li:focus-visible { background: var(--azure-soft) }
+ol.flows li:focus-visible { box-shadow: 0 0 0 2px var(--azure) }
+.fb { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--f-mono); color: var(--sheet); margin-top: 2px }
+.fb-req { background: var(--req) } .fb-async { background: var(--async) } .fb-ops { background: var(--ops) }
+.hint { margin: 10px 0 0; font-size: 12.5px; color: var(--muted) }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px }
+td, th { padding: 6px 4px; border-bottom: 1px solid var(--hair); text-align: left; vertical-align: top }
+tr.grp th { padding-top: 14px; font-weight: 600; color: var(--accent2); border-bottom-color: transparent }
+tr.grp td { padding-top: 14px; font-weight: 600; border-bottom-color: transparent }
+td.note { color: var(--muted); font-size: 12.5px }
+.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+tfoot td { border-bottom: none; padding-top: 12px; font-weight: 700 }
+tfoot .num { color: var(--accent2); font-size: 15px }
+.callout { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--async); border-radius: 8px; font-size: 13px }
+ul.bounds { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px }
+footer { font-size: 12.5px; color: var(--muted) }
+
+/* ---- SVG ---- */
+.dia text { fill: var(--ink) }
+.t-col { font: 600 12px var(--f-mono); letter-spacing: .06em; fill: var(--muted) !important; text-transform: uppercase }
+.t-tab { font: 600 13.5px var(--f-sans); fill: var(--tabfg) !important }
+.t-bound { font: 600 12.5px var(--f-sans); fill: var(--muted) !important }
+.t-bound-r { font: 500 12px var(--f-mono); fill: var(--muted) !important }
+.t-title { font: 600 13.5px var(--f-sans) }
+.t-tile { font: 600 12.5px var(--f-sans) }
+.t-sub { font: 400 12px var(--f-sans); fill: var(--muted) !important }
+.t-sub-s { font: 400 11px var(--f-sans); fill: var(--muted) !important }
+.t-mono { font: 500 11.5px var(--f-mono); fill: var(--muted) !important }
+.t-mono-b { font: 600 12px var(--f-mono) }
+.t-num { font: 600 12.5px var(--f-mono) }
+.t-chip { font: 500 12px var(--f-mono) }
+.t-lbl { font: 600 11.5px var(--f-sans); paint-order: stroke; stroke: var(--halo); stroke-width: 5px; stroke-linejoin: round }
+.b-region { fill: var(--azure-tint); stroke: var(--azure); stroke-width: 2 }
+.tab { fill: var(--tabbg) } .ic-tab { color: var(--tabfg) }
+.b-vnet { fill: none; stroke: var(--azure); stroke-width: 1.6; stroke-dasharray: 8 5 }
+.b-sub { stroke-width: 1 }
+.s-ing { fill: var(--sub-ing); stroke: var(--chip-line) } .s-aks { fill: var(--sub-aks); stroke: var(--chip-line) }
+.s-data { fill: var(--sub-data); stroke: var(--chip-line) } .s-pe { fill: var(--sub-pe); stroke: var(--chip-line) }
+.s-egr { fill: var(--sub-egr); stroke: var(--chip-line) }
+.b-zone { fill: var(--zone); stroke: var(--chip-line); stroke-width: 1.2 }
+.b-zone-sched { stroke-dasharray: 6 4; stroke: var(--async) }
+.b-paas { fill: var(--sheet); stroke: var(--chip-line); stroke-width: 1.2 }
+.node { fill: var(--sheet); stroke: var(--chip-line); stroke-width: 1.2 }
+.node-dash { stroke-dasharray: 6 4; stroke: var(--trans) }
+.edge { fill: var(--sheet); stroke: var(--accent2); stroke-width: 1.8 }
+.chip { fill: var(--chip); stroke: var(--chip-line) }
+.chip-sched { stroke-dasharray: 4 3 }
+.chip-ing { fill: var(--sub-ing); stroke: var(--req) }
+.chip-pe { fill: var(--sheet); stroke: var(--pe) }
+.chip-async { fill: var(--sheet); stroke: var(--async) }
+.row-hot { fill: var(--azure-soft); stroke: none }
+.row-cold { fill: var(--chip); stroke: var(--chip-line); stroke-dasharray: 4 3 }
+.tile { fill: var(--chip); stroke: var(--chip-line) }
+.ic { color: var(--ink) } .ic-server { color: var(--req) } .ic-sched { color: var(--async) }
+.ic-db { color: var(--data) } .ic-cache { color: var(--cache) } .ic-blob { color: var(--data) }
+.ic-fn { color: var(--async) } .ic-edge { color: var(--accent2) } .ic-nat { color: var(--egr) } .ic-vpn { color: var(--trans) }
+.ic-svc { color: var(--accent2) }
+.flow .ln { fill: none; stroke-width: 2; stroke-linejoin: round; transition: opacity .2s, stroke-width .2s }
+.req .ln { stroke: var(--req) } .async .ln { stroke: var(--async); stroke-dasharray: 7 5 }
+.ops .ln { stroke: var(--ops); stroke-dasharray: 2 4; stroke-linecap: round } .trans .ln { stroke: var(--trans); stroke-dasharray: 7 5 }
+.auth .ln { stroke: var(--auth); stroke-width: 2.4 } .mk-auth { fill: var(--auth) } .b-auth { stroke: var(--auth); stroke-width: 1.6 } .ic-auth { color: var(--auth) } .fb-auth { background: var(--auth) } .lg-auth { border-color: var(--auth) } .t-tile-s { font: 600 11.5px var(--f-sans) }
+.mk-req { fill: var(--req) } .mk-async { fill: var(--async) } .mk-ops { fill: var(--ops) } .mk-trans { fill: var(--trans) }
+.badge circle { fill: var(--req) } .badge text { font: 700 11px var(--f-mono); fill: var(--sheet) !important }
+svg.focus .flow, svg.focus .badge { opacity: .14 }
+svg.focus .on { opacity: 1 !important } svg.focus .on .ln { stroke-width: 3.2 }
+@media (prefers-reduced-motion: reduce) { .flow .ln { transition: none } }
+/* ---- svgkit extras: services, alert / query / trace flows, levels ---- */
+.t-h { font: 700 16px var(--f-sans) }
+.t-title-s { font: 600 12.5px var(--f-sans) }
+.grp { fill: var(--sheet); stroke: var(--chip-line); stroke-width: 1 }
+.svc { fill: var(--sheet); stroke: var(--chip-line); stroke-width: 1.2 }
+.svc.svc-trace { stroke: var(--auth); stroke-width: 1.5 } .svc.svc-alert { stroke: var(--cache); stroke-width: 1.5 } .svc.svc-query { stroke: var(--data); stroke-width: 1.5 }
+.b-region.b-alt { stroke: var(--trans) }
+.tab.tab-alt { fill: var(--trans) } text.t-tab.t-tab-alt { fill: var(--sheet) !important } .ic-tab2 { color: var(--sheet) }
+.ic.ic-muted { color: var(--muted) } .ic.ic-trace, .ic-trace { color: var(--auth) } .ic.ic-alert, .ic-alert { color: var(--cache) } .ic-query { color: var(--data) } .ic-alt { color: var(--trans) }
+.alert .ln { stroke: var(--cache); stroke-width: 2.2 } .mk-alert { fill: var(--cache) }
+.query .ln { stroke: var(--data); stroke-dasharray: 7 5 } .mk-query { fill: var(--data) }
+.bridge { stroke: var(--halo); stroke-width: 9; fill: none }
+g.badge.bk-async circle { fill: var(--async) } g.badge.bk-ops circle { fill: var(--ops) } g.badge.bk-auth circle { fill: var(--auth) }
+g.badge.bk-trans circle { fill: var(--trans) } g.badge.bk-alert circle { fill: var(--cache) } g.badge.bk-query circle { fill: var(--data) }
+.fb-alert { background: var(--cache) } .fb-query { background: var(--data) } .fb-auth { background: var(--auth) } .fb-trans { background: var(--trans) }
+.lg-alert { border-color: var(--cache) } .lg-query { border-color: var(--data); border-top-style: dashed !important } .lg-auth { border-color: var(--auth) }

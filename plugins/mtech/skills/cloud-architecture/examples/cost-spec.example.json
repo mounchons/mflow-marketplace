@@ -1,0 +1,42 @@
+{
+  "title": "ตัวอย่าง: เว็บ + API + ฐานข้อมูล + รูป 12 TB (ราคาอ้างอิง พ.ย. 2026)",
+  "fx": 33,
+  "local": "THB",
+  "assumptions": [
+    {"key": "vm_hours", "label": "ชั่วโมงเครื่อง app ต่อเดือน (24 ชม. 1 เครื่อง + กลางวัน 1 เครื่อง)", "unit": "ชม.", "value": 1128, "note": "730 + 398"},
+    {"key": "db_gb", "label": "พื้นที่ฐานข้อมูล", "unit": "GB", "value": 200, "note": ""},
+    {"key": "hot_gb", "label": "รูปที่เปิดบ่อย (6 เดือนล่าสุด) + preview", "unit": "GB", "value": 1382, "note": ""},
+    {"key": "cold_gb", "label": "รูปเก่า", "unit": "GB", "value": 11556, "note": ""},
+    {"key": "egress_gb", "label": "ข้อมูลออก internet ผ่าน CDN", "unit": "GB", "value": 1500, "note": "free tier CloudFront 1 TB"},
+    {"key": "avg_kb", "label": "ขนาดเฉลี่ยต่อไฟล์รูป", "unit": "KB", "value": 280, "note": "นับจริงก่อนเสนอราคา"},
+    {"key": "cold_files", "label": "จำนวนไฟล์ที่เขียนเข้า cold tier", "unit": "ไฟล์", "value": "={cold_gb}*1048576/{avg_kb}", "note": "สูตร"}
+  ],
+  "clouds": {
+    "AWS": {
+      "region": "ap-southeast-7 (Thailand)",
+      "calculator": "https://calculator.aws/#/",
+      "items": [
+        {"group": "Compute", "service": "Amazon EC2", "sku": "t3.medium Linux", "unit": "ชม.", "price": 0.0475, "qty": "={vm_hours}", "discount": 0.18, "source": "official", "url": "https://aws.amazon.com/ec2/pricing/on-demand/"},
+        {"group": "Database", "service": "Amazon RDS for PostgreSQL", "sku": "db.m7g.large Single-AZ", "unit": "ชม.", "price": 0.199, "qty": 730, "discount": 0.27, "source": "official"},
+        {"group": "Database", "service": "RDS storage", "sku": "gp3", "unit": "GB-เดือน", "price": 0.124, "qty": "={db_gb}", "source": "official"},
+        {"group": "Storage", "service": "Amazon S3", "sku": "Standard", "unit": "GB-เดือน", "price": 0.0225, "qty": "={hot_gb}", "source": "official"},
+        {"group": "Storage", "service": "Amazon S3", "sku": "Glacier Instant Retrieval", "unit": "GB-เดือน", "price": 0.0045, "qty": "={cold_gb}", "source": "official"},
+        {"group": "Edge", "service": "Amazon CloudFront", "sku": "Data out Asia", "unit": "GB", "price": 0.12, "qty": "=MAX(0,{egress_gb}-1024)", "source": "estimate", "note": "ฟรี 1 TB/เดือน"}
+      ]
+    },
+    "Azure": {
+      "region": "Southeast Asia",
+      "calculator": "https://azure.microsoft.com/en-us/pricing/calculator/",
+      "items": [
+        {"group": "Compute", "service": "Virtual Machines", "sku": "B2s", "unit": "ชม.", "price": 0.0528, "qty": "={vm_hours}", "discount": 0.3, "source": "estimate"},
+        {"group": "Database", "service": "PostgreSQL Flexible Server", "sku": "D2ds_v5", "unit": "ชม.", "price": 0.208, "qty": 730, "discount": 0.35, "source": "estimate"},
+        {"group": "Storage", "service": "Blob Storage", "sku": "Hot LRS", "unit": "GB-เดือน", "price": 0.02, "qty": "={hot_gb}", "source": "estimate"},
+        {"group": "Storage", "service": "Blob Storage", "sku": "Cold LRS", "unit": "GB-เดือน", "price": 0.005, "qty": "={cold_gb}", "source": "estimate"}
+      ]
+    }
+  },
+  "onetime": [
+    {"cloud": "AWS", "item": "เขียนรูปเก่าเข้า Glacier IR (คิดต่อไฟล์)", "service": "S3 Glacier IR PUT", "unit": "1,000 req", "price": 0.02, "qty": "={cold_files}/1000", "source": "official"},
+    {"cloud": "Azure", "item": "เขียนรูปเก่าเข้า Cold tier", "service": "Blob Cold write", "unit": "10,000 ops", "price": 0.36, "qty": "={cold_files}/10000", "source": "estimate"}
+  ]
+}

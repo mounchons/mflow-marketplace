@@ -1,0 +1,8 @@
+{
+  "name": "mtech",
+  "version": "0.1.0",
+  "description": "Technical studies for system owners and consultants: /mtech:cloud-architecture reads a legacy system and delivers a cloud modernization proposal with official prices (AWS / Azure / GCP), a formula-driven cost workbook, SVG / HTML diagrams and an install, test and handover plan.",
+  "author": { "name": "Mounchon" },
+  "license": "MIT",
+  "keywords": ["cloud", "architecture", "migration", "aws", "azure", "gcp", "pricing", "diagram", "modernization"]
+}

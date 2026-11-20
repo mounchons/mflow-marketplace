@@ -2,7 +2,9 @@
 // other tools the text of an older version, and two files with one name never share a cache.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { project, run } from "./helpers.mjs";
+import { git, hasGit, project, run } from "./helpers.mjs";
+
+const needsGit = { skip: !hasGit && "git not installed" };
 
 let p;
 afterEach(() => p?.cleanup());
@@ -60,4 +62,45 @@ test("a file outside the project or missing is refused", () => {
   p.write("../outside.docx", "x");
   assert.notEqual(run(p, "source-index.mjs", ["cache", "../outside.docx"]).status, 0);
   assert.notEqual(run(p, "source-index.mjs", ["cache", "docs/source/none.docx"]).status, 0);
+});
+
+// LA-NetSuite 2026-11-20: its customer workbooks (drivers, plates, contacts) sit in a gitignored docs/raw.
+// Their text versions must stay out of git too; a tracked source's cache stays committable as before.
+const ignored = (rel) => {
+  try { git(p, "check-ignore", "-q", "--", rel); return true; } catch { return false; }
+};
+
+test("the text version of a source git ignores is ignored too; a tracked source's is not", needsGit, () => {
+  p = project();
+  git(p, "init", "-q");
+  p.write(".gitignore", "docs/raw/\n");
+  p.write("docs/raw/[v2] drivers #1.xlsx", "real data");
+  p.write("docs/source/tor.docx", "tor");
+  const r = run(p, "source-index.mjs", ["cache", "docs/raw/[v2] drivers #1.xlsx", "docs/source/tor.docx"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.json.gitignored, ".mflow/cache/.gitignore");
+  const [raw, tor] = r.json.files;
+  assert.equal(raw.sourceIgnored, true);
+  assert.equal(tor.sourceIgnored, undefined);
+  p.write(raw.cache, "# text\n");
+  p.write(tor.cache, "# text\n");
+  assert.equal(ignored(raw.cache), true);
+  assert.equal(ignored(tor.cache), false);
+  // An edited source gets a new hash; the pattern covers it without a second line.
+  p.write("docs/raw/[v2] drivers #1.xlsx", "real data, week 2");
+  const again = run(p, "source-index.mjs", ["cache", "docs/raw/[v2] drivers #1.xlsx"]);
+  assert.equal(again.json.gitignored, undefined);
+  p.write(again.json.files[0].cache, "# text\n");
+  assert.equal(ignored(again.json.files[0].cache), true);
+  assert.equal(p.read(".mflow/cache/.gitignore").split("\n").filter((l) => l.startsWith("/")).length, 1);
+});
+
+test("without git, or when no source is ignored, no .gitignore is written", needsGit, () => {
+  p = project();
+  p.write("docs/source/tor.docx", "tor");
+  cache("docs/source/tor.docx");
+  assert.equal(p.exists(".mflow/cache/.gitignore"), false);
+  git(p, "init", "-q");
+  cache("docs/source/tor.docx");
+  assert.equal(p.exists(".mflow/cache/.gitignore"), false);
 });

@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareVersions as cmp, findRoot, loadConfig, readJsonFile, readText, run } from "./lib.mjs";
-import { fileHash, scan } from "./source-index.mjs";
+import { fileHash, scan, trackedIgnoredCaches } from "./source-index.mjs";
 import { list as listConsultations } from "./consult.mjs";
 import { projectDir, status as subagentStatus } from "./apply-subagent.mjs";
 import { plan as openspecConfigPlan } from "./openspec-config.mjs";
@@ -94,6 +94,11 @@ function projectChecks() {
     } catch (err) {
       add("sources", "fail", err.message, "Fix .mflow/sources.json by hand or restore it from git; never delete it");
     }
+  }
+  const leaked = trackedIgnoredCaches(root);
+  if (leaked.length) {
+    const names = leaked.map((f) => `"${f}"`).join(" ");
+    add("source-cache", "warn", `git tracks ${leaked.length} text version(s) in .mflow/cache of customer files git ignores, such as ${leaked[0]}: their text is in the repository`, `git rm --cached -- ${names} and commit; source-index.mjs cache keeps new ones out (.mflow/cache/.gitignore). Text already pushed stays in the history`);
   }
 
   try {

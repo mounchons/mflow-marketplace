@@ -13,6 +13,9 @@
 // carries the file's project path and content hash, so two files with one name never share a cache,
 // and an edited file gets a new path instead of the text of its old version (`exists` false: convert
 // again). `cache` deletes conversions of earlier versions of the same file. Plain text needs none.
+// When git ignores the source (real customer data kept out of git), `cache` adds the conversion's
+// pattern to .mflow/cache/.gitignore before anything is written there, so the text of an ignored file
+// is never committed by accident. Caches of tracked sources stay committable, as before.
 //
 // A file counts as "processed" once it has been marked. Editing a file changes its hash,
 // so it shows up as "changed" and must be re-read.
@@ -20,6 +23,7 @@
 // sources.json is the record and INDEX.md a view that `render` rebuilds. A registry that exists but
 // cannot be read, or holds something this version does not know, stops every command and is never
 // written over: it may be the only copy of which file replaced which and what used it.
+import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -126,13 +130,63 @@ function inside(at, p, cmd = "mark") {
   return toPosix(rel);
 }
 
+/**
+ * Which of these project-relative paths git ignores. Empty when git is missing or the project is no
+ * repository: there is nothing to commit by accident then.
+ */
+export function gitIgnored(root, rels) {
+  if (!rels.length) return new Set();
+  const r = spawnSync("git", ["check-ignore", "--stdin", "-z"], { cwd: root, input: rels.join("\0") + "\0", encoding: "utf8", timeout: 15_000 });
+  if (r.status !== 0) return new Set(); // 1: none ignored; 128: no repository
+  return new Set(r.stdout.split("\0").filter(Boolean));
+}
+
+const CACHE_IGNORE = `${CACHE}/.gitignore`;
+const CACHE_IGNORE_HEAD = "# Text versions of customer files that git ignores (mflow source-index.mjs cache). Never commit them.";
+// A pattern in .mflow/cache/.gitignore matches every conversion of one source, whatever its hash.
+const globEscape = (s) => s.replace(/[\\*?[\]!#]/g, (c) => `\\${c}`);
+const cachePattern = (rel) => `/${globEscape(rel)}.*.md`;
+
+/** Adds the patterns of these sources to .mflow/cache/.gitignore; returns the ones it added. */
+function ignoreCaches(root, rels) {
+  const file = path.join(root, CACHE_IGNORE);
+  const text = readTextFile(file, CACHE_IGNORE) ?? "";
+  const have = new Set(text.split(/\r?\n/).map((l) => l.trim()));
+  const added = rels.map(cachePattern).filter((l) => !have.has(l));
+  if (added.length) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const lines = text ? [text.replace(/\r?\n$/, "")] : [CACHE_IGNORE_HEAD];
+    writeFileAtomic(file, [...lines, ...added].join("\n") + "\n");
+  }
+  return added;
+}
+
+/**
+ * Conversions git tracks whose source git ignores: committed before the pattern above existed, so
+ * .gitignore alone does not take them out. Empty when git is missing or this is no repository.
+ */
+export function trackedIgnoredCaches(root) {
+  const r = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "-z", "--", CACHE], { cwd: root, encoding: "utf8", timeout: 15_000 });
+  if (r.status !== 0) return [];
+  const bySource = new Map();
+  for (const c of r.stdout.split("\0").filter(Boolean)) {
+    const m = /^(?:.*\/)?\.mflow\/cache\/(.+)\.[0-9a-f]{16}\.md$/.exec(c);
+    if (m) bySource.set(m[1], [...(bySource.get(m[1]) || []), c]);
+  }
+  const ignored = gitIgnored(root, [...bySource.keys()]);
+  return [...bySource].filter(([src]) => ignored.has(src)).flatMap(([, caches]) => caches);
+}
+
 function cache(at, argv) {
   if (!argv.length) throw new Error("cache: give at least one file");
+  const rels = argv.map((p) => inside(at, p, "cache"));
+  for (const rel of rels) if (!fs.existsSync(path.join(at.root, rel))) throw new Error(`cache: not found: ${rel}`);
+  const ignored = gitIgnored(at.root, rels.filter((rel) => !PLAIN.test(rel)));
+  const gitignored = ignoreCaches(at.root, [...ignored]);
   return {
-    files: argv.map((p) => {
-      const rel = inside(at, p, "cache");
+    ...(gitignored.length ? { gitignored: CACHE_IGNORE } : {}),
+    files: rels.map((rel) => {
       const full = path.join(at.root, rel);
-      if (!fs.existsSync(full)) throw new Error(`cache: not found: ${rel}`);
       if (PLAIN.test(rel)) return { file: rel, cache: null, note: "plain text: read the file itself" };
       const name = path.posix.basename(rel);
       const current = `${name}.${sha(full)}.md`;
@@ -150,6 +204,7 @@ function cache(at, argv) {
         file: rel,
         cache: toPosix(path.relative(at.root, cachePath)),
         exists: fs.existsSync(cachePath),
+        ...(ignored.has(rel) ? { sourceIgnored: true } : {}),
         ...(removed.length ? { removed } : {}),
       };
     }),

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { project, run } from "./helpers.mjs";
+import { git, hasGit, project, run } from "./helpers.mjs";
 
 let p;
 afterEach(() => p?.cleanup());
@@ -166,4 +166,24 @@ test("the copy for Claude Code on the web is ok when current, a warn with a fix 
   assert.match(lag.fix, /\/mflow:init/);
   fs.rmSync(path.join(p.root, ".claude/skills/mflow/.mflow-vendor.json"));
   assert.equal(doctor()["cloud-copy"].status, "info");
+});
+
+// 0.48.1: a text version committed before .mflow/cache/.gitignore existed, of a source git ignores, is a
+// warn that names git rm --cached; the cache of a tracked source is not.
+test("a tracked text version of an ignored source is a warn with the git rm fix", { skip: !hasGit && "git not installed" }, () => {
+  initialised();
+  git(p, "init", "-q");
+  p.write(".gitignore", "docs/raw/\n");
+  p.write("docs/raw/drivers.xlsx", "real data");
+  p.write("docs/source/tor.docx", "tor");
+  p.write(".mflow/cache/docs/raw/drivers.xlsx.0123456789abcdef.md", "# text\n");
+  p.write(".mflow/cache/docs/source/tor.docx.0123456789abcdef.md", "# text\n");
+  git(p, "add", "-A");
+  git(p, "commit", "-q", "-m", "x");
+  const leak = doctor()["source-cache"];
+  assert.equal(leak.status, "warn");
+  assert.match(leak.detail, /git tracks 1 text version/);
+  assert.match(leak.fix, /git rm --cached -- "\.mflow\/cache\/docs\/raw\/drivers\.xlsx\.0123456789abcdef\.md"/);
+  git(p, "rm", "-q", "--cached", "--", ".mflow/cache/docs/raw/drivers.xlsx.0123456789abcdef.md");
+  assert.equal(doctor()["source-cache"], undefined);
 });

@@ -8,6 +8,8 @@
 //   node source-index.mjs render                     -> regenerate INDEX.md
 //   node source-index.mjs cache <file...>            -> JSON: where the text version of each file goes
 //   node source-index.mjs hash <file...>             -> JSON: each file's content hash, as the registry records it
+//   node source-index.mjs untrack-ignored            -> JSON: takes tracked text versions of git-ignored sources
+//                                                       out of the index (git rm --cached) and ignores them
 //
 // Text versions of .docx, .xlsx and .pdf files live at .mflow/cache/<project path>.<hash>.md. The path
 // carries the file's project path and content hash, so two files with one name never share a cache,
@@ -170,11 +172,30 @@ export function trackedIgnoredCaches(root) {
   if (r.status !== 0) return [];
   const bySource = new Map();
   for (const c of r.stdout.split("\0").filter(Boolean)) {
-    const m = /^(?:.*\/)?\.mflow\/cache\/(.+)\.[0-9a-f]{16}\.md$/.exec(c);
-    if (m) bySource.set(m[1], [...(bySource.get(m[1]) || []), c]);
+    const src = sourceOf(c);
+    if (src) bySource.set(src, [...(bySource.get(src) || []), c]);
   }
   const ignored = gitIgnored(root, [...bySource.keys()]);
   return [...bySource].filter(([src]) => ignored.has(src)).flatMap(([, caches]) => caches);
+}
+
+const sourceOf = (cachePath) => /^(?:.*\/)?\.mflow\/cache\/(.+)\.[0-9a-f]{16}\.md$/.exec(cachePath)?.[1] ?? null;
+
+/**
+ * The fix doctor names for tracked conversions of ignored sources. Names go to git as an argument list,
+ * never through a shell, so a file name cannot become a command. The text that was pushed stays in history.
+ */
+function untrackIgnored(at) {
+  const caches = trackedIgnoredCaches(at.root);
+  if (!caches.length) return { untracked: [] };
+  const gitignored = ignoreCaches(at.root, [...new Set(caches.map(sourceOf))]);
+  const r = spawnSync("git", ["rm", "-q", "--cached", "--", ...caches], { cwd: at.root, encoding: "utf8", timeout: 30_000 });
+  if (r.status !== 0) throw new Error(`untrack-ignored: git rm --cached failed: ${(r.stderr || "").trim()}`);
+  return {
+    untracked: caches,
+    ...(gitignored.length ? { gitignored: CACHE_IGNORE } : {}),
+    next: "commit the removal with .mflow/cache/.gitignore; the files stay on disk, and text already pushed stays in the history",
+  };
 }
 
 function cache(at, argv) {
@@ -271,6 +292,7 @@ if (isMain) {
     else if (cmd === "mark") out = mark(at, rest);
     else if (cmd === "render") { render(at, loadDb(at).db); out = { rendered: `${at.sourceDir}/INDEX.md` }; }
     else if (cmd === "cache") out = cache(at, rest);
+    else if (cmd === "untrack-ignored") out = untrackIgnored(at);
     else if (cmd === "hash") {
       if (!rest.length) throw new Error("hash: give at least one file");
       out = {

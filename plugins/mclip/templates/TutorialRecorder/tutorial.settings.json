@@ -1,0 +1,18 @@
+{
+  // Timing and capture. Reading time: caption max(captionMinMs, chars x captionMsPerChar); callout the same with its own values.
+  "viewportWidth": 1920,
+  "viewportHeight": 1080,
+  "deviceScaleFactor": 2,
+  "captionMinMs": 1500,
+  "captionMsPerChar": 80,
+  "calloutMinMs": 2000,
+  "calloutMsPerChar": 90,
+  "zoomMs": 600,
+  "cursorMoveMs": 700,
+  "typeDelayMs": 70,
+  "findTimeoutMs": 10000,
+  "settleTimeoutMs": 1500,
+  "gapMs": 300,
+  "leadInMs": 300,
+  "crf": 18
+}

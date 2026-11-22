@@ -1,0 +1,7 @@
+<Project>
+  <!-- The recorder pins its own package versions in TutorialRecorder.csproj, outside the app's central package
+       management; this file stops MSBuild from importing the app's Directory.Packages.props. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

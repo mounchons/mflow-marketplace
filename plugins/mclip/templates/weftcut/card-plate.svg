@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- The title card's background as the recorder draws it: a blue radial gradient and the orange bar above the title.
+       WeftCut rasterises it on import (to 2048x1152: place it at x 960, y 540, scale 0.9375). -->
+  <defs>
+    <radialGradient id="g" cx="0.85" cy="0.15" r="1.2" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#2453b3"/>
+      <stop offset="0.45" stop-color="#173f8f"/>
+      <stop offset="1" stop-color="#0f2a63"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#g)"/>
+  <rect x="160" y="432" width="96" height="8" rx="4" fill="#f97316"/>
+</svg>

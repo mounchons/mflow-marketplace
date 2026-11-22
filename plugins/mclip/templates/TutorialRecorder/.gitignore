@@ -1,0 +1,6 @@
+bin/
+obj/
+Output/
+tutorial.secrets.json
+tts/.venv/
+__pycache__/

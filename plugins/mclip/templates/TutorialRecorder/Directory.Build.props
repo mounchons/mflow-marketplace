@@ -1,0 +1,9 @@
+<Project>
+  <!-- The recorder's own build settings. Being here stops MSBuild from importing the app's Directory.Build.props
+       (analyzers, warnings as errors, other target frameworks), so the tool builds the same in any project. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

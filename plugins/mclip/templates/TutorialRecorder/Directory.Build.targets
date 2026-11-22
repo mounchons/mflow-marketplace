@@ -1,0 +1,3 @@
+<Project>
+  <!-- Empty on purpose: stops MSBuild from importing the app's Directory.Build.targets into the recorder. -->
+</Project>

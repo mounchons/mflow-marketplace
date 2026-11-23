@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import os from "node:os";
 import { load, renderPage, makeVoice, pyThaiTts, setNarration, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored,
   readRequests, addRequest, removeRequests, VOICE_FIELD, parseVoice, voiceField, keyStatus, apiKey, elevenLabsVoices,
-  GEMINI_VOICES, GLOBAL_LEXICON, ENGINES, ensureKeysIgnored, withStyle, STYLE_FIELD } from "./clips.mjs";
+  GEMINI_VOICES, GLOBAL_LEXICON, ENGINES, ensureKeysIgnored, withStyle, STYLE_FIELD, partKey } from "./clips.mjs";
 
 // what "ลองฟัง" says: a closing particle, an English word of the rules and a price
 export const SAMPLE = "สวัสดีค่ะ กดปุ่ม Login เพื่อเข้าสู่ระบบ แล้วดูราคา 5,877.50 บาท ได้ที่หน้านี้ค่ะ";
@@ -87,16 +87,16 @@ export function createHandler({ clips, token, speak, port: getPort, tts = path.j
     try {
       const body = await json(req);
       if (u.pathname === "/api/narration") {
-        const step = Number(body.step);
-        if (!Number.isInteger(step) || step < 1) throw new Error("step is a step number");
+        const step = partKey(body.step);  // a step number, or a title card: open, close
+        if (step === null) throw new Error("step is a step number, open or close");
         setNarration(root, String(body.id ?? ""), step, body.text);
         const out = { saved: true };
         if (body.voice && String(body.text ?? "").trim()) out.voice = voice(String(body.id), step);
         return send(res, 200, out);
       }
       if (u.pathname === "/api/voice") {
-        const step = body.step === undefined || body.step === null ? null : Number(body.step);
-        if (step !== null && !(Number.isInteger(step) && step > 0)) throw new Error("step is a step number");
+        const step = body.step === undefined || body.step === null ? null : partKey(body.step);
+        if (step === null && body.step !== undefined && body.step !== null) throw new Error("step is a step number, open or close");
         return send(res, 200, { voice: voice(String(body.id ?? ""), step) });
       }
       if (u.pathname === "/api/speed") {

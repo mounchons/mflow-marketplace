@@ -3,7 +3,8 @@
 //   clips/plan.md              the system, the scope, the format, the apps (## แอป: web, ios, android), and the table
 //                              of contents (the order of the lessons; a contents entry without a lesson.md is a topic)
 //   clips/<id>/lesson.md       one lesson: its fields, then one block per step (what is done, the words on screen,
-//                              the words spoken, the reference pictures)
+//                              the words spoken, the reference pictures); `## เปิด` and `## สรุป` are its opening and
+//                              closing title cards (บนจอ, คำรอง, พูด), around the steps
 //   clips/<id>/screen/*.jpg    the lesson's reference pictures (`-ios` / `-android` before the extension: one platform's)
 //   clips/<id>/v<n>/           a recorded version (lesson, scenario, pictures, srt, timing; the mp4 is git-ignored)
 //
@@ -13,7 +14,7 @@
 //                                                    snapshot the lesson as its next version v<n>
 //   node clips.mjs compare <id> [--threshold 0.97] [--clips <dir>]
 //                                                    compare screen/ with the latest version's pictures (ffmpeg ssim)
-//   node clips.mjs voice <id> [--step n] [--speed 0.85] [--force] [--tts <dir>] [--clips <dir>]
+//   node clips.mjs voice <id> [--step n|open|close] [--speed 0.85] [--force] [--tts <dir>] [--clips <dir>]
 //                                                    speak the lesson's '- พูด:' lines (PyThaiTTS, the recorder's tts/)
 //                                                    into clips/<id>/voice/NN.mp3 (step NN) + voice.json, to listen to
 //                                                    on the page before recording; a line already spoken is kept
@@ -123,12 +124,33 @@ export function parsePlan(text, file = "plan.md") {
 /** clips/<id>/lesson.md: `# title`, `- key: value` fields, then `## <n>. <step title>` blocks of STEP_KEYS fields. */
 export function parseLesson(text, file = "lesson.md") {
   const problems = [];
-  const lesson = { title: "", fields: [], steps: [] };
-  let step = null;
+  const lesson = { title: "", fields: [], steps: [], cards: [] };
+  let step = null, card = null;
   text.split(/\r?\n/).forEach((line, i) => {
     const at = `${file}:${i + 1}`;
     const h1 = /^#\s+(.+)$/.exec(line);
     if (h1) { lesson.title = h1[1].trim(); return; }
+    // the clip's opening and closing title cards: `## เปิด`, `## สรุป` (what is on the card and what is said over it)
+    const hc = /^##\s+(เปิด|สรุป)\s*$/.exec(line);
+    if (hc) {
+      const n = CARD_HEADINGS[hc[1]];
+      if (lesson.cards.some((c) => c.n === n)) problems.push(`${at}: a second '## ${hc[1]}'`);
+      card = { n, kind: hc[1], line: i + 1, caption: "", subtitle: "", narration: "" };
+      lesson.cards.push(card);
+      step = null;
+      return;
+    }
+    if (card) {
+      if (/^##\s/.test(line)) card = null;
+      else {
+        const f = field(line);
+        if (!f) return;
+        const key = CARD_KEYS[f[0]];
+        if (!key) problems.push(`${at}: a card's fields are ${Object.keys(CARD_KEYS).join(", ")}`);
+        else card[key] = f[1];
+        return;
+      }
+    }
     const h2 = /^##\s+(\d+)\.\s+(.+)$/.exec(line);
     if (h2) {
       const n = Number(h2[1]);
@@ -137,7 +159,7 @@ export function parseLesson(text, file = "lesson.md") {
       lesson.steps.push(step);
       return;
     }
-    if (/^##\s/.test(line)) { problems.push(`${at}: a step heading is '## <n>. <title>'`); return; }
+    if (/^##\s/.test(line)) { problems.push(`${at}: a step heading is '## <n>. <title>' (or '## เปิด', '## สรุป' for the title cards)`); return; }
     const f = field(line);
     if (!f) return;
     if (!step) { lesson.fields.push({ key: f[0], value: f[1] }); return; }
@@ -154,8 +176,17 @@ export function parseLesson(text, file = "lesson.md") {
     if (!s.action) problems.push(`${file}:${s.line}: step ${s.n} has no '- ทำ:'`);
     if (!s.caption) problems.push(`${file}:${s.line}: step ${s.n} has no '- บนจอ:'`);
   }
+  for (const c of lesson.cards) if (!c.caption) c.caption = c.n === "open" ? lesson.title : "สรุปขั้นตอน";
+  lesson.cards.sort((a, b) => (a.n === "open" ? -1 : 1) - (b.n === "open" ? -1 : 1));
   return { lesson, problems };
 }
+
+export const CARD_HEADINGS = { "เปิด": "open", "สรุป": "close" };
+export const CARD_KEYS = { "บนจอ": "caption", "คำรอง": "subtitle", "พูด": "narration" };
+/** What a lesson says, in the clip's order: the opening card, the steps, the closing card. */
+export const spokenParts = (lesson) => { const cards = lesson.cards ?? []; return [...cards.filter((c) => c.n === "open"), ...lesson.steps, ...cards.filter((c) => c.n === "close")]; };
+/** A step number, or a card ("open", "close"): what setNarration and the voice take. */
+export const partKey = (v) => (v === "open" || v === "close" ? v : Number.isInteger(Number(v)) && Number(v) > 0 && String(v).trim() !== "" ? Number(v) : null);
 
 const VOICE_DIR = "voice";
 const voiceFile = (n) => `${String(n).padStart(2, "0")}.mp3`;
@@ -172,13 +203,13 @@ function readShots(dir) {
   return { pictures, failed: f ? { step: Number.isInteger(f.step) ? f.step : null, message: typeof f.message === "string" ? f.message : "" } : null };
 }
 
-/** clips/<id>/voice/voice.json: { steps: { "<n>": { text, speed, rules, engine, durationMs, date } } }, well-formed only. */
+/** clips/<id>/voice/voice.json: { steps: { "<n>" | "open" | "close": { text, speed, rules, engine, voice, durationMs, date } } }, well-formed only. */
 function readVoices(dir) {
   const j = readJson(path.join(dir, VOICE_DIR, "voice.json"));
   const out = {};
   if (isObj(j?.steps)) for (const [k, v] of Object.entries(j.steps)) {
-    if (/^\d+$/.test(k) && typeof v?.text === "string" && Number.isFinite(v?.durationMs)) {
-      out[Number(k)] = { text: v.text, speed: Number(v.speed) || 0, rules: typeof v.rules === "string" ? v.rules : "",
+    if (/^(\d+|open|close)$/.test(k) && typeof v?.text === "string" && Number.isFinite(v?.durationMs)) {
+      out[partKey(k)] = { text: v.text, speed: Number(v.speed) || 0, rules: typeof v.rules === "string" ? v.rules : "",
         engine: Number(v.engine) || 1, voice: typeof v.voice === "string" ? v.voice : "paradee", durationMs: v.durationMs, date: typeof v.date === "string" ? v.date : "" };
     }
   }
@@ -386,16 +417,16 @@ export function load(clipsDir) {
     const kinds = [...new Set(apps.flatMap((a) => a.kinds))];
     const topic = { id, tocTitle: title, appKeys: keys, apps, kinds, teaches, sources };
     // a contents entry with no lesson.md yet is a topic: agreed on first, its steps written later
-    if (!fs.existsSync(file)) return { ...topic, title, fields: [], steps: [], versions: [], latest: null, status: "topic" };
+    if (!fs.existsSync(file)) return { ...topic, title, fields: [], steps: [], cards: [], versions: [], latest: null, status: "topic" };
     const text = fs.readFileSync(file, "utf8");
     const { lesson, problems: lp } = parseLesson(text, rel);
     problems.push(...lp);
     const shots = readShots(dir);
     const voices = readVoices(dir);
-    for (const s of lesson.steps) {
+    for (const s of spokenParts(lesson)) {
       s.present = {};
       s.made = {};
-      for (const img of s.images) {
+      for (const img of s.images ?? []) {
         s.present[img] = fs.existsSync(path.join(dir, img));
         s.made[img] = s.present[img] && img in shots.pictures ? shots.pictures[img] : null;
       }
@@ -476,7 +507,15 @@ function lessonSlide(l, index, live = false) {
   if (l.shotsFailed) why.push(`AI ถ่ายรูปไม่จบ: หยุดที่ขั้น ${esc(l.shotsFailed.step ?? "?")} ของ scenario.yaml — ${esc(l.shotsFailed.message)}`);
   // pictures are taken by the recorder: one web app only (a phone app's pictures are the user's)
   const shootable = l.appKeys.length <= 1 && l.kinds.every((k) => k === "web");
-  const stale = l.steps.filter((s) => s.voice?.stale).length;
+  const stale = spokenParts(l).filter((s) => s.voice?.stale).length;
+  // a step's (or a card's) narration: a box to edit on the live page, else the words; then its voice
+  const sayBlock = (s) => `${live
+    ? `<div class="live-say" data-id="${esc(l.id)}" data-step="${s.n}"><span>พูด</span><textarea rows="2" placeholder="คำพูด สั้น กระชับ ไม่มี ค่ะ/ครับ">${esc(s.narration)}</textarea>
+      <div class="row"><button data-act="save">บันทึกคำพูด</button><button class="go" data-act="save-voice">บันทึกและสร้างเสียง</button><em class="msg"></em></div></div>`
+    : s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
+    ${s.narration ? (s.voice
+      ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}${s.voice.date ? `?v=${encodeURIComponent(s.voice.date)}` : ""}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? ` · ต้องสร้างใหม่: ${esc(s.voice.why)}` : ""}</small></p>`
+      : `<p class="voice none"><small>ยังไม่มีเสียง</small></p>`) : ""}`;
   if (stale) why.push(`เสียง ${stale} ขั้นต้องสร้างใหม่ (คำพูด ความเร็ว หรือคำอ่านเปลี่ยนหลังสร้างเสียง)`);
   const changedImgs = new Set((l.compare?.changed ?? []).map((c) => c.image));
   const own = [["สอน", l.teaches], ["ที่มา", l.sources]].filter(([, v]) => v).map(([key, value]) => ({ key, value }));
@@ -502,25 +541,35 @@ function lessonSlide(l, index, live = false) {
         <h4><b>${s.n}</b> ${esc(s.title)} ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}${shootable && s.images.length ? quick(`${l.id} ขั้น ${s.n}`, SHOTS_REQUEST, "ถ่ายรูป", "ให้ AI ถ่ายรูปขั้นนี้ใหม่ (เก็บไว้ในคำขอ)") : ""}${s.narration && !live ? quick(`${l.id} ขั้น ${s.n}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดขั้นนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
         <p class="act">${esc(s.action)}</p>
         <p class="cap"><span>บนจอ</span>${esc(s.caption)}</p>
-        ${live
-          ? `<div class="live-say" data-id="${esc(l.id)}" data-step="${s.n}"><span>พูด</span><textarea rows="2" placeholder="คำพูดของขั้นนี้ (เสียงผู้หญิง ลงท้าย ค่ะ)">${esc(s.narration)}</textarea>
-            <div class="row"><button data-act="save">บันทึกคำพูด</button><button class="go" data-act="save-voice">บันทึกและสร้างเสียง</button><em class="msg"></em></div></div>`
-          : s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
-        ${s.narration ? (s.voice
-          ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}${s.voice.date ? `?v=${encodeURIComponent(s.voice.date)}` : ""}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? ` · ต้องสร้างใหม่: ${esc(s.voice.why)}` : ""}</small></p>`
-          : `<p class="voice none"><small>ยังไม่มีเสียง</small></p>`) : ""}
+        ${sayBlock(s)}
         ${s.manual ? `<p class="man"><span>คู่มือ</span>${esc(s.manual)}</p>` : ""}
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
       </div></li>`;
   }).join("");
+  // the clip's opening and closing title cards, around the steps: what the card shows and what is said over it
+  const cardBlock = (n) => {
+    const c = l.cards.find((x) => x.n === n) ?? { n, caption: n === "open" ? l.title : "สรุปขั้นตอน", subtitle: "", narration: "", missing: true };
+    const name = n === "open" ? "เปิด" : "สรุป", label = n === "open" ? "การ์ดเปิดคลิป" : "การ์ดสรุปท้ายคลิป";
+    const steps = (c.subtitle || "").split(/\s*→\s*/).filter(Boolean);
+    return `<li class="step card-step" id="${esc(`${l.id}-${n}`)}">
+      <div class="card-pic"><i></i><b>${esc(c.caption)}</b>${steps.length >= 2 ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>` : c.subtitle ? `<span>${esc(c.subtitle)}</span>` : ""}</div>
+      <div class="words">
+        <h4><b>${n === "open" ? "เปิด" : "สรุป"}</b> ${label} ${editButton(`${l.id} ${name}`, c.caption)}${c.narration && !live ? quick(`${l.id} ${name}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดของการ์ดนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
+        ${c.missing ? `<p class="note">บทนี้ยังไม่มี${label}ใน lesson.md${live ? " — พิมพ์คำพูดแล้วบันทึกเพื่อเพิ่ม" : " — กด ✎ แก้ เพื่อขอให้ AI เพิ่ม"}</p>` : ""}
+        <p class="cap"><span>บนจอ</span>${esc(c.caption)}</p>
+        ${c.subtitle ? `<p class="cap"><span>คำรอง</span>${esc(c.subtitle)}</p>` : ""}
+        ${sayBlock(c)}
+      </div></li>`;
+  };
+  const stepsAndCards = `${cardBlock("open")}${steps}${cardBlock("close")}`;
   const versions = l.versions.length
     ? `<div class="versions">${l.versions.map((v) => `<span class="ver">v${v.n}${v.date ? ` · ${esc(v.date.slice(0, 10))}` : ""}${v.appCommit ? ` · ${esc(v.appCommit.slice(0, 7))}` : ""}${v.hasMp4 ? ` · <a href="${url(`${l.id}/v${v.n}/clip.mp4`)}" target="_blank">คลิป</a>` : " · คลิปไม่อยู่ในเครื่องนี้"}</span>`).join("")}</div>`
     : "";
   const plat = both ? `<span class="plat"><button class="on" data-plat="">ทุกเครื่อง</button><button data-plat="ios">iPhone</button><button data-plat="android">Android</button></span>` : "";
   const body = l.status === "topic"
     ? `<p class="topic-note">ยังไม่มีขั้นตอน — เป็นหัวข้อที่ตกลงกันก่อน เมื่อหัวข้อนี้ใช้ได้แล้ว สั่ง <code>/mclip:plan lesson ${esc(l.id)}</code> ให้ AI เขียนขั้นตอนและคำพูด แล้ว <code>/mclip:plan shots voice ${esc(l.id)}</code> ให้ AI ถ่ายรูปอ้างอิงและสร้างเสียงให้ฟัง</p>`
-    : `<ol class="steps">${steps}</ol>`;
-  const voiced = l.steps.some((s) => s.voice);
+    : `<ol class="steps">${stepsAndCards}</ol>`;
+  const voiced = spokenParts(l).some((s) => s.voice);
   const tools = l.status === "topic" ? "" : `${voiced ? `<button class="play-all" title="เล่นเสียงทุกขั้นต่อกัน">▶ ฟังทั้งบท</button>` : ""}${live && l.steps.some((s) => s.narration) ? `<button class="live-btn" data-act="voice-lesson" data-id="${esc(l.id)}" title="สร้างเสียงขั้นที่ยังไม่มีหรือต้องสร้างใหม่ ตอนนี้เลย">สร้างเสียงทั้งบทตอนนี้</button>` : ""}${shootable && l.steps.some((s) => s.images.length) ? quick(l.id, SHOTS_REQUEST, "ถ่ายรูปทั้งบท", "ให้ AI ถ่ายรูปอ้างอิงทั้งบท (เก็บไว้ในคำขอ)") : ""}${l.steps.some((s) => s.narration) && !live ? quick(l.id, VOICE_REQUEST, "สร้างเสียงทั้งบท", "ให้ AI สร้างเสียงทุกขั้น (เก็บไว้ในคำขอ)") : ""}`;
   return `<section class="slide lesson" data-title="${esc(`${index}. ${l.title}`)}">
     <header><span class="num">${esc(l.id.slice(0, 2))}</span><h2>${esc(l.title)}</h2><span class="badge ${cls}">${label}${l.latest ? ` v${l.latest}` : ""}</span>${plat}${tools}${editButton(l.id, l.title)}</header>
@@ -593,7 +642,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voi
     ${groups(lessons).map((g) => `<div class="group">${esc(g.label)}</div>${g.items.map(({ l, i }) => {
       const [label, cls] = STATUS[l.status] ?? ["?", "draft"];
       return `<div class="lesson-menu"><a class="item lesson" data-go="${i + 3}"><b>${esc(l.id.slice(0, 2))}</b><span>${esc(l.title)}</span><i class="dot ${cls}" title="${label}"></i></a>
-        <ol class="sub">${l.steps.map((s) => `<li><a data-go="${i + 3}" data-step="${esc(`${l.id}-${s.n}`)}">${s.n}. ${esc(s.title)}</a></li>`).join("")}</ol></div>`;
+        <ol class="sub">${l.steps.length ? `<li><a data-go="${i + 3}" data-step="${esc(`${l.id}-open`)}">เปิด · การ์ดเปิดคลิป</a></li>` : ""}${l.steps.map((s) => `<li><a data-go="${i + 3}" data-step="${esc(`${l.id}-${s.n}`)}">${s.n}. ${esc(s.title)}</a></li>`).join("")}${l.steps.length ? `<li><a data-go="${i + 3}" data-step="${esc(`${l.id}-close`)}">สรุป · การ์ดสรุป</a></li>` : ""}</ol></div>`;
     }).join("")}`).join("")}${problems.length ? `<a class="item warn" data-go="${lessons.length + 3}">ปัญหาในไฟล์แผน (${problems.length})</a>` : ""}`;
   // replacer functions: a '$' in the plan's words must not be read as a replacement pattern
   // live: the token goes in as JSON inside a script, '<' escaped so no text can close the script
@@ -662,6 +711,9 @@ figcaption{font-size:12px;color:var(--muted)}figure.missing div{aspect-ratio:16/
 .quick{font:inherit;font-size:13px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:1px 8px;cursor:pointer}.quick:hover{background:#eef2fb}.quick.added{background:var(--green);border-color:var(--green);color:#fff}
 .play-all{font:inherit;font-size:13px;border:0;background:var(--orange);color:#fff;border-radius:8px;padding:2px 12px;cursor:pointer}
 .voice{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.voice audio{height:32px;max-width:100%}.voice small{color:var(--muted)}.voice.stale small{color:var(--red);font-weight:600}
+.card-step .card-pic{aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,var(--blue2),#0f2a63);color:#fff;padding:8% 9%;display:flex;flex-direction:column;justify-content:center;gap:6px;overflow:hidden}
+.card-step .card-pic i{display:block;width:36px;height:4px;border-radius:2px;background:#fff}.card-step .card-pic b{font-size:clamp(16px,2vw,26px);line-height:1.25}.card-step .card-pic span{font-size:clamp(12px,1.2vw,16px);opacity:.9}
+.card-step .card-pic ol{margin:4px 0 0;padding-left:1.3em;font-size:clamp(11px,1.1vw,15px);line-height:1.5}.card-step{background:#f8fafc}.card-step h4 b{background:var(--orange)!important}
 .live-say{margin:6px 0}.live-say>span{display:inline-block;font-size:12px;color:#fff;background:var(--orange);border-radius:4px;padding:0 6px}
 .live-say textarea,.live-lex textarea{width:100%;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #cbd5e1;margin:4px 0}
 .live-say .row,.live-lex .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.live-say button,.live-lex button,.live-speed button,.live-btn{font:inherit;font-size:13px;border:1px solid var(--blue2);background:#fff;color:var(--blue);border-radius:8px;padding:2px 10px;cursor:pointer}
@@ -785,7 +837,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
       buttons.forEach((b) => b.disabled = true);
       try {
         for (const other of dirty()) if (other !== box) {
-          await send("/api/narration", { id: other.dataset.id, step: +other.dataset.step, text: oneLine(other.querySelector("textarea").value), voice: false });
+          await send("/api/narration", { id: other.dataset.id, step: other.dataset.step, text: oneLine(other.querySelector("textarea").value), voice: false });
         }
         await send(where, body);
         reloading = true;
@@ -796,7 +848,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
       }
     };
     document.querySelectorAll(".live-say").forEach((box) => box.querySelectorAll("button").forEach((b) => b.onclick = () =>
-      post("/api/narration", { id: box.dataset.id, step: +box.dataset.step, text: oneLine(box.querySelector("textarea").value), voice: b.dataset.act === "save-voice" }, box)));
+      post("/api/narration", { id: box.dataset.id, step: box.dataset.step, text: oneLine(box.querySelector("textarea").value), voice: b.dataset.act === "save-voice" }, box)));
     document.querySelectorAll("[data-act=voice-lesson]").forEach((b) => b.onclick = () => post("/api/voice", { id: b.dataset.id }, null, b));
     const sp = document.querySelector(".live-speed");
     if (sp) sp.querySelector("button").onclick = () => post("/api/speed", { speed: +sp.querySelector("select").value }, sp);
@@ -955,7 +1007,10 @@ const oneLine = (s, what, max = 2000) => {
   return v;
 };
 
-/** Sets (or, with "", removes) step `n`'s '- พูด:' line in clips/<id>/lesson.md. */
+/**
+ * Sets (or, with "", removes) the '- พูด:' line of step `n` in clips/<id>/lesson.md, or of a title card (`n` "open" or
+ * "close"); a card the lesson does not have yet is added (`## เปิด` before the first step, `## สรุป` at the end).
+ */
 export function setNarration(clipsDir, id, n, text) {
   if (!ID.test(String(id))) throw new Error(`no lesson ${id}`);
   const file = path.join(clipsDir, id, "lesson.md");
@@ -963,7 +1018,20 @@ export function setNarration(clipsDir, id, n, text) {
   const value = oneLine(text, "the narration");
   const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
   const lines = src.split(/\r?\n/);
-  const head = lines.findIndex((l) => new RegExp(`^##\\s+${Number(n)}\\.\\s`).test(l));
+  const card = n === "open" ? "เปิด" : n === "close" ? "สรุป" : null;
+  let head = lines.findIndex((l) => (card ? new RegExp(`^##\\s+${card}\\s*$`) : new RegExp(`^##\\s+${Number(n)}\\.\\s`)).test(l));
+  if (head < 0 && card) {
+    if (!value) return;
+    const block = [`## ${card}`, `- บนจอ: ${card === "เปิด" ? parseLesson(src).lesson.title : "สรุปขั้นตอน"}`, `- พูด: ${value}`, ""];
+    const first = lines.findIndex((l) => /^##\s+\d+\.\s/.test(l));
+    if (card === "เปิด" && first >= 0) lines.splice(first, 0, ...block);
+    else {
+      while (lines.length && lines.at(-1) === "") lines.pop();
+      lines.push("", ...block);
+    }
+    fs.writeFileSync(file, lines.join(eol));
+    return;
+  }
   if (head < 0) throw new Error(`clips/${id}/lesson.md has no step ${n}`);
   let end = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
   if (end < 0) end = lines.length;
@@ -1108,12 +1176,14 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   const { merged } = readLexicon(clipsDir, globalLexicon);
   const lexicons = voice.engine === "paradee" ? [globalLexicon, path.join(clipsDir, "lexicon.txt")].filter((f) => fs.existsSync(f)) : [];
   const { lesson } = parseLesson(fs.readFileSync(file, "utf8"));
-  const narrated = lesson.steps.filter((s) => s.narration);
+  // the opening card, the steps and the closing card, in the clip's order
+  const narrated = spokenParts(lesson).filter((s) => s.narration);
   let chosen = narrated;
   if (step !== null) {
-    const s = lesson.steps.find((x) => x.n === step);
-    if (!s) return { code: 2, error: `clips/${id}/lesson.md has no step ${step}` };
-    if (!s.narration) return { code: 2, error: `step ${step} of clips/${id} has no '- พูด:'` };
+    const s = spokenParts(lesson).find((x) => x.n === step);
+    const what = step === "open" ? "card เปิด" : step === "close" ? "card สรุป" : `step ${step}`;
+    if (!s) return { code: 2, error: `clips/${id}/lesson.md has no ${what}` };
+    if (!s.narration) return { code: 2, error: `the ${what} of clips/${id} has no '- พูด:'` };
     chosen = [s];
   }
   if (!chosen.length) return { code: 2, error: `no step of clips/${id} has a '- พูด:'` };
@@ -1142,12 +1212,13 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   }
   // the whole lesson: audio of a step that is gone or no longer speaks is removed
   if (step === null) {
-    for (const n of Object.keys(spoken).map(Number)) {
+    for (const n of Object.keys(spoken).map(partKey)) {
       if (!narrated.some((s) => s.n === n)) { delete spoken[n]; fs.rmSync(path.join(vdir, voiceFile(n)), { force: true }); }
     }
   }
   fs.mkdirSync(vdir, { recursive: true });
-  const steps = Object.fromEntries(Object.entries(spoken).sort(([a], [b]) => a - b));
+  const order = (k) => (k === "open" ? -1 : k === "close" ? 1e9 : Number(k));
+  const steps = Object.fromEntries(Object.entries(spoken).sort(([a], [b]) => order(a) - order(b)));
   fs.writeFileSync(path.join(vdir, "voice.json"), JSON.stringify({ voice: voice.key, steps }, null, 2) + "\n");
   const seconds = chosen.reduce((t, s) => t + (spoken[s.n]?.durationMs ?? 0), 0) / 1000;
   return { code: 0, dir: vdir, voice: voice.key, spoken: todo.map((s) => s.n), unchanged: chosen.filter((s) => !todo.includes(s)).map((s) => s.n), seconds };
@@ -1223,8 +1294,8 @@ function main(argv) {
     return { code: r.code, out: r.code ? { error: r.error } : r };
   }
   if (cmd === "voice") {
-    const step = opts.step === undefined ? null : Number(opts.step);
-    if (step !== null && !(Number.isInteger(step) && step > 0)) return { code: 2, out: { error: "--step is a step number" } };
+    const step = opts.step === undefined ? null : partKey(opts.step);
+    if (opts.step !== undefined && step === null) return { code: 2, out: { error: "--step is a step number, open or close" } };
     const tts = path.resolve(opts.tts ?? path.join(path.dirname(clips), "tools", "TutorialRecorder", "tts"));
     const r = makeVoice(clips, pos[0] ?? "", { step, speed: opts.speed ? Number(opts.speed) : null, force: opts.force, speak: pyThaiTts(tts) });
     if (!r.code) ensureIgnored(clips);

@@ -14,7 +14,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = path.join(REPO, "plugins", "mclip", "scripts");
 const imp = (f) => import(`file://${path.join(SCRIPTS, f).replace(/\\/g, "/")}`);
 const { parseLexicon, readLexicon, rulesFor, planSpeed, voiceStale, setNarration, setPlanField, writeProjectLexicon, makeVoice, load, renderPage, VOICE_ENGINE, GLOBAL_LEXICON, readRequests, addRequest, removeRequests, requestsCommand,
-  parseVoice, planVoice, voiceField, keyStatus, apiKey, elevenLabsVoices, VOICE_FIELD, PARADEE, ensureKeysIgnored, pyThaiTts, STYLE_FIELD, withStyle } = await imp("clips.mjs");
+  parseVoice, planVoice, voiceField, keyStatus, apiKey, elevenLabsVoices, VOICE_FIELD, PARADEE, ensureKeysIgnored, pyThaiTts, STYLE_FIELD, withStyle, parseLesson, spokenParts } = await imp("clips.mjs");
 const { checkProject } = await imp("doctor.mjs");
 const { createHandler, SAMPLE } = await imp("serve.mjs");
 
@@ -500,4 +500,65 @@ test("the file page shows the plan's voice with an edit button", () => {
     assert.match(html, /data-target="plan เสียงพากย์"/);
     assert.doesNotMatch(html, /<span>เสียงพากย์<\/span><p>[^<]*<\/p>[\s\S]*<span>เสียงพากย์<\/span>/, "shown once, not again among the plan's fields");
   } finally { p.cleanup(); }
+});
+
+// ---- the clip's opening and closing title cards, in the lesson ----
+
+test("a lesson's title cards: ## เปิด and ## สรุป, around the steps, with what they show and say", () => {
+  const text = "# เข้าสู่ระบบ\n\n- บทบาท: เจ้าหน้าที่\n\n## เปิด\n- คำรอง: สำหรับเจ้าหน้าที่\n- พูด: คลิปนี้สอนวิธี Login\n\n## 1. เปิดหน้า\n- ทำ: open /\n- บนจอ: เปิดหน้า\n\n## สรุป\n- บนจอ: สรุป\n- คำรอง: Login → เปิดหน้า\n- พูด: สรุป Login แล้วเปิดหน้า\n";
+  const { lesson, problems } = parseLesson(text);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(lesson.steps.map((s) => s.n), [1], "the cards are no steps: step numbers and pictures stay");
+  assert.deepEqual(lesson.cards.map((c) => [c.n, c.caption, c.subtitle, c.narration]), [
+    ["open", "เข้าสู่ระบบ", "สำหรับเจ้าหน้าที่", "คลิปนี้สอนวิธี Login"],
+    ["close", "สรุป", "Login → เปิดหน้า", "สรุป Login แล้วเปิดหน้า"]], "an opening card without บนจอ shows the lesson's title");
+  assert.deepEqual(spokenParts(lesson).map((s) => s.n), ["open", 1, "close"]);
+  assert.match(parseLesson("# x\n\n## เปิด\n- ทำ: click\n\n## 1. a\n- ทำ: a\n- บนจอ: a\n").problems.join(), /a card's fields are บนจอ, คำรอง, พูด/);
+});
+
+test("the cards' narration: edited like a step's, a missing card added in its place, and spoken in the clip's order", () => {
+  const p = project();
+  try {
+    const file = path.join(p.clips, "01-in", "lesson.md");
+    setNarration(p.clips, "01-in", "open", "คลิปนี้สอนวิธี Login");
+    setNarration(p.clips, "01-in", "close", "สรุป เปิดหน้าแล้วกรอกชื่อ");
+    let text = fs.readFileSync(file, "utf8");
+    assert.ok(text.includes("\r\n## เปิด\r\n- บนจอ: เข้าสู่ระบบ\r\n- พูด: คลิปนี้สอนวิธี Login\r\n\r\n## 1. เปิดหน้า"), "the opening card before step 1, in the file's line endings");
+    assert.match(text, /## สรุป\r\n- บนจอ: สรุปขั้นตอน\r\n- พูด: สรุป เปิดหน้าแล้วกรอกชื่อ\r\n$/);
+    setNarration(p.clips, "01-in", "open", "Login เข้าระบบ");
+    text = fs.readFileSync(file, "utf8");
+    assert.ok(text.includes("- พูด: Login เข้าระบบ\r\n") && !text.includes("คลิปนี้สอน"), "an existing card's line is replaced");
+    assert.deepEqual(parseLesson(text).problems, []);
+
+    const v = stub();
+    const r = makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.deepEqual(r.spoken, ["open", 1, "close"]);
+    assert.deepEqual(v.calls.at(-1).lines, ["Login เข้าระบบ", "กด Login ค่ะ", "สรุป เปิดหน้าแล้วกรอกชื่อ"]);
+    for (const f of ["open.mp3", "01.mp3", "close.mp3"]) assert.ok(fs.existsSync(path.join(p.clips, "01-in", "voice", f)), f);
+    assert.deepEqual(Object.keys(JSON.parse(fs.readFileSync(path.join(p.clips, "01-in", "voice", "voice.json"), "utf8")).steps).sort(), ["1", "close", "open"]);
+    const lesson = load(p.clips).lessons[0];
+    assert.equal(lesson.cards[0].voice.file, "voice/open.mp3");
+    assert.equal(lesson.cards[0].voice.stale, false);
+    setNarration(p.clips, "01-in", "close", "สรุปสั้นลง");
+    assert.equal(load(p.clips).lessons[0].cards[1].voice.why, "คำพูดแก้แล้ว");
+    assert.deepEqual(makeVoice(p.clips, "01-in", { step: "close", speak: v.speak, globalLexicon: p.global }).spoken, ["close"]);
+
+    const html = renderPage(load(p.clips), new Date(), { live: { token: "t" } });
+    assert.match(html, /<li class="step card-step" id="01-in-open">/);
+    assert.match(html, /class="live-say" data-id="01-in" data-step="open"/);
+    assert.match(html, /data-step="01-in-close">สรุป · การ์ดสรุป</, "the menu names the cards");
+  } finally { p.cleanup(); }
+});
+
+test("the live server: a card's narration saved and spoken from the page", async () => {
+  const p = project();
+  const s = await serve(p);
+  try {
+    const r = await s.post("/api/narration", { id: "01-in", step: "open", text: "คลิปนี้สอนวิธี Login", voice: true });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(JSON.parse(r.text).voice.spoken, ["open"]);
+    assert.match(fs.readFileSync(path.join(p.clips, "01-in", "lesson.md"), "utf8"), /## เปิด\r\n- บนจอ: เข้าสู่ระบบ\r\n- พูด: คลิปนี้สอนวิธี Login/);
+    assert.equal((await s.post("/api/narration", { id: "01-in", step: "middle", text: "x" })).status, 400);
+    assert.equal((await s.post("/api/voice", { id: "01-in", step: "close" })).status, 400, "no closing card yet");
+  } finally { await s.close(); p.cleanup(); }
 });

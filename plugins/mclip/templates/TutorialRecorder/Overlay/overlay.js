@@ -50,13 +50,33 @@
 @keyframes __t-halo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes __t-ghost { from { opacity: .5; } to { opacity: 0; } }
 @keyframes __t-rise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
-.__t-card { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 160px;
-  background: radial-gradient(120% 120% at 85% 15%, #2453b3 0%, #173f8f 45%, #0f2a63 100%); color: #fff;
+/* The title card: a presentation slide in the app's colours (--c-* set by card() from the theme), large and calm. */
+.__t-card { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 150px 9vw 90px;
+  background: linear-gradient(135deg, var(--c-a, #2453b3) 0%, var(--c-b, #0f2a63) 100%); color: var(--c-ink, #fff);
   font-family: ${FONT}; animation: __t-fade 400ms ease both; transition: opacity 350ms ease; }
-.__t-card .__t-bar { width: 96px; height: 8px; border-radius: 4px; background: #f97316; margin-bottom: 36px;
+.__t-card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(70% 90% at 88% 12%, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 60%); }
+.__t-card .__t-body { position: relative; z-index: 1; max-width: 1500px; }
+.__t-card .__t-brand { position: absolute; z-index: 1; top: 64px; left: 9vw; display: flex; align-items: center; gap: 20px;
+  font-size: 30px; font-weight: 600; letter-spacing: .01em; animation: __t-rise2 500ms 100ms ease both; }
+.__t-card .__t-logo { display: flex; align-items: center; background: #fff; border-radius: 16px; padding: 10px 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.__t-card .__t-logo img { display: block; height: 52px; width: auto; max-width: 320px; }
+.__t-card .__t-bar { width: 112px; height: 10px; border-radius: 5px; background: var(--c-accent, #fff); margin-bottom: 40px;
   animation: __t-grow 600ms 150ms cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
-.__t-card h1 { margin: 0; font: 700 76px/1.3 ${FONT}; animation: __t-rise2 500ms 200ms ease both; }
-.__t-card p { margin: 22px 0 0; font: 500 34px/1.5 ${FONT}; color: #dbe5ff; animation: __t-rise2 500ms 350ms ease both; }
+.__t-card h1 { margin: 0; font-size: 84px; font-weight: 700; line-height: 1.22; letter-spacing: -.005em; text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0,0,0,.18); animation: __t-rise2 500ms 200ms ease both; }
+.__t-card h1.long { font-size: 68px; }
+.__t-card p { margin: 28px 0 0; font-size: 40px; font-weight: 500; line-height: 1.5; opacity: .92; max-width: 1350px;
+  text-wrap: pretty; animation: __t-rise2 500ms 350ms ease both; }
+.__t-card .__t-steps { list-style: none; margin: 44px 0 0; padding: 0; display: grid; gap: 22px; }
+.__t-card .__t-steps.many { gap: 14px; }
+.__t-card .__t-steps li { display: flex; align-items: center; gap: 26px; font-size: 42px; font-weight: 600; line-height: 1.35;
+  animation: __t-rise2 450ms ease both; }
+.__t-card .__t-steps.many li { font-size: 34px; }
+.__t-card .__t-steps b { flex: none; display: grid; place-items: center; width: 66px; height: 66px; border-radius: 50%;
+  background: var(--c-accent, #fff); color: var(--c-on-accent, #0f2a63); font-size: 34px; font-weight: 700; }
+.__t-card .__t-steps.many b { width: 54px; height: 54px; font-size: 28px; }
 @keyframes __t-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes __t-rise2 { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes __t-in { from { opacity: 0; translate: var(--dx, 0) var(--dy, 0); } to { opacity: 1; translate: 0 0; } }
@@ -67,6 +87,44 @@
   const zoom = { s: 1, tx: 0, ty: 0 };
   let root = null, cursor = null, cursorAt = { x: -100, y: -100 };
   const step = new Set(); // elements of the current step, removed by clearStep
+
+  // ---- the title card's colours ------------------------------------------------------------------------------------
+  const hexOf = (c) => '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+  const rgbOf = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const hexOk = (s) => (typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s) ? s : null);
+  const lum = (c) => {
+    const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (x, y) => { const [p, q] = [lum(x), lum(y)].sort((m, n) => n - m); return (p + 0.05) / (q + 0.05); };
+  const shade = (c, f) => c.map((v) => v * (1 - f));
+  const WHITE = [255, 255, 255], INK = [15, 23, 42];
+  /**
+   * The card's colours from a theme: a gradient from the primary to its dark end, the text white unless the brand is
+   * so light that dark text reads better, and the primary darkened step by step until white text has 4.5:1 on it.
+   */
+  function cardLook(t) {
+    let a = hexOk(t.primary) ? rgbOf(t.primary) : [36, 83, 179];
+    // a light brand (yellow, pastel) keeps its light end and takes dark text; a deep one runs down to a dark shade
+    const light = contrast(INK, a) >= 7;
+    let b = hexOk(t.dark) ? rgbOf(t.dark) : (hexOk(t.primary) ? shade(a, light ? 0.16 : 0.55) : [15, 42, 99]);
+    if (lum(b) > lum(a)) [a, b] = [b, a];
+    let ink = WHITE;
+    if (contrast(WHITE, a) < 4.5) {
+      if (contrast(INK, a) >= 7 && contrast(INK, b) >= 4.5) ink = INK;
+      else {
+        for (let i = 0; i < 14 && contrast(WHITE, a) < 4.5; i++) a = shade(a, 0.07);
+        for (let i = 0; i < 14 && contrast(WHITE, b) < 4.5; i++) b = shade(b, 0.07);
+      }
+    }
+    const accent = hexOk(t.accent) && contrast(rgbOf(t.accent), b) >= 3 ? rgbOf(t.accent) : ink;
+    const onAccent = contrast(WHITE, accent) >= contrast(INK, accent) ? WHITE : (ink === INK ? WHITE : b);
+    const font = typeof t.font === 'string' && /^[\w\s\-'.]{1,60}$/.test(t.font.trim()) ? t.font.trim() : null;
+    const logo = typeof t.logo === 'string' && (/^data:image\/(png|jpeg|svg\+xml|webp);base64,[A-Za-z0-9+/=]+$/.test(t.logo)
+      || /^\/(?!\/)[^\s"'<>]*$/.test(t.logo)) ? t.logo : null;
+    const name = typeof t.name === 'string' ? t.name.trim().slice(0, 60) : '';
+    return { a: hexOf(a), b: hexOf(b), ink: hexOf(ink), accent: hexOf(accent), onAccent: hexOf(onAccent), font, logo, name };
+  }
 
   function ensure() {
     if (root && root.isConnected) return root;
@@ -208,13 +266,64 @@
     },
 
     // ---- captions --------------------------------------------------------------------------------------------------
-    // A full-screen title card (opening, section, summary) over whatever page is behind it.
-    card(title, subtitle) {
+    // A full-screen title card (opening, section, summary) over whatever page is behind it, as a presentation slide in
+    // the app's colours: `theme` { primary, dark, accent, font, logo, name } (any of them may be missing). A subtitle of
+    // steps ("a → b → c") becomes a numbered list.
+    card(title, subtitle, theme) {
+      const t = theme || {};
+      const look = cardLook(t);
       const c = add(el('div', '__t-card'));
-      c.appendChild(el('div', '__t-bar'));
-      const h = el('h1'); h.textContent = title || ''; c.appendChild(h);
-      if (subtitle) { const p = el('p'); p.textContent = subtitle; c.appendChild(p); }
+      c.style.setProperty('--c-a', look.a);
+      c.style.setProperty('--c-b', look.b);
+      c.style.setProperty('--c-ink', look.ink);
+      c.style.setProperty('--c-accent', look.accent);
+      c.style.setProperty('--c-on-accent', look.onAccent);
+      if (look.font) c.style.fontFamily = `"${look.font}", ${FONT}`;
+      if (look.logo || look.name) {
+        const brand = c.appendChild(el('div', '__t-brand'));
+        if (look.logo) { const tile = brand.appendChild(el('span', '__t-logo')); const img = el('img'); img.src = look.logo; img.alt = ''; tile.appendChild(img); }
+        if (look.name) { const n = el('span'); n.textContent = look.name; brand.appendChild(n); }
+      }
+      const body = c.appendChild(el('div', '__t-body'));
+      body.appendChild(el('div', '__t-bar'));
+      const h = el('h1'); h.textContent = title || '';
+      if ((title || '').length > 34) h.className = 'long';
+      body.appendChild(h);
+      const steps = (subtitle || '').split(/\s*→\s*/).map((s) => s.trim()).filter(Boolean);
+      if (steps.length >= 2) {
+        const ol = body.appendChild(el('ol', '__t-steps' + (steps.length > 5 ? ' many' : '')));
+        steps.forEach((s, i) => {
+          const li = el('li'); li.style.animationDelay = `${350 + i * 120}ms`;
+          const n = el('b'); n.textContent = String(i + 1); li.appendChild(n);
+          const w = el('span'); w.textContent = s; li.appendChild(w);
+          ol.appendChild(li);
+        });
+      } else if (subtitle) { const p = el('p'); p.textContent = subtitle; body.appendChild(p); }
       if (cursor) cursor.style.display = 'none';
+    },
+
+    // The colours and font the page shows: its background (a gradient's colours first), then a primary button's.
+    pageTheme() {
+      const rgb = (s) => {
+        const m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:\s*[,/]\s*([\d.]+)(%?))?\s*\)/.exec(s || '');
+        if (!m) return null;
+        const a = m[4] === undefined ? 1 : parseFloat(m[4]) / (m[5] ? 100 : 1);
+        return a < 0.5 ? null : [+m[1], +m[2], +m[3]];
+      };
+      const colourful = (c) => !!c && Math.max(...c) - Math.min(...c) > 40; // not white, black or grey
+      const found = [];
+      for (const e of [document.body, document.documentElement]) {
+        if (!e) continue;
+        const cs = getComputedStyle(e);
+        for (const m of (cs.backgroundImage || '').match(/rgba?\([^)]*\)/g) || []) found.push(rgb(m));
+        found.push(rgb(cs.backgroundColor));
+      }
+      const button = [...document.querySelectorAll('.btn-primary, button[type="submit"], input[type="submit"], button, .btn')]
+        .find((b) => b.offsetWidth > 0 && colourful(rgb(getComputedStyle(b).backgroundColor)));
+      if (button) found.push(rgb(getComputedStyle(button).backgroundColor));
+      const cols = found.filter(colourful);
+      const font = (getComputedStyle(document.body || document.documentElement).fontFamily || '').split(',')[0].replace(/["']/g, '').trim();
+      return { primary: cols[0] ? hexOf(cols[0]) : null, dark: cols[1] && hexOf(cols[1]) !== hexOf(cols[0]) ? hexOf(cols[1]) : null, font: font || null };
     },
 
     caption(text) {

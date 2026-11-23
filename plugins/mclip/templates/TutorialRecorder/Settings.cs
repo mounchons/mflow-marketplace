@@ -28,13 +28,58 @@ public sealed class Settings
     public int Crf { get; set; } = 18;
     /// <summary>With --voice: a step holds its audio's length plus this, so the action follows the sentence.</summary>
     public int VoiceTailMs { get; set; } = 300;
+    /// <summary>
+    /// The title cards' look, from the app's theme (the record skill fills it from the app's CSS). Every field is
+    /// optional: without a primary colour the recorder reads the colours the page shows, once per run, then falls back
+    /// to its own blue.
+    /// </summary>
+    public CardTheme Card { get; set; } = new();
 
     public static Settings Load(string path)
     {
         if (!File.Exists(path)) return new Settings();
-        return JsonSerializer.Deserialize<Settings>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }) ?? new Settings();
+        var s = JsonSerializer.Deserialize<Settings>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }) ?? new Settings();
+        s.Card ??= new CardTheme();
+        s.Card.Logo = CardTheme.LogoSource(s.Card.Logo, Path.GetDirectoryName(Path.GetFullPath(path))!);
+        return s;
     }
 
     public int CaptionHold(string? text) => Math.Max(CaptionMinMs, (text?.Length ?? 0) * CaptionMsPerChar);
     public int CalloutHold(string? text) => Math.Max(CalloutMinMs, (text?.Length ?? 0) * CalloutMsPerChar);
+}
+
+/// <summary>A title card's theme: <c>"card": { "primary": "#34aa55", "dark": "#005926", "font": "Sarabun", "name": "ComparePrice" }</c>.</summary>
+public sealed class CardTheme
+{
+    /// <summary>The app's main colour, the card's background (made darker when white text would not read on it).</summary>
+    public string? Primary { get; set; }
+    /// <summary>The far end of the background's gradient; a darker shade of the primary when missing.</summary>
+    public string? Dark { get; set; }
+    /// <summary>The bar and the summary's numbers; white (or the text's colour) when missing.</summary>
+    public string? Accent { get; set; }
+    /// <summary>The app's font family; Thai fonts follow it for the letters it lacks.</summary>
+    public string? Font { get; set; }
+    /// <summary>An image file beside this settings file (png, jpg, svg, webp; under 2 MB) or a path of the app (/img/logo.png).</summary>
+    public string? Logo { get; set; }
+    /// <summary>The app's name, shown with the logo at the card's top.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>A logo file becomes a data URI (the page cannot read the disk); an app path stays; anything else is dropped.</summary>
+    public static string? LogoSource(string? logo, string baseDir)
+    {
+        if (string.IsNullOrWhiteSpace(logo)) return null;
+        if (logo.StartsWith("data:image/", StringComparison.Ordinal)) return logo;
+        if (logo.StartsWith('/') && !logo.StartsWith("//", StringComparison.Ordinal) && !File.Exists(logo)) return logo;
+        var file = Path.IsPathRooted(logo) ? logo : Path.Combine(baseDir, logo);
+        var mime = Path.GetExtension(file).ToLowerInvariant() switch
+        {
+            ".png" => "image/png", ".jpg" or ".jpeg" => "image/jpeg", ".svg" => "image/svg+xml", ".webp" => "image/webp", _ => null,
+        };
+        if (mime is null || !File.Exists(file) || new FileInfo(file).Length > 2_000_000)
+        {
+            Console.WriteLine($"  warning: card logo {logo} is not a png, jpg, svg or webp file under 2 MB; the cards have none");
+            return null;
+        }
+        return $"data:{mime};base64,{Convert.ToBase64String(File.ReadAllBytes(file))}";
+    }
 }

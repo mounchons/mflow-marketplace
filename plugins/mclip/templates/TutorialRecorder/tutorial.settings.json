@@ -14,5 +14,8 @@
   "settleTimeoutMs": 1500,
   "gapMs": 300,
   "leadInMs": 300,
-  "crf": 18
+  "crf": 18,
+  // The title cards' look, from the app's theme (/mclip:record fills it in). Every field optional; without a primary the
+  // recorder takes the colours the sign-in page shows. logo: an image file beside this file, or a path the app serves.
+  "card": { "primary": null, "dark": null, "font": null, "name": null, "logo": null }
 }

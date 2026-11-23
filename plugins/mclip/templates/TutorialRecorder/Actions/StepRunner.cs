@@ -15,6 +15,7 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
 {
     static readonly string[] Circled = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"];
     string? currentRole;
+    CardTheme? cardTheme; // the title cards' look, decided at the first card
     int number; // the step badge, counted over steps that point at something
     int shot;
 
@@ -37,6 +38,21 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
             if (refs is { Finished: true }) return; // --shots of one step: what comes after it is not needed
             await page.WaitForTimeoutAsync(cfg.GapMs);
         }
+    }
+
+    /// <summary>
+    /// The cards' look, decided once per run so the opening and the closing card match: the settings' card when it
+    /// names a colour; else the colours the page shows (the first card stands on the sign-in page); else the overlay's
+    /// own blue. The settings' font, logo and name are kept either way.
+    /// </summary>
+    async Task<CardTheme> CardLook()
+    {
+        var set = cfg.Card;
+        if (!string.IsNullOrWhiteSpace(set.Primary)) return set;
+        CardTheme seen;
+        try { seen = await overlay.PageTheme(); }
+        catch (PlaywrightException) { seen = new CardTheme(); }
+        return new CardTheme { Primary = seen.Primary, Dark = set.Dark ?? seen.Dark, Accent = set.Accent, Font = set.Font ?? seen.Font, Logo = set.Logo, Name = set.Name };
     }
 
     /// <summary>--shots: the step's reference picture, when it is taken at this moment.</summary>
@@ -71,7 +87,7 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
                     await Settle(step, index);
                 }
                 if (Clean) await overlay.HideCursor();
-                else await overlay.Card(step.Caption!, step.Subtitle);
+                else await overlay.Card(step.Caption!, step.Subtitle, cardTheme ??= await CardLook());
                 t.CaptionSpan = new Span { Text = step.Subtitle is null ? step.Caption! : $"{step.Caption}: {step.Subtitle}", StartMs = log.Now() };
                 await Hold(step, t, index, int.TryParse(step.Value, out var cardMs) ? cardMs : null);
                 break;

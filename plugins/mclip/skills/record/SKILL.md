@@ -22,9 +22,14 @@ A lesson of the plan: its scenario is `clips/<id>/scenario.yaml`, and each recor
 - No `clips/<id>/lesson.md` yet (a topic): say `/mclip:plan lesson <id>` writes it first, and stop.
 - `scenario.yaml` there and older than `lesson.md`, or missing: write it from the lesson as in "A new one" below,
   with `clip: <id>`, the app's `url` as `baseUrl`, `setup: ../../tools/TutorialRecorder/stack/reset.ps1` (the setup
-  runs in the scenario's folder), the lesson's title for the opening card, and per step its `ทำ` as the action and
-  target, `บนจอ` as the caption and `พูด` as the narration. A scenario `/mclip:plan shots` wrote is updated, not
-  replaced: keep its targets that worked and its `shot:` / `shotAt:` lines (recording ignores them).
+  runs in the scenario's folder), and per step its `ทำ` as the action and target, `บนจอ` as the caption and `พูด` as
+  the narration. The opening and closing `title` steps come from the lesson's `## เปิด` and `## สรุป`: `บนจอ` is the
+  card's `caption`, `คำรอง` its `subtitle` (steps written `a → b → c` show as a numbered list) and `พูด` its
+  `narration`. A lesson without them whose scenario has title steps: copy those into the lesson first (`## เปิด`
+  before step 1, `## สรุป` at the end), so the plan page shows them and the user edits their words there; one with
+  neither: write both in the lesson (an opening that says what the clip teaches, a summary of its steps). A scenario
+  `/mclip:plan shots` wrote is updated, not replaced: keep its targets that worked and its `shot:` / `shotAt:` lines
+  (recording ignores them).
 
 An existing scenario: read it and go to step 2.
 
@@ -45,6 +50,21 @@ A new one:
    - `zoom` on small targets, `waitFor` on what a click opens.
 4. `dotnet run --project tools/TutorialRecorder -- <scenario> --check` passes (`<scenario>`: `clips/<id>/scenario.yaml`
    for a lesson, else `scenarios/<clip>.yaml`).
+5. **The title cards' look**, once per project: the opening and closing `title` cards are presentation slides in the
+   app's own colours. `tools/TutorialRecorder/tutorial.settings.json` without a `card` with a `primary`: read the app's
+   theme in its code (the sign-in page's styles, the theme or brand colour files, the layout's font and logo) and write
+   ```
+   "card": { "primary": "#34aa55", "dark": "#005926", "font": "Sarabun", "name": "<the app's name>", "logo": "<optional>" }
+   ```
+   - `primary`: the brand colour the users see, the one on the sign-in page and the main buttons. A CSS file that only
+     a CDN framework defines (Bootstrap's own `--bs-primary`) is not the app's.
+   - `dark`: the far end of its gradient when the app has one (the sign-in page's background), else leave it out.
+   - `font`: the app's font family. `name`: what the users call the app.
+   - `logo` only when the app has a logo file. Either a path the app serves (`/img/logo.png`) or a file copied beside
+     the settings. Never a URL of another site.
+   Say the values in one line. The cards darken a colour that white text would not read on, and give a very light
+   brand dark text. With no `card`, the recorder takes the colours the sign-in page shows, then its own blue. A recorder
+   older than 0.6.2 has no `card`: `/mclip:init --update`.
 
 Done when: `--check` lists the steps.
 

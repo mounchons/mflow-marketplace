@@ -52,10 +52,19 @@ public sealed class OverlayClient(IPage page, string script)
         await page.EvaluateAsync("([k, r, o]) => window.__tour.highlight(k, r, o)", new object?[] { kind, Rect(rect), new { badge, ok } });
     }
 
-    public async Task Card(string title, string? subtitle)
+    public async Task Card(string title, string? subtitle, CardTheme? theme = null)
     {
         await Ensure();
-        await page.EvaluateAsync("([t, s]) => window.__tour.card(t, s)", new object?[] { title, subtitle });
+        var th = theme is null ? null : new { primary = theme.Primary, dark = theme.Dark, accent = theme.Accent, font = theme.Font, logo = theme.Logo, name = theme.Name };
+        await page.EvaluateAsync("([t, s, th]) => window.__tour.card(t, s, th)", new object?[] { title, subtitle, th });
+    }
+
+    /// <summary>The colours and font the page shows (its background gradient, a primary button), for the cards' theme.</summary>
+    public async Task<CardTheme> PageTheme()
+    {
+        await Ensure();
+        var json = await page.EvaluateAsync<string>("() => JSON.stringify(window.__tour.pageTheme())");
+        return System.Text.Json.JsonSerializer.Deserialize<CardTheme>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new CardTheme();
     }
 
     public async Task Caption(string? text)

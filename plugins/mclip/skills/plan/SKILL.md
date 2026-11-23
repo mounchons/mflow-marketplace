@@ -108,6 +108,11 @@ For each topic named (`all`: each without `lesson.md`), read its `ที่ม�
 - ก่อนเริ่ม: <what is done beforehand, e.g. signed in (lesson 01)>
 - ข้อมูลที่ใช้: <test data; never a real person's>
 
+## เปิด
+- บนจอ: <the opening card's title; the lesson's title when left out>
+- คำรอง: <one line under it: who it is for>
+- พูด: <what is said over the card: what the clip teaches, one sentence>
+
 ## 1. <step title>
 - ทำ: <what is done on screen, for the recording>
 - บนจอ: <short and imperative: what the viewer does>
@@ -115,9 +120,18 @@ For each topic named (`all`: each without `lesson.md`), read its `ที่ม�
 - รูป: screen/01-<words>.jpg
 - หมายเหตุ: <a rule or a warning from the tests, when there is one>
 - คู่มือ: <optional: the step explained for the user manual, one to three sentences, when บนจอ is too short for it>
+
+## สรุป
+- บนจอ: สรุปขั้นตอน
+- คำรอง: <the steps in a few words, a → b → c (the card shows them as a numbered list)>
+- พูด: <the summary, one or two sentences>
 ```
 
 - One step is one thing the viewer does or sees change. `ทำ` and `บนจอ` are required on every step.
+- `## เปิด` and `## สรุป` are the clip's opening and closing title cards, not steps: no picture, no number; the page
+  shows them before and after the steps, their words editable like a step's, and the recording takes them as its
+  first and last `title`. The manual leaves them out. A lesson written before them whose `scenario.yaml` has `title`
+  steps: copy those in (`caption` → บนจอ, `subtitle` → คำรอง, `narration` → พูด) whenever the lesson is next touched.
 - Pictures are named in the order of the steps. A lesson of an app built for both phones names one per phone:
   `screen/01-<words>-ios.jpg` and `screen/01-<words>-android.jpg`; the page shows them side by side, with a switch.
 - Test users and passwords are never written out: name the role (ผู้ดูแลสำนักงาน), not the account.
@@ -168,7 +182,7 @@ The requests come from two places, and both are applied:
 
 Each request is `- <target> ("<the words now>"): <the request>`. Targets: `plan` (the whole plan), `plan <field>`,
 `plan สารบัญ`, `plan แอป <key>`, `plan คำอ่าน` (the words the voice says wrong), `<id>` (a lesson or topic),
-`<id> ขั้น <n>` (one step). None saved and none pasted: say the page keeps them in the browser when it was opened as a
+`<id> ขั้น <n>` (one step), `<id> เปิด` / `<id> สรุป` (a title card: its `## เปิด` / `## สรุป`). None saved and none pasted: say the page keeps them in the browser when it was opened as a
 file (press คำขอแก้ at the top right, then คัดลอก, and paste here), or that `/mclip:plan serve` saves them for Claude
 to read; stop.
 
@@ -176,7 +190,7 @@ to read; stop.
    and when a request's quoted words are no longer there, apply it to the nearest text and say so in the report.
 2. Apply each request to the files: `plan.md` for the plan, its apps and its contents; `<id>/lesson.md` for a lesson.
    - `ถ่ายรูปอ้างอิงใหม่` (the page's ถ่ายรูป button) on `<id>` or `<id> ขั้น <n>`: **4** for that lesson or step;
-     `สร้างเสียงให้ฟัง` (สร้างเสียง): **5**. Do them after the other requests, so the pictures and voice show the
+     `สร้างเสียงให้ฟัง` (สร้างเสียง): **5** (on `<id> เปิด` / `<id> สรุป`: `--step open` / `--step close`). Do them after the other requests, so the pictures and voice show the
      edited lesson.
    - `plan คำอ่าน`: add or change `<written> = <spoken>` lines in `clips/lexicon.txt` (this project's words). A word
      every project shares belongs in the plugin's `lexicon.txt` (in the mflow-marketplace repository; it reaches
@@ -234,11 +248,12 @@ action has settled. No video, no voice; a lesson takes seconds.
 ## 5. Speak the narration
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs voice <id> [--step <n>]
+node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs voice <id> [--step <n>|open|close]
 ```
 
-Each step's `พูด` line, in the plan's voice, becomes `clips/<id>/voice/NN.mp3` (NN = the step), recorded in
-`voice/voice.json`; the page plays it under the step, and ▶ ฟังทั้งบท plays the lesson's steps one after another.
+Each step's `พูด` line, in the plan's voice, becomes `clips/<id>/voice/NN.mp3` (NN = the step), and the title cards'
+`open.mp3` and `close.mp3` (`--step open`, `--step close`: one card), recorded in `voice/voice.json`; the page plays
+it under the step or card, and ▶ ฟังทั้งบท plays the opening card, the steps and the summary one after another.
 - **Voice**: the plan's `- เสียงพากย์:`, chosen on the live page (**6**) or written as
   - `paradee` (no field: the same): PyThaiTTS MakHam Paradee, female, on this machine, no cost;
   - `gemini <voice> [<model>]`: a Google Gemini TTS voice (`Enya` when none is named, `Kore`, `Leda`, ...; model `gemini-3.8-flash-tts`),

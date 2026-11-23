@@ -46,10 +46,11 @@ there at 1920×1080, 30 fps.
    answer: look at a rendered frame instead.
 5. `check_composition`. Long Thai captions trip `caption-cue-max` and `caption-line-length` (a step's caption stays up
    for the whole step, and Thai vowel and tone marks count as characters): leave one tack over their range saying so,
-   rather than splitting the cues away from the voice. The title layers' `token-drift` is meant (they match the
-   recorder's cards).
+   rather than splitting the cues away from the voice. The title layers' `token-drift` is meant (they follow the
+   plate's layout).
 6. `render_frames` the middle of each title card and three or four caption cues at 1920 wide: Thai renders whole, the
-   card matches the recorder's, the captions can be read over the page.
+   card reads well, the captions can be read over the page. The plate is mclip's own blue, not the app's colours as the
+   recorder's cards are (`card` in `tutorial.settings.json`): say so when the user wants the cards in the app's theme.
 7. `end_agent_session`.
 
 ## 4. Export and report

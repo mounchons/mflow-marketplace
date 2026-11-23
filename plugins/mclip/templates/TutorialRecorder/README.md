@@ -159,7 +159,7 @@ steps:
 | `upload` | `target` (the file input), `files` | sets the files (paths relative to the scenario); points at the input's parent |
 | `press` | `key`, `target` optional | presses a key (e.g. `Enter`) |
 | `wait` | `target` optional, `value` ms optional | shows the caption (and highlight) for the reading time |
-| `title` | `caption` (the title), `subtitle` optional, `url` optional | a full-screen title card for an opening, a section or a summary; before any sign-in it opens the sign-in page behind the card, so the opening narration is spoken over the card, not over the typing |
+| `title` | `caption` (the title), `subtitle` optional, `url` optional | a full-screen title card for an opening, a section or a summary, a presentation slide in the app's colours (`card` in `tutorial.settings.json`); a subtitle of steps `a → b → c` is shown as a numbered list; before any sign-in it opens the sign-in page behind the card, so the opening narration is spoken over the card, not over the typing |
 | `zoom` | `target`, `zoom` | zooms to the target, no action |
 | `zoom-out` | | back to 100% |
 | `login` / `logout` | `role` for login | sign in on screen / sign out (a role change does both by itself) |

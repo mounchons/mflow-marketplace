@@ -46,7 +46,7 @@ test("the manifest, the marketplace and the README name the same version", () =>
 
 test("every skill is user-invoked, named after its folder and listed in the README", () => {
   const readme = read("plugins/mclip/README.md");
-  assert.deepEqual([...skills].sort(), ["finish", "init", "record"]);
+  assert.deepEqual([...skills].sort(), ["finish", "init", "plan", "record"]);
   for (const name of skills) {
     const front = read(`plugins/mclip/skills/${name}/SKILL.md`).split(/^---$/m)[1] ?? "";
     assert.match(front, new RegExp(`^name: ${esc(name)}$`, "m"), `${name}: name`);

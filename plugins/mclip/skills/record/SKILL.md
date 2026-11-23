@@ -2,17 +2,28 @@
 name: record
 description: Record a how-to clip of a flow in the web app — write its scenario when there is none (proposing the data-tour attributes it needs, added once the user agrees), record it with real clicks, highlights, zoom and Thai captions or callouts, add the Thai voice-over, then check every page change in the video before reporting.
 disable-model-invocation: true
-argument-hint: "<flow to teach | scenarios/<clip>.yaml> [caption|callout|both|clean] [voice]"
+argument-hint: "<lesson id from clips/plan.md | flow to teach | scenarios/<clip>.yaml> [caption|callout|both|clean] [voice]"
 ---
 
-Make one clip. `$ARGUMENTS` names the flow in words (for example "a supervisor approves a leave request") or an
-existing `scenarios/<clip>.yaml`, and may add a mode and `voice`. The recorder is `tools/TutorialRecorder/` (installed by
+Make one clip. `$ARGUMENTS` names a lesson of the plan (`02-add-user`, from `clips/plan.md`, see `/mclip:plan`), the
+flow in words (for example "a supervisor approves a leave request") or an existing `scenarios/<clip>.yaml`, and may add
+a mode and `voice`. The recorder is `tools/TutorialRecorder/` (installed by
 `/mclip:init`; without it, say so and stop); its README is the reference for the scenario format, actions, targets and
 options. It records only on the throwaway test stack its scenario's `setup:` resets, never on a copy with real data.
 
 The user's answers are the customer's: act on them without asking again.
 
 ## 1. The scenario
+
+A lesson of the plan: its scenario is `clips/<id>/scenario.yaml`, and each recording becomes its next version.
+- Its apps (`node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs check` lists them) must be one web app: mclip records web
+  apps only. An iPhone or Android lesson, or one crossing two apps: say so and stop (the plan keeps its pictures). A
+  plan without `## แอป` is one web app; its URL is the plan's `stack ทดสอบ` line, or ask for it once.
+- No `clips/<id>/lesson.md` yet (a topic): say `/mclip:plan lesson <id>` writes it first, and stop.
+- `scenario.yaml` there and older than `lesson.md`, or missing: write it from the lesson as in "A new one" below,
+  with `clip: <id>`, the app's `url` as `baseUrl`, `setup: ../../tools/TutorialRecorder/stack/reset.ps1` (the setup
+  runs in the scenario's folder), the lesson's title for the opening card, and per step its `ทำ` as the action and
+  target, `บนจอ` as the caption and `พูด` as the narration.
 
 An existing scenario: read it and go to step 2.
 
@@ -30,7 +41,8 @@ A new one:
    - Captions short and imperative (what to do on screen). Narration is spoken by a female voice: end sentences
      with ค่ะ, never ครับ. Values for test users come from secrets as `${users.<key>.<field>}`, never written out.
    - `zoom` on small targets, `waitFor` on what a click opens.
-4. `dotnet run --project tools/TutorialRecorder -- scenarios/<clip>.yaml --check` passes.
+4. `dotnet run --project tools/TutorialRecorder -- <scenario> --check` passes (`<scenario>`: `clips/<id>/scenario.yaml`
+   for a lesson, else `scenarios/<clip>.yaml`).
 
 Done when: `--check` lists the steps.
 
@@ -39,7 +51,7 @@ Done when: `--check` lists the steps.
 Run in the background (a clip takes a few minutes; the scenario's `setup:` resets the stack first):
 
 ```
-dotnet run --project tools/TutorialRecorder -- scenarios/<clip>.yaml [--mode <mode>] [--voice]
+dotnet run --project tools/TutorialRecorder -- <scenario> [--mode <mode>] [--voice]
 ```
 
 Mode: the scenario's own unless the user named one (`caption` by default; `callout` for clips watched without sound;
@@ -70,7 +82,20 @@ ffmpeg -v error -ss <end-2s> -t 4 -i tools/TutorialRecorder/Output/<clip>.mp4 -v
 Fix in the scenario (a `waitFor`, a `holdMs`, a shorter line) and record again; at most three rounds, then report what
 is still wrong.
 
-## 4. Report
+## 4. A lesson's version
+
+For a lesson of the plan, once the check passes, keep the recording as the lesson's next version, with the files the
+run's `done:` line names:
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs version <id> --mp4 <mp4> --srt <srt> --timing <timing.json> --mode <mode> [--voice] --recorder <version>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs page
+```
+
+`<version>` is the text in `tools/TutorialRecorder/.mclip-version` (for example `0.2.0`), not the file's path.
+`clips/<id>/v<n>/` then holds the lesson, scenario, pictures, srt and timing (commit them) and `clip.mp4` (git-ignored).
+
+## 5. Report
 
 The files in `tools/TutorialRecorder/Output/`: `<clip>.mp4` (its length), `.srt`, `<clip>/review.html` (the video beside
 its steps), with `--voice` the `<clip>-voice/` lines, in callout mode `<clip>/manual.md`. What the check found, the

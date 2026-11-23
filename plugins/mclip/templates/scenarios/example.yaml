@@ -22,12 +22,12 @@ steps:
   - action: title
     caption: "เพิ่มผู้ใช้ใหม่"
     subtitle: "สำหรับผู้ดูแลระบบ"
-    narration: "คลิปนี้จะแนะนำวิธีเพิ่มผู้ใช้ใหม่ให้เข้าใช้งานระบบค่ะ"
+    narration: "คลิปนี้สอนวิธีเพิ่มผู้ใช้ใหม่"
 
   - role: admin
     action: login
     caption: "เข้าสู่ระบบในฐานะผู้ดูแลระบบ"
-    narration: "เริ่มจากเข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ"
+    narration: "Login ด้วย account ผู้ดูแลระบบ"
 
   - role: admin
     action: click
@@ -43,7 +43,7 @@ steps:
     highlight: box
     zoom: 1.6
     caption: "กดปุ่ม 'เพิ่มผู้ใช้'"
-    narration: "กดปุ่มเพิ่มผู้ใช้ ระบบจะเปิดฟอร์มขึ้นมา"
+    narration: "กดปุ่มเพิ่มผู้ใช้ ระบบจะเปิด form ขึ้นมา"
     callout: "กดปุ่มนี้เพื่อเพิ่มผู้ใช้ใหม่"
     result:
       target: "role:dialog"
@@ -57,16 +57,16 @@ steps:
     target: "tour:field-email"
     value: "${users.NewUser.email}"
     caption: "กรอกอีเมลของผู้ใช้ใหม่"
-    narration: "กรอกอีเมลที่ผู้ใช้จะใช้เข้าสู่ระบบ"
+    narration: "กรอก email ที่ผู้ใช้จะใช้ Login"
 
   - role: admin
     action: click
     target: "tour:btn-save"
     highlight: box
     caption: "กด 'บันทึก'"
-    narration: "กดบันทึก ระบบจะสร้างผู้ใช้ใหม่ให้"
+    narration: "กดบันทึก ระบบจะสร้างผู้ใช้ใหม่"
 
   - action: title
     caption: "สรุปขั้นตอน"
     subtitle: "เปิดเมนูผู้ใช้ → เพิ่มผู้ใช้ → กรอกอีเมล → บันทึก"
-    narration: "สรุปขั้นตอน เปิดเมนูผู้ใช้ กดเพิ่มผู้ใช้ กรอกอีเมล แล้วกดบันทึกค่ะ"
+    narration: "สรุป เปิดเมนูผู้ใช้ กดเพิ่มผู้ใช้ กรอก email แล้วกดบันทึก"

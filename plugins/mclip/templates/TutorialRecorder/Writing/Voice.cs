@@ -26,6 +26,8 @@ public static class Voice
     public static List<Line> Prepare(string toolDir, string outRoot, string clip, string narrationTxt, List<(int Step, string Text)> narrated, string speed, IReadOnlyList<string>? lexicons = null, string speaker = "paradee", string style = "")
     {
         var who = Speaker.Parse(speaker, style);
+        // the words' rules are Paradee's: a Gemini or ElevenLabs voice reads the narration as written
+        if (who.Engine != "paradee") lexicons = [];
         if (narrated.Count == 0) throw new InvalidOperationException("--voice: no step has a narration");
         lexicons ??= [];
         var dir = Path.Combine(outRoot, clip + "-voice");

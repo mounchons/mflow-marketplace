@@ -71,10 +71,10 @@ Each step's `narration` is spoken by PyThaiTTS (`tts/tts_paradee.py`, voice MakH
 `Output/<clip>-voice/`; it is spoken again only when a narration or the speed changed. Every narrated step then holds
 as long as its sentence (+ `voiceTailMs`, 300 ms) before acting, and the sentence is mixed into the mp4 (AAC) where
 the step's caption appears; `timing.json` gives each step's `audio` span, and the run warns when a sentence runs past
-its step or into the next one. The voice is female: write narration with ค่ะ, not ครับ. Put the introduction on an opening `title`
+its step or into the next one. Write narration short, with English terms in Latin letters (Login, form, filter) and no ค่ะ or ครับ. Put the introduction on an opening `title`
 card and a short line on the explicit `login` step, so each sentence matches what is on screen.
 
-`--lexicon <file>` (any number, later wins) gives the words the voice says wrong, one `<written> = <spoken>` per line
+`--lexicon <file>` (any number, later wins; Paradee only, an API voice reads the narration as written) gives the words the voice says wrong, one `<written> = <spoken>` per line
 (`Login = ล๊อก อิน`; a Latin word matches whole and in any case): only the voice changes, never the captions. A line of
 several sentences is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) and a space, with a
 pause between them and silence after the last word. A price is said in words (`5,877.50 บาท` →

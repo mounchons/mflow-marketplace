@@ -39,8 +39,9 @@ A new one:
    - An opening `title` (the introduction is spoken over the card) and a closing summary `title`.
    - An explicit `login` step for the first role, with a short line, so the sentence matches the typing.
    - Targets as `tour:<name>`; `role:` or `label:` only where no attribute fits.
-   - Captions short and imperative (what to do on screen). Narration is spoken by a female voice: end sentences
-     with ค่ะ, never ครับ. Values for test users come from secrets as `${users.<key>.<field>}`, never written out.
+   - Captions short and imperative (what to do on screen). Narration is the lesson's `พูด` as it is, else written as
+     `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` "Narration" says: short, English terms in Latin letters, no ค่ะ or
+     ครับ. Values for test users come from secrets as `${users.<key>.<field>}`, never written out.
    - `zoom` on small targets, `waitFor` on what a click opens.
 4. `dotnet run --project tools/TutorialRecorder -- <scenario> --check` passes (`<scenario>`: `clips/<id>/scenario.yaml`
    for a lesson, else `scenarios/<clip>.yaml`).

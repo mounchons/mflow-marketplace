@@ -125,7 +125,8 @@ export function createHandler({ clips, token, speak, port: getPort, tts = path.j
         if (!(speed >= 0.7 && speed <= 1)) throw new Error("the speed is from 0.7 (slow) to 1.0 (normal)");
         const work = fs.mkdtempSync(path.join(os.tmpdir(), "mclip-sample-"));
         try {
-          const lexicons = [globalLexicon, path.join(root, "lexicon.txt")].filter((f) => fs.existsSync(f));
+          // the words and price rules are Paradee's: an API voice reads the line as written
+          const lexicons = v.engine === "paradee" ? [globalLexicon, path.join(root, "lexicon.txt")].filter((f) => fs.existsSync(f)) : [];
           const [item] = speak([SAMPLE], work, speed, lexicons, v);
           if (!item || !fs.existsSync(item.file)) throw new Error("the voice made no sample");
           return send(res, 200, { text: SAMPLE, voice: v.key, durationMs: item.durationMs, mp3: fs.readFileSync(item.file).toString("base64") });

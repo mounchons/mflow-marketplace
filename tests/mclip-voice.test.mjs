@@ -464,6 +464,34 @@ test("the live server: the style box is saved with a Gemini voice and dropped wi
   } finally { await s.close(); p.cleanup(); }
 });
 
+test("a Gemini or ElevenLabs voice reads the narration as written: no word rules, and a changed rule leaves it fresh", async () => {
+  const p = project({ "clips/lexicon.txt": "Login = ล็อกอิน\n" });
+  try {
+    const v = stub();
+    setPlanField(p.clips, VOICE_FIELD, "gemini Enya");
+    makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.deepEqual(v.calls.at(-1).lexicons, [], "no rule files reach an API voice");
+    const json = JSON.parse(fs.readFileSync(path.join(p.clips, "01-in", "voice", "voice.json"), "utf8"));
+    assert.equal(json.steps["1"].rules, "", "step 1 says Login, yet no rule is recorded");
+    writeProjectLexicon(p.clips, "Login = ล็อก-อิน\n");
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.stale, false, "a new rule is Paradee's business");
+
+    setPlanField(p.clips, VOICE_FIELD, "paradee");
+    makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.equal(v.calls.at(-1).lexicons.length, 2, "Paradee still gets the plugin's and the project's rules");
+    writeProjectLexicon(p.clips, "Login = ล็อกอินนน\n");
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.why, "คำอ่านเปลี่ยน");
+  } finally { p.cleanup(); }
+  const q = project({ "clips/lexicon.txt": "Login = ล็อกอิน\n" });
+  const s = await serve(q);
+  try {
+    await s.post("/api/voice-sample", { engine: "gemini", id: "Enya" });
+    assert.deepEqual(s.v.calls.at(-1).lexicons, [], "the sample of an API voice: no rules either");
+    await s.post("/api/voice-sample", { engine: "paradee" });
+    assert.ok(s.v.calls.at(-1).lexicons.length >= 1);
+  } finally { await s.close(); q.cleanup(); }
+});
+
 test("the file page shows the plan's voice with an edit button", () => {
   const p = project({ "clips/plan.md": PLAN.replace("- ความเร็วเสียง: 0.80\n", "- ความเร็วเสียง: 0.80\n- เสียงพากย์: gemini Achernar\n") });
   try {

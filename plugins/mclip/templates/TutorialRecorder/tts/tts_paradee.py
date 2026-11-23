@@ -16,10 +16,10 @@ or ElevenLabs over their API.
   The key comes from the environment, else from --keys (JSON: {"GEMINI_API_KEY": "...", "ELEVENLABS_API_KEY": "..."});
   it is never printed. An API voice sends each line's words to that company and costs what the account is charged.
   MCLIP_GEMINI_URL / MCLIP_ELEVENLABS_URL replace the API's address (tests).
-- Pronunciation rules (--lexicon, any number, later files win): lines `<written> = <spoken>`, e.g. `Login = ล๊อก อิน`.
+- Paradee only (an API voice reads each line as written): pronunciation rules (--lexicon, any number, later files win): lines `<written> = <spoken>`, e.g. `Login = ล๊อก อิน`.
   A Latin word matches whole and in any case (Login, LOGIN, login); a Thai one wherever it appears; longer words first.
   Captions are not changed: only what is spoken.
-- A price is said in words: `5877.50 บาท`, `5,877.50 บาท` or `฿5,877.50` -> ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์;
+- Paradee only: a price is said in words: `5877.50 บาท`, `5,877.50 บาท` or `฿5,877.50` -> ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์;
   `5877 บาท` -> ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาท (before the rules above, which may still change บาท-free words).
 - Paradee speaks a line of several sentences sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, จ้ะ, จ้า)
   followed by a space, joined with --pause-ms of silence, so a particle is never run into the next sentence. An API voice
@@ -310,7 +310,8 @@ def main() -> int:
     lines = read_lines(a.input)
     if not lines:
         ap.error(f"no sentences in {a.input}")
-    rules = read_lexicon(a.lexicon)
+    # the rules and prices in words are for Paradee: a Gemini or ElevenLabs voice reads the line as written
+    rules = read_lexicon(a.lexicon) if not api else {}
 
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
@@ -330,7 +331,7 @@ def main() -> int:
 
     items, rate = [], None
     for n, (line_no, text) in enumerate(lines, 1):
-        spoken = apply_lexicon(speak_money(text), rules)
+        spoken = text if api else apply_lexicon(speak_money(text), rules)
         chunks = []
         if api:
             try:

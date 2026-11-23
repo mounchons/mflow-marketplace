@@ -69,7 +69,7 @@ The contents first, the steps later: agreeing on what to teach is cheaper than r
    - เป้าหมาย: <what a viewer can do afterwards>
    - ขอบเขต: <what is taught>
    - ไม่รวม: <what is left out, and why when it is not obvious>
-   - รูปแบบ: <caption or callout, voice, 1920×1080, length per lesson>
+   - รูปแบบ: <caption or callout, voice, 1920×1080, length per lesson; narration short, English terms in Latin letters, no ค่ะ/ครับ>
    - เสียงพากย์: paradee
    - stack ทดสอบ: <where recordings run; never a copy with real data>
 
@@ -111,7 +111,7 @@ For each topic named (`all`: each without `lesson.md`), read its `ที่ม�
 ## 1. <step title>
 - ทำ: <what is done on screen, for the recording>
 - บนจอ: <short and imperative: what the viewer does>
-- พูด: <the narration; a female voice, so sentences end with ค่ะ, never ครับ>
+- พูด: <the narration, concise: see "Narration" below>
 - รูป: screen/01-<words>.jpg
 - หมายเหตุ: <a rule or a warning from the tests, when there is one>
 - คู่มือ: <optional: the step explained for the user manual, one to three sentences, when บนจอ is too short for it>
@@ -121,6 +121,29 @@ For each topic named (`all`: each without `lesson.md`), read its `ที่ม�
 - Pictures are named in the order of the steps. A lesson of an app built for both phones names one per phone:
   `screen/01-<words>-ios.jpg` and `screen/01-<words>-android.jpg`; the page shows them side by side, with a switch.
 - Test users and passwords are never written out: name the role (ผู้ดูแลสำนักงาน), not the account.
+
+**Narration** (`พูด`), concise, the style a project's owner approved after hearing it; the plan's `รูปแบบ` line wins
+where it asks for something else:
+- **Short.** One or two short clauses per sentence, a step's line about 6–12 seconds spoken. Say what to do and the
+  one fact that matters; drop filler (ต่อไป, จากนั้น, ให้, ซึ่ง…, ได้เลย) and explanations said already. A rule or
+  warning already in `หมายเหตุ` is not spoken again unless the action needs it.
+- **English terms in Latin letters** where Thai users say them in English (Login, Password, account, form, filter,
+  package, admin, tab, popup, PDF, JSON, and the product's own names), with a space on each side; never a Thai
+  transliteration (แมตช์, ฟิลเตอร์, เจซัน): voices read those badly. The domain's Thai words stay Thai (เบี้ย,
+  ทุนประกัน, ใบเสนอราคา), and buttons and labels are named exactly as the screen shows them.
+- **No polite particles**: no ค่ะ, คะ, นะคะ, ครับ, นะครับ, จ้ะ, จ้า.
+- Only what the code and tests show; never a test account's name or password.
+
+Before → after, from that project:
+- "เริ่มจากหน้าเข้าสู่ระบบของ Compare Price ทุกหน้าของระบบต้องเข้าสู่ระบบก่อน ถ้าเปิดลิงก์หน้าอื่นตรง ๆ ระบบจะพากลับมาที่หน้านี้เอง"
+  → "นี่คือหน้า Login ของ Compare Price ทุกหน้าในระบบต้อง Login ก่อนใช้งาน"
+- "บนสุดมีปุ่มอ่านจากเอกสารและแถบ filter ของฉันไว้ช่วยเติมฟอร์ม ถัดลงมาเป็นการ์ดข้อมูลลูกค้า เงื่อนไขการจับคู่ และข้อมูลพนักงานขาย ซึ่งจะเรียนทีละส่วนในบทถัดไป"
+  → "ด้านบนมีปุ่มอ่านจากเอกสาร กับ filter ของฉัน ไว้ช่วยเติม form ด้านล่างเป็นการ์ดลูกค้า เงื่อนไขการ Match และพนักงานขาย"
+- "หน้านี้เปิดได้เฉพาะบัญชีที่มีสิทธิ์จัดการแพกเกจ ถ้าบัญชีมีแค่สิทธิ์เข้าระบบ จะขึ้นหน้าคุณไม่มีสิทธิ์เข้าถึงส่วนนี้ ให้ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์"
+  → "หน้านี้ต้องมีสิทธิ์จัดการ package ถ้าเปิดแล้วขึ้นว่าไม่มีสิทธิ์ ให้ติดต่อ admin"
+
+A request to make narration shorter (พูดให้กระชับ, on a step, a lesson or the plan) rewrites its `พูด` lines by these
+rules, keeping the facts and the number of steps.
 
 Reference pictures: for a lesson of one web app, the AI takes them (**4**); the user may drop their own into
 `clips/<id>/screen/` under the names in the lesson instead, and those are kept. mclip records and photographs web apps
@@ -230,9 +253,10 @@ Each step's `พูด` line, in the plan's voice, becomes `clips/<id>/voice/NN.
   with what the API said (exit 2): report it as it is.
 - **Speed**: the plan's `- ความเร็วเสียง:` (0.70 slow to 1.00 normal), else 0.85. Paradee speaks at that speed; an API
   voice speaks at its own pace and is then slowed to it (ffmpeg, the pitch kept), so 1.00 is that voice as it is.
-- **Words the voice says wrong**: `<written> = <spoken>` rules, the plugin's `lexicon.txt` (every project) then the
+- **Words the voice says wrong** (Paradee only: a Gemini or ElevenLabs voice reads the narration as written, prices
+  too, and a changed rule does not make its steps stale): `<written> = <spoken>` rules, the plugin's `lexicon.txt` (every project) then the
   project's `clips/lexicon.txt` (wins for the same word); only what is spoken changes, never captions or the manual.
-- **Prices** are said in words: `5,877.50 บาท` or `฿5,877.50` → ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์ (voice only; the
+- **Prices** (Paradee only) are said in words: `5,877.50 บาท` or `฿5,877.50` → ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์ (voice only; the
   words on screen keep the number).
 - **Sentences**: Paradee speaks a line sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) followed
   by a space, with a pause between them; an API voice speaks the whole line at once. Every line ends with silence after

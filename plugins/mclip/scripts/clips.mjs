@@ -339,6 +339,9 @@ export function rulesFor(text, merged) {
   return used.sort().join("\n");
 }
 
+/** The rules a line uses under a voice: Paradee's only; a Gemini or ElevenLabs voice reads the words as written. */
+export const rulesOf = (text, merged, voice) => (voice.engine === "paradee" ? rulesFor(text, merged) : "");
+
 /** The plan's speed, or the default; a value out of 0.7–1.0 is reported by load(). */
 export function planSpeed(plan) {
   const v = Number(plan?.fields?.find((f) => f.key === SPEED_FIELD)?.value);
@@ -397,7 +400,7 @@ export function load(clipsDir) {
         s.made[img] = s.present[img] && img in shots.pictures ? shots.pictures[img] : null;
       }
       const v = voices[s.n];
-      const why = v && s.narration ? voiceStale(v, s.narration, speed, rulesFor(s.narration, lexicon.merged), voice.key) : null;
+      const why = v && s.narration ? voiceStale(v, s.narration, speed, rulesOf(s.narration, lexicon.merged, voice), voice.key) : null;
       s.voice = v && s.narration && fs.existsSync(path.join(dir, VOICE_DIR, voiceFile(s.n)))
         ? { file: `${VOICE_DIR}/${voiceFile(s.n)}`, durationMs: v.durationMs, stale: !!why, why, date: v.date } : null;
     }
@@ -564,7 +567,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voi
     <div class="kv"><span>${SPEED_FIELD} (0.70 ช้า – 1.00 ปกติ)</span>${live
       ? `<p class="live-speed"><select>${[0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1].map((v) => `<option value="${v}"${Math.abs(v - speed) < 0.001 ? " selected" : ""}>${v.toFixed(2)}</option>`).join("")}</select> <button data-act="speed">บันทึกความเร็ว</button><em class="msg"></em></p>`
       : `<p>${speed.toFixed(2)}${p.fields.some((f) => f.key === SPEED_FIELD) ? "" : " (ค่าเริ่มต้น)"}</p>${editButton(`plan ${SPEED_FIELD}`, speed.toFixed(2))}`}</div>
-    <div class="kv"><span>คำอ่าน: คำที่เสียงอ่านผิด เขียนเป็นคำอ่านไทย (มีผลกับเสียงเท่านั้น ไม่เปลี่ยนคำบนจอ)</span>
+    <div class="kv"><span>คำอ่าน: คำที่เสียงอ่านผิด เขียนเป็นคำอ่านไทย (มีผลกับเสียงเท่านั้น ไม่เปลี่ยนคำบนจอ) · ใช้กับ Paradee เท่านั้น: เสียง Gemini / ElevenLabs อ่านบทพูดตามที่เขียน รวมทั้งราคา</span>
       ${lexicon.global.length ? `<p class="lex"><b>ทุกโปรเจกต์ (plugin)</b> ${lexicon.global.map((r) => `<code>${esc(r.written)}</code> → ${esc(r.spoken)}`).join(" · ")}</p>` : ""}
       ${live
         ? `<div class="live-lex"><b>โปรเจกต์นี้ (clips/lexicon.txt)</b> บรรทัดละคำ: <code>คำที่เขียน = คำอ่าน</code><textarea rows="4">${esc(lexicon.project.map((r) => `${r.written} = ${r.spoken}`).join("\n"))}</textarea><div class="row"><button data-act="lexicon">บันทึกคำอ่าน</button><em class="msg"></em></div></div>`
@@ -1103,7 +1106,7 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   if (named && parseVoice(named.value).error) return { code: 2, error: `clips/plan.md: '- ${VOICE_FIELD}:' ${parseVoice(named.value).error}` };
   const voice = planVoice(plan);
   const { merged } = readLexicon(clipsDir, globalLexicon);
-  const lexicons = [globalLexicon, path.join(clipsDir, "lexicon.txt")].filter((f) => fs.existsSync(f));
+  const lexicons = voice.engine === "paradee" ? [globalLexicon, path.join(clipsDir, "lexicon.txt")].filter((f) => fs.existsSync(f)) : [];
   const { lesson } = parseLesson(fs.readFileSync(file, "utf8"));
   const narrated = lesson.steps.filter((s) => s.narration);
   let chosen = narrated;
@@ -1116,7 +1119,7 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   if (!chosen.length) return { code: 2, error: `no step of clips/${id} has a '- พูด:'` };
   const vdir = path.join(dir, VOICE_DIR);
   const spoken = readVoices(dir);
-  const fresh = (s) => spoken[s.n] && !voiceStale(spoken[s.n], s.narration, speed, rulesFor(s.narration, merged), voice.key) && fs.existsSync(path.join(vdir, voiceFile(s.n)));
+  const fresh = (s) => spoken[s.n] && !voiceStale(spoken[s.n], s.narration, speed, rulesOf(s.narration, merged, voice), voice.key) && fs.existsSync(path.join(vdir, voiceFile(s.n)));
   const todo = chosen.filter((s) => force || !fresh(s));
   // one sentence per line, as the speaker reads them (it skips blank lines and lines starting with '#')
   for (const s of todo) if (/^\s*#/.test(s.narration)) return { code: 2, error: `step ${s.n}: a '- พูด:' line cannot start with '#'` };
@@ -1129,7 +1132,7 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
       if (items.length !== todo.length || items.some((it) => !fs.existsSync(it.file))) throw new Error(`the voice made ${items.length} of ${todo.length} lines`);
       todo.forEach((s, i) => {
         fs.copyFileSync(items[i].file, path.join(vdir, voiceFile(s.n)));
-        spoken[s.n] = { text: s.narration, speed, rules: rulesFor(s.narration, merged), engine: VOICE_ENGINE, voice: voice.key, durationMs: items[i].durationMs, date: now.toISOString() };
+        spoken[s.n] = { text: s.narration, speed, rules: rulesOf(s.narration, merged, voice), engine: VOICE_ENGINE, voice: voice.key, durationMs: items[i].durationMs, date: now.toISOString() };
       });
     } catch (e) {
       return { code: 2, error: e.message };

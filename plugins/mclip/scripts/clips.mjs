@@ -216,9 +216,11 @@ export function readLexicon(clipsDir, globalFile = GLOBAL_LEXICON) {
 }
 
 const escRx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// a price the voice says in words (tts_paradee.py MONEY: 5877.50 บาท, 5,877.50 บาท, ฿5,877.50)
+export const MONEY = /฿\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?(?![\d.])|(?<![\d.,])(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?\s*บาท/;
 /** The rules a line uses, as one string ("" for none): a voice made under other rules for those words is stale. */
 export function rulesFor(text, merged) {
-  const used = [];
+  const used = MONEY.test(text) ? ["#money=words"] : [];
   for (const [key, r] of merged) {
     const p = /[A-Za-z0-9]/.test(key) ? `(?<![A-Za-z0-9])${escRx(key)}(?![A-Za-z0-9])` : escRx(key);
     if (new RegExp(p, "i").test(text)) used.push(`${key}=${r.spoken}`);

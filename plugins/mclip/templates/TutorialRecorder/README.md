@@ -77,7 +77,8 @@ card and a short line on the explicit `login` step, so each sentence matches wha
 `--lexicon <file>` (any number, later wins) gives the words the voice says wrong, one `<written> = <spoken>` per line
 (`Login = ล๊อก อิน`; a Latin word matches whole and in any case): only the voice changes, never the captions. A line of
 several sentences is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) and a space, with a
-pause between them and silence after the last word. A changed rule file or speed speaks the lines again.
+pause between them and silence after the last word. A price is said in words (`5,877.50 บาท` →
+ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์). A changed rule file or speed speaks the lines again.
 
 The TTS script works on its own too:
 `tts/.venv/Scripts/python tts/tts_paradee.py --input lines.txt --out out_dir --speed 0.85 [--mp3] [--merge]`

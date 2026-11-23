@@ -203,6 +203,8 @@ steps one after another.
 - **Speed**: the plan's `- ความเร็วเสียง:` (0.70 slow to 1.00 normal), else 0.85.
 - **Words the voice says wrong**: `<written> = <spoken>` rules, the plugin's `lexicon.txt` (every project) then the
   project's `clips/lexicon.txt` (wins for the same word); only what is spoken changes, never captions or the manual.
+- **Prices** are said in words: `5,877.50 บาท` or `฿5,877.50` → ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์ (voice only; the
+  words on screen keep the number).
 - **Sentences**: a line is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) followed by a
   space, with a pause between them and silence after the last word, so no particle is run into what follows.
 - A step is spoken again only when its words, the speed, a rule it uses or the voice itself changed (`--force`: anyway);

@@ -53,6 +53,15 @@ test("rules: a Latin word whole and in any case, a project's rule wins, and only
   } finally { p.cleanup(); }
 });
 
+test("a price is said in words: only the lines with one become stale when the rule comes in", () => {
+  const none = new Map();
+  for (const t of ["เบี้ย 5877.50 บาทค่ะ", "เบี้ย 5,877.50 บาท", "ราคา ฿5,877.50 ค่ะ", "5877 บาท", "1,000,000บาท"]) assert.equal(rulesFor(t, none), "#money=words", t);
+  for (const t of ["ปี 2569 มี 3 ครั้ง", "12.345 บาท", "v1.2.3 บาท", "กดบันทึกค่ะ"]) assert.equal(rulesFor(t, none), "", t);
+  const tts = fs.readFileSync(path.join(REPO, "plugins", "mclip", "templates", "TutorialRecorder", "tts", "tts_paradee.py"), "utf8");
+  assert.match(tts, /def money_words\(/, "the voice says it");
+  assert.match(tts, /apply_lexicon\(speak_money\(text\), rules\)/, "before the word rules");
+});
+
 test("speed: the plan's, else 0.85; out of range is a plan problem; a stale voice says why", () => {
   assert.equal(planSpeed({ fields: [{ key: "ความเร็วเสียง", value: "0.80" }] }), 0.8);
   assert.equal(planSpeed({ fields: [] }), 0.85);

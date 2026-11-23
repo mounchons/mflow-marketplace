@@ -6,6 +6,8 @@
 - Pronunciation rules (--lexicon, any number, later files win): lines `<written> = <spoken>`, e.g. `Login = ล๊อก อิน`.
   A Latin word matches whole and in any case (Login, LOGIN, login); a Thai one wherever it appears; longer words first.
   Captions are not changed: only what is spoken.
+- A price is said in words: `5877.50 บาท`, `5,877.50 บาท` or `฿5,877.50` -> ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์;
+  `5877 บาท` -> ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาท (before the rules above, which may still change บาท-free words).
 - A line of several sentences is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, จ้ะ, จ้า)
   followed by a space, and joined with --pause-ms of silence, so a particle is never run into the next sentence;
   every line keeps the model's own silence after its last word and gets --tail-ms more, so the last word is heard to
@@ -77,6 +79,52 @@ def apply_lexicon(text: str, rules: dict[str, tuple[str, str]]) -> str:
     return rx.sub(lambda m: rules[m.group(0).lower()][1], text)
 
 
+DIGITS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]
+PLACES = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน"]
+# a price: 5877.50 บาท, 5,877.50 บาท, 5877 บาท, ฿5,877.50 (an amount of up to two decimals; the number as written)
+MONEY = re.compile(r"฿\s?(?P<a>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?P<b>\d{1,2}))?(?![\d.])"
+                   r"|(?<![\d.,])(?P<c>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?P<d>\d{1,2}))?\s*บาท")
+
+
+def thai_number(n: int) -> str:
+    """5877 -> ห้าพันแปดร้อยเจ็ดสิบเจ็ด; 21 -> ยี่สิบเอ็ด; 101 -> หนึ่งร้อยเอ็ด; 2,000,000 -> สองล้าน."""
+    if n == 0:
+        return DIGITS[0]
+    if n >= 1_000_000:
+        high, low = divmod(n, 1_000_000)
+        return thai_number(high) + "ล้าน" + (thai_number(low) if low else "")
+    out, digits = "", str(n)
+    for i, ch in enumerate(digits):
+        d, place = int(ch), len(digits) - 1 - i
+        if d == 0:
+            continue
+        if place == 1 and d == 1:
+            out += "สิบ"
+        elif place == 1 and d == 2:
+            out += "ยี่สิบ"
+        elif place == 0 and d == 1 and n > 1:
+            out += "เอ็ด"
+        else:
+            out += DIGITS[d] + PLACES[place]
+    return out
+
+
+def money_words(baht: str, satang: str | None) -> str:
+    """5877, '50' -> ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์; 100, None -> หนึ่งร้อยบาท; 0, '75' -> เจ็ดสิบห้าสตางค์."""
+    b = int(baht.replace(",", ""))
+    s = int((satang or "0").ljust(2, "0"))
+    if b == 0 and s:
+        return thai_number(s) + "สตางค์"
+    return thai_number(b) + "บาท" + (thai_number(s) + "สตางค์" if s else "")
+
+
+def speak_money(text: str) -> str:
+    """Prices are said in words, as a Thai speaker reads them: the voice reads digits one way or another."""
+    def say(m: re.Match) -> str:
+        return money_words(m.group("a") or m.group("c"), m.group("b") if m.group("a") else m.group("d"))
+    return MONEY.sub(say, text)
+
+
 def sentences(text: str) -> list[str]:
     parts, start = [], 0
     for m in PARTICLES.finditer(text):
@@ -135,7 +183,7 @@ def main() -> int:
 
     items, rate = [], None
     for n, (line_no, text) in enumerate(lines, 1):
-        spoken = apply_lexicon(text, rules)
+        spoken = apply_lexicon(speak_money(text), rules)
         chunks = []
         parts = sentences(spoken)
         for k, sentence in enumerate(parts):

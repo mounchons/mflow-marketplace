@@ -13,6 +13,13 @@
 //                                                    snapshot the lesson as its next version v<n>
 //   node clips.mjs compare <id> [--threshold 0.97] [--clips <dir>]
 //                                                    compare screen/ with the latest version's pictures (ffmpeg ssim)
+//   node clips.mjs voice <id> [--step n] [--speed 0.85] [--force] [--tts <dir>] [--clips <dir>]
+//                                                    speak the lesson's '- พูด:' lines (PyThaiTTS, the recorder's tts/)
+//                                                    into clips/<id>/voice/NN.mp3 (step NN) + voice.json, to listen to
+//                                                    on the page before recording; a line already spoken is kept
+//
+// clips/<id>/shots.json is written by the recorder's --shots (the pictures it made, and the step it stopped at); the
+// page tells those from the user's own pictures.
 //
 // <dir> defaults to <project>/clips, the project being CLAUDE_PROJECT_DIR or the current folder. Exit codes: 0 done,
 // 1 the plan has problems (check, page: the page is still written and shows them), 2 wrong arguments or refused.
@@ -145,6 +152,32 @@ export function parseLesson(text, file = "lesson.md") {
   return { lesson, problems };
 }
 
+const VOICE_DIR = "voice";
+const voiceFile = (n) => `${String(n).padStart(2, "0")}.mp3`;
+const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/** clips/<id>/shots.json (the recorder's --shots): { pictures: { "screen/x.jpg": { date } }, failed: { step, message } | null }. */
+function readShots(dir) {
+  const j = readJson(path.join(dir, "shots.json"));
+  const pictures = {};
+  if (isObj(j?.pictures)) for (const [k, v] of Object.entries(j.pictures)) pictures[k] = { date: typeof v?.date === "string" ? v.date : "" };
+  const f = isObj(j?.failed) ? j.failed : null;
+  return { pictures, failed: f ? { step: Number.isInteger(f.step) ? f.step : null, message: typeof f.message === "string" ? f.message : "" } : null };
+}
+
+/** clips/<id>/voice/voice.json: { steps: { "<n>": { text, speed, durationMs, date } } }, only well-formed entries. */
+function readVoices(dir) {
+  const j = readJson(path.join(dir, VOICE_DIR, "voice.json"));
+  const out = {};
+  if (isObj(j?.steps)) for (const [k, v] of Object.entries(j.steps)) {
+    if (/^\d+$/.test(k) && typeof v?.text === "string" && Number.isFinite(v?.durationMs)) {
+      out[Number(k)] = { text: v.text, speed: Number(v.speed) || 0, durationMs: v.durationMs, date: typeof v.date === "string" ? v.date : "" };
+    }
+  }
+  return out;
+}
+
 const versionDirs = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir) : [])
   .map((n) => /^v(\d+)$/.exec(n)).filter(Boolean).map((m) => Number(m[1])).sort((a, b) => a - b);
 
@@ -167,15 +200,26 @@ export function load(clipsDir) {
     const text = fs.readFileSync(file, "utf8");
     const { lesson, problems: lp } = parseLesson(text, rel);
     problems.push(...lp);
-    for (const s of lesson.steps) for (const img of s.images) {
-      s.present ??= {};
-      s.present[img] = fs.existsSync(path.join(dir, img));
+    const shots = readShots(dir);
+    const voices = readVoices(dir);
+    for (const s of lesson.steps) {
+      s.present = {};
+      s.made = {};
+      for (const img of s.images) {
+        s.present[img] = fs.existsSync(path.join(dir, img));
+        s.made[img] = s.present[img] && img in shots.pictures ? shots.pictures[img] : null;
+      }
+      const v = voices[s.n];
+      s.voice = v && s.narration && fs.existsSync(path.join(dir, VOICE_DIR, voiceFile(s.n)))
+        ? { file: `${VOICE_DIR}/${voiceFile(s.n)}`, durationMs: v.durationMs, stale: v.text !== s.narration } : null;
     }
     const versions = versionDirs(dir).map((n) => {
       const vdir = path.join(dir, `v${n}`);
       let meta = {};
       try { meta = JSON.parse(fs.readFileSync(path.join(vdir, "version.json"), "utf8")); } catch { /* an older or hand-made folder */ }
-      return { n, ...meta, hasMp4: fs.existsSync(path.join(vdir, "clip.mp4")) };
+      // Only the known fields, as strings: the number comes from the folder, never from the file.
+      const str = (v) => (typeof v === "string" ? v : undefined);
+      return { ...meta, n, date: str(meta.date), appCommit: str(meta.appCommit), hasMp4: fs.existsSync(path.join(vdir, "clip.mp4")) };
     });
     const latest = versions.at(-1);
     let textChanged = false;
@@ -188,7 +232,7 @@ export function load(clipsDir) {
     const hasScenario = fs.existsSync(path.join(dir, "scenario.yaml"));
     const screensChanged = !!compare && latest && compare.against === latest.n && (compare.failed || compare.changed?.length > 0);
     const status = !latest ? (hasScenario ? "ready" : "draft") : textChanged || screensChanged ? "changed" : "recorded";
-    return { ...topic, ...lesson, title: lesson.title || title, versions, latest: latest?.n ?? null, textChanged, compare, hasScenario, status };
+    return { ...topic, ...lesson, title: lesson.title || title, versions, latest: latest?.n ?? null, textChanged, compare, hasScenario, status, shotsFailed: shots.failed };
   });
   // a lesson folder the contents do not name: a typo in an id, or a folder left behind when the contents were renumbered
   const listed = new Set(plan.toc.map((t) => t.id));
@@ -211,6 +255,11 @@ const url = (p) => p.split("/").map(encodeURIComponent).join("/");
 function editButton(target, quote) {
   return `<button class="edit" data-target="${esc(target)}" data-quote="${esc(quote)}" title="ขอให้ AI แก้">✎ แก้</button>`;
 }
+// a request added to the tray in one click: the words are what /mclip:plan edit reads as "take the pictures" / "speak"
+export const SHOTS_REQUEST = "ถ่ายรูปอ้างอิงใหม่";
+export const VOICE_REQUEST = "สร้างเสียงให้ฟัง";
+const quick = (target, text, label, title) =>
+  `<button class="quick" data-target="${esc(target)}" data-text="${esc(text)}" title="${esc(title)}">${label}</button>`;
 
 const appChip = (a) => `<span class="app">${a.kinds.map((k) => `<i class="k-${esc(k)}">${esc(KINDS[k] ?? k)}</i>`).join("")}${esc(a.name)}</span>`;
 const MOBILE = (id) => `แอปมือถือ: mclip รุ่นนี้อัดคลิปได้เฉพาะเว็บ บทนี้มีแผนและรูปอ้างอิงที่ใส่เองใน clips/${id}/screen/ (ลงท้ายชื่อ -ios หรือ -android ถ้ารูปของเครื่องเดียว)`;
@@ -233,6 +282,11 @@ function lessonSlide(l, index) {
   if (l.compare?.failed) why.push(`ถ่ายรูปไม่ผ่านที่ขั้น ${esc(l.compare.failed.step ?? "?")}: ${esc(l.compare.failed.message ?? "")}`);
   if (l.compare?.changed?.length) why.push(`หน้าจอเปลี่ยน ${l.compare.changed.length} รูป`);
   if (l.compare?.unavailable) why.push(esc(l.compare.unavailable));
+  if (l.shotsFailed) why.push(`AI ถ่ายรูปไม่จบ: หยุดที่ขั้น ${esc(l.shotsFailed.step ?? "?")} ของ scenario.yaml — ${esc(l.shotsFailed.message)}`);
+  // pictures are taken by the recorder: one web app only (a phone app's pictures are the user's)
+  const shootable = l.appKeys.length <= 1 && l.kinds.every((k) => k === "web");
+  const stale = l.steps.filter((s) => s.voice?.stale).length;
+  if (stale) why.push(`เสียง ${stale} ขั้นเป็นของคำพูดเดิม (แก้คำพูดหลังสร้างเสียง)`);
   const changedImgs = new Set((l.compare?.changed ?? []).map((c) => c.image));
   const own = [["สอน", l.teaches], ["ที่มา", l.sources]].filter(([, v]) => v).map(([key, value]) => ({ key, value }));
   const fields = [...own, ...l.fields].map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p></div>`).join("");
@@ -245,18 +299,22 @@ function lessonSlide(l, index) {
           ? `<a class="old" href="${url(`${l.id}/v${l.latest}/${img}`)}" target="_blank"><img loading="lazy" src="${url(`${l.id}/v${l.latest}/${img}`)}" alt=""><em>v${l.latest}</em></a>` : "";
         const plat = platformOf(img);
         const tag = plat ? ` data-plat="${plat}"` : "";
+        const who = s.made?.[img] ? `<i class="by ai">AI ถ่าย${s.made[img].date ? ` ${esc(s.made[img].date.slice(0, 10))}` : ""}</i>` : `<i class="by own">รูปที่ใส่เอง</i>`;
         return s.present?.[img]
-          ? `<figure class="${changed ? "diff" : ""}"${tag}>${changed}<a href="${url(`${l.id}/${img}`)}" target="_blank"><img loading="lazy" src="${url(`${l.id}/${img}`)}" alt="${esc(img)}"></a><figcaption>${esc(img)}${changed ? " · เปลี่ยน" : ""}</figcaption></figure>`
+          ? `<figure class="${changed ? "diff" : ""}"${tag}>${changed}<a href="${url(`${l.id}/${img}`)}" target="_blank"><img loading="lazy" src="${url(`${l.id}/${img}`)}" alt="${esc(img)}"></a><figcaption>${who} ${esc(img)}${changed ? " · เปลี่ยน" : ""}</figcaption></figure>`
           : `<figure class="missing"${tag}><div>ยังไม่มีรูป${plat ? ` (${KINDS[plat]})` : ""}</div><figcaption>${esc(img)}</figcaption></figure>`;
       }).join("")
       : `<figure class="missing"><div>ไม่มีรูป</div></figure>`;
     return `<li class="step" id="${esc(`${l.id}-${s.n}`)}">
       <div class="pics">${pics}</div>
       <div class="words">
-        <h4><b>${s.n}</b> ${esc(s.title)} ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}</h4>
+        <h4><b>${s.n}</b> ${esc(s.title)} ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}${shootable && s.images.length ? quick(`${l.id} ขั้น ${s.n}`, SHOTS_REQUEST, "ถ่ายรูป", "ให้ AI ถ่ายรูปขั้นนี้ใหม่ (เก็บไว้ในคำขอ)") : ""}${s.narration ? quick(`${l.id} ขั้น ${s.n}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดขั้นนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
         <p class="act">${esc(s.action)}</p>
         <p class="cap"><span>บนจอ</span>${esc(s.caption)}</p>
         ${s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
+        ${s.narration ? (s.voice
+          ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? " · เสียงของคำพูดเดิม" : ""}</small></p>`
+          : `<p class="voice none"><small>ยังไม่มีเสียง</small></p>`) : ""}
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
       </div></li>`;
   }).join("");
@@ -265,10 +323,12 @@ function lessonSlide(l, index) {
     : "";
   const plat = both ? `<span class="plat"><button class="on" data-plat="">ทุกเครื่อง</button><button data-plat="ios">iPhone</button><button data-plat="android">Android</button></span>` : "";
   const body = l.status === "topic"
-    ? `<p class="topic-note">ยังไม่มีขั้นตอน — เป็นหัวข้อที่ตกลงกันก่อน เมื่อหัวข้อนี้ใช้ได้แล้ว สั่ง <code>/mclip:plan lesson ${esc(l.id)}</code> ให้ AI เขียนขั้นตอน คำพูด และรูปอ้างอิง</p>`
+    ? `<p class="topic-note">ยังไม่มีขั้นตอน — เป็นหัวข้อที่ตกลงกันก่อน เมื่อหัวข้อนี้ใช้ได้แล้ว สั่ง <code>/mclip:plan lesson ${esc(l.id)}</code> ให้ AI เขียนขั้นตอนและคำพูด แล้ว <code>/mclip:plan shots voice ${esc(l.id)}</code> ให้ AI ถ่ายรูปอ้างอิงและสร้างเสียงให้ฟัง</p>`
     : `<ol class="steps">${steps}</ol>`;
+  const voiced = l.steps.some((s) => s.voice);
+  const tools = l.status === "topic" ? "" : `${voiced ? `<button class="play-all" title="เล่นเสียงทุกขั้นต่อกัน">▶ ฟังทั้งบท</button>` : ""}${shootable && l.steps.some((s) => s.images.length) ? quick(l.id, SHOTS_REQUEST, "ถ่ายรูปทั้งบท", "ให้ AI ถ่ายรูปอ้างอิงทั้งบท (เก็บไว้ในคำขอ)") : ""}${l.steps.some((s) => s.narration) ? quick(l.id, VOICE_REQUEST, "สร้างเสียงทั้งบท", "ให้ AI สร้างเสียงทุกขั้น (เก็บไว้ในคำขอ)") : ""}`;
   return `<section class="slide lesson" data-title="${esc(`${index}. ${l.title}`)}">
-    <header><span class="num">${esc(l.id.slice(0, 2))}</span><h2>${esc(l.title)}</h2><span class="badge ${cls}">${label}${l.latest ? ` v${l.latest}` : ""}</span>${plat}${editButton(l.id, l.title)}</header>
+    <header><span class="num">${esc(l.id.slice(0, 2))}</span><h2>${esc(l.title)}</h2><span class="badge ${cls}">${label}${l.latest ? ` v${l.latest}` : ""}</span>${plat}${tools}${editButton(l.id, l.title)}</header>
     ${l.apps.length ? `<div class="apps">${l.apps.map(appChip).join("")}</div>` : ""}
     ${why.length ? `<p class="why">${why.join(" · ")}</p>` : ""}
     ${mobile ? `<p class="why mobile">${esc(MOBILE(l.id))}</p>` : ""}
@@ -372,6 +432,10 @@ figcaption{font-size:12px;color:var(--muted)}figure.missing div{aspect-ratio:16/
 .plat{display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.plat button{font:inherit;font-size:13px;border:0;background:#fff;padding:2px 10px;cursor:pointer}.plat button.on{background:var(--blue);color:#fff}
 .slide:not([data-plat="ios"]):not([data-plat="android"]) .pics:has(> figure[data-plat]){grid-template-columns:1fr 1fr}
 .slide[data-plat="ios"] figure[data-plat="android"],.slide[data-plat="android"] figure[data-plat="ios"]{display:none}
+.quick{font:inherit;font-size:13px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:1px 8px;cursor:pointer}.quick:hover{background:#eef2fb}.quick.added{background:var(--green);border-color:var(--green);color:#fff}
+.play-all{font:inherit;font-size:13px;border:0;background:var(--orange);color:#fff;border-radius:8px;padding:2px 12px;cursor:pointer}
+.voice{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.voice audio{height:32px;max-width:100%}.voice small{color:var(--muted)}.voice.stale small{color:var(--red);font-weight:600}
+.by{font-style:normal;font-size:11px;border-radius:4px;padding:0 6px;color:#fff}.by.ai{background:var(--blue2)}.by.own{background:#64748b}
 .edit{font:inherit;font-size:13px;border:1px solid var(--orange);background:#fff;color:#c2410c;border-radius:8px;padding:1px 8px;cursor:pointer}.edit:hover{background:var(--orange);color:#fff}
 dialog{border:0;border-radius:14px;padding:20px;width:min(640px,92vw);box-shadow:0 20px 60px #0f172a55}dialog::backdrop{background:#0f172a66}
 dialog textarea{width:100%;min-height:120px;font:inherit;padding:8px;border-radius:8px;border:1px solid #cbd5e1}
@@ -425,6 +489,19 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
     document.getElementById("askTitle").textContent = "ขอให้ AI แก้: " + current.target;
     document.getElementById("askQuote").textContent = current.quote ? "ตอนนี้: " + current.quote : "";
     document.getElementById("askText").value = ""; ask.showModal(); document.getElementById("askText").focus(); });
+  // ถ่ายรูป / สร้างเสียง: a request in one click, sent with the others by the tray's copy
+  document.querySelectorAll(".quick").forEach((b) => b.onclick = () => { edits.push({ target: b.dataset.target, quote: "", text: b.dataset.text });
+    save(); b.classList.add("added"); setTimeout(() => b.classList.remove("added"), 900); });
+  // ▶ the lesson's voice, step after step
+  let playing = null;
+  const stopAll = () => { if (playing) { playing.onended = null; playing.pause(); playing = null; }
+    document.querySelectorAll(".play-all").forEach((x) => x.textContent = "▶ ฟังทั้งบท"); };
+  document.querySelectorAll(".play-all").forEach((b) => b.onclick = () => { const was = playing; stopAll(); if (was) return;
+    const list = [...b.closest(".slide").querySelectorAll("audio")]; let i = 0;
+    const next = () => { if (i >= list.length) { stopAll(); return; }
+      playing = list[i++]; playing.closest(".step").scrollIntoView({ block: "center" }); playing.currentTime = 0;
+      playing.onended = next; playing.play().catch(stopAll); };
+    b.textContent = "■ หยุด"; next(); });
   document.getElementById("askCancel").onclick = () => ask.close();
   document.getElementById("askAdd").onclick = () => { const text = document.getElementById("askText").value.trim();
     if (text) { edits.push({ ...current, text }); save(); } ask.close(); };
@@ -518,6 +595,85 @@ export function compareLesson(clipsDir, id, { threshold = 0.97, measure = ssim }
   return { code: 0, ...result };
 }
 
+// ---- voice previews --------------------------------------------------------------------------------------------------
+
+/**
+ * The speaker of the recorder's own voice (tools/TutorialRecorder/tts: tts_paradee.py in its .venv): speaks `lines` into
+ * `outDir` and returns [{ file (mp3), durationMs }] in their order.
+ */
+export function pyThaiTts(ttsDir) {
+  return (lines, outDir, speed) => {
+    const python = process.platform === "win32" ? path.join(ttsDir, ".venv", "Scripts", "python.exe") : path.join(ttsDir, ".venv", "bin", "python");
+    const script = path.join(ttsDir, "tts_paradee.py");
+    if (!fs.existsSync(python) || !fs.existsSync(script)) {
+      throw new Error(`no voice at ${ttsDir}: install the recorder (/mclip:init), then py -3.13 -m venv ${path.join(ttsDir, ".venv")} and pip install pythaitts==1.0.0 soundfile (see its README)`);
+    }
+    const input = path.join(outDir, "lines.txt");
+    fs.writeFileSync(input, lines.join("\n") + "\n");
+    const r = spawnSync(python, [script, "--input", input, "--out", outDir, "--speed", String(speed), "--mp3"],
+      { encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+    if (r.status !== 0) throw new Error(`tts_paradee.py failed (${r.status ?? r.error?.message}): ${(r.stderr ?? "").trim().split("\n").at(-1)}`);
+    const items = readJson(path.join(outDir, "manifest.json"))?.items ?? [];
+    return items.map((it) => ({ file: path.join(outDir, String(it.file).replace(/\.wav$/, ".mp3")), durationMs: it.durationMs }));
+  };
+}
+
+/**
+ * Speaks lesson `id`'s narration (one step, or every step with a '- พูด:') into clips/<id>/voice/NN.mp3 and records it
+ * in voice.json. A step whose words and speed are what was spoken before is not spoken again (unless `force`). The voice
+ * speaks into a working folder first: tts_paradee.py empties its output folder, the other steps' audio must stay.
+ */
+export function makeVoice(clipsDir, id, { step = null, speed = 0.85, force = false, speak, now = new Date() }) {
+  const dir = path.join(clipsDir, id);
+  const file = path.join(dir, "lesson.md");
+  if (!ID.test(id) || !fs.existsSync(file)) return { code: 2, error: `no lesson clips/${id}/lesson.md (a topic: /mclip:plan lesson ${id} writes it)` };
+  if (!(speed >= 0.7 && speed <= 1)) return { code: 2, error: "--speed is between 0.7 and 1.0" };
+  const { lesson } = parseLesson(fs.readFileSync(file, "utf8"));
+  const narrated = lesson.steps.filter((s) => s.narration);
+  let chosen = narrated;
+  if (step !== null) {
+    const s = lesson.steps.find((x) => x.n === step);
+    if (!s) return { code: 2, error: `clips/${id}/lesson.md has no step ${step}` };
+    if (!s.narration) return { code: 2, error: `step ${step} of clips/${id} has no '- พูด:'` };
+    chosen = [s];
+  }
+  if (!chosen.length) return { code: 2, error: `no step of clips/${id} has a '- พูด:'` };
+  const vdir = path.join(dir, VOICE_DIR);
+  const spoken = readVoices(dir);
+  const fresh = (s) => spoken[s.n]?.text === s.narration && Math.abs(spoken[s.n].speed - speed) < 0.001 && fs.existsSync(path.join(vdir, voiceFile(s.n)));
+  const todo = chosen.filter((s) => force || !fresh(s));
+  // one sentence per line, as the speaker reads them (it skips blank lines and lines starting with '#')
+  for (const s of todo) if (/^\s*#/.test(s.narration)) return { code: 2, error: `step ${s.n}: a '- พูด:' line cannot start with '#'` };
+  if (todo.length) {
+    const work = path.join(vdir, ".speaking");
+    fs.rmSync(work, { recursive: true, force: true });
+    fs.mkdirSync(work, { recursive: true });
+    try {
+      const items = speak(todo.map((s) => s.narration), work, speed);
+      if (items.length !== todo.length || items.some((it) => !fs.existsSync(it.file))) throw new Error(`the voice made ${items.length} of ${todo.length} lines`);
+      todo.forEach((s, i) => {
+        fs.copyFileSync(items[i].file, path.join(vdir, voiceFile(s.n)));
+        spoken[s.n] = { text: s.narration, speed, durationMs: items[i].durationMs, date: now.toISOString() };
+      });
+    } catch (e) {
+      return { code: 2, error: e.message };
+    } finally {
+      fs.rmSync(work, { recursive: true, force: true });
+    }
+  }
+  // the whole lesson: audio of a step that is gone or no longer speaks is removed
+  if (step === null) {
+    for (const n of Object.keys(spoken).map(Number)) {
+      if (!narrated.some((s) => s.n === n)) { delete spoken[n]; fs.rmSync(path.join(vdir, voiceFile(n)), { force: true }); }
+    }
+  }
+  fs.mkdirSync(vdir, { recursive: true });
+  const steps = Object.fromEntries(Object.entries(spoken).sort(([a], [b]) => a - b));
+  fs.writeFileSync(path.join(vdir, "voice.json"), JSON.stringify({ voice: "makham_paradee", steps }, null, 2) + "\n");
+  const seconds = chosen.reduce((t, s) => t + (spoken[s.n]?.durationMs ?? 0), 0) / 1000;
+  return { code: 0, dir: vdir, spoken: todo.map((s) => s.n), unchanged: chosen.filter((s) => !todo.includes(s)).map((s) => s.n), seconds };
+}
+
 // ---- command line ----------------------------------------------------------------------------------------------------
 
 function openFile(file) {
@@ -527,15 +683,26 @@ function openFile(file) {
   return !r.error;
 }
 
+/** clips/.gitignore: the page, recordings and voice previews stay on the machine that made them. Adds missing lines. */
+const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`];
+function ensureIgnored(clips) {
+  const file = path.join(clips, ".gitignore");
+  const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "# rebuilt or remade by /mclip:plan and /mclip:record; kept on the machine that made them\n";
+  const have = new Set(text.split(/\r?\n/).map((l) => l.trim()));
+  const missing = IGNORED.filter((l) => !have.has(l));
+  if (missing.length) fs.writeFileSync(file, text + (text.endsWith("\n") ? "" : "\n") + missing.join("\n") + "\n");
+}
+
 function main(argv) {
   const [cmd, ...rest] = argv;
-  const opts = { clips: path.join(process.env.CLAUDE_PROJECT_DIR || process.cwd(), "clips"), open: false, voice: false };
+  const opts = { clips: path.join(process.env.CLAUDE_PROJECT_DIR || process.cwd(), "clips"), open: false, voice: false, force: false };
   const pos = [];
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
     if (a === "--open") opts.open = true;
     else if (a === "--voice") opts.voice = true;
-    else if (/^--(clips|mp4|srt|timing|mode|recorder|threshold)$/.test(a)) opts[a.slice(2)] = rest[++i];
+    else if (a === "--force") opts.force = true;
+    else if (/^--(clips|mp4|srt|timing|mode|recorder|threshold|step|speed|tts)$/.test(a)) opts[a.slice(2)] = rest[++i];
     else if (a.startsWith("--")) return { code: 2, out: { error: `unknown option ${a}` } };
     else pos.push(a);
   }
@@ -549,8 +716,7 @@ function main(argv) {
     if (!data.plan) return { code: 2, out: { error: data.problems[0] } };
     const file = path.join(clips, "index.html");
     fs.writeFileSync(file, renderPage(data));
-    const ignore = path.join(clips, ".gitignore");
-    if (!fs.existsSync(ignore)) fs.writeFileSync(ignore, "# the page is rebuilt by /mclip:plan; recordings stay on the machine that made them\nindex.html\n*.mp4\n");
+    ensureIgnored(clips);
     return { code: data.problems.length ? 1 : 0, out: { file, opened: opts.open ? openFile(file) : false, lessons: data.lessons.length, problems: data.problems } };
   }
   if (cmd === "version") {
@@ -561,7 +727,15 @@ function main(argv) {
     const r = compareLesson(clips, pos[0], { threshold: opts.threshold ? Number(opts.threshold) : 0.97 });
     return { code: r.code, out: r.code ? { error: r.error } : r };
   }
-  return { code: 2, out: { error: "usage: clips.mjs check|page|version|compare (see the header)" } };
+  if (cmd === "voice") {
+    const step = opts.step === undefined ? null : Number(opts.step);
+    if (step !== null && !(Number.isInteger(step) && step > 0)) return { code: 2, out: { error: "--step is a step number" } };
+    const tts = path.resolve(opts.tts ?? path.join(path.dirname(clips), "tools", "TutorialRecorder", "tts"));
+    const r = makeVoice(clips, pos[0] ?? "", { step, speed: opts.speed ? Number(opts.speed) : 0.85, force: opts.force, speak: pyThaiTts(tts) });
+    if (!r.code) ensureIgnored(clips);
+    return { code: r.code, out: r.code ? { error: r.error } : r };
+  }
+  return { code: 2, out: { error: "usage: clips.mjs check|page|version|compare|voice (see the header)" } };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

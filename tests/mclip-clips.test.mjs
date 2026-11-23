@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLIPS = path.join(REPO, "plugins", "mclip", "scripts", "clips.mjs");
-const { parsePlan, parseLesson, load, renderPage, makeVersion, compareLesson, platformOf } = await import(`file://${CLIPS.replace(/\\/g, "/")}`);
+const { parsePlan, parseLesson, load, renderPage, makeVersion, compareLesson, platformOf, makeVoice, SHOTS_REQUEST, VOICE_REQUEST } = await import(`file://${CLIPS.replace(/\\/g, "/")}`);
 
 const PLAN = `# Shop — how to use it
 
@@ -216,5 +216,133 @@ test("compare marks a lesson whose screens changed since its last version", () =
     assert.equal(load(p.clips).lessons[0].status, "changed");
     compareLesson(p.clips, "01-sign-in", { measure: () => 0.99 });
     assert.equal(load(p.clips).lessons[0].status, "recorded");
+  } finally { p.cleanup(); }
+});
+
+test("a version.json cannot set the version number or put HTML in the page", () => {
+  const p = project({ "clips/plan.md": PLAN, "clips/01-sign-in/lesson.md": LESSON,
+    "clips/01-sign-in/v1/version.json": JSON.stringify({ n: "<script>x</script>", date: { a: 1 }, appCommit: "<b>c</b>" }) });
+  try {
+    const data = load(p.clips);
+    const l = data.lessons[0];
+    assert.equal(l.versions[0].n, 1);
+    assert.equal(l.versions[0].date, undefined);
+    const html = renderPage(data);
+    assert.ok(!html.includes("<script>x"), "no script from version.json");
+    assert.ok(!html.includes("<b>c"), "the commit is escaped");
+    assert.match(html, /v1 · &lt;b&gt;c/);
+  } finally { p.cleanup(); }
+});
+
+// a stand-in for the voice: each line becomes a file holding its words, durations 1 s, 2 s, ...
+function stubVoice() {
+  const calls = [];
+  const speak = (lines, outDir) => {
+    calls.push(lines);
+    return lines.map((t, i) => { const f = path.join(outDir, `${i}.mp3`); fs.writeFileSync(f, t); return { file: f, durationMs: 1000 * (i + 1) }; });
+  };
+  return { calls, speak };
+}
+const VOICED = `# Add a user
+
+## 1. Open
+- ทำ: open /users
+- บนจอ: Open the users page
+
+## 2. Add
+- ทำ: press Add
+- บนจอ: Press 'Add'
+- พูด: กดปุ่มเพิ่มค่ะ
+- รูป: screen/02-add.jpg
+
+## 3. Save
+- ทำ: press Save
+- บนจอ: Press 'Save'
+- พูด: กดบันทึกค่ะ
+- รูป: screen/03-save.jpg
+`;
+
+test("voice: one step, then the lesson speaks only what changed; the page plays it and marks a voice of old words", () => {
+  const p = project({ "clips/plan.md": PLAN, "clips/01-sign-in/lesson.md": VOICED });
+  const v = stubVoice();
+  const voiceDir = path.join(p.clips, "01-sign-in", "voice");
+  try {
+    let r = makeVoice(p.clips, "01-sign-in", { step: 2, speak: v.speak });
+    assert.deepEqual([r.code, r.spoken, r.unchanged], [0, [2], []]);
+    assert.equal(fs.readFileSync(path.join(voiceDir, "02.mp3"), "utf8"), "กดปุ่มเพิ่มค่ะ");
+    r = makeVoice(p.clips, "01-sign-in", { speak: v.speak });
+    assert.deepEqual([r.spoken, r.unchanged, r.seconds], [[3], [2], 2]);
+    assert.deepEqual(v.calls, [["กดปุ่มเพิ่มค่ะ"], ["กดบันทึกค่ะ"]], "step 2 is not spoken twice");
+    assert.ok(!fs.existsSync(path.join(voiceDir, ".speaking")), "the working folder is gone");
+
+    let l = load(p.clips).lessons[0];
+    assert.deepEqual(l.steps.map((s) => s.voice?.file ?? null), [null, "voice/02.mp3", "voice/03.mp3"]);
+    let html = renderPage(load(p.clips));
+    assert.match(html, /<audio controls preload="none" src="01-sign-in\/voice\/02\.mp3">/);
+    assert.match(html, /class="play-all"/);
+
+    fs.writeFileSync(path.join(p.clips, "01-sign-in", "lesson.md"), VOICED.replace("กดปุ่มเพิ่มค่ะ", "กดปุ่มเพิ่มผู้ใช้ค่ะ").replace("- พูด: กดบันทึกค่ะ\n", ""));
+    l = load(p.clips).lessons[0];
+    assert.equal(l.steps[1].voice.stale, true);
+    html = renderPage(load(p.clips));
+    assert.match(html, /เสียงของคำพูดเดิม/);
+    assert.match(html, /เสียง 1 ขั้นเป็นของคำพูดเดิม/);
+
+    r = makeVoice(p.clips, "01-sign-in", { speak: v.speak });
+    assert.deepEqual(r.spoken, [2]);
+    assert.ok(!fs.existsSync(path.join(voiceDir, "03.mp3")), "a step that no longer speaks loses its audio");
+    assert.deepEqual(Object.keys(JSON.parse(fs.readFileSync(path.join(voiceDir, "voice.json"), "utf8")).steps), ["2"]);
+    assert.equal(makeVoice(p.clips, "01-sign-in", { force: true, speak: v.speak }).spoken.length, 1);
+  } finally { p.cleanup(); }
+});
+
+test("voice refuses a topic, a step without words, a bad speed; a failed voice leaves the other audio alone", () => {
+  const p = project({ "clips/plan.md": PLAN, "clips/01-sign-in/lesson.md": VOICED });
+  const v = stubVoice();
+  try {
+    assert.equal(makeVoice(p.clips, "02-order", { speak: v.speak }).code, 2);
+    assert.match(makeVoice(p.clips, "01-sign-in", { step: 1, speak: v.speak }).error, /no '- พูด:'/);
+    assert.match(makeVoice(p.clips, "01-sign-in", { step: 9, speak: v.speak }).error, /no step 9/);
+    assert.equal(makeVoice(p.clips, "01-sign-in", { speed: 2, speak: v.speak }).code, 2);
+    assert.equal(makeVoice(p.clips, "01-sign-in", { step: 2, speak: v.speak }).code, 0);
+    const r = makeVoice(p.clips, "01-sign-in", { step: 3, speak: () => { throw new Error("no python"); } });
+    assert.deepEqual([r.code, r.error], [2, "no python"]);
+    assert.ok(fs.existsSync(path.join(p.clips, "01-sign-in", "voice", "02.mp3")));
+    const cliR = cli("voice", "01-sign-in", "--step", "3", "--tts", path.join(p.root, "no-tts"), "--clips", p.clips);
+    assert.equal(cliR.status, 2);
+    assert.match(JSON.parse(cliR.stdout).error, /no voice at/);
+    assert.equal(cli("voice", "01-sign-in", "--step", "x", "--clips", p.clips).status, 2);
+  } finally { p.cleanup(); }
+});
+
+test("pictures the recorder took are told from the user's own; a stopped run shows; buttons only where they work", () => {
+  const p = project({ "clips/plan.md": PLAN, "clips/01-sign-in/lesson.md": VOICED,
+    "clips/01-sign-in/screen/02-add.jpg": "jpg", "clips/01-sign-in/screen/03-save.jpg": "jpg",
+    "clips/01-sign-in/shots.json": JSON.stringify({ pictures: { "screen/02-add.jpg": { date: "2026-11-23T03:00:00Z", scenarioStep: 2 } }, failed: { step: 4, message: "<b>no target</b>" } }),
+    "clips/02-order/lesson.md": "# Order\n\n## 1. Open\n- ทำ: tap Order\n- บนจอ: Tap 'Order'\n- พูด: แตะสั่งซื้อค่ะ\n- รูป: screen/01-open-ios.jpg\n" });
+  try {
+    const data = load(p.clips);
+    const s = data.lessons[0].steps;
+    assert.equal(s[1].made["screen/02-add.jpg"].date, "2026-11-23T03:00:00Z");
+    assert.equal(s[2].made["screen/03-save.jpg"], null);
+    const html = renderPage(data);
+    const [web, phone] = html.split('<section class="slide lesson"').slice(1);
+    assert.match(web, /AI ถ่าย 2026-11-23<\/i> screen\/02-add\.jpg/);
+    assert.match(web, /รูปที่ใส่เอง<\/i> screen\/03-save\.jpg/);
+    assert.match(web, /หยุดที่ขั้น 4 ของ scenario\.yaml — &lt;b&gt;no target/);
+    assert.ok(web.includes(`data-target="01-sign-in ขั้น 2" data-text="${SHOTS_REQUEST}"`));
+    assert.ok(web.includes(`data-target="01-sign-in" data-text="${SHOTS_REQUEST}"`));
+    assert.ok(!web.includes(`data-target="01-sign-in ขั้น 1" data-text="${VOICE_REQUEST}"`), "a step with no words gets no voice button");
+    assert.ok(!phone.includes(SHOTS_REQUEST), "a phone lesson's pictures are the user's");
+    assert.ok(phone.includes(VOICE_REQUEST));
+  } finally { p.cleanup(); }
+});
+
+test("page adds the lines missing from an existing clips/.gitignore, once", () => {
+  const p = project({ "clips/plan.md": "# X\n\n## สารบัญ\n\n1. 01-a — A\n", "clips/.gitignore": "index.html\n*.mp4" });
+  try {
+    cli("page", "--clips", p.clips);
+    cli("page", "--clips", p.clips);
+    assert.equal(fs.readFileSync(path.join(p.clips, ".gitignore"), "utf8"), "index.html\n*.mp4\nvoice/\n");
   } finally { p.cleanup(); }
 });

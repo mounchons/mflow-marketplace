@@ -10,7 +10,8 @@ namespace TutorialRecorder.Actions;
 /// move the cursor there, hold for reading, act, wait for the page to settle, show the result, clear, log the times.
 /// </summary>
 public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile scenario, Settings cfg, Secrets secrets,
-    OverlayClient overlay, TimingLog log, string shotsDir, bool takeShots, IReadOnlyDictionary<int, int> holdOverrides)
+    OverlayClient overlay, TimingLog log, string shotsDir, bool takeShots, IReadOnlyDictionary<int, int> holdOverrides,
+    ReferenceShots? refs = null)
 {
     static readonly string[] Circled = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"];
     string? currentRole;
@@ -33,8 +34,18 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
             if (step.Role is not null && step.Role != currentRole && step.Action != "login")
                 await Login(step.Role, i + 1, auto: true);
             await Run(step, i + 1);
+            if (refs is { Finished: true }) return; // --shots of one step: what comes after it is not needed
             await page.WaitForTimeoutAsync(cfg.GapMs);
         }
+    }
+
+    /// <summary>--shots: the step's reference picture, when it is taken at this moment.</summary>
+    async Task Reference(Step step, int index, string when, bool pointing = false)
+    {
+        if (refs is null || !refs.Wants(step, when)) return;
+        // the cursor belongs on the target about to be used; anywhere else it floats where the last step left it
+        if (!pointing) await overlay.HideCursor();
+        await refs.Take(page, step, index);
     }
 
     async Task Run(Step step, int index)
@@ -89,6 +100,8 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
                 break;
             default: await Act(step, t, index); break;
         }
+        // a step with nothing to mark (login, a key press, zoom-out): its picture is the screen it ends on
+        if (refs is not null && refs.Missed(step)) { await overlay.HideCursor(); await refs.Take(page, step, index); }
         await overlay.ClearStep();
         t.EndMs = log.Now();
         Close(t);
@@ -121,12 +134,14 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
             await overlay.MoveCursor(b.CenterX, b.CenterY, cfg.CursorMoveMs);
         }
         await Shot(step, t, box, "step");
+        await Reference(step, index, "before", pointing: true);
         var hold = HoldFor(step, index);
         var left = hold - (int)(log.Now() - holdStart);
         if (left > 0) await page.WaitForTimeoutAsync(left);
         t.HoldMs = hold;
 
-        if (box is { } c && step.Action is "click" or "check" or "uncheck" or "select" or "fill") await overlay.Ripple(c.CenterX, c.CenterY);
+        // --shots: no ripple, it would still be fading in the picture taken after the action
+        if (refs is null && box is { } c && step.Action is "click" or "check" or "uncheck" or "select" or "fill") await overlay.Ripple(c.CenterX, c.CenterY);
         try { await DoAction(step, locator); }
         catch (Exception e) when (e is TimeoutException or PlaywrightException)
         {
@@ -135,6 +150,7 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
         // The target may be gone (a dialog opened, another page): its box must not float over what comes next.
         await overlay.ClearMarks();
         await Settle(step, index);
+        await Reference(step, index, "after");
         if (t.CalloutSpan is not null) t.CalloutSpan.EndMs = log.Now();
         if (t.CaptionSpan is not null) t.CaptionSpan.EndMs = log.Now();
 
@@ -216,10 +232,14 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
 
     async Task Hold(Step step, StepTiming t, int index, int? explicitMs = null)
     {
-        var hold = explicitMs ?? HoldFor(step, index);
+        // --shots: no one reads, so no reading time and no title card; a wait step's own time is for the page, it stays
+        var hold = refs is not null && step.Action != "wait" ? 0 : explicitMs ?? HoldFor(step, index);
         await Shot(step, t);
         await page.WaitForTimeoutAsync(hold);
         t.HoldMs = hold;
+        // a page, a dialog or a card that is only shown: before and after are the same screen (a wait's, once waited)
+        await Reference(step, index, "before");
+        await Reference(step, index, "after");
     }
 
     int HoldFor(Step step, int index)

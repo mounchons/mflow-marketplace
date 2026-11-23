@@ -66,6 +66,10 @@ public sealed class Step
     public bool? Fast { get; set; }
     /// <summary>Leave the step out of the manual's pictures.</summary>
     public bool? NoShot { get; set; }
+    /// <summary>--shots: the lesson's reference picture this step shows, screen/&lt;name&gt;.jpg in the scenario's folder.</summary>
+    public string? Shot { get; set; }
+    /// <summary>before (default): the target marked, before the action; after: once the action has settled.</summary>
+    public string? ShotAt { get; set; }
 }
 
 public sealed class ResultDef

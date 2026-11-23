@@ -81,6 +81,20 @@ The TTS script works on its own too:
 Exit codes: 0 done, 2 the scenario or its setup is wrong, 3 a step failed (partial clip, screenshot, message naming the
 step and its target).
 
+### Reference pictures (`--shots`)
+
+```powershell
+dotnet run --project tools/TutorialRecorder -- clips/02-add-user/scenario.yaml --shots
+dotnet run --project tools/TutorialRecorder -- clips/02-add-user/scenario.yaml --shots --only screen/03-save.jpg
+```
+
+Walks the steps as fast as the page allows (no reading time, no cursor travel, no typing delay, no video, no captions)
+and writes the picture each step's `shot:` names, at 1920×1080 into the scenario's folder: `shotAt: before` (default)
+with the target marked and the cursor on it, `after` once the action has settled (no cursor). `--only` takes the named
+pictures and stops after the last of them. `shots.json` beside the scenario lists the pictures the recorder made and
+the step it stopped at; a picture already there that it did not make is the user's own and is kept, unless `--only`
+names it. The last recording in `Output/` is left alone; a failed step's screenshot goes to `Output/<clip>-shots/`.
+
 ## Write a scenario
 
 ```yaml
@@ -113,6 +127,8 @@ steps:
     placement: auto              # auto | top | bottom | left | right
     waitFor: "role:dialog"       # wait for this after the action (on top of the network settling)
     holdMs: 3000                 # optional: reading time instead of the computed one
+    shot: screen/03-add-user.jpg # --shots: the lesson's reference picture of this step (screen/<name>.jpg or .png)
+    shotAt: before               # before (default, target marked) | after (once the action settled)
   - action: zoom-out
 ```
 

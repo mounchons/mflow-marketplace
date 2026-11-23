@@ -23,7 +23,8 @@ A lesson of the plan: its scenario is `clips/<id>/scenario.yaml`, and each recor
 - `scenario.yaml` there and older than `lesson.md`, or missing: write it from the lesson as in "A new one" below,
   with `clip: <id>`, the app's `url` as `baseUrl`, `setup: ../../tools/TutorialRecorder/stack/reset.ps1` (the setup
   runs in the scenario's folder), the lesson's title for the opening card, and per step its `ทำ` as the action and
-  target, `บนจอ` as the caption and `พูด` as the narration.
+  target, `บนจอ` as the caption and `พูด` as the narration. A scenario `/mclip:plan shots` wrote is updated, not
+  replaced: keep its targets that worked and its `shot:` / `shotAt:` lines (recording ignores them).
 
 An existing scenario: read it and go to step 2.
 

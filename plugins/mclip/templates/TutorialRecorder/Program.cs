@@ -7,7 +7,9 @@ using TutorialRecorder.Scenario;
 using TutorialRecorder.Writing;
 
 // dotnet run -- <scenario.yaml> [--mode caption|callout|both] [--headed] [--no-shots] [--durations file.json] [--secrets file.json]
-const string usage = "usage: dotnet run -- <scenario.yaml> [--mode caption|callout|both|clean] [--voice] [--speed 0.85] [--check] [--headed] [--no-shots] [--no-setup] [--keep-webm] [--durations <file.json>] [--secrets <file.json>]";
+// dotnet run -- <scenario.yaml> --shots [--only screen/a.jpg,screen/b.jpg]   the lesson's reference pictures, no video
+const string usage = "usage: dotnet run -- <scenario.yaml> [--mode caption|callout|both|clean] [--voice] [--speed 0.85] [--check] [--headed] [--no-shots] [--no-setup] [--keep-webm] [--durations <file.json>] [--secrets <file.json>]\n"
+    + "       dotnet run -- <scenario.yaml> --shots [--only <screen/x.jpg,...>] [--headed] [--no-setup] [--secrets <file.json>]";
 if (args.Length == 0 || args[0] is "-h" or "--help") { Console.WriteLine(usage); return 1; }
 
 string? Opt(string name) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
@@ -47,6 +49,20 @@ if (Flag("--check"))
     return 0;
 }
 
+// --shots: the pictures the steps' shot: name, and with --only just those (a run of one lesson step).
+var shots = Flag("--shots");
+HashSet<string>? only = null;
+if (shots)
+{
+    if (!scenario.Steps.Any(s => s.Shot is not null)) { Console.Error.WriteLine("--shots: no step has a shot: (screen/<name>.jpg)"); return 2; }
+    if (Opt("--only") is { } o)
+    {
+        only = o.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var unknown = only.Where(n => !scenario.Steps.Any(s => string.Equals(s.Shot, n, StringComparison.OrdinalIgnoreCase))).ToList();
+        if (unknown.Count > 0) { Console.Error.WriteLine($"--only: no step's shot: is {string.Join(", ", unknown)}"); return 2; }
+    }
+}
+
 // The TTS round: {"3": 4200, ...} sets step 3's reading time to the audio's length.
 var holds = Opt("--durations") is { } dpath
     ? JsonSerializer.Deserialize<Dictionary<string, int>>(File.ReadAllText(dpath))!.ToDictionary(kv => int.Parse(kv.Key), kv => kv.Value)
@@ -55,7 +71,7 @@ var holds = Opt("--durations") is { } dpath
 // --voice: speak each step's narration (PyThaiTTS, tools/TutorialRecorder/tts), hold every step as long as its audio,
 // and mix the audio into the mp4 where the step's caption appears. The voice is made again when the narration changed.
 List<Voice.Line>? voice = null;
-if (Flag("--voice"))
+if (Flag("--voice") && !shots)
 {
     var speed = Opt("--speed") ?? "0.85";
     try { voice = Voice.Prepare(toolDir, outRoot, scenario.Clip, narrationTxt, narrated.Select(x => (x.Step, x.Text!)).ToList(), speed); }
@@ -73,6 +89,8 @@ if (scenario.Setup is { } setup && !Flag("--no-setup"))
     proc.WaitForExit();
     if (proc.ExitCode != 0) { Console.Error.WriteLine($"setup failed ({proc.ExitCode})"); return 2; }
 }
+
+if (shots) return await TakeShots();
 
 var clipDir = Path.Combine(outRoot, outName);
 var rawDir = Path.Combine(clipDir, "raw");
@@ -135,6 +153,49 @@ if (!Flag("--keep-webm")) Directory.Delete(rawDir, recursive: true);
 Console.WriteLine($"{(failed ? "partial" : "done")}: {mp4} ({log.DurationMs / 1000.0:0.0}s, {log.Steps.Count} steps)");
 Console.WriteLine($"  {baseName}.srt, {baseName}.timing.json, {Path.Combine(clipDir, "review.html")}");
 return failed ? 3 : 0;
+
+// --shots: the steps as fast as the page allows (no reading time, no cursor travel, no typing), no video, one picture
+// per shot: at 1920×1080 (scale 1, so a version's copies stay small). The output folder of the last recording is left
+// alone; a step that fails leaves its screenshot in Output/<clip>-shots/.
+async Task<int> TakeShots()
+{
+    scenario.Mode = "clean";
+    settings.CaptionMinMs = settings.CaptionMsPerChar = settings.CalloutMinMs = settings.CalloutMsPerChar = 0;
+    settings.CursorMoveMs = settings.TypeDelayMs = settings.GapMs = settings.ZoomMs = 0;
+    var js = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Overlay", "overlay.js"));
+    var failedDir = Path.Combine(outRoot, scenario.Clip + "-shots");
+    if (Directory.Exists(failedDir)) Directory.Delete(failedDir, recursive: true);
+    Console.WriteLine($"shots {scenario.Clip}: {(only is null ? "every shot:" : string.Join(", ", only))}, {scenario.BaseUrl}");
+
+    using var pw = await Playwright.CreateAsync();
+    await using var b = await pw.Chromium.LaunchAsync(new() { Headless = !Flag("--headed") });
+    var ctx = await b.NewContextAsync(new()
+    {
+        ViewportSize = new() { Width = settings.ViewportWidth, Height = settings.ViewportHeight },
+        DeviceScaleFactor = 1,
+        Locale = "th-TH",
+        TimezoneId = "Asia/Bangkok",
+    });
+    await ctx.AddInitScriptAsync(js);
+    var pg = await ctx.NewPageAsync();
+    var shotLog = new TimingLog { Clip = scenario.Clip, Title = scenario.Title, Mode = scenario.Mode, Width = settings.ViewportWidth, Height = settings.ViewportHeight };
+    shotLog.Restart();
+    var refs = new ReferenceShots(scenario.SourceDir, only);
+    var run = new StepRunner(pg, ctx, scenario, settings, secrets, new OverlayClient(pg, js), shotLog, failedDir, false, new Dictionary<int, int>(), refs);
+    TargetNotFoundException? stop = null;
+    try { await run.RunAll(); }
+    catch (TargetNotFoundException e) { stop = e; Console.Error.WriteLine($"STOPPED: {e.Message}"); }
+    await ctx.CloseAsync();
+    refs.Save(stop);
+
+    foreach (var n in refs.Written) Console.WriteLine($"  wrote {n}");
+    foreach (var n in refs.KeptOwn) Console.WriteLine($"  kept {n} (not made by the recorder: the user's own; --only {n} replaces it)");
+    var wanted = scenario.Steps.Select(s => s.Shot).OfType<string>().Where(n => only is null || only.Contains(n));
+    var notTaken = wanted.Where(n => !refs.Written.Contains(n) && !refs.KeptOwn.Contains(n)).ToList();
+    if (notTaken.Count > 0) Console.WriteLine($"  not taken: {string.Join(", ", notTaken)}");
+    Console.WriteLine($"{(stop is null ? "done" : "partial")}: {refs.Written.Count} pictures in {Path.Combine(scenario.SourceDir, "screen")}, {Path.Combine(scenario.SourceDir, "shots.json")}");
+    return stop is null ? 0 : 3;
+}
 
 // The tool's source folder (where the csproj, settings and secrets are), found up from the build output.
 static string FindToolDir()

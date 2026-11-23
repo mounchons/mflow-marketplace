@@ -40,6 +40,7 @@ public static partial class ScenarioLoader
         foreach (var (name, role) in s.Roles)
             if (!secrets.Has(role.UserKey)) errors.Add($"roles.{name}: no credentials for userKey '{role.UserKey}' (tutorial.secrets.json or TUTORIAL_{role.UserKey.ToUpperInvariant()}_EMAIL/_PASSWORD)");
         if (s.Steps.Count == 0) errors.Add("steps: at least one step is required");
+        var shots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < s.Steps.Count; i++)
         {
             var st = s.Steps[i];
@@ -56,6 +57,10 @@ public static partial class ScenarioLoader
             if (st.Highlight is not null && !Highlights.Contains(st.Highlight)) errors.Add($"{at}: highlight '{st.Highlight}' is not box, arrow, spotlight or none");
             if (st.Placement is not null && !Placements.Contains(st.Placement)) errors.Add($"{at}: placement '{st.Placement}' is not auto, top, bottom, left or right");
             if (st.Zoom is < 1 or > 3) errors.Add($"{at}: zoom must be between 1 and 3");
+            // a picture is written where shot: says, so it stays a plain name inside the scenario's screen/ folder
+            if (st.Shot is not null && !ShotName().IsMatch(st.Shot)) errors.Add($"{at}: shot '{st.Shot}' is screen/<name>.jpg or .png");
+            else if (st.Shot is not null && !shots.Add(st.Shot)) errors.Add($"{at}: shot {st.Shot} is named by two steps");
+            if (st.ShotAt is not null && st.ShotAt is not ("before" or "after")) errors.Add($"{at}: shotAt '{st.ShotAt}' is before or after");
             foreach (Match m in SecretRef().Matches(st.Value ?? ""))
                 if (secrets.Get(m.Groups[1].Value, m.Groups[2].Value) is null) errors.Add($"{at}: no secret {m.Value}");
         }
@@ -71,4 +76,7 @@ public static partial class ScenarioLoader
 
     [GeneratedRegex("^[a-z0-9][a-z0-9-]*$")]
     private static partial Regex ClipName();
+
+    [GeneratedRegex(@"^screen/[A-Za-z0-9][A-Za-z0-9._-]*\.(jpe?g|png)$", RegexOptions.IgnoreCase)]
+    private static partial Regex ShotName();
 }

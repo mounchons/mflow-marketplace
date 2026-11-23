@@ -2,6 +2,7 @@
 // the small writes the live page makes (a step's narration, the speed, the project's words) and the live server
 // itself (serve.mjs) driven over HTTP on 127.0.0.1 with a stand-in for the voice. No Python, no browser.
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -12,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = path.join(REPO, "plugins", "mclip", "scripts");
 const imp = (f) => import(`file://${path.join(SCRIPTS, f).replace(/\\/g, "/")}`);
-const { parseLexicon, readLexicon, rulesFor, planSpeed, voiceStale, setNarration, setPlanField, writeProjectLexicon, makeVoice, load, renderPage, VOICE_ENGINE, GLOBAL_LEXICON } = await imp("clips.mjs");
+const { parseLexicon, readLexicon, rulesFor, planSpeed, voiceStale, setNarration, setPlanField, writeProjectLexicon, makeVoice, load, renderPage, VOICE_ENGINE, GLOBAL_LEXICON, readRequests, addRequest, removeRequests, requestsCommand } = await imp("clips.mjs");
 const { createHandler } = await imp("serve.mjs");
 
 const PLAN = "# Shop\n\n- ระบบ: ร้าน\n- ความเร็วเสียง: 0.80\n\n## สารบัญ\n\n1. 01-in — เข้าสู่ระบบ\n";
@@ -151,7 +152,7 @@ test("the live server: the page needs the token, writes need the token and this 
     assert.equal((await s.call("GET", "/")).status, 403, "no token, no page");
     const page = await s.call("GET", `/?t=${s.token}`);
     assert.equal(page.status, 200);
-    assert.match(page.text, /window\.MCLIP=\{"token":"t{48}"\}/);
+    assert.match(page.text, /window\.MCLIP=\{"token":"t{48}","requests":\[\]\}/);
     assert.match(page.text, /class="live-say" data-id="01-in" data-step="1"/);
     assert.match(page.text, /<option value="0.8" selected>/, "the plan's speed is chosen");
     assert.equal(page.headers["access-control-allow-origin"], undefined, "no CORS");
@@ -195,5 +196,67 @@ test("the live server: save a narration and speak it, speak a lesson, set the sp
     assert.equal((await s.post("/api/lexicon", { text: "Login = ล็อกอิน" })).status, 200);
     assert.match(fs.readFileSync(path.join(p.clips, "lexicon.txt"), "utf8"), /^Login = ล็อกอิน$/m);
     assert.match(renderPage(load(p.clips)), /<code>Login<\/code> → ล็อกอิน/);
+  } finally { await s.close(); p.cleanup(); }
+});
+
+// ---- edit requests: saved by the live page, read by /mclip:plan edit ----
+
+test("edit requests: added on one line, removed by id or all, and written as the command", () => {
+  const p = project();
+  try {
+    assert.deepEqual(readRequests(p.clips), [], "no file, no requests");
+    addRequest(p.clips, { target: "01-in ขั้น 1", quote: "เปิดหน้าเข้าสู่ระบบ", text: "พูดให้กระชับ\nไม่เกินสองประโยค" }, new Date("2026-11-23T07:00:00Z"));
+    const items = addRequest(p.clips, { target: "01-in ขั้น 2", text: "ถ่ายรูปอ้างอิงใหม่" });
+    assert.equal(items.length, 2);
+    assert.equal(items[0].text, "พูดให้กระชับ ไม่เกินสองประโยค", "the command reads one line per request");
+    assert.equal(items[0].at, "2026-11-23T07:00:00.000Z");
+    assert.notEqual(items[0].id, items[1].id);
+    assert.equal(requestsCommand(items), '/mclip:plan edit\n- 01-in ขั้น 1 ("เปิดหน้าเข้าสู่ระบบ"): พูดให้กระชับ ไม่เกินสองประโยค\n- 01-in ขั้น 2: ถ่ายรูปอ้างอิงใหม่');
+    assert.throws(() => addRequest(p.clips, { target: "01-in", text: "  " }), /needs what to change/);
+
+    assert.deepEqual(removeRequests(p.clips, [items[0].id]).map((x) => x.id), [items[1].id]);
+    assert.deepEqual(removeRequests(p.clips, null), []);
+    fs.writeFileSync(path.join(p.clips, "requests.json"), "{ broken");
+    assert.deepEqual(readRequests(p.clips), [], "a broken file reads as none");
+  } finally { p.cleanup(); }
+});
+
+test("edit requests: clips.mjs requests prints them and --done removes the applied ones", () => {
+  const p = project();
+  const run = (...a) => { const r = spawnSync(process.execPath, [path.join(SCRIPTS, "clips.mjs"), "requests", "--clips", p.clips, ...a], { encoding: "utf8" });
+    return { code: r.status, out: JSON.parse(r.stdout) }; };
+  try {
+    assert.deepEqual(run().out.count, 0);
+    const [a, b] = addRequest(p.clips, { target: "01-in ขั้น 1", text: "พูดให้กระชับ" }) && addRequest(p.clips, { target: "plan", text: "เพิ่มหัวข้อ" });
+    let r = run();
+    assert.equal(r.code, 0);
+    assert.equal(r.out.count, 2);
+    assert.match(r.out.command, /^\/mclip:plan edit\n- 01-in ขั้น 1: พูดให้กระชับ\n- plan: เพิ่มหัวข้อ$/);
+    r = run("--done", a.id);
+    assert.deepEqual(r.out.items.map((x) => x.id), [b.id]);
+    assert.equal(run("--clear").out.count, 0);
+    assert.equal(run("--done", "x", "--clear").code, 2);
+  } finally { p.cleanup(); }
+});
+
+test("the live server: requests saved from the page are in clips/requests.json and on the page", async () => {
+  const p = project();
+  const s = await serve(p);
+  try {
+    let r = await s.post("/api/requests", { add: { target: "01-in ขั้น 1", quote: "เปิดหน้า", text: "พูดให้กระชับ" } });
+    assert.equal(r.status, 200, r.text);
+    const [item] = JSON.parse(r.text).items;
+    assert.equal(item.text, "พูดให้กระชับ");
+    assert.equal(readRequests(p.clips)[0].id, item.id, "saved where /mclip:plan edit reads");
+
+    const page = await s.call("GET", `/?t=${s.token}`);
+    assert.match(page.text, new RegExp(`window\\.MCLIP=\\{"token":"t{48}","requests":\\[\\{"id":"${item.id}"`));
+    assert.match(page.text, /mclip:plan edit ได้เลย/, "the page says Claude reads them");
+    assert.doesNotMatch(renderPage(load(p.clips)), /window\.MCLIP=/, "the file page has no server");
+
+    assert.deepEqual(JSON.parse((await s.post("/api/requests", {})).text).items.length, 1, "{} reads the list");
+    assert.equal((await s.post("/api/requests", { add: { target: "x" } })).status, 400);
+    assert.equal((await s.post("/api/requests", { add: { target: "x", text: "y" } }, { "X-Mclip-Token": "wrong" })).status, 403);
+    assert.deepEqual(JSON.parse((await s.post("/api/requests", { remove: item.id })).text).items, []);
   } finally { await s.close(); p.cleanup(); }
 });

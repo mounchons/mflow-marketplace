@@ -8,14 +8,16 @@
 //
 // Safety: it listens on 127.0.0.1 only; every request must name this host (no other site can reach it through a
 // renamed domain), every write carries the token printed at start (a page of another site cannot read it), a request
-// from another origin is refused, and no CORS header is ever sent. It writes four things only: a step's '- พูด:' line,
-// the plan's '- ความเร็วเสียง:' line, clips/lexicon.txt, and the voice (clips/<id>/voice/). One voice run at a time.
+// from another origin is refused, and no CORS header is ever sent. It writes five things only: a step's '- พูด:' line,
+// the plan's '- ความเร็วเสียง:' line, clips/lexicon.txt, the edit requests (clips/requests.json, which /mclip:plan edit
+// reads), and the voice (clips/<id>/voice/). One voice run at a time.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { load, renderPage, makeVoice, pyThaiTts, setNarration, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored } from "./clips.mjs";
+import { load, renderPage, makeVoice, pyThaiTts, setNarration, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored,
+  readRequests, addRequest, removeRequests } from "./clips.mjs";
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp3": "audio/mpeg",
   ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".json": "application/json", ".pdf": "application/pdf" };
@@ -52,7 +54,7 @@ export function createHandler({ clips, token, speak, port: getPort }) {
       if (!sameToken(u.searchParams.get("t"))) return send(res, 403, "<p>เปิดด้วยลิงก์ที่ server พิมพ์ไว้ (มี ?t=...)</p>", "text/html; charset=utf-8");
       const data = load(root);
       if (!data.plan) return send(res, 404, `<p>${String(data.problems[0]).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)}</p>`, "text/html; charset=utf-8");
-      return send(res, 200, renderPage(data, new Date(), { live: { token } }), "text/html; charset=utf-8");
+      return send(res, 200, renderPage(data, new Date(), { live: { token, requests: readRequests(root) } }), "text/html; charset=utf-8");
     }
     if (req.method === "GET") {
       // the lessons' pictures, voices and videos: files under clips/ only, never above it, never a dot-file
@@ -90,6 +92,15 @@ export function createHandler({ clips, token, speak, port: getPort }) {
         return send(res, 200, { speed });
       }
       if (u.pathname === "/api/lexicon") return send(res, 200, { rules: writeProjectLexicon(root, body.text) });
+      if (u.pathname === "/api/requests") {
+        // {add: {target, quote, text}} | {remove: id} | {clear: true} | {} (read); answers with the list
+        let items;
+        if (body.add) items = addRequest(root, body.add);
+        else if (typeof body.remove === "string") items = removeRequests(root, [body.remove]);
+        else if (body.clear === true) items = removeRequests(root, null);
+        else items = readRequests(root);
+        return send(res, 200, { items });
+      }
       return send(res, 404, { error: "not found" });
     } catch (e) {
       return send(res, 400, { error: e.message });

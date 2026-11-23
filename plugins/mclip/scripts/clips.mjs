@@ -17,6 +17,10 @@
 //                                                    speak the lesson's '- พูด:' lines (PyThaiTTS, the recorder's tts/)
 //                                                    into clips/<id>/voice/NN.mp3 (step NN) + voice.json, to listen to
 //                                                    on the page before recording; a line already spoken is kept
+//   node clips.mjs requests [--done <id,id> | --clear] [--clips <dir>]
+//                                                    the edit requests the live page saved (clips/requests.json), as
+//                                                    items and as the /mclip:plan edit command; --done removes those
+//                                                    applied, --clear all of them
 //
 // clips/<id>/shots.json is written by the recorder's --shots (the pictures it made, and the step it stopped at); the
 // page tells those from the user's own pictures.
@@ -462,7 +466,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, lex
     }).join("")}`).join("")}${problems.length ? `<a class="item warn" data-go="${lessons.length + 3}">ปัญหาในไฟล์แผน (${problems.length})</a>` : ""}`;
   // replacer functions: a '$' in the plan's words must not be read as a replacement pattern
   // live: the token goes in as JSON inside a script, '<' escaped so no text can close the script
-  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token }).replace(/</g, "\\u003c")};</script>` : "";
+  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token, requests: live.requests ?? [] }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")};</script>` : "";
   return PAGE.replace("{{TITLE}}", () => esc(p.title)).replace("{{NAME}}", () => esc(p.title)).replace("{{SIDE}}", () => side).replace("{{SLIDES}}", () => slides).replace("{{BUILT}}", () => esc(built)).replace("{{LIVE}}", () => liveTag);
 }
 
@@ -474,7 +478,7 @@ const PAGE = `<!doctype html>
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans Thai","Sarabun","Leelawadee UI",Tahoma,system-ui,sans-serif}
 nav{position:sticky;top:0;z-index:6;height:52px;display:flex;gap:8px;align-items:center;padding:0 16px;background:var(--blue);color:#fff}
 nav button{font:inherit;border:0;border-radius:8px;padding:6px 12px;background:#ffffff22;color:#fff;cursor:pointer}nav button:hover{background:#ffffff44}
-nav .where{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}nav button{flex:none}nav .tray{background:var(--orange)}#menu{display:none}
+nav .where{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}nav button{flex:none}nav .tray{background:var(--orange)}nav .tray.added{background:var(--green)}#menu{display:none}
 .layout{display:grid;grid-template-columns:300px minmax(0,1fr)}
 aside{position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;background:#fff;border-right:1px solid #dbe3f3;padding:12px 10px 40px}
 aside a{display:flex;gap:8px;align-items:baseline;color:inherit;text-decoration:none;border-radius:8px;cursor:pointer}
@@ -548,9 +552,10 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
 <main>{{SLIDES}}</main></div>
 <dialog id="ask"><h3 id="askTitle">ขอให้ AI แก้</h3><p class="quote" id="askQuote"></p>
 <textarea id="askText" placeholder="อยากให้แก้อะไร เช่น เปลี่ยนบทพูดให้สั้นลง, เพิ่มขั้นตอนกดยกเลิก, ใช้รูปหน้าจอหลังบันทึก"></textarea>
+<p class="quote" id="askHow"></p>
 <div class="row"><button id="askCancel">ยกเลิก</button><button class="go" id="askAdd">เก็บไว้ในคำขอ</button></div></dialog>
 <dialog id="trayBox"><h3>คำขอแก้ที่เก็บไว้</h3><ol class="tray-list" id="trayList"></ol>
-<p class="quote">กด "คัดลอก" แล้ววางใน Claude Code (Ctrl+V) — AI จะแก้ไฟล์แผนแล้วสร้างหน้านี้ใหม่</p>
+<p class="quote" id="trayHow"></p>
 <textarea id="trayText" readonly></textarea>
 <div class="row"><button id="trayClear">ล้าง</button><button id="trayClose">ปิด</button><button class="go" id="trayCopy">คัดลอก</button></div></dialog>
 {{LIVE}}<script>
@@ -576,9 +581,38 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
   document.querySelectorAll(".plat button").forEach((b) => b.onclick = () => { const slide = b.closest(".slide");
     slide.dataset.plat = b.dataset.plat; slide.querySelectorAll(".plat button").forEach((x) => x.classList.toggle("on", x === b)); });
   document.querySelectorAll("[data-go]").forEach((a) => a.onclick = (e) => { e.preventDefault(); show(+a.dataset.go, a.dataset.step); });
+  // the edit requests: the live page (serve.mjs) saves them in clips/requests.json, where /mclip:plan edit reads them;
+  // a page opened as a file keeps them in this browser, to copy and paste into Claude Code
+  const LIVE = !!window.MCLIP;
+  const api = async (where, body) => {
+    const r = await fetch(where, { method: "POST", headers: { "Content-Type": "application/json", "X-Mclip-Token": window.MCLIP.token }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+    return j;
+  };
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   let edits = [];
-  try { edits = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { edits = []; }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(edits)); } catch {} document.getElementById("tray").textContent = "คำขอแก้ " + edits.length; };
+  if (LIVE) edits = window.MCLIP.requests || [];
+  else { try { edits = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { edits = []; } edits.forEach((x) => { if (!x.id) x.id = newId(); }); }
+  const count = (note) => { document.getElementById("tray").textContent = note || "คำขอแก้ " + edits.length; };
+  const change = async (op) => {
+    if (LIVE) {
+      try { edits = (await api("/api/requests", op)).items; count(); return ""; }
+      catch (e) { count("เก็บคำขอไม่สำเร็จ"); return e.message; }
+    }
+    if (op.add) edits.push({ id: newId(), ...op.add });
+    if (op.remove) edits = edits.filter((x) => x.id !== op.remove);
+    if (op.clear) edits = [];
+    try { localStorage.setItem(KEY, JSON.stringify(edits)); } catch {}
+    count(); return "";
+  };
+  const HOW = LIVE ? "คำขอถูกบันทึกลงไฟล์ clips/requests.json — ใน Claude Code สั่ง /mclip:plan edit ได้เลย ไม่ต้องคัดลอก"
+    : "คำขอเก็บในเบราว์เซอร์นี้เท่านั้น Claude ยังมองไม่เห็น — กดปุ่ม \\"คำขอแก้\\" มุมขวาบน แล้ว \\"คัดลอก\\" ไปวางใน Claude Code";
+  document.getElementById("askHow").textContent = HOW;
+  document.getElementById("trayHow").textContent = LIVE ? HOW + " (หรือกด \\"คัดลอก\\" แล้ววางก็ได้)"
+    : "กด \\"คัดลอก\\" แล้ววางใน Claude Code (Ctrl+V) — AI จะแก้ไฟล์แผนแล้วสร้างหน้านี้ใหม่";
+  // Claude empties the list as it applies the requests: read it again when the page comes back to the front
+  if (LIVE) addEventListener("focus", () => { if (!document.querySelector("dialog[open]")) change({}); });
   const command = () => "/mclip:plan edit (หน้าแผนสร้างเมื่อ " + BUILT + " UTC)\\n" + edits.map((x) => "- " + x.target + (x.quote ? ' ("' + x.quote + '")' : "") + ": " + x.text).join("\\n");
   const ask = document.getElementById("ask"), tray = document.getElementById("trayBox");
   let current = null;
@@ -587,8 +621,9 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
     document.getElementById("askQuote").textContent = current.quote ? "ตอนนี้: " + current.quote : "";
     document.getElementById("askText").value = ""; ask.showModal(); document.getElementById("askText").focus(); });
   // ถ่ายรูป / สร้างเสียง: a request in one click, sent with the others by the tray's copy
-  document.querySelectorAll(".quick").forEach((b) => b.onclick = () => { edits.push({ target: b.dataset.target, quote: "", text: b.dataset.text });
-    save(); b.classList.add("added"); setTimeout(() => b.classList.remove("added"), 900); });
+  document.querySelectorAll(".quick").forEach((b) => b.onclick = async () => {
+    if (await change({ add: { target: b.dataset.target, quote: "", text: b.dataset.text } })) return;
+    b.classList.add("added"); setTimeout(() => b.classList.remove("added"), 900); });
   // ▶ the lesson's voice, step after step
   let playing = null;
   const stopAll = () => { if (playing) { playing.onended = null; playing.pause(); playing = null; }
@@ -602,12 +637,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
   // live (serve.mjs): narration saved and spoken, the speed and the project's words saved, from the page itself
   if (window.MCLIP) {
     const oneLine = (s) => s.replace(/\\s*\\n\\s*/g, " ").trim();
-    const send = async (where, body) => {
-      const r = await fetch(where, { method: "POST", headers: { "Content-Type": "application/json", "X-Mclip-Token": window.MCLIP.token }, body: JSON.stringify(body) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
-      return j;
-    };
+    const send = api;
     // narration typed and not saved yet: saved before anything else runs, since the page reloads after each action
     const dirty = () => [...document.querySelectorAll(".live-say")].filter((b) => {
       const t = b.querySelector("textarea"); return oneLine(t.value) !== oneLine(t.defaultValue); });
@@ -640,23 +670,26 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
     if (lx) lx.querySelector("button").onclick = () => post("/api/lexicon", { text: lx.querySelector("textarea").value }, lx);
   }
   document.getElementById("askCancel").onclick = () => ask.close();
-  document.getElementById("askAdd").onclick = () => { const text = document.getElementById("askText").value.trim();
-    if (text) { edits.push({ ...current, text }); save(); } ask.close(); };
+  document.getElementById("askAdd").onclick = async () => { const text = document.getElementById("askText").value.trim();
+    if (!text) { ask.close(); return; }
+    const failed = await change({ add: { target: current.target, quote: current.quote || "", text } });
+    if (failed) { document.getElementById("askHow").textContent = "เก็บคำขอไม่สำเร็จ: " + failed; return; }
+    ask.close(); const t = document.getElementById("tray"); t.classList.add("added"); setTimeout(() => t.classList.remove("added"), 1500); };
   const fill = () => { const list = document.getElementById("trayList"); list.innerHTML = "";
-    edits.forEach((x, i) => { const li = document.createElement("li"); li.textContent = x.target + ": " + x.text + " ";
-      const del = document.createElement("button"); del.textContent = "ลบ"; del.className = "edit"; del.onclick = () => { edits.splice(i, 1); save(); fill(); };
+    edits.forEach((x) => { const li = document.createElement("li"); li.textContent = x.target + ": " + x.text + " ";
+      const del = document.createElement("button"); del.textContent = "ลบ"; del.className = "edit"; del.onclick = async () => { await change({ remove: x.id }); fill(); };
       li.appendChild(del); list.appendChild(li); });
     document.getElementById("trayText").value = edits.length ? command() : ""; };
-  document.getElementById("tray").onclick = () => { fill(); tray.showModal(); };
+  document.getElementById("tray").onclick = async () => { if (LIVE) await change({}); fill(); tray.showModal(); };
   document.getElementById("trayClose").onclick = () => tray.close();
-  document.getElementById("trayClear").onclick = () => { edits = []; save(); fill(); };
+  document.getElementById("trayClear").onclick = async () => { await change({ clear: true }); fill(); };
   document.getElementById("trayCopy").onclick = async () => { const box = document.getElementById("trayText");
     try { await navigator.clipboard.writeText(box.value); document.getElementById("trayCopy").textContent = "คัดลอกแล้ว ✓"; }
     catch { box.focus(); box.select(); document.getElementById("trayCopy").textContent = "กด Ctrl+C"; }
     setTimeout(() => document.getElementById("trayCopy").textContent = "คัดลอก", 2500); };
   // #<n> opens page n and #<n>/<lesson>-<step> one step, so a link can point at a lesson or a step
   const [page, step] = location.hash.slice(1).split("/");
-  save(); show((parseInt(page, 10) || 1) - 1, step);
+  count(); show((parseInt(page, 10) || 1) - 1, step);
 })();
 </script></body></html>
 `;
@@ -805,6 +838,50 @@ export function writeProjectLexicon(clipsDir, text) {
   return rules.length;
 }
 
+// ---- edit requests -----------------------------------------------------------------------------------------------------
+//
+// The live page keeps its requests (✎ แก้, ถ่ายรูป) in clips/requests.json, where /mclip:plan edit reads them without
+// any copy and paste; a page opened as a file keeps them in the browser, to copy. Git-ignored: a to-do list of this
+// machine, emptied as /mclip:plan applies them.
+
+export const REQUESTS_FILE = "requests.json";
+const MAX_REQUESTS = 200;
+const isRequest = (x) => x && typeof x.id === "string" && typeof x.target === "string" && typeof x.text === "string";
+
+/** The saved requests, oldest first: [{ id, target, quote, text, at }]. */
+export function readRequests(clipsDir) {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(clipsDir, REQUESTS_FILE), "utf8"));
+    return Array.isArray(j.items) ? j.items.filter(isRequest) : [];
+  } catch { return []; }
+}
+const writeRequests = (clipsDir, items) =>
+  fs.writeFileSync(path.join(clipsDir, REQUESTS_FILE), JSON.stringify({ items }, null, 2) + "\n");
+
+/** Adds a request (its text on one line, as the command reads it); returns the list. */
+export function addRequest(clipsDir, { target, quote = "", text } = {}, now = new Date()) {
+  const items = readRequests(clipsDir);
+  if (items.length >= MAX_REQUESTS) throw new Error(`at most ${MAX_REQUESTS} requests: apply some first (/mclip:plan edit)`);
+  const flat = (s) => String(s ?? "").replace(/\s*[\r\n\u2028\u2029]+\s*/g, " ");
+  const item = { id: `${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    target: oneLine(flat(target), "the target", 200), quote: oneLine(flat(quote), "the quote"), text: oneLine(flat(text), "the request"), at: now.toISOString() };
+  if (!item.target || !item.text) throw new Error("a request needs what to change and how");
+  items.push(item);
+  writeRequests(clipsDir, items);
+  return items;
+}
+
+/** Removes the requests with these ids (null: all of them); returns what is left. */
+export function removeRequests(clipsDir, ids = null) {
+  const keep = ids === null ? [] : readRequests(clipsDir).filter((x) => !ids.includes(x.id));
+  writeRequests(clipsDir, keep);
+  return keep;
+}
+
+/** The requests as the command the page copies: `/mclip:plan edit` and one `- <target> ("<quote>"): <text>` per line. */
+export const requestsCommand = (items) =>
+  ["/mclip:plan edit", ...items.map((x) => `- ${x.target}${x.quote ? ` ("${x.quote}")` : ""}: ${x.text}`)].join("\n");
+
 // ---- voice previews --------------------------------------------------------------------------------------------------
 
 /**
@@ -901,7 +978,7 @@ function openFile(file) {
 
 /** clips/.gitignore: the page, recordings and voice previews stay on the machine that made them. Adds missing lines. */
 // the manual's .docx and .pdf are rebuilt from the plan at any time (manual.mjs); its manual.md stays in git
-const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`, "manual/*.docx", "manual/*.pdf", "manual/.work/", ".mclip-open.html"];
+const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`, "manual/*.docx", "manual/*.pdf", "manual/.work/", ".mclip-open.html", REQUESTS_FILE];
 export function ensureIgnored(clips) {
   const file = path.join(clips, ".gitignore");
   const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "# rebuilt or remade by /mclip:plan and /mclip:record; kept on the machine that made them\n";
@@ -919,7 +996,8 @@ function main(argv) {
     if (a === "--open") opts.open = true;
     else if (a === "--voice") opts.voice = true;
     else if (a === "--force") opts.force = true;
-    else if (/^--(clips|mp4|srt|timing|mode|recorder|threshold|step|speed|tts)$/.test(a)) opts[a.slice(2)] = rest[++i];
+    else if (a === "--clear") opts.clear = true;
+    else if (/^--(clips|mp4|srt|timing|mode|recorder|threshold|step|speed|tts|done)$/.test(a)) opts[a.slice(2)] = rest[++i];
     else if (a.startsWith("--")) return { code: 2, out: { error: `unknown option ${a}` } };
     else pos.push(a);
   }
@@ -932,7 +1010,15 @@ function main(argv) {
       const said = steps.filter((s) => s.narration);
       return { pictures: imgs.length, picturesThere: imgs.filter(Boolean).length, spoken: said.length, voiced: said.filter((s) => s.voice && !s.voice.stale).length };
     };
-    return { code: data.problems.length ? 1 : 0, out: { lessons: data.lessons.map(({ id, title, status, latest, steps, appKeys }) => ({ id, title, apps: appKeys, status, latest, steps: steps.length, ...counts(steps) })), problems: data.problems } };
+    return { code: data.problems.length ? 1 : 0, out: { lessons: data.lessons.map(({ id, title, status, latest, steps, appKeys }) => ({ id, title, apps: appKeys, status, latest, steps: steps.length, ...counts(steps) })), requests: readRequests(clips).length, problems: data.problems } };
+  }
+  if (cmd === "requests") {
+    if (!fs.existsSync(path.join(clips, "plan.md"))) return { code: 2, out: { error: `no plan: ${path.join(clips, "plan.md")}` } };
+    if (opts.clear && opts.done) return { code: 2, out: { error: "--done <ids> or --clear, not both" } };
+    let items = readRequests(clips);
+    if (opts.done) items = removeRequests(clips, String(opts.done).split(",").map((s) => s.trim()).filter(Boolean));
+    else if (opts.clear) items = removeRequests(clips, null);
+    return { code: 0, out: { file: path.join(clips, REQUESTS_FILE), count: items.length, items, command: items.length ? requestsCommand(items) : "" } };
   }
   if (cmd === "page") {
     const data = load(clips);
@@ -958,7 +1044,7 @@ function main(argv) {
     if (!r.code) ensureIgnored(clips);
     return { code: r.code, out: r.code ? { error: r.error } : r };
   }
-  return { code: 2, out: { error: "usage: clips.mjs check|page|version|compare|voice (see the header)" } };
+  return { code: 2, out: { error: "usage: clips.mjs check|page|version|compare|voice|requests (see the header)" } };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

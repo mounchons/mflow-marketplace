@@ -2,7 +2,7 @@
 name: plan
 description: Plan a project's how-to clips before any recording — read the project's apps (web, iPhone, Android), their e2e tests, tests and code, and draft the teaching topics in clips/plan.md; write a topic's steps, on-screen words, narration and reference pictures in clips/<id>/lesson.md; take a web lesson's reference pictures in the test stack and speak its narration to listen to, per lesson or per step; apply edit requests pasted from the plan page; and build clips/index.html, the plan as slides with a left menu and edit buttons.
 disable-model-invocation: true
-argument-hint: "[scan | lesson <id>|all | shots|voice|shots voice <id>|all [ขั้น <n>] | serve | edit <requests pasted from the page>]"
+argument-hint: "[scan | lesson <id>|all | shots|voice|shots voice <id>|all [ขั้น <n>] | serve | edit [requests pasted from the page]]"
 ---
 
 Plan the project's clips in `clips/`, the folder of the project's own repository that the clips are taught from. The
@@ -18,7 +18,8 @@ the plan files have problems: the page still shows them, on its last slide; fix 
 The user's answers are the customer's: act on them without asking again.
 
 `$ARGUMENTS`:
-- empty: no `clips/plan.md` yet: **1. Draft the topics**. With a plan: build the page and report each lesson's status.
+- empty: no `clips/plan.md` yet: **1. Draft the topics**. With a plan: build the page and report each lesson's status,
+  and the requests saved on the live page still to apply (`clips.mjs check` → `requests`; `/mclip:plan edit` applies them).
 - `scan`: **1. Draft the topics** again, adding what the project gained since (new apps, flows, tests); keep every
   entry already in the plan, its number and its lesson.
 - `lesson <id>` or `lesson all`: **2. Write a lesson** (`all`: every entry still a topic).
@@ -26,7 +27,7 @@ The user's answers are the customer's: act on them without asking again.
 - `voice <id> [ขั้น <n>]`: **5. Speak the narration** of a lesson, or of one step (`all`: every lesson).
 - `shots voice <id> [ขั้น <n>]`: both, pictures first.
 - `serve`: **6. The live page**, where the user edits narration and hears it at once, sets the speed and the words.
-- `edit ...`: **3. Apply edit requests**.
+- `edit [...]`: **3. Apply edit requests**, the ones the live page saved and any pasted.
 
 A topic named by `shots` or `voice` has no steps yet: write its lesson first (**2**), then go on.
 
@@ -130,9 +131,22 @@ Build the page; report the lessons written (steps each) and the pictures still m
 
 ## 3. Apply edit requests
 
-`$ARGUMENTS` is what the page copied: `edit (หน้าแผนสร้างเมื่อ <time> UTC)` and one line per request,
-`- <target> ("<the words now>"): <the request>`. Targets: `plan` (the whole plan), `plan <field>`, `plan สารบัญ`,
-`plan แอป <key>`, `plan คำอ่าน` (the words the voice says wrong), `<id>` (a lesson or topic), `<id> ขั้น <n>` (one step).
+The requests come from two places, and both are applied:
+- **saved by the live page** (**6**) in `clips/requests.json`:
+
+  ```
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs requests
+  ```
+
+  prints `items` (`id`, `target`, `quote`, `text`, `at`) and the same lines as `command`.
+- **pasted** after `edit`: what a page opened as a file copied (its requests live in that browser only),
+  `edit (หน้าแผนสร้างเมื่อ <time> UTC)` and one line per request.
+
+Each request is `- <target> ("<the words now>"): <the request>`. Targets: `plan` (the whole plan), `plan <field>`,
+`plan สารบัญ`, `plan แอป <key>`, `plan คำอ่าน` (the words the voice says wrong), `<id>` (a lesson or topic),
+`<id> ขั้น <n>` (one step). None saved and none pasted: say the page keeps them in the browser when it was opened as a
+file (press คำขอแก้ at the top right, then คัดลอก, and paste here), or that `/mclip:plan serve` saves them for Claude
+to read; stop.
 
 1. Read the files the targets name. A file changed since the page was built (its time is later): read it as it is now,
    and when a request's quoted words are no longer there, apply it to the nearest text and say so in the report.
@@ -150,7 +164,8 @@ Build the page; report the lessons written (steps each) and the pictures still m
      folder (recommended), b) delete the folder too.
    - A request that needs a choice the user did not make (two ways to read it): ask that one, with the reading you
      recommend first.
-3. Build the page; report each request with what was changed (file and line), or why it was not.
+3. Remove the saved requests applied: `clips.mjs requests --done <id>,<id>` (one left waiting on the user's answer
+   stays). Build the page; report each request with what was changed (file and line), or why it was not.
 
 A lesson changed after it was recorded shows as ต้องอัดใหม่ until `/mclip:record` records its next version. A step
 whose voice no longer fits it (its `พูด`, the speed or a word it uses changed) shows ต้องสร้างใหม่ with the reason:
@@ -226,6 +241,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/serve.mjs --open
 Run it in the background: it prints `{"url": ...}` and serves until stopped. Give the user the URL (it carries the
 page's token: it is the only way in) and say what the page does there: each step's narration in a box with บันทึกคำพูด
 and บันทึกและสร้างเสียง (the voice is made at once and plays on the page), สร้างเสียงทั้งบทตอนนี้ on a lesson, and on
-ขอบเขตและรูปแบบ the speed and the project's words. It listens on 127.0.0.1 only and writes only the narration lines,
-the speed line, `clips/lexicon.txt` and the voice. Stop it when the user is done (or says so), and report the lessons
-whose narration changed: their scenarios and recordings follow at the next `/mclip:record`.
+ขอบเขตและรูปแบบ the speed and the project's words. ✎ แก้ and ถ่ายรูป there save their requests in
+`clips/requests.json`: when the user asks for them to be done, in whatever words (แก้ตามคำขอ, ทำตามที่ขอไว้), apply
+them as **3** says, without asking them to copy anything. It listens on 127.0.0.1 only and writes only the narration
+lines, the speed line, `clips/lexicon.txt`, the requests and the voice. Stop it when the user is done (or says so), and
+report the lessons whose narration changed: their scenarios and recordings follow at the next `/mclip:record`.

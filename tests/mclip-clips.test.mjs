@@ -338,6 +338,18 @@ test("pictures the recorder took are told from the user's own; a stopped run sho
   } finally { p.cleanup(); }
 });
 
+test("check counts each lesson's pictures there and steps with a current voice, for /mclip:help", () => {
+  const p = project({ "clips/plan.md": PLAN, "clips/01-sign-in/lesson.md": VOICED, "clips/01-sign-in/screen/02-add.jpg": "jpg" });
+  try {
+    makeVoice(p.clips, "01-sign-in", { step: 3, speak: stubVoice().speak });
+    const r = cli("check", "--clips", p.clips);
+    const l = JSON.parse(r.stdout).lessons.find((x) => x.id === "01-sign-in");
+    assert.deepEqual([l.pictures, l.picturesThere, l.spoken, l.voiced], [2, 1, 2, 1]);
+    const topic = JSON.parse(r.stdout).lessons.find((x) => x.id === "02-order");
+    assert.deepEqual([topic.pictures, topic.spoken], [0, 0]);
+  } finally { p.cleanup(); }
+});
+
 test("page adds the lines missing from an existing clips/.gitignore, once", () => {
   const p = project({ "clips/plan.md": "# X\n\n## สารบัญ\n\n1. 01-a — A\n", "clips/.gitignore": "index.html\n*.mp4" });
   try {

@@ -709,7 +709,13 @@ function main(argv) {
   const clips = path.resolve(opts.clips);
   if (cmd === "check") {
     const data = load(clips);
-    return { code: data.problems.length ? 1 : 0, out: { lessons: data.lessons.map(({ id, title, status, latest, steps, appKeys }) => ({ id, title, apps: appKeys, status, latest, steps: steps.length })), problems: data.problems } };
+    // per lesson: the pictures it names and how many are there, the steps that speak and how many have a current voice
+    const counts = (steps) => {
+      const imgs = steps.flatMap((s) => s.images.map((img) => s.present?.[img]));
+      const said = steps.filter((s) => s.narration);
+      return { pictures: imgs.length, picturesThere: imgs.filter(Boolean).length, spoken: said.length, voiced: said.filter((s) => s.voice && !s.voice.stale).length };
+    };
+    return { code: data.problems.length ? 1 : 0, out: { lessons: data.lessons.map(({ id, title, status, latest, steps, appKeys }) => ({ id, title, apps: appKeys, status, latest, steps: steps.length, ...counts(steps) })), problems: data.problems } };
   }
   if (cmd === "page") {
     const data = load(clips);

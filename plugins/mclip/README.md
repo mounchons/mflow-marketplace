@@ -18,6 +18,7 @@ Phase 3 (0.3.0) — AI ถ่ายรูปอ้างอิงของบท
 | `/mclip:init` | ติดตั้ง recorder ลงโปรเจกต์ที่ `tools/TutorialRecorder/`, เขียน stack ทดสอบที่ใช้อัด (สำเนาระบบที่มีแต่ข้อมูลทดสอบ), ไฟล์ผู้ใช้ทดสอบ (git-ignore), build, ติดตั้ง Chromium และเสียงพากย์ไทยถ้าต้องการ; รันซ้ำด้วย `--update` หลังอัปเกรด plugin |
 | `/mclip:record <flow>` | ยังไม่มีบท: อ่าน flow ในโค้ด เสนอรายการ `data-tour` ที่ต้องเพิ่มและขั้นตอนของคลิปให้ยืนยันก่อน แล้วเขียน `scenarios/<clip>.yaml`; อัดคลิป (caption / callout / both / clean, `voice`) แล้วตรวจภาพทุกจุดที่เปลี่ยนหน้าก่อนรายงาน |
 | `/mclip:finish <clip>` | ตกแต่งใน WeftCut: เอาคลิปโหมด clean (ไม่มี caption ในภาพ) มาวาง caption จาก `.srt` และ title card เปิด/สรุปเป็น layer ที่แก้ได้ ตรวจด้วย `check_composition` + ภาพจริง และ export เมื่อสั่ง |
+| `/mclip:help` | บอกสถานะคลิปของโปรเจกต์ (บทตามสถานะ รูปและเสียงที่ยังขาด รุ่นของ recorder) รายการคำสั่ง และคำสั่งถัดไปที่ควรใช้; `check setup` ตรวจเครื่องและโปรเจกต์ว่ามีของที่ต้องใช้ครบไหม (Node, Git, .NET 10, PowerShell 7, ffmpeg, Chromium, Python เสียงไทย) พร้อมคำสั่งติดตั้งของที่ขาด ใช้ตอนตั้งเครื่องใหม่ได้ |
 
 ## ได้อะไร
 
@@ -52,9 +53,11 @@ mclip/
 ├── .claude-plugin/plugin.json
 ├── README.md
 ├── scripts/
+│   ├── doctor.mjs           # ตรวจเครื่องและโปรเจกต์ (อ่านอย่างเดียว) ให้ /mclip:help check setup
 │   ├── clips.mjs            # แผนใน clips/: ตรวจ (check), สร้างหน้า (page), version ของบท, เทียบรูปหน้าจอ (ffmpeg ssim), เสียงคำพูด (voice)
 │   └── install.mjs          # คัดลอก recorder ลงโปรเจกต์, ไม่ทับ settings/secrets/stack/scenarios, ประทับ .mclip-version
 ├── skills/
+│   ├── help/SKILL.md
 │   ├── init/SKILL.md
 │   ├── plan/SKILL.md
 │   ├── record/SKILL.md

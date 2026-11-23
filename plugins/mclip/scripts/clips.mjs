@@ -28,7 +28,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const STEP_KEYS = { "ทำ": "action", "บนจอ": "caption", "พูด": "narration", "รูป": "image", "หมายเหตุ": "note" };
+// คู่มือ: the step explained for the user manual (manual.mjs), when the words on screen are too short for it
+export const STEP_KEYS = { "ทำ": "action", "บนจอ": "caption", "พูด": "narration", "รูป": "image", "หมายเหตุ": "note", "คู่มือ": "manual" };
 const ID = /^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const APP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const KINDS = { web: "เว็บ", ios: "iPhone", android: "Android" };
@@ -128,7 +129,7 @@ export function parseLesson(text, file = "lesson.md") {
     if (h2) {
       const n = Number(h2[1]);
       if (n !== lesson.steps.length + 1) problems.push(`${at}: step ${n} follows step ${lesson.steps.length}`);
-      step = { n, title: h2[2].trim(), line: i + 1, action: "", caption: "", narration: "", images: [], note: "" };
+      step = { n, title: h2[2].trim(), line: i + 1, action: "", caption: "", narration: "", images: [], note: "", manual: "" };
       lesson.steps.push(step);
       return;
     }
@@ -315,6 +316,7 @@ function lessonSlide(l, index) {
         ${s.narration ? (s.voice
           ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? " · เสียงของคำพูดเดิม" : ""}</small></p>`
           : `<p class="voice none"><small>ยังไม่มีเสียง</small></p>`) : ""}
+        ${s.manual ? `<p class="man"><span>คู่มือ</span>${esc(s.manual)}</p>` : ""}
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
       </div></li>`;
   }).join("");
@@ -415,7 +417,7 @@ figure.diff{display:grid;grid-template-columns:1fr 1fr;gap:6px}figure.diff figca
 figcaption{font-size:12px;color:var(--muted)}figure.missing div{aspect-ratio:16/9;border:2px dashed #cbd5e1;border-radius:8px;display:grid;place-items:center;color:var(--muted)}
 .words h4{margin:0 0 6px;font-size:18px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.words h4 b{background:var(--blue);color:#fff;border-radius:6px;padding:0 8px}
 .words p{margin:4px 0}.words span{display:inline-block;min-width:44px;font-size:12px;color:#fff;border-radius:4px;padding:0 6px;margin-right:8px;text-align:center}
-.cap span{background:var(--blue)}.say span{background:var(--orange)}.act{color:var(--muted)}.note{font-size:14px;color:var(--muted);font-style:italic}
+.cap span{background:var(--blue)}.say span{background:var(--orange)}.man span{background:var(--green)}.act{color:var(--muted)}.note{font-size:14px;color:var(--muted);font-style:italic}
 .toc-list{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:12px}
 .toc-list a{display:grid;grid-template-rows:auto 1fr auto;gap:8px;text-decoration:none;color:inherit;border:1px solid #e2e8f0;border-radius:12px;padding:10px;height:100%}
 .toc-list a:hover{border-color:var(--orange);box-shadow:0 0 0 3px #f9731633}.toc-list img,.noimg{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}
@@ -684,8 +686,9 @@ function openFile(file) {
 }
 
 /** clips/.gitignore: the page, recordings and voice previews stay on the machine that made them. Adds missing lines. */
-const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`];
-function ensureIgnored(clips) {
+// the manual's .docx and .pdf are rebuilt from the plan at any time (manual.mjs); its manual.md stays in git
+const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`, "manual/*.docx", "manual/*.pdf", "manual/.work/"];
+export function ensureIgnored(clips) {
   const file = path.join(clips, ".gitignore");
   const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "# rebuilt or remade by /mclip:plan and /mclip:record; kept on the machine that made them\n";
   const have = new Set(text.split(/\r?\n/).map((l) => l.trim()));

@@ -32,13 +32,15 @@ Three short parts:
 | `/mclip:plan edit ...` | Applies the requests copied from the plan page (✎ แก้, ถ่ายรูป, สร้างเสียง) |
 | `/mclip:record <id>\|<flow>` | Records a lesson (or a flow in words) as a video with clicks, highlights, zoom, Thai captions and voice, checks the frames, and keeps it as the lesson's next version `clips/<id>/v<n>/` |
 | `/mclip:finish <clip>` | Lays captions and title cards over the clean video in WeftCut, as layers that stay editable |
+| `/mclip:manual [pdf]` | Exports the user manual from the lessons and their pictures: `clips/manual/manual.md`, `.docx` (Word) and with `pdf` a `.pdf` (made by Microsoft Word) |
 | `/mclip:help` | This list; `check setup` checks the machine and the project |
 
 3. **The next command**, with one line on why, the first that applies: a doctor `fail` → `/mclip:help check setup`;
    no recorder, or one older than the plugin → `/mclip:init` (`--update`); no plan → `/mclip:plan`; plan problems →
    `/mclip:plan` (the page lists them); topics → `/mclip:plan lesson all`; a web lesson with pictures missing or a
-   lesson without voice → `/mclip:plan shots voice <id>`; a ready or changed lesson → `/mclip:record <id>`; else open
-   `clips/index.html`.
+   lesson without voice → `/mclip:plan shots voice <id>`; a ready or changed lesson → `/mclip:record <id>`; lessons with
+   their pictures and no manual yet (`clips/manual/manual.md` missing or older than a lesson) → `/mclip:manual pdf`;
+   else open `clips/index.html`.
 
 ## `check setup`
 

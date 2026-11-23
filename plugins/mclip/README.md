@@ -9,8 +9,10 @@ Phase 2 (0.2.0) — วางแผนก่อนอัด: หัวข้อ�
 ที่กดขอแก้ได้ และ version ของแต่ละบท; แผนหลายแอปทดสอบกับตัวอย่างสังเคราะห์เท่านั้น
 Phase 3 (0.3.0) — AI ถ่ายรูปอ้างอิงของบทเว็บเองใน stack ทดสอบ และสร้างเสียงคำพูดให้ฟังก่อนอัด สั่งทั้งบทหรือทีละขั้น
 (ลองกับหน้าเว็บทดสอบเท่านั้น ยังไม่ได้ลองกับระบบจริง)
+Phase 4 (0.4.0) — export คู่มือการใช้งานจากบทเรียนและรูปเดียวกับคลิป เป็น .md, Word (.docx) และ PDF (ผ่าน Microsoft Word)
+โครงคู่มือดัดแปลงจาก webapp-docs-kit (MIT) โค้ดเขียนใหม่
 
-## คำสั่ง (v0.3)
+## คำสั่ง (v0.4)
 
 | คำสั่ง | ทำอะไร |
 |---|---|
@@ -18,6 +20,7 @@ Phase 3 (0.3.0) — AI ถ่ายรูปอ้างอิงของบท
 | `/mclip:init` | ติดตั้ง recorder ลงโปรเจกต์ที่ `tools/TutorialRecorder/`, เขียน stack ทดสอบที่ใช้อัด (สำเนาระบบที่มีแต่ข้อมูลทดสอบ), ไฟล์ผู้ใช้ทดสอบ (git-ignore), build, ติดตั้ง Chromium และเสียงพากย์ไทยถ้าต้องการ; รันซ้ำด้วย `--update` หลังอัปเกรด plugin |
 | `/mclip:record <flow>` | ยังไม่มีบท: อ่าน flow ในโค้ด เสนอรายการ `data-tour` ที่ต้องเพิ่มและขั้นตอนของคลิปให้ยืนยันก่อน แล้วเขียน `scenarios/<clip>.yaml`; อัดคลิป (caption / callout / both / clean, `voice`) แล้วตรวจภาพทุกจุดที่เปลี่ยนหน้าก่อนรายงาน |
 | `/mclip:finish <clip>` | ตกแต่งใน WeftCut: เอาคลิปโหมด clean (ไม่มี caption ในภาพ) มาวาง caption จาก `.srt` และ title card เปิด/สรุปเป็น layer ที่แก้ได้ ตรวจด้วย `check_composition` + ภาพจริง และ export เมื่อสั่ง |
+| `/mclip:manual [pdf]` | export คู่มือการใช้งานจากแผน: บทละหนึ่งบท ขั้นตอน (`คู่มือ:` หรือ `บนจอ:`) รูปอ้างอิง และหมายเหตุ เป็น `clips/manual/manual.md`, `manual.docx` (ฟอนต์ไทย ปก สารบัญ หัวกระดาษ เลขหน้า) และ `manual.pdf` เมื่อสั่ง `pdf` (ทำด้วย Microsoft Word ซึ่งเติมเลขหน้าในสารบัญให้) แล้วดูทุกหน้าก่อนรายงาน |
 | `/mclip:help` | บอกสถานะคลิปของโปรเจกต์ (บทตามสถานะ รูปและเสียงที่ยังขาด รุ่นของ recorder) รายการคำสั่ง และคำสั่งถัดไปที่ควรใช้; `check setup` ตรวจเครื่องและโปรเจกต์ว่ามีของที่ต้องใช้ครบไหม (Node, Git, .NET 10, PowerShell 7, ffmpeg, Chromium, Python เสียงไทย) พร้อมคำสั่งติดตั้งของที่ขาด ใช้ตอนตั้งเครื่องใหม่ได้ |
 
 ## ได้อะไร
@@ -29,6 +32,7 @@ Phase 3 (0.3.0) — AI ถ่ายรูปอ้างอิงของบท
 - `<NN-x>/scenario.yaml` และ `<NN-x>/shots.json` — บทของ recorder (มี `shot:` บอกว่าขั้นไหนถ่ายรูปไหน) และรายการรูปที่ AI ถ่าย
 - `<NN-x>/voice/NN.mp3` — เสียงคำพูดของแต่ละขั้นไว้ฟังก่อนอัด (git-ignore) หน้าแผนเล่นทีละขั้นหรือ ▶ ฟังทั้งบท
 - `<NN-x>/v<n>/` — แต่ละครั้งที่อัด: บท รูป srt timing และ `version.json` (commit ของแอปตอนอัด); บทที่แก้หรือหน้าจอเปลี่ยนหลังอัดขึ้นสถานะ "ต้องอัดใหม่"
+- `manual/manual.md` — คู่มือที่สร้างจากบทเรียน (commit ได้); `manual.docx` / `manual.pdf` สร้างใหม่ได้ทุกเมื่อ (git-ignore)
 - `index.html` — แผนเป็น slide มีเมนูซ้าย (บท > ขั้นตอน จัดกลุ่มตามแอป), ปุ่ม ✎ แก้ เก็บคำขอแล้วคัดลอกเป็น `/mclip:plan edit ...`
 
 ใน `tools/TutorialRecorder/Output/` ของโปรเจกต์ (git-ignore):
@@ -55,10 +59,12 @@ mclip/
 ├── scripts/
 │   ├── doctor.mjs           # ตรวจเครื่องและโปรเจกต์ (อ่านอย่างเดียว) ให้ /mclip:help check setup
 │   ├── clips.mjs            # แผนใน clips/: ตรวจ (check), สร้างหน้า (page), version ของบท, เทียบรูปหน้าจอ (ffmpeg ssim), เสียงคำพูด (voice)
+│   ├── manual.mjs           # คู่มือ: .md และ .docx (Node ล้วน) และ .pdf ผ่าน Microsoft Word
 │   └── install.mjs          # คัดลอก recorder ลงโปรเจกต์, ไม่ทับ settings/secrets/stack/scenarios, ประทับ .mclip-version
 ├── skills/
 │   ├── help/SKILL.md
 │   ├── init/SKILL.md
+│   ├── manual/SKILL.md
 │   ├── plan/SKILL.md
 │   ├── record/SKILL.md
 │   └── finish/SKILL.md

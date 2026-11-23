@@ -111,6 +111,7 @@ For each topic named (`all`: each without `lesson.md`), read its `ที่ม�
 - พูด: <the narration; a female voice, so sentences end with ค่ะ, never ครับ>
 - รูป: screen/01-<words>.jpg
 - หมายเหตุ: <a rule or a warning from the tests, when there is one>
+- คู่มือ: <optional: the step explained for the user manual, one to three sentences, when บนจอ is too short for it>
 ```
 
 - One step is one thing the viewer does or sees change. `ทำ` and `บนจอ` are required on every step.

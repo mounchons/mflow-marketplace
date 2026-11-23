@@ -355,6 +355,6 @@ test("page adds the lines missing from an existing clips/.gitignore, once", () =
   try {
     cli("page", "--clips", p.clips);
     cli("page", "--clips", p.clips);
-    assert.equal(fs.readFileSync(path.join(p.clips, ".gitignore"), "utf8"), "index.html\n*.mp4\nvoice/\n");
+    assert.equal(fs.readFileSync(path.join(p.clips, ".gitignore"), "utf8"), "index.html\n*.mp4\nvoice/\nmanual/*.docx\nmanual/*.pdf\nmanual/.work/\n");
   } finally { p.cleanup(); }
 });

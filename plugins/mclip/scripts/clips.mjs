@@ -321,6 +321,45 @@ export function apiKey(ttsDir, name, env = process.env) {
   return isObj(file) && typeof file[name] === "string" ? file[name].trim() : "";
 }
 
+/**
+ * The title cards' theme the recorder uses: `card` in <project>/tools/TutorialRecorder/tutorial.settings.json (JSON
+ * with comments), {} when there is none; only its colours, font and name (a logo stays the recorder's business).
+ */
+export function readCardTheme(projectRoot) {
+  try {
+    const raw = fs.readFileSync(path.join(projectRoot, "tools", "TutorialRecorder", "tutorial.settings.json"), "utf8").replace(/^﻿/, "");
+    const json = raw.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m, str) => str ?? "").replace(/,(\s*[}\]])/g, "$1");
+    const s = JSON.parse(json);
+    const c = isObj(s?.card) ? s.card : isObj(s?.Card) ? s.Card : {};
+    const pick = (k) => (typeof c[k] === "string" && c[k].trim() ? c[k].trim().slice(0, 80) : null);
+    return { primary: pick("primary"), dark: pick("dark"), accent: pick("accent"), font: pick("font"), name: pick("name") };
+  } catch { return {}; }
+}
+
+const FONT_STACK = "'Noto Sans Thai','Sarabun','Leelawadee UI',Tahoma,system-ui,sans-serif";
+
+/** The card's colours, by the same rules as the recorder's overlay.js cardLook: { panel, ink, accent, soft }. */
+export function cardColors(t = {}) {
+  const hexOk = (s) => (typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s) ? s : null);
+  const rgbOf = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const hexOf = (c) => "#" + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+  const lum = (c) => { const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const contrast = (x, y) => { const [p, q] = [lum(x), lum(y)].sort((m, n) => n - m); return (p + 0.05) / (q + 0.05); };
+  const shade = (c, f) => c.map((v) => v * (1 - f));
+  const mix = (c, to, f) => c.map((v, i) => v + (to[i] - v) * f);
+  const WHITE = [255, 255, 255], INK = [15, 23, 42];
+  const primary = hexOk(t.primary) ? rgbOf(t.primary) : [36, 83, 179];
+  let panel, ink = WHITE;
+  if (!hexOk(t.dark) && hexOk(t.primary) && contrast(INK, primary) >= 7) { panel = primary; ink = INK; }
+  else {
+    panel = hexOk(t.dark) ? rgbOf(t.dark) : (hexOk(t.primary) ? shade(primary, 0.6) : [15, 42, 99]);
+    for (let i = 0; i < 20 && contrast(WHITE, panel) < 7; i++) panel = shade(panel, 0.08);
+  }
+  let accent = hexOk(t.accent) ? rgbOf(t.accent) : (ink === INK ? shade(primary, 0.7) : primary);
+  for (let i = 0; i < 20 && contrast(accent, panel) < 3; i++) accent = mix(accent, ink, 0.12);
+  return { panel: hexOf(panel), ink: hexOf(ink), accent: hexOf(accent), soft: ink === WHITE ? "rgba(255,255,255,.84)" : "rgba(15,23,42,.78)", backdrop: hexOf(mix(panel, WHITE, 0.88)) };
+}
+
 /** The ElevenLabs account's voices: [{ id, name, note, thai }] (GET /v2/voices). */
 export async function elevenLabsVoices(key, base = process.env.MCLIP_ELEVENLABS_URL || "https://api.elevenlabs.io") {
   const r = await fetch(`${base.replace(/\/+$/, "")}/v2/voices?page_size=100`, { headers: { "xi-api-key": key } });
@@ -463,7 +502,7 @@ export function load(clipsDir) {
       problems.push(`clips/${name}/lesson.md: not in the contents of clips/plan.md (a renamed or renumbered lesson?)`);
     }
   }
-  return { plan, lessons, problems, speed, voice, lexicon: { global: lexicon.global, project: lexicon.project } };
+  return { plan, lessons, problems, speed, voice, card: readCardTheme(path.dirname(path.resolve(clipsDir))), lexicon: { global: lexicon.global, project: lexicon.project } };
 }
 
 // ---- page ------------------------------------------------------------------------------------------------------------
@@ -497,7 +536,7 @@ function groups(lessons) {
   return out;
 }
 
-function lessonSlide(l, index, live = false) {
+function lessonSlide(l, index, live = false, card = {}) {
   const [label, cls] = STATUS[l.status] ?? ["?", "draft"];
   const why = [];
   if (l.textChanged) why.push(`บทแก้หลัง v${l.latest}`);
@@ -509,9 +548,14 @@ function lessonSlide(l, index, live = false) {
   const shootable = l.appKeys.length <= 1 && l.kinds.every((k) => k === "web");
   const stale = spokenParts(l).filter((s) => s.voice?.stale).length;
   // a step's (or a card's) narration: a box to edit on the live page, else the words; then its voice
+  // the live page edits every word the clip shows or says: บนจอ (a step's caption, a card's title), a card's คำรอง, พูด
+  const isCard = (s) => s.n === "open" || s.n === "close";
   const sayBlock = (s) => `${live
-    ? `<div class="live-say" data-id="${esc(l.id)}" data-step="${s.n}"><span>พูด</span><textarea rows="2" placeholder="คำพูด สั้น กระชับ ไม่มี ค่ะ/ครับ">${esc(s.narration)}</textarea>
-      <div class="row"><button data-act="save">บันทึกคำพูด</button><button class="go" data-act="save-voice">บันทึกและสร้างเสียง</button><em class="msg"></em></div></div>`
+    ? `<div class="live-say" data-id="${esc(l.id)}" data-step="${s.n}">
+      <label class="lf"><span class="cap-tag">บนจอ</span><input data-f="caption" value="${esc(s.caption)}" placeholder="${isCard(s) ? "หัวข้อบนการ์ด" : "คำบนจอ สั้น บอกว่าทำอะไร"}"></label>
+      ${isCard(s) ? `<label class="lf"><span class="cap-tag">คำรอง</span><input data-f="subtitle" value="${esc(s.subtitle ?? "")}" placeholder="${s.n === "close" ? "ขั้นตอนย่อ เช่น Login → เลือกเมนู → กดค้นหา" : "บรรทัดใต้หัวข้อ"}"></label>` : ""}
+      <label class="lf"><span>พูด</span><textarea data-f="narration" rows="2" placeholder="คำพูด สั้น กระชับ ไม่มี ค่ะ/ครับ">${esc(s.narration)}</textarea></label>
+      <div class="row"><button data-act="save">บันทึก</button><button class="go" data-act="save-voice">บันทึกและสร้างเสียง</button><em class="msg"></em></div></div>`
     : s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
     ${s.narration ? (s.voice
       ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}${s.voice.date ? `?v=${encodeURIComponent(s.voice.date)}` : ""}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? ` · ต้องสร้างใหม่: ${esc(s.voice.why)}` : ""}</small></p>`
@@ -540,24 +584,33 @@ function lessonSlide(l, index, live = false) {
       <div class="words">
         <h4><b>${s.n}</b> ${esc(s.title)} ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}${shootable && s.images.length ? quick(`${l.id} ขั้น ${s.n}`, SHOTS_REQUEST, "ถ่ายรูป", "ให้ AI ถ่ายรูปขั้นนี้ใหม่ (เก็บไว้ในคำขอ)") : ""}${s.narration && !live ? quick(`${l.id} ขั้น ${s.n}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดขั้นนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
         <p class="act">${esc(s.action)}</p>
-        <p class="cap"><span>บนจอ</span>${esc(s.caption)}</p>
+        ${live ? "" : `<p class="cap"><span>บนจอ</span>${esc(s.caption)}</p>`}
         ${sayBlock(s)}
         ${s.manual ? `<p class="man"><span>คู่มือ</span>${esc(s.manual)}</p>` : ""}
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
       </div></li>`;
   }).join("");
-  // the clip's opening and closing title cards, around the steps: what the card shows and what is said over it
+  // the clip's opening and closing title cards, around the steps: what the card shows and what is said over it, drawn
+  // as the recorder draws it (the theme of tools/TutorialRecorder/tutorial.settings.json, overlay.js's layout)
+  const colors = cardColors(card);
+  const cardStyle = `--p-backdrop:${colors.backdrop};--p-panel:${colors.panel};--p-ink:${colors.ink};--p-accent:${colors.accent};--p-soft:${colors.soft}${card.font && /^[\w\s\-'.]{1,60}$/.test(card.font) ? `;font-family:'${card.font}',${FONT_STACK}` : ""}`;
+  const cardNote = card.primary ? "" : `<p class="note">สีการ์ด: ยังไม่ได้ตั้ง <code>card</code> ใน tools/TutorialRecorder/tutorial.settings.json — ภาพนี้ใช้สีเริ่มต้น ตอนอัดจะใช้สีที่หน้า Login ของแอปแสดง</p>`;
   const cardBlock = (n) => {
     const c = l.cards.find((x) => x.n === n) ?? { n, caption: n === "open" ? l.title : "สรุปขั้นตอน", subtitle: "", narration: "", missing: true };
     const name = n === "open" ? "เปิด" : "สรุป", label = n === "open" ? "การ์ดเปิดคลิป" : "การ์ดสรุปท้ายคลิป";
     const steps = (c.subtitle || "").split(/\s*→\s*/).filter(Boolean);
+    const recap = steps.length >= 2;
+    // the app's screen the card stands on: the lesson's first picture for the opening, its last for the summary
+    const shot = (n === "open" ? l.steps : [...l.steps].reverse()).flatMap((s) => (n === "open" ? s.images : [...s.images].reverse()).filter((img) => s.present?.[img]))[0];
+    const num = /^(\d{2,3})-/.exec(l.id)?.[1];
+    const preview = `<div class="card-pic" style="${cardStyle}">${shot ? `<img class="cp-app" loading="lazy" src="${url(`${l.id}/${shot}`)}" alt="">` : ""}
+        <div class="cp-panel"><div class="cp-brand">${esc(card.name ?? "")}</div><div class="cp-main">${!recap && num ? `<span class="cp-num">${num}</span>` : ""}<b class="${recap ? "recap" : c.caption.length > 30 ? "long" : ""}">${esc(c.caption)}</b>${recap ? `<ol>${steps.map((x, i) => `<li><i>${i + 1}</i>${esc(x)}</li>`).join("")}</ol>` : c.subtitle ? `<span class="cp-sub">${esc(c.subtitle)}</span>` : ""}</div></div><div class="cp-seam"></div></div>`;
     return `<li class="step card-step" id="${esc(`${l.id}-${n}`)}">
-      <div class="card-pic"><i></i><b>${esc(c.caption)}</b>${steps.length >= 2 ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>` : c.subtitle ? `<span>${esc(c.subtitle)}</span>` : ""}</div>
+      ${preview}
       <div class="words">
         <h4><b>${n === "open" ? "เปิด" : "สรุป"}</b> ${label} ${editButton(`${l.id} ${name}`, c.caption)}${c.narration && !live ? quick(`${l.id} ${name}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดของการ์ดนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
-        ${c.missing ? `<p class="note">บทนี้ยังไม่มี${label}ใน lesson.md${live ? " — พิมพ์คำพูดแล้วบันทึกเพื่อเพิ่ม" : " — กด ✎ แก้ เพื่อขอให้ AI เพิ่ม"}</p>` : ""}
-        <p class="cap"><span>บนจอ</span>${esc(c.caption)}</p>
-        ${c.subtitle ? `<p class="cap"><span>คำรอง</span>${esc(c.subtitle)}</p>` : ""}
+        ${c.missing ? `<p class="note">บทนี้ยังไม่มี${label}ใน lesson.md${live ? " — พิมพ์คำพูดแล้วบันทึกเพื่อเพิ่ม" : " — กด ✎ แก้ เพื่อขอให้ AI เพิ่ม"}</p>` : ""}${n === "open" ? cardNote : ""}
+        ${live ? "" : `<p class="cap"><span>บนจอ</span>${esc(c.caption)}</p>${c.subtitle ? `<p class="cap"><span>คำรอง</span>${esc(c.subtitle)}</p>` : ""}`}
         ${sayBlock(c)}
       </div></li>`;
   };
@@ -589,7 +642,7 @@ function lessonSlide(l, index, live = false) {
 export const voiceLabel = (v) => (v.engine === "paradee" ? ENGINES.paradee.label
   : `${ENGINES[v.engine].label}: ${v.name || v.voice} (${v.model})${v.style ? ` · สไตล์: ${v.style}` : ""}`);
 
-export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voice = PARADEE, lexicon = { global: [], project: [] } }, builtAt = new Date(), { live = null } = {}) {
+export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voice = PARADEE, card = {}, lexicon = { global: [], project: [] } }, builtAt = new Date(), { live = null } = {}) {
   const p = plan ?? { title: "ยังไม่มีแผน", fields: [], toc: [], apps: [] };
   const built = builtAt.toISOString().replace("T", " ").slice(0, 16);
   const counts = Object.keys(STATUS).map((k) => [k, lessons.filter((l) => l.status === k).length]).filter(([, n]) => n);
@@ -636,7 +689,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voi
     }).join("")}`).join("")}</ol></section>`;
   const issues = problems.length
     ? `<section class="slide problems" data-title="ปัญหาในไฟล์แผน"><header><h2>ปัญหาในไฟล์แผน</h2></header><ul>${problems.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>` : "";
-  const slides = [cover, scope, toc, ...lessons.map((l, i) => lessonSlide(l, i + 1, !!live)), issues].join("\n");
+  const slides = [cover, scope, toc, ...lessons.map((l, i) => lessonSlide(l, i + 1, !!live, card)), issues].join("\n");
   // the left menu: the plan's own pages, then each lesson (main item) with its steps (sub items)
   const side = `<a class="item" data-go="0">ปก</a><a class="item" data-go="1">ขอบเขตและรูปแบบ</a><a class="item" data-go="2">สารบัญ</a>
     ${groups(lessons).map((g) => `<div class="group">${esc(g.label)}</div>${g.items.map(({ l, i }) => {
@@ -711,9 +764,21 @@ figcaption{font-size:12px;color:var(--muted)}figure.missing div{aspect-ratio:16/
 .quick{font:inherit;font-size:13px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:1px 8px;cursor:pointer}.quick:hover{background:#eef2fb}.quick.added{background:var(--green);border-color:var(--green);color:#fff}
 .play-all{font:inherit;font-size:13px;border:0;background:var(--orange);color:#fff;border-radius:8px;padding:2px 12px;cursor:pointer}
 .voice{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.voice audio{height:32px;max-width:100%}.voice small{color:var(--muted)}.voice.stale small{color:var(--red);font-weight:600}
-.card-step .card-pic{aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,var(--blue2),#0f2a63);color:#fff;padding:8% 9%;display:flex;flex-direction:column;justify-content:center;gap:6px;overflow:hidden}
-.card-step .card-pic i{display:block;width:36px;height:4px;border-radius:2px;background:#fff}.card-step .card-pic b{font-size:clamp(16px,2vw,26px);line-height:1.25}.card-step .card-pic span{font-size:clamp(12px,1.2vw,16px);opacity:.9}
-.card-step .card-pic ol{margin:4px 0 0;padding-left:1.3em;font-size:clamp(11px,1.1vw,15px);line-height:1.5}.card-step{background:#f8fafc}.card-step h4 b{background:var(--orange)!important}
+/* a title card as the recorder draws it: the app's screen, a brand panel on its left 60%, a seam (sizes in 1920ths) */
+.card-step .card-pic{position:relative;container-type:inline-size;aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:var(--p-backdrop,#e8edf5)}
+.card-pic .cp-app{position:absolute;left:63%;top:33%;width:34%;height:34%;object-fit:cover;object-position:left top;border-radius:.94cqw;outline:.1cqw solid rgba(255,255,255,.7);box-shadow:0 1.5cqw 3.6cqw rgba(0,0,0,.3)}
+.card-pic .cp-panel{position:absolute;left:0;top:0;bottom:0;width:60%;display:flex;flex-direction:column;padding:4.6cqw 5.4cqw 5cqw 5.8cqw;background:var(--p-panel);color:var(--p-ink);box-shadow:1.6cqw 0 4.7cqw rgba(0,0,0,.3)}
+.card-pic .cp-seam{position:absolute;top:0;bottom:0;left:60%;width:.63cqw;background:var(--p-accent)}
+.card-pic .cp-brand{font-size:1.46cqw;font-weight:600;color:var(--p-soft);min-height:3.3cqw}
+.card-pic .cp-main{margin:auto 0}.card-pic .cp-num{display:block;margin-bottom:1.25cqw;font-size:6.9cqw;font-weight:700;line-height:1;letter-spacing:-.03em;color:var(--p-accent)}
+.card-pic b{display:block;font-size:4.4cqw;line-height:1.18;font-weight:700;text-wrap:balance}.card-pic b.long{font-size:3.55cqw}.card-pic b.recap{font-size:3.1cqw;margin-bottom:2cqw}
+.card-pic .cp-sub{display:block;margin-top:1.8cqw;max-width:22em;font-size:1.9cqw;line-height:1.5;color:var(--p-soft)}
+.card-pic ol{position:relative;list-style:none;margin:0;padding:0}.card-pic ol::before{content:"";position:absolute;left:1.4cqw;top:1.5cqw;bottom:1.5cqw;width:.21cqw;background:var(--p-accent);opacity:.5}
+.card-pic ol li{position:relative;display:flex;align-items:center;gap:1.56cqw;padding:.57cqw 0;font-size:1.98cqw;font-weight:600;line-height:1.3}
+.card-pic ol i{position:relative;flex:none;display:grid;place-items:center;width:3cqw;height:3cqw;border-radius:50%;border:.21cqw solid var(--p-accent);background:var(--p-panel);font-style:normal;font-size:1.4cqw;font-weight:700}
+.card-step{background:#f8fafc}.card-step h4 b{background:var(--orange)!important}
+.live-say .lf{display:block;margin:4px 0}.live-say .lf>span{display:inline-block;font-size:12px;color:#fff;background:var(--orange);border-radius:4px;padding:0 6px}.live-say .lf>span.cap-tag{background:var(--blue)}
+.live-say input{width:100%;font:inherit;padding:5px 8px;border-radius:8px;border:1px solid #cbd5e1;margin:3px 0}
 .live-say{margin:6px 0}.live-say>span{display:inline-block;font-size:12px;color:#fff;background:var(--orange);border-radius:4px;padding:0 6px}
 .live-say textarea,.live-lex textarea{width:100%;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #cbd5e1;margin:4px 0}
 .live-say .row,.live-lex .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.live-say button,.live-lex button,.live-speed button,.live-btn{font:inherit;font-size:13px;border:1px solid var(--blue2);background:#fff;color:var(--blue);border-radius:8px;padding:2px 10px;cursor:pointer}
@@ -824,9 +889,12 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
   if (window.MCLIP) {
     const oneLine = (s) => s.replace(/\\s*\\n\\s*/g, " ").trim();
     const send = api;
-    // narration typed and not saved yet: saved before anything else runs, since the page reloads after each action
-    const dirty = () => [...document.querySelectorAll(".live-say")].filter((b) => {
-      const t = b.querySelector("textarea"); return oneLine(t.value) !== oneLine(t.defaultValue); });
+    // a step's or card's words (บนจอ, คำรอง, พูด) typed and not saved yet: saved before anything else runs, since the
+    // page reloads after each action
+    const fieldsOf = (b) => Object.fromEntries([...b.querySelectorAll("[data-f]")].map((x) => [x.dataset.f, oneLine(x.value)]));
+    const wordsOf = (b, voice) => { const f = fieldsOf(b); return { id: b.dataset.id, step: b.dataset.step, caption: f.caption, subtitle: f.subtitle, text: f.narration ?? "", voice }; };
+    const dirty = () => [...document.querySelectorAll(".live-say")].filter((b) =>
+      [...b.querySelectorAll("[data-f]")].some((x) => oneLine(x.value) !== oneLine(x.defaultValue)));
     let reloading = false;
     addEventListener("beforeunload", (e) => { if (!reloading && dirty().length) { e.preventDefault(); e.returnValue = ""; } });
     const post = async (where, body, box, button) => {
@@ -837,7 +905,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
       buttons.forEach((b) => b.disabled = true);
       try {
         for (const other of dirty()) if (other !== box) {
-          await send("/api/narration", { id: other.dataset.id, step: other.dataset.step, text: oneLine(other.querySelector("textarea").value), voice: false });
+          await send("/api/narration", wordsOf(other, false));
         }
         await send(where, body);
         reloading = true;
@@ -848,7 +916,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
       }
     };
     document.querySelectorAll(".live-say").forEach((box) => box.querySelectorAll("button").forEach((b) => b.onclick = () =>
-      post("/api/narration", { id: box.dataset.id, step: box.dataset.step, text: oneLine(box.querySelector("textarea").value), voice: b.dataset.act === "save-voice" }, box)));
+      post("/api/narration", wordsOf(box, b.dataset.act === "save-voice"), box)));
     document.querySelectorAll("[data-act=voice-lesson]").forEach((b) => b.onclick = () => post("/api/voice", { id: b.dataset.id }, null, b));
     const sp = document.querySelector(".live-speed");
     if (sp) sp.querySelector("button").onclick = () => post("/api/speed", { speed: +sp.querySelector("select").value }, sp);
@@ -1007,22 +1075,43 @@ const oneLine = (s, what, max = 2000) => {
   return v;
 };
 
+// what the page edits, per field: the lesson's key, whether a step may leave it empty, whether a step has it at all
+const EDITABLE = {
+  caption: { key: "บนจอ", stepMayEmpty: false, step: true },
+  subtitle: { key: "คำรอง", stepMayEmpty: true, step: false },
+  narration: { key: "พูด", stepMayEmpty: true, step: true },
+};
+
 /**
- * Sets (or, with "", removes) the '- พูด:' line of step `n` in clips/<id>/lesson.md, or of a title card (`n` "open" or
- * "close"); a card the lesson does not have yet is added (`## เปิด` before the first step, `## สรุป` at the end).
+ * Sets the words of step `n` in clips/<id>/lesson.md, or of a title card (`n` "open" or "close"): `fields` is
+ * { caption (บนจอ), subtitle (คำรอง, cards only), narration (พูด) }, any of them; "" removes a line (a step keeps its
+ * บนจอ). Each text is one line. A card the lesson does not have yet is added (`## เปิด` before the first step,
+ * `## สรุป` at the end). Keeps the file's line endings and every other line.
  */
-export function setNarration(clipsDir, id, n, text) {
+export function setLessonFields(clipsDir, id, n, fields = {}) {
   if (!ID.test(String(id))) throw new Error(`no lesson ${id}`);
   const file = path.join(clipsDir, id, "lesson.md");
   if (!fs.existsSync(file)) throw new Error(`no lesson clips/${id}/lesson.md`);
-  const value = oneLine(text, "the narration");
+  const card = n === "open" ? "เปิด" : n === "close" ? "สรุป" : null;
+  const values = {};
+  for (const [name, v] of Object.entries(fields)) {
+    if (v === undefined || v === null) continue;
+    const spec = EDITABLE[name];
+    if (!spec) throw new Error(`${name} is not a field the page edits (caption, subtitle, narration)`);
+    if (!card && !spec.step) throw new Error(`a step has no ${spec.key}: only a title card has`);
+    const value = oneLine(v, spec.key === "พูด" ? "the narration" : `'${spec.key}'`);
+    if (!card && !value && !spec.stepMayEmpty) throw new Error(`a step needs its '${spec.key}'`);
+    values[spec.key] = value;
+  }
+  if (!Object.keys(values).length) return;
   const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
   const lines = src.split(/\r?\n/);
-  const card = n === "open" ? "เปิด" : n === "close" ? "สรุป" : null;
-  let head = lines.findIndex((l) => (card ? new RegExp(`^##\\s+${card}\\s*$`) : new RegExp(`^##\\s+${Number(n)}\\.\\s`)).test(l));
-  if (head < 0 && card) {
-    if (!value) return;
-    const block = [`## ${card}`, `- บนจอ: ${card === "เปิด" ? parseLesson(src).lesson.title : "สรุปขั้นตอน"}`, `- พูด: ${value}`, ""];
+  const head = lines.findIndex((l) => (card ? new RegExp(`^##\\s+${card}\\s*$`) : new RegExp(`^##\\s+${Number(n)}\\.\\s`)).test(l));
+  if (head < 0 && !card) throw new Error(`clips/${id}/lesson.md has no step ${n}`);
+  if (head < 0) {
+    if (!Object.values(values).some(Boolean)) return;
+    const caption = values["บนจอ"] || (card === "เปิด" ? parseLesson(src).lesson.title : "สรุปขั้นตอน");
+    const block = [`## ${card}`, `- บนจอ: ${caption}`, ...["คำรอง", "พูด"].filter((k) => values[k]).map((k) => `- ${k}: ${values[k]}`), ""];
     const first = lines.findIndex((l) => /^##\s+\d+\.\s/.test(l));
     if (card === "เปิด" && first >= 0) lines.splice(first, 0, ...block);
     else {
@@ -1032,19 +1121,32 @@ export function setNarration(clipsDir, id, n, text) {
     fs.writeFileSync(file, lines.join(eol));
     return;
   }
-  if (head < 0) throw new Error(`clips/${id}/lesson.md has no step ${n}`);
-  let end = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
-  if (end < 0) end = lines.length;
-  const say = lines.findIndex((l, i) => i > head && i < end && /^\s*-\s+พูด\s*:/.test(l));
-  if (say >= 0) {
-    if (value) lines[say] = lines[say].replace(/^(\s*-\s+พูด\s*:).*$/, `$1 ${value.replace(/\$/g, "$$$$")}`);
-    else lines.splice(say, 1);
-  } else if (value) {
-    const after = lines.findIndex((l, i) => i > head && i < end && /^\s*-\s+บนจอ\s*:/.test(l));
-    lines.splice((after >= 0 ? after : head) + 1, 0, `- พูด: ${value}`);
+  // the fields in the order a block lists them: a missing one goes after the last of those before it
+  const ORDER = ["ทำ", "บนจอ", "คำรอง", "พูด"];
+  for (const key of ["บนจอ", "คำรอง", "พูด"]) {
+    if (!(key in values)) continue;
+    let end = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
+    if (end < 0) end = lines.length;
+    const rx = new RegExp(`^\\s*-\\s+${key}\\s*:`);
+    const at = lines.findIndex((l, i) => i > head && i < end && rx.test(l));
+    const value = values[key];
+    if (at >= 0) {
+      if (value) lines[at] = lines[at].replace(new RegExp(`^(\\s*-\\s+${key}\\s*:).*$`), `$1 ${value.replace(/\$/g, "$$$$")}`);
+      else lines.splice(at, 1);
+    } else if (value) {
+      let after = head;
+      for (const k of ORDER.slice(0, ORDER.indexOf(key))) {
+        const i = lines.findIndex((l, j) => j > head && j < end && new RegExp(`^\\s*-\\s+${k}\\s*:`).test(l));
+        if (i > after) after = i;
+      }
+      lines.splice(after + 1, 0, `- ${key}: ${value}`);
+    }
   }
   fs.writeFileSync(file, lines.join(eol));
 }
+
+/** Sets (or, with "", removes) the '- พูด:' line of step `n` or of a title card ("open", "close"). */
+export const setNarration = (clipsDir, id, n, text) => setLessonFields(clipsDir, id, n, { narration: text ?? "" });
 
 /** Sets (or adds) the plan's '- <key>: <value>' line, among the fields before the first '##'; "" removes it. */
 export function setPlanField(clipsDir, key, value) {

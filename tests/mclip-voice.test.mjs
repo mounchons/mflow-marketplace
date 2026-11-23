@@ -14,7 +14,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = path.join(REPO, "plugins", "mclip", "scripts");
 const imp = (f) => import(`file://${path.join(SCRIPTS, f).replace(/\\/g, "/")}`);
 const { parseLexicon, readLexicon, rulesFor, planSpeed, voiceStale, setNarration, setPlanField, writeProjectLexicon, makeVoice, load, renderPage, VOICE_ENGINE, GLOBAL_LEXICON, readRequests, addRequest, removeRequests, requestsCommand,
-  parseVoice, planVoice, voiceField, keyStatus, apiKey, elevenLabsVoices, VOICE_FIELD, PARADEE, ensureKeysIgnored, pyThaiTts, STYLE_FIELD, withStyle, parseLesson, spokenParts } = await imp("clips.mjs");
+  parseVoice, planVoice, voiceField, keyStatus, apiKey, elevenLabsVoices, VOICE_FIELD, PARADEE, ensureKeysIgnored, pyThaiTts, STYLE_FIELD, withStyle, parseLesson, spokenParts, setLessonFields } = await imp("clips.mjs");
 const { checkProject } = await imp("doctor.mjs");
 const { createHandler, SAMPLE } = await imp("serve.mjs");
 
@@ -560,5 +560,50 @@ test("the live server: a card's narration saved and spoken from the page", async
     assert.match(fs.readFileSync(path.join(p.clips, "01-in", "lesson.md"), "utf8"), /## เปิด\r\n- บนจอ: เข้าสู่ระบบ\r\n- พูด: คลิปนี้สอนวิธี Login/);
     assert.equal((await s.post("/api/narration", { id: "01-in", step: "middle", text: "x" })).status, 400);
     assert.equal((await s.post("/api/voice", { id: "01-in", step: "close" })).status, 400, "no closing card yet");
+  } finally { await s.close(); p.cleanup(); }
+});
+
+// ---- every word the clip shows or says, editable from the page ----
+
+test("a step's บนจอ and a card's บนจอ and คำรอง are edited like its narration, in their place", () => {
+  const p = project();
+  try {
+    const file = path.join(p.clips, "01-in", "lesson.md");
+    setLessonFields(p.clips, "01-in", 1, { caption: "เปิดหน้า Login ของ Compare Price" });
+    let text = fs.readFileSync(file, "utf8");
+    assert.ok(text.includes("- บนจอ: เปิดหน้า Login ของ Compare Price\r\n- พูด: กด Login ค่ะ\r\n"), "replaced where it was");
+    assert.throws(() => setLessonFields(p.clips, "01-in", 1, { caption: " " }), /a step needs its 'บนจอ'/);
+    assert.throws(() => setLessonFields(p.clips, "01-in", 1, { subtitle: "x" }), /only a title card/);
+    assert.throws(() => setLessonFields(p.clips, "01-in", 2, { caption: "สอง\nบรรทัด" }), /one line/);
+
+    setLessonFields(p.clips, "01-in", "open", { caption: "Login เข้าระบบ", subtitle: "สำหรับเจ้าหน้าที่", narration: "คลิปนี้สอนวิธี Login" });
+    setLessonFields(p.clips, "01-in", "open", { subtitle: "สำหรับเจ้าหน้าที่เทียบราคา" });
+    text = fs.readFileSync(file, "utf8");
+    assert.ok(text.includes("## เปิด\r\n- บนจอ: Login เข้าระบบ\r\n- คำรอง: สำหรับเจ้าหน้าที่เทียบราคา\r\n- พูด: คลิปนี้สอนวิธี Login\r\n"));
+    setLessonFields(p.clips, "01-in", "open", { subtitle: "" });
+    assert.ok(!fs.readFileSync(file, "utf8").includes("คำรอง"), "an emptied subtitle is removed");
+    setLessonFields(p.clips, "01-in", "open", { subtitle: "ใหม่" });
+    assert.ok(fs.readFileSync(file, "utf8").includes("- บนจอ: Login เข้าระบบ\r\n- คำรอง: ใหม่\r\n- พูด:"), "a missing field goes after บนจอ, before พูด");
+    const { lesson, problems } = parseLesson(fs.readFileSync(file, "utf8"));
+    assert.deepEqual(problems, []);
+    assert.equal(lesson.steps[0].caption, "เปิดหน้า Login ของ Compare Price");
+  } finally { p.cleanup(); }
+});
+
+test("the live page: บนจอ and คำรอง in the same box as พูด, saved together", async () => {
+  const p = project();
+  const s = await serve(p);
+  try {
+    const page = (await s.call("GET", `/?t=${s.token}`)).text;
+    assert.match(page, /data-step="1">\s*<label class="lf"><span class="cap-tag">บนจอ<\/span><input data-f="caption" value="เปิดหน้าเข้าสู่ระบบ"/);
+    assert.match(page, /data-step="open">[\s\S]*?data-f="subtitle"/, "a card also edits its คำรอง");
+    let r = await s.post("/api/narration", { id: "01-in", step: 2, caption: "กรอกชื่อผู้ใช้", text: "กรอกชื่อ" });
+    assert.equal(r.status, 200, r.text);
+    const text = fs.readFileSync(path.join(p.clips, "01-in", "lesson.md"), "utf8");
+    assert.ok(text.includes("- บนจอ: กรอกชื่อผู้ใช้\r\n- พูด: กรอกชื่อ"));
+    r = await s.post("/api/narration", { id: "01-in", step: "close", caption: "สรุป", subtitle: "เปิดหน้า → กรอกชื่อ", text: "" });
+    assert.equal(r.status, 200, r.text);
+    assert.match(fs.readFileSync(path.join(p.clips, "01-in", "lesson.md"), "utf8"), /## สรุป\r\n- บนจอ: สรุป\r\n- คำรอง: เปิดหน้า → กรอกชื่อ\r\n/);
+    assert.equal((await s.post("/api/narration", { id: "01-in", step: 1, caption: "" })).status, 400);
   } finally { await s.close(); p.cleanup(); }
 });

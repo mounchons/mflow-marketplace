@@ -52,11 +52,11 @@ public sealed class OverlayClient(IPage page, string script)
         await page.EvaluateAsync("([k, r, o]) => window.__tour.highlight(k, r, o)", new object?[] { kind, Rect(rect), new { badge, ok } });
     }
 
-    public async Task Card(string title, string? subtitle, CardTheme? theme = null)
+    public async Task Card(string title, string? subtitle, CardTheme? theme = null, string? label = null)
     {
         await Ensure();
         var th = theme is null ? null : new { primary = theme.Primary, dark = theme.Dark, accent = theme.Accent, font = theme.Font, logo = theme.Logo, name = theme.Name };
-        await page.EvaluateAsync("([t, s, th]) => window.__tour.card(t, s, th)", new object?[] { title, subtitle, th });
+        await page.EvaluateAsync("([t, s, th, l]) => window.__tour.card(t, s, th, l)", new object?[] { title, subtitle, th, label });
     }
 
     /// <summary>The colours and font the page shows (its background gradient, a primary button), for the cards' theme.</summary>

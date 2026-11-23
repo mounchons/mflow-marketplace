@@ -294,8 +294,10 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/serve.mjs --open
 ```
 
 Run it in the background: it prints `{"url": ...}` and serves until stopped. Give the user the URL (it carries the
-page's token: it is the only way in) and say what the page does there: each step's narration in a box with บันทึกคำพูด
-and บันทึกและสร้างเสียง (the voice is made at once and plays on the page), สร้างเสียงทั้งบทตอนนี้ on a lesson, and on
+page's token: it is the only way in) and say what the page does there: every word the clip shows or says, edited in
+place (a step's บนจอ and พูด; a title card's บนจอ, คำรอง and พูด; the user's own words win over a transliteration the
+AI chose), with บันทึก and บันทึกและสร้างเสียง (the voice is made at once and plays on the page); the title cards
+drawn as the recording draws them, in the project's `card` colours over the lesson's first and last picture; สร้างเสียงทั้งบทตอนนี้ on a lesson, and on
 ขอบเขตและรูปแบบ the voice (Paradee, a Gemini voice, or a voice of the ElevenLabs account listed from it; ลองฟัง speaks a
 sample, ใช้เสียงนี้ writes `- เสียงพากย์:` and, for Gemini, the style box as `- สไตล์เสียง:` and every step then shows ต้องสร้างใหม่), whether each API key is set (never
 its value), the speed and the project's words. ✎ แก้ and ถ่ายรูป there save their requests in

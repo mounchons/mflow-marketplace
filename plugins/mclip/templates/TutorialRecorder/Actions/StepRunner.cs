@@ -87,7 +87,9 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
                     await Settle(step, index);
                 }
                 if (Clean) await overlay.HideCursor();
-                else await overlay.Card(step.Caption!, step.Subtitle, cardTheme ??= await CardLook());
+                // the lesson's number (clip 01-sign-in -> 01) above an opening card's title
+                else await overlay.Card(step.Caption!, step.Subtitle, cardTheme ??= await CardLook(),
+                    System.Text.RegularExpressions.Regex.Match(scenario.Clip ?? "", @"^(\d{2,3})-").Groups[1].Value is { Length: > 0 } num ? num : null);
                 t.CaptionSpan = new Span { Text = step.Subtitle is null ? step.Caption! : $"{step.Caption}: {step.Subtitle}", StartMs = log.Now() };
                 await Hold(step, t, index, int.TryParse(step.Value, out var cardMs) ? cardMs : null);
                 break;

@@ -8,7 +8,7 @@
 //
 // Safety: it listens on 127.0.0.1 only; every request must name this host (no other site can reach it through a
 // renamed domain), every write carries the token printed at start (a page of another site cannot read it), a request
-// from another origin is refused, and no CORS header is ever sent. It writes six things only: a step's '- พูด:' line,
+// from another origin is refused, and no CORS header is ever sent. It writes six things only: a step's or title card's words (บนจอ, คำรอง, พูด),
 // the plan's '- ความเร็วเสียง:', '- เสียงพากย์:' and '- สไตล์เสียง:' lines, clips/lexicon.txt, the edit requests (clips/requests.json,
 // which /mclip:plan edit reads), and the voice (clips/<id>/voice/). One voice run at a time. API keys
 // (tools/TutorialRecorder/tts/keys.json or the environment) stay on this machine: the page learns only whether each is
@@ -19,7 +19,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
-import { load, renderPage, makeVoice, pyThaiTts, setNarration, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored,
+import { load, renderPage, makeVoice, pyThaiTts, setLessonFields, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored,
   readRequests, addRequest, removeRequests, VOICE_FIELD, parseVoice, voiceField, keyStatus, apiKey, elevenLabsVoices,
   GEMINI_VOICES, GLOBAL_LEXICON, ENGINES, ensureKeysIgnored, withStyle, STYLE_FIELD, partKey } from "./clips.mjs";
 
@@ -89,7 +89,8 @@ export function createHandler({ clips, token, speak, port: getPort, tts = path.j
       if (u.pathname === "/api/narration") {
         const step = partKey(body.step);  // a step number, or a title card: open, close
         if (step === null) throw new Error("step is a step number, open or close");
-        setNarration(root, String(body.id ?? ""), step, body.text);
+        // every word the clip shows or says: บนจอ, a card's คำรอง, พูด (a field left out stays as it is)
+        setLessonFields(root, String(body.id ?? ""), step, { caption: body.caption, subtitle: body.subtitle, narration: body.text ?? "" });
         const out = { saved: true };
         if (body.voice && String(body.text ?? "").trim()) out.voice = voice(String(body.id), step);
         return send(res, 200, out);

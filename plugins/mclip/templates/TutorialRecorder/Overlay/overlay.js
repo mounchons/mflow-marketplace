@@ -50,33 +50,42 @@
 @keyframes __t-halo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes __t-ghost { from { opacity: .5; } to { opacity: 0; } }
 @keyframes __t-rise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
-/* The title card: a presentation slide in the app's colours (--c-* set by card() from the theme), large and calm. */
-.__t-card { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 150px 9vw 90px;
-  background: linear-gradient(135deg, var(--c-a, #2453b3) 0%, var(--c-b, #0f2a63) 100%); color: var(--c-ink, #fff);
-  font-family: ${FONT}; animation: __t-fade 400ms ease both; transition: opacity 350ms ease; }
-.__t-card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(70% 90% at 88% 12%, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 60%); }
-.__t-card .__t-body { position: relative; z-index: 1; max-width: 1500px; }
-.__t-card .__t-brand { position: absolute; z-index: 1; top: 64px; left: 9vw; display: flex; align-items: center; gap: 20px;
-  font-size: 30px; font-weight: 600; letter-spacing: .01em; animation: __t-rise2 500ms 100ms ease both; }
-.__t-card .__t-logo { display: flex; align-items: center; background: #fff; border-radius: 16px; padding: 10px 16px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.18); }
-.__t-card .__t-logo img { display: block; height: 52px; width: auto; max-width: 320px; }
-.__t-card .__t-bar { width: 112px; height: 10px; border-radius: 5px; background: var(--c-accent, #fff); margin-bottom: 40px;
-  animation: __t-grow 600ms 150ms cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
-.__t-card h1 { margin: 0; font-size: 84px; font-weight: 700; line-height: 1.22; letter-spacing: -.005em; text-wrap: balance;
-  text-shadow: 0 2px 18px rgba(0,0,0,.18); animation: __t-rise2 500ms 200ms ease both; }
+/* The title card: the app's own screen stays in view on the right; on the left a panel in its brand colour carries the
+   words (--c-* set by card() from the theme). Opening: the lesson's number, its title, one line under it. Closing: the
+   steps on a track. One movement: the panel wipes in, then the words. */
+.__t-card { position: fixed; inset: 0; font-family: ${FONT}; transition: opacity 350ms ease; }
+/* the live page, shrunk into the right side (see frameThePage): a window in a tinted backdrop */
+.__t-card .__t-frame { position: absolute; border-radius: 18px; outline: 2px solid rgba(255,255,255,.7);
+  box-shadow: 0 28px 70px rgba(0,0,0,.30), 0 0 0 200vmax var(--c-backdrop, #e8edf5); animation: __t-fade 300ms ease both; }
+.__t-card .__t-panel { position: absolute; left: 0; top: 0; bottom: 0; width: 60%; display: flex; flex-direction: column;
+  padding: 88px 104px 96px 112px; background: var(--c-panel, #0f2a63); color: var(--c-ink, #fff);
+  box-shadow: 30px 0 90px rgba(0,0,0,.30); animation: __t-wipe 650ms cubic-bezier(.2,.8,.2,1) both; }
+.__t-card .__t-seam { position: absolute; top: 0; bottom: 0; left: 60%; width: 12px; background: var(--c-accent, #f97316);
+  animation: __t-fade 250ms 520ms ease both; }
+.__t-card .__t-brand { display: flex; align-items: center; gap: 18px; min-height: 64px; font-size: 28px; font-weight: 600;
+  color: var(--c-soft, rgba(255,255,255,.82)); animation: __t-fade 400ms 350ms ease both; }
+.__t-card .__t-logo { display: flex; align-items: center; background: #fff; border-radius: 12px; padding: 8px 14px; }
+.__t-card .__t-logo img { display: block; height: 48px; width: auto; max-width: 300px; }
+.__t-card .__t-main { margin: auto 0; animation: __t-rise2 500ms 380ms ease both; }
+.__t-card .__t-num { display: block; margin-bottom: 24px; font-size: 132px; font-weight: 700; line-height: 1;
+  letter-spacing: -.03em; color: var(--c-accent, #f97316); font-variant-numeric: tabular-nums; }
+.__t-card h1 { margin: 0; font-size: 84px; font-weight: 700; line-height: 1.18; letter-spacing: -.005em; text-wrap: balance; }
 .__t-card h1.long { font-size: 68px; }
-.__t-card p { margin: 28px 0 0; font-size: 40px; font-weight: 500; line-height: 1.5; opacity: .92; max-width: 1350px;
-  text-wrap: pretty; animation: __t-rise2 500ms 350ms ease both; }
-.__t-card .__t-steps { list-style: none; margin: 44px 0 0; padding: 0; display: grid; gap: 22px; }
-.__t-card .__t-steps.many { gap: 14px; }
-.__t-card .__t-steps li { display: flex; align-items: center; gap: 26px; font-size: 42px; font-weight: 600; line-height: 1.35;
-  animation: __t-rise2 450ms ease both; }
-.__t-card .__t-steps.many li { font-size: 34px; }
-.__t-card .__t-steps b { flex: none; display: grid; place-items: center; width: 66px; height: 66px; border-radius: 50%;
-  background: var(--c-accent, #fff); color: var(--c-on-accent, #0f2a63); font-size: 34px; font-weight: 700; }
-.__t-card .__t-steps.many b { width: 54px; height: 54px; font-size: 28px; }
+.__t-card h1.recap { font-size: 60px; margin-bottom: 40px; }
+.__t-card p { margin: 34px 0 0; max-width: 22em; font-size: 36px; font-weight: 400; line-height: 1.5;
+  color: var(--c-soft, rgba(255,255,255,.82)); text-wrap: pretty; }
+.__t-card .__t-steps { position: relative; list-style: none; margin: 0; padding: 0; }
+.__t-card .__t-steps::before { content: ""; position: absolute; left: 27px; top: 30px; bottom: 30px; width: 4px;
+  border-radius: 2px; background: var(--c-accent, #f97316); opacity: .5; }
+.__t-card .__t-steps li { position: relative; display: flex; align-items: center; gap: 30px; padding: 11px 0;
+  font-size: 38px; font-weight: 600; line-height: 1.3; }
+.__t-card .__t-steps b { position: relative; flex: none; display: grid; place-items: center; width: 58px; height: 58px;
+  border-radius: 50%; border: 4px solid var(--c-accent, #f97316); background: var(--c-panel, #0f2a63);
+  font-size: 27px; font-weight: 700; }
+.__t-card .__t-steps.many li { padding: 7px 0; font-size: 32px; }
+.__t-card .__t-steps.many::before { left: 23px; }
+.__t-card .__t-steps.many b { width: 50px; height: 50px; font-size: 23px; }
+@keyframes __t-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes __t-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes __t-rise2 { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes __t-in { from { opacity: 0; translate: var(--dx, 0) var(--dy, 0); } to { opacity: 1; translate: 0 0; } }
@@ -99,31 +108,54 @@
   const contrast = (x, y) => { const [p, q] = [lum(x), lum(y)].sort((m, n) => n - m); return (p + 0.05) / (q + 0.05); };
   const shade = (c, f) => c.map((v) => v * (1 - f));
   const WHITE = [255, 255, 255], INK = [15, 23, 42];
+  const mix = (c, to, f) => c.map((v, i) => v + (to[i] - v) * f);
   /**
-   * The card's colours from a theme: a gradient from the primary to its dark end, the text white unless the brand is
-   * so light that dark text reads better, and the primary darkened step by step until white text has 4.5:1 on it.
+   * The card's colours from a theme (the same rules as clips.mjs cardColors, for the plan page's preview):
+   * - panel: the brand's dark end (given, or the primary darkened), darkened until white text has 7:1 on it; a light
+   *   brand (yellow, pastel) with no dark end keeps its own colour and takes dark text instead;
+   * - accent (the lesson number, the seam, the steps' track): the primary, or the given accent, lifted toward the
+   *   text's colour until it has 3:1 on the panel.
    */
   function cardLook(t) {
-    let a = hexOk(t.primary) ? rgbOf(t.primary) : [36, 83, 179];
-    // a light brand (yellow, pastel) keeps its light end and takes dark text; a deep one runs down to a dark shade
-    const light = contrast(INK, a) >= 7;
-    let b = hexOk(t.dark) ? rgbOf(t.dark) : (hexOk(t.primary) ? shade(a, light ? 0.16 : 0.55) : [15, 42, 99]);
-    if (lum(b) > lum(a)) [a, b] = [b, a];
-    let ink = WHITE;
-    if (contrast(WHITE, a) < 4.5) {
-      if (contrast(INK, a) >= 7 && contrast(INK, b) >= 4.5) ink = INK;
-      else {
-        for (let i = 0; i < 14 && contrast(WHITE, a) < 4.5; i++) a = shade(a, 0.07);
-        for (let i = 0; i < 14 && contrast(WHITE, b) < 4.5; i++) b = shade(b, 0.07);
-      }
+    const primary = hexOk(t.primary) ? rgbOf(t.primary) : [36, 83, 179];
+    let panel, ink = WHITE;
+    if (!hexOk(t.dark) && hexOk(t.primary) && contrast(INK, primary) >= 7) { panel = primary; ink = INK; }
+    else {
+      panel = hexOk(t.dark) ? rgbOf(t.dark) : (hexOk(t.primary) ? shade(primary, 0.6) : [15, 42, 99]);
+      for (let i = 0; i < 20 && contrast(WHITE, panel) < 7; i++) panel = shade(panel, 0.08);
     }
-    const accent = hexOk(t.accent) && contrast(rgbOf(t.accent), b) >= 3 ? rgbOf(t.accent) : ink;
-    const onAccent = contrast(WHITE, accent) >= contrast(INK, accent) ? WHITE : (ink === INK ? WHITE : b);
+    let accent = hexOk(t.accent) ? rgbOf(t.accent) : (ink === INK ? shade(primary, 0.7) : primary);
+    for (let i = 0; i < 20 && contrast(accent, panel) < 3; i++) accent = mix(accent, ink, 0.12);
+    const soft = ink === WHITE ? 'rgba(255,255,255,.84)' : 'rgba(15,23,42,.78)';
+    const backdrop = hexOf(mix(panel, WHITE, 0.88)); // behind the framed page: the panel's colour, faint
     const font = typeof t.font === 'string' && /^[\w\s\-'.]{1,60}$/.test(t.font.trim()) ? t.font.trim() : null;
     const logo = typeof t.logo === 'string' && (/^data:image\/(png|jpeg|svg\+xml|webp);base64,[A-Za-z0-9+/=]+$/.test(t.logo)
       || /^\/(?!\/)[^\s"'<>]*$/.test(t.logo)) ? t.logo : null;
     const name = typeof t.name === 'string' ? t.name.trim().slice(0, 60) : '';
-    return { a: hexOf(a), b: hexOf(b), ink: hexOf(ink), accent: hexOf(accent), onAccent: hexOf(onAccent), font, logo, name };
+    return { panel: hexOf(panel), ink: hexOf(ink), accent: hexOf(accent), soft, backdrop, font, logo, name };
+  }
+
+  // The page behind a title card, shrunk into the card's right side with the zoom's own transform (the overlay root
+  // undoes it, so the card stays in screen pixels). Undone by clearStep, before the next step touches the page.
+  let framed = null;
+  function frameThePage() {
+    const html = document.documentElement, W = vw(), H = vh(), m = Math.round(W * 0.03);
+    const s = (W * 0.4 - 2 * m) / W, x = W * 0.6 + m, y = (H - H * s) / 2;
+    if (!framed) framed = { zoom: { ...zoom }, t: html.style.transform, o: html.style.transformOrigin, tr: html.style.transition };
+    html.style.transition = 'none';
+    html.style.transformOrigin = '0 0';
+    html.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+    Object.assign(zoom, { s, tx: x, ty: y });
+    counter();
+    return { x, y, w: W * s, h: H * s };
+  }
+  function unframeThePage() {
+    if (!framed) return;
+    const html = document.documentElement;
+    html.style.transform = framed.t; html.style.transformOrigin = framed.o; html.style.transition = framed.tr;
+    Object.assign(zoom, framed.zoom);
+    framed = null;
+    counter();
   }
 
   function ensure() {
@@ -266,39 +298,39 @@
     },
 
     // ---- captions --------------------------------------------------------------------------------------------------
-    // A full-screen title card (opening, section, summary) over whatever page is behind it, as a presentation slide in
-    // the app's colours: `theme` { primary, dark, accent, font, logo, name } (any of them may be missing). A subtitle of
-    // steps ("a → b → c") becomes a numbered list.
-    card(title, subtitle, theme) {
-      const t = theme || {};
-      const look = cardLook(t);
+    // A full-screen title card (opening, section, summary) over the page behind it, which stays in view on the right:
+    // a panel in the app's colours (`theme` { primary, dark, accent, font, logo, name }, any may be missing) with the
+    // lesson's number (`label`, "01") above its title on an opening card. A subtitle of steps ("a → b → c") becomes the
+    // steps on a track, the closing card's recap.
+    card(title, subtitle, theme, label) {
+      const look = cardLook(theme || {});
       const c = add(el('div', '__t-card'));
-      c.style.setProperty('--c-a', look.a);
-      c.style.setProperty('--c-b', look.b);
-      c.style.setProperty('--c-ink', look.ink);
-      c.style.setProperty('--c-accent', look.accent);
-      c.style.setProperty('--c-on-accent', look.onAccent);
+      for (const [k, v] of [['--c-panel', look.panel], ['--c-ink', look.ink], ['--c-accent', look.accent], ['--c-soft', look.soft], ['--c-backdrop', look.backdrop]]) c.style.setProperty(k, v);
       if (look.font) c.style.fontFamily = `"${look.font}", ${FONT}`;
-      if (look.logo || look.name) {
-        const brand = c.appendChild(el('div', '__t-brand'));
-        if (look.logo) { const tile = brand.appendChild(el('span', '__t-logo')); const img = el('img'); img.src = look.logo; img.alt = ''; tile.appendChild(img); }
-        if (look.name) { const n = el('span'); n.textContent = look.name; brand.appendChild(n); }
-      }
-      const body = c.appendChild(el('div', '__t-body'));
-      body.appendChild(el('div', '__t-bar'));
-      const h = el('h1'); h.textContent = title || '';
-      if ((title || '').length > 34) h.className = 'long';
-      body.appendChild(h);
+      const f = frameThePage();
+      const frame = c.appendChild(el('div', '__t-frame'));
+      Object.assign(frame.style, { left: `${f.x}px`, top: `${f.y}px`, width: `${f.w}px`, height: `${f.h}px` });
+      const panel = c.appendChild(el('div', '__t-panel'));
+      c.appendChild(el('div', '__t-seam'));
+      const brand = panel.appendChild(el('div', '__t-brand'));
+      if (look.logo) { const tile = brand.appendChild(el('span', '__t-logo')); const img = el('img'); img.src = look.logo; img.alt = ''; tile.appendChild(img); }
+      if (look.name) { const n = el('span'); n.textContent = look.name; brand.appendChild(n); }
+      const main = panel.appendChild(el('div', '__t-main'));
       const steps = (subtitle || '').split(/\s*→\s*/).map((s) => s.trim()).filter(Boolean);
-      if (steps.length >= 2) {
-        const ol = body.appendChild(el('ol', '__t-steps' + (steps.length > 5 ? ' many' : '')));
+      const recap = steps.length >= 2;
+      if (!recap && typeof label === 'string' && /^\d{1,3}$/.test(label)) { const n = el('span', '__t-num'); n.textContent = label; main.appendChild(n); }
+      const h = el('h1'); h.textContent = title || '';
+      h.className = recap ? 'recap' : (title || '').length > 30 ? 'long' : '';
+      main.appendChild(h);
+      if (recap) {
+        const ol = main.appendChild(el('ol', '__t-steps' + (steps.length > 5 ? ' many' : '')));
         steps.forEach((s, i) => {
-          const li = el('li'); li.style.animationDelay = `${350 + i * 120}ms`;
+          const li = el('li');
           const n = el('b'); n.textContent = String(i + 1); li.appendChild(n);
           const w = el('span'); w.textContent = s; li.appendChild(w);
           ol.appendChild(li);
         });
-      } else if (subtitle) { const p = el('p'); p.textContent = subtitle; body.appendChild(p); }
+      } else if (subtitle) { const p = el('p'); p.textContent = subtitle; main.appendChild(p); }
       if (cursor) cursor.style.display = 'none';
     },
 
@@ -390,6 +422,7 @@
         if (e.classList.contains('__t-card')) { e.style.opacity = '0'; setTimeout(() => e.remove(), 400); } else e.remove();
       }
       step.clear();
+      unframeThePage();
       if (cursor) cursor.style.display = '';
     },
   };

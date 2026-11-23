@@ -22,7 +22,7 @@ const STAMP = ".mclip-version";
 /** Paths (relative, forward slashes) the project owns once they exist: copied on a first install only, never updated. */
 const OWNED = new Set(["tutorial.settings.json"]);
 /** Paths that never come from the template at all (the project writes them). */
-const NEVER = [/^tutorial\.secrets\.json$/, /^stack\/reset\.ps1$/, /^stack\/docker-compose\.tutorial\.yml$/, /^(bin|obj|Output)\//, /^tts\/\.venv\//];
+const NEVER = [/^tutorial\.secrets\.json$/, /^stack\/reset\.ps1$/, /^stack\/docker-compose\.tutorial\.yml$/, /^(bin|obj|Output)\//, /^tts\/\.venv\//, /^tts\/keys\.json$/];
 
 function parse(argv) {
   const opts = { project: process.env.CLAUDE_PROJECT_DIR || process.cwd(), update: false, dryRun: false };

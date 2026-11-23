@@ -57,7 +57,7 @@ goes to the `.srt`, so the voice-over fits and an editor such as WeftCut lays th
 
 Options: `--check` (validate the scenario and list its steps, no browser), `--mode caption|callout|both|clean` (overrides the
 scenario; its files are then named `<clip>-<mode>.*`, so both recordings are kept), `--voice` (see below),
-`--speed 0.85` (voice speed, 0.7–1.0), `--headed` (watch the browser), `--no-setup`, `--no-shots`, `--keep-webm`,
+`--speed 0.85` (voice speed, 0.7–1.0), `--speaker "<engine> <voice> [<model>]"` (an API voice, see below), `--headed` (watch the browser), `--no-setup`, `--no-shots`, `--keep-webm`,
 `--secrets <file>`, `--durations <file.json>` (`{"3": 4200}` sets step 3's reading time by hand).
 
 ### Voice-over (`--voice`)
@@ -78,10 +78,19 @@ card and a short line on the explicit `login` step, so each sentence matches wha
 (`Login = ล๊อก อิน`; a Latin word matches whole and in any case): only the voice changes, never the captions. A line of
 several sentences is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) and a space, with a
 pause between them and silence after the last word. A price is said in words (`5,877.50 บาท` →
-ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์). A changed rule file or speed speaks the lines again.
+ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์). A changed rule file, speed or speaker speaks the lines again.
+
+`--speaker "<engine> <voice> [<model>]"` speaks with an API voice instead of Paradee:
+`--speaker "gemini Enya"` (a Google Gemini TTS voice, Enya when none is named, model `gemini-3.8-flash-tts`; `--style "Friendly"` says how
+every line is delivered, free text as in AI Studio) or
+`--speaker "elevenlabs <voice_id>"` (a voice of the ElevenLabs account, model `eleven_v3`; `eleven_multilingual_v2`
+and `eleven_flash_v2_5` have no Thai). Its key is `GEMINI_API_KEY` / `ELEVENLABS_API_KEY` from the environment, else
+from `tts/keys.json` (git-ignored; copy `tts/keys.example.json`). The narration is sent to that company and the
+account is charged for it. An API voice speaks each line whole at its own pace, then is slowed to `--speed` by ffmpeg
+(the pitch kept). A refused key or call stops the run with what the API answered.
 
 The TTS script works on its own too:
-`tts/.venv/Scripts/python tts/tts_paradee.py --input lines.txt --out out_dir --speed 0.85 [--mp3] [--merge]`
+`tts/.venv/Scripts/python tts/tts_paradee.py --input lines.txt --out out_dir --speed 0.85 [--mp3] [--merge] [--engine gemini|elevenlabs --voice <v> [--model <m>] --keys tts/keys.json]`
 (one sentence per line, `#` lines skipped; writes `001.wav` …, `manifest.json`, and with `--merge` `merged.wav`).
 
 Exit codes: 0 done, 2 the scenario or its setup is wrong, 3 a step failed (partial clip, screenshot, message naming the

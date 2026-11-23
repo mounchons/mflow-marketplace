@@ -12,7 +12,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { load } from "./clips.mjs";
+import { load, keyStatus, ENGINES } from "./clips.mjs";
 
 const PLUGIN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const RECORDER = path.join("tools", "TutorialRecorder");
@@ -97,6 +97,14 @@ export function checkProject(root, pluginVersion) {
     if (!built) add("recorder-build", "warn", "the recorder is not built", "dotnet build tools/TutorialRecorder");
     if (!fs.existsSync(at("tutorial.secrets.json"))) add("secrets", "warn", "no tutorial.secrets.json (the test users)", "/mclip:init writes it from tutorial.secrets.example.json");
     if (!fs.existsSync(at("stack", "reset.ps1"))) add("stack", "warn", "no stack/reset.ps1 (the throwaway test stack to record on)", "/mclip:init writes it");
+    // the API keys' file must never reach a commit (a recorder from before 0.6 does not ignore it)
+    if (fs.existsSync(at("tts", "keys.json"))) {
+      const rel = path.join(RECORDER, "tts", "keys.json");
+      const r = spawnSync("git", ["check-ignore", "-q", rel], { cwd: root });
+      if (r.status === 1) add("keys-ignored", "fail", `${rel} is not git-ignored: a commit would publish the API keys`,
+        `add the line tts/keys.json to ${path.join(RECORDER, ".gitignore")} (/mclip:plan serve and /mclip:plan voice add it)`);
+      else if (r.status === 0) add("keys-ignored", "ok", `${rel} is git-ignored`);
+    }
     const venv = win ? at("tts", ".venv", "Scripts", "python.exe") : at("tts", ".venv", "bin", "python");
     if (fs.existsSync(venv)) add("voice", "ok", "Thai voice ready (tts/.venv)");
     else add("voice", "warn", "no Thai voice (tts/.venv): /mclip:plan voice and recording with voice need it (optional)",
@@ -105,9 +113,16 @@ export function checkProject(root, pluginVersion) {
   const clips = path.join(root, "clips");
   if (!fs.existsSync(path.join(clips, "plan.md"))) add("plan", "warn", "no clips/plan.md", "/mclip:plan");
   else {
-    const { lessons, problems } = load(clips);
+    const { lessons, problems, voice } = load(clips);
     if (problems.length) add("plan", "warn", `clips/plan.md: ${lessons.length} lessons, ${problems.length} problem(s): ${problems[0]}`, "/mclip:plan (the page lists them on its last slide)");
     else add("plan", "ok", `clips/plan.md: ${lessons.length} lessons`);
+    // an API voice needs its key: said set or not, never its value
+    if (voice && voice.engine !== "paradee") {
+      const name = ENGINES[voice.engine].key;
+      if (keyStatus(at("tts"))[name]) add("voice-key", "ok", `${name} is set (the plan's voice: ${voice.spec})`);
+      else add("voice-key", "fail", `the plan's voice is ${voice.spec}, and ${name} is not set`,
+        `write ${path.join(RECORDER, "tts", "keys.json")} yourself as {"${name}": "<your key>"} (git-ignored), or set ${name} in the environment`);
+    }
   }
   return checks;
 }

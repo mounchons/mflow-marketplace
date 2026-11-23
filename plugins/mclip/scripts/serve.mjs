@@ -8,23 +8,37 @@
 //
 // Safety: it listens on 127.0.0.1 only; every request must name this host (no other site can reach it through a
 // renamed domain), every write carries the token printed at start (a page of another site cannot read it), a request
-// from another origin is refused, and no CORS header is ever sent. It writes five things only: a step's '- พูด:' line,
-// the plan's '- ความเร็วเสียง:' line, clips/lexicon.txt, the edit requests (clips/requests.json, which /mclip:plan edit
-// reads), and the voice (clips/<id>/voice/). One voice run at a time.
+// from another origin is refused, and no CORS header is ever sent. It writes six things only: a step's '- พูด:' line,
+// the plan's '- ความเร็วเสียง:', '- เสียงพากย์:' and '- สไตล์เสียง:' lines, clips/lexicon.txt, the edit requests (clips/requests.json,
+// which /mclip:plan edit reads), and the voice (clips/<id>/voice/). One voice run at a time. API keys
+// (tools/TutorialRecorder/tts/keys.json or the environment) stay on this machine: the page learns only whether each is
+// set, and this server uses the ElevenLabs one to list the account's voices.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import os from "node:os";
 import { load, renderPage, makeVoice, pyThaiTts, setNarration, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored,
-  readRequests, addRequest, removeRequests } from "./clips.mjs";
+  readRequests, addRequest, removeRequests, VOICE_FIELD, parseVoice, voiceField, keyStatus, apiKey, elevenLabsVoices,
+  GEMINI_VOICES, GLOBAL_LEXICON, ENGINES, ensureKeysIgnored, withStyle, STYLE_FIELD } from "./clips.mjs";
+
+// what "ลองฟัง" says: a closing particle, an English word of the rules and a price
+export const SAMPLE = "สวัสดีค่ะ กดปุ่ม Login เพื่อเข้าสู่ระบบ แล้วดูราคา 5,877.50 บาท ได้ที่หน้านี้ค่ะ";
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp3": "audio/mpeg",
   ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".json": "application/json", ".pdf": "application/pdf" };
 
 /** The request handler, separate from listening so tests drive it on any port. `speak` is the voice (pyThaiTts). */
-export function createHandler({ clips, token, speak, port: getPort }) {
+export function createHandler({ clips, token, speak, port: getPort, tts = path.join(path.dirname(path.resolve(clips)), "tools", "TutorialRecorder", "tts"), globalLexicon = GLOBAL_LEXICON, env = process.env }) {
   const root = path.resolve(clips);
+  // the voice the page names: { engine, id, model } as the plan field would say it
+  const chosenVoice = (body) => {
+    const engine = String(body.engine ?? "");
+    const v = parseVoice(engine === "paradee" ? "paradee" : `${engine} ${String(body.id ?? "").trim() || "?"} ${String(body.model ?? "").trim()}`.trim());
+    if (v.error) throw new Error(v.error);
+    return withStyle({ ...v, name: String(body.name ?? "").replace(/[()\r\n\u2028\u2029]/g, "").trim().slice(0, 60) }, body.style);
+  };
   const send = (res, code, body, type = "application/json") => {
     res.writeHead(code, { "Content-Type": type, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" });
     res.end(type === "application/json" ? JSON.stringify(body) : body);
@@ -54,7 +68,7 @@ export function createHandler({ clips, token, speak, port: getPort }) {
       if (!sameToken(u.searchParams.get("t"))) return send(res, 403, "<p>เปิดด้วยลิงก์ที่ server พิมพ์ไว้ (มี ?t=...)</p>", "text/html; charset=utf-8");
       const data = load(root);
       if (!data.plan) return send(res, 404, `<p>${String(data.problems[0]).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)}</p>`, "text/html; charset=utf-8");
-      return send(res, 200, renderPage(data, new Date(), { live: { token, requests: readRequests(root) } }), "text/html; charset=utf-8");
+      return send(res, 200, renderPage(data, new Date(), { live: { token, requests: readRequests(root), keys: keyStatus(tts, env) } }), "text/html; charset=utf-8");
     }
     if (req.method === "GET") {
       // the lessons' pictures, voices and videos: files under clips/ only, never above it, never a dot-file
@@ -92,6 +106,31 @@ export function createHandler({ clips, token, speak, port: getPort }) {
         return send(res, 200, { speed });
       }
       if (u.pathname === "/api/lexicon") return send(res, 200, { rules: writeProjectLexicon(root, body.text) });
+      if (u.pathname === "/api/voice-engine") {
+        const v = chosenVoice(body);
+        setPlanField(root, VOICE_FIELD, voiceField(v));
+        setPlanField(root, STYLE_FIELD, v.style);  // "" (no style, or not Gemini) removes the line
+        return send(res, 200, { voice: v.key });
+      }
+      if (u.pathname === "/api/voices") {
+        if (body.engine === "gemini") return send(res, 200, { voices: GEMINI_VOICES.map(([id, note]) => ({ id, name: id, note, thai: true })) });
+        if (body.engine !== "elevenlabs") throw new Error("the voices of gemini or elevenlabs");
+        const key = apiKey(tts, ENGINES.elevenlabs.key, env);
+        if (!key) throw new Error(`no ${ENGINES.elevenlabs.key} in tools/TutorialRecorder/tts/keys.json`);
+        return send(res, 200, { voices: await elevenLabsVoices(key) });
+      }
+      if (u.pathname === "/api/voice-sample") {
+        const v = chosenVoice(body);
+        const speed = Number(body.speed ?? 1);
+        if (!(speed >= 0.7 && speed <= 1)) throw new Error("the speed is from 0.7 (slow) to 1.0 (normal)");
+        const work = fs.mkdtempSync(path.join(os.tmpdir(), "mclip-sample-"));
+        try {
+          const lexicons = [globalLexicon, path.join(root, "lexicon.txt")].filter((f) => fs.existsSync(f));
+          const [item] = speak([SAMPLE], work, speed, lexicons, v);
+          if (!item || !fs.existsSync(item.file)) throw new Error("the voice made no sample");
+          return send(res, 200, { text: SAMPLE, voice: v.key, durationMs: item.durationMs, mp3: fs.readFileSync(item.file).toString("base64") });
+        } finally { fs.rmSync(work, { recursive: true, force: true }); }
+      }
       if (u.pathname === "/api/requests") {
         // {add: {target, quote, text}} | {remove: id} | {clear: true} | {} (read); answers with the list
         let items;
@@ -117,7 +156,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const token = crypto.randomBytes(24).toString("hex");
   let port = 0;
   ensureIgnored(clips);
-  const server = http.createServer(createHandler({ clips, token, speak: pyThaiTts(tts), port: () => port }));
+  ensureKeysIgnored(tts);
+  const server = http.createServer(createHandler({ clips, token, speak: pyThaiTts(tts), port: () => port, tts }));
   server.listen(Number(opt("--port") ?? 0), "127.0.0.1", () => {
     port = server.address().port;
     const url = `http://127.0.0.1:${port}/?t=${token}`;

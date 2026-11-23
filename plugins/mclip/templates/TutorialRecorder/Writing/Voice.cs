@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace TutorialRecorder.Writing;
 
 /// <summary>
-/// The voice-over: each step's narration spoken by PyThaiTTS (tts/tts_paradee.py, voice MakHam Paradee) into
-/// Output/&lt;clip&gt;-voice/NNN.wav, then mixed into the mp4 where the step's caption appears.
+/// The voice-over: each step's narration spoken by tts/tts_paradee.py into Output/&lt;clip&gt;-voice/NNN.wav, then mixed
+/// into the mp4 where the step's caption appears. The speaker is PyThaiTTS MakHam Paradee on this machine, or an API
+/// voice (`gemini &lt;voice&gt; &lt;model&gt;`, `elevenlabs &lt;voice_id&gt; &lt;model&gt;`) whose key is in the environment or tts/keys.json.
 /// </summary>
 public static class Voice
 {
@@ -19,10 +21,11 @@ public static class Voice
 
     /// <summary>
     /// Returns the audio of every narrated step, speaking it again when the narration, the speed, the pronunciation rules
-    /// (<paramref name="lexicons"/>: files of `written = spoken` lines, later wins) or the voice script changed.
+    /// (<paramref name="lexicons"/>: files of `written = spoken` lines, later wins), the speaker or the voice script changed.
     /// </summary>
-    public static List<Line> Prepare(string toolDir, string outRoot, string clip, string narrationTxt, List<(int Step, string Text)> narrated, string speed, IReadOnlyList<string>? lexicons = null)
+    public static List<Line> Prepare(string toolDir, string outRoot, string clip, string narrationTxt, List<(int Step, string Text)> narrated, string speed, IReadOnlyList<string>? lexicons = null, string speaker = "paradee", string style = "")
     {
+        var who = Speaker.Parse(speaker, style);
         if (narrated.Count == 0) throw new InvalidOperationException("--voice: no step has a narration");
         lexicons ??= [];
         var dir = Path.Combine(outRoot, clip + "-voice");
@@ -31,12 +34,12 @@ public static class Voice
         var wanted = double.Parse(speed, CultureInfo.InvariantCulture);
         // what the audio was made from besides the words: the rules' text and the script, so a new word is heard
         var inputsPath = Path.Combine(dir, "inputs.txt");
-        var inputs = Inputs(toolDir, lexicons);
+        var inputs = Inputs(toolDir, lexicons) + "\nspeaker:" + who.Spec;
         var sameInputs = File.Exists(inputsPath) && File.ReadAllText(inputsPath) == inputs;
         if (manifest is null || !sameInputs || Math.Abs(manifest.Speed - wanted) > 0.001 || !manifest.Items.Select(i => i.Text).SequenceEqual(narrated.Select(n => n.Text.Trim())))
         {
-            Console.WriteLine($"voice: speaking {narrated.Count} lines (PyThaiTTS makham_paradee, speed {speed}{(lexicons.Count > 0 ? $", rules {string.Join(", ", lexicons.Select(Path.GetFileName))}" : "")})");
-            Speak(toolDir, narrationTxt, dir, speed, lexicons);
+            Console.WriteLine($"voice: speaking {narrated.Count} lines ({who.Spec}, speed {speed}{(lexicons.Count > 0 ? $", rules {string.Join(", ", lexicons.Select(Path.GetFileName))}" : "")})");
+            Speak(toolDir, narrationTxt, dir, speed, lexicons, who);
             manifest = Load(manifestPath) ?? throw new InvalidOperationException($"--voice: {manifestPath} was not written");
             File.WriteAllText(inputsPath, inputs);
         }
@@ -56,7 +59,7 @@ public static class Voice
 
     static string Hash(string text) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)))[..16];
 
-    static void Speak(string toolDir, string input, string outDir, string speed, IReadOnlyList<string> lexicons)
+    static void Speak(string toolDir, string input, string outDir, string speed, IReadOnlyList<string> lexicons, Speaker who)
     {
         var ttsDir = Path.Combine(toolDir, "tts");
         var python = OperatingSystem.IsWindows() ? Path.Combine(ttsDir, ".venv", "Scripts", "python.exe") : Path.Combine(ttsDir, ".venv", "bin", "python");
@@ -66,9 +69,37 @@ public static class Voice
         psi.Environment["PYTHONIOENCODING"] = "utf-8";
         foreach (var a in new[] { Path.Combine(ttsDir, "tts_paradee.py"), "--input", input, "--out", outDir, "--speed", speed }) psi.ArgumentList.Add(a);
         foreach (var f in lexicons) { psi.ArgumentList.Add("--lexicon"); psi.ArgumentList.Add(Path.GetFullPath(f)); }
+        // an API voice: the key stays in the environment or tts/keys.json, never on the command line
+        if (who.Engine != "paradee")
+            foreach (var a in new[] { "--engine", who.Engine, "--voice", who.Voice, "--model", who.Model, "--keys", Path.Combine(ttsDir, "keys.json") }) psi.ArgumentList.Add(a);
+        if (who.Style.Length > 0) { psi.ArgumentList.Add("--style"); psi.ArgumentList.Add(who.Style); }
         using var p = Process.Start(psi)!;
         p.WaitForExit();
-        if (p.ExitCode != 0) throw new InvalidOperationException($"--voice: tts_paradee.py failed ({p.ExitCode})");
+        if (p.ExitCode != 0) throw new InvalidOperationException($"--voice: tts_paradee.py failed ({p.ExitCode}{(p.ExitCode == 3 ? ": the API refused or could not be reached, see above" : "")})");
+    }
+
+    /// <summary>`paradee`, `gemini Enya [model]` or `elevenlabs &lt;voice_id&gt; [model]` (the plan's เสียงพากย์).</summary>
+    public sealed record Speaker(string Engine, string Voice, string Model, string Style = "")
+    {
+        static readonly Regex Id = new("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$");
+        static readonly Dictionary<string, string> Models = new() { ["gemini"] = "gemini-3.8-flash-tts", ["elevenlabs"] = "eleven_v3" };
+
+        public string Spec => Engine == "paradee" ? "paradee" : $"{Engine} {Voice} {Model}" + (Style.Length > 0 ? $" | {Style}" : "");
+
+        public static Speaker Parse(string? text, string? style = null)
+        {
+            var parts = Regex.Replace(text ?? "", @"\([^()]*\)\s*$", "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var engine = parts.Length > 0 ? parts[0].ToLowerInvariant() : "paradee";
+            if (engine == "paradee") return new("paradee", "", "");
+            if (!Models.TryGetValue(engine, out var model)) throw new ArgumentException($"--speaker: {engine} is paradee, gemini or elevenlabs");
+            var voice = parts.Length > 1 ? parts[1] : engine == "gemini" ? "Enya" : "";
+            if (parts.Length > 2) model = parts[2];
+            if (!Id.IsMatch(voice) || !Id.IsMatch(model) || parts.Length > 3)
+                throw new ArgumentException($"--speaker \"{text}\": <engine> <voice> [<model>], each letters, digits, . _ -");
+            // a style is Gemini's only: one line, single spaces, at most 200 characters
+            var s = engine == "gemini" ? Regex.Replace(style ?? "", @"\s+", " ").Trim() : "";
+            return new(engine, voice, model, s.Length > 200 ? s[..200] : s);
+        }
     }
 
     /// <summary>Lays each sentence at its step's caption, writes the times into the log, returns warnings.</summary>

@@ -3,4 +3,5 @@ obj/
 Output/
 tutorial.secrets.json
 tts/.venv/
+tts/keys.json
 __pycache__/

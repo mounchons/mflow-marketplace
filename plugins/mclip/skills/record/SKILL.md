@@ -59,8 +59,13 @@ Mode: the scenario's own unless the user named one (`caption` by default; `callo
 `clean` for `/mclip:finish`, which lays captions and title cards in WeftCut). Add `--voice` when the user asked for it
 or the scenario has narration and `tools/TutorialRecorder/tts/.venv` exists, with the same speed and words as the
 plan's preview: `--speed <the plan's ความเร็วเสียง, else 0.85> --lexicon ${CLAUDE_PLUGIN_ROOT}/lexicon.txt` and, when
-the project has one, `--lexicon clips/lexicon.txt` (later wins). A recorder older than 0.5.0
-(`tools/TutorialRecorder/.mclip-version`) has no `--lexicon` and no pause after a sentence: `/mclip:init --update` first.
+the project has one, `--lexicon clips/lexicon.txt` (later wins). The plan's `- เสียงพากย์:` when it names an API voice:
+`--speaker "<engine> <voice> <model>"` (as the field says it, without the name in brackets), and for Gemini with the
+plan's `- สไตล์เสียง:` `--style "<that text>"`; its key is read from the
+environment or `tools/TutorialRecorder/tts/keys.json` by the recorder itself, never put on the command line or read by
+you. A recorder older than 0.5.0 (`tools/TutorialRecorder/.mclip-version`) has no `--lexicon` and no pause after a
+sentence, and one older than 0.6.0 no `--speaker` or `--style`: `/mclip:init --update` first. A voice run that stops on the API
+(a missing or refused key, no credit) prints what the API said: report it as it is and stop.
 
 Exit 3 means a step could not find its target: read the message and `tools/TutorialRecorder/Output/<clip>/steps/failed-step-NN.png`, fix the
 target (prefer a `data-tour` attribute), and run again. Exit 2 means the scenario or the stack setup is wrong.

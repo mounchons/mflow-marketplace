@@ -13,8 +13,10 @@ import { fileURLToPath } from "node:url";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = path.join(REPO, "plugins", "mclip", "scripts");
 const imp = (f) => import(`file://${path.join(SCRIPTS, f).replace(/\\/g, "/")}`);
-const { parseLexicon, readLexicon, rulesFor, planSpeed, voiceStale, setNarration, setPlanField, writeProjectLexicon, makeVoice, load, renderPage, VOICE_ENGINE, GLOBAL_LEXICON, readRequests, addRequest, removeRequests, requestsCommand } = await imp("clips.mjs");
-const { createHandler } = await imp("serve.mjs");
+const { parseLexicon, readLexicon, rulesFor, planSpeed, voiceStale, setNarration, setPlanField, writeProjectLexicon, makeVoice, load, renderPage, VOICE_ENGINE, GLOBAL_LEXICON, readRequests, addRequest, removeRequests, requestsCommand,
+  parseVoice, planVoice, voiceField, keyStatus, apiKey, elevenLabsVoices, VOICE_FIELD, PARADEE, ensureKeysIgnored, pyThaiTts, STYLE_FIELD, withStyle } = await imp("clips.mjs");
+const { checkProject } = await imp("doctor.mjs");
+const { createHandler, SAMPLE } = await imp("serve.mjs");
 
 const PLAN = "# Shop\n\n- ระบบ: ร้าน\n- ความเร็วเสียง: 0.80\n\n## สารบัญ\n\n1. 01-in — เข้าสู่ระบบ\n";
 const LESSON = "# เข้าสู่ระบบ\r\n\r\n## 1. เปิดหน้า\r\n- ทำ: open /login\r\n- บนจอ: เปิดหน้าเข้าสู่ระบบ\r\n- พูด: กด Login ค่ะ\r\n\r\n## 2. กรอก\r\n- ทำ: fill\r\n- บนจอ: กรอกชื่อ\r\n";
@@ -29,8 +31,8 @@ function project(files = {}) {
 }
 function stub() {
   const calls = [];
-  return { calls, speak: (lines, outDir, speed, lexicons) => {
-    calls.push({ lines, speed, lexicons });
+  return { calls, speak: (lines, outDir, speed, lexicons, voice) => {
+    calls.push({ lines, speed, lexicons, voice });
     return lines.map((t, i) => { const f = path.join(outDir, `${i}.mp3`); fs.writeFileSync(f, t); return { file: f, durationMs: 1000 }; });
   } };
 }
@@ -130,7 +132,8 @@ test("writes from the page: the narration line (CRLF kept, added when missing, r
 async function serve(p, token = "t".repeat(48)) {
   const v = stub();
   let port = 0;
-  const server = http.createServer(createHandler({ clips: p.clips, token, speak: v.speak, port: () => port }));
+  // env: {} so a key set on this machine never reaches a real API from a test
+  const server = http.createServer(createHandler({ clips: p.clips, token, speak: v.speak, port: () => port, env: {} }));
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   port = server.address().port;
   const call = (method, where, { body, headers = {} } = {}) => new Promise((resolve, reject) => {
@@ -152,7 +155,7 @@ test("the live server: the page needs the token, writes need the token and this 
     assert.equal((await s.call("GET", "/")).status, 403, "no token, no page");
     const page = await s.call("GET", `/?t=${s.token}`);
     assert.equal(page.status, 200);
-    assert.match(page.text, /window\.MCLIP=\{"token":"t{48}","requests":\[\]\}/);
+    assert.match(page.text, /window\.MCLIP=\{"token":"t{48}","requests":\[\],"keys":\{"GEMINI_API_KEY":(true|false),"ELEVENLABS_API_KEY":(true|false)\}/);
     assert.match(page.text, /class="live-say" data-id="01-in" data-step="1"/);
     assert.match(page.text, /<option value="0.8" selected>/, "the plan's speed is chosen");
     assert.equal(page.headers["access-control-allow-origin"], undefined, "no CORS");
@@ -259,4 +262,214 @@ test("the live server: requests saved from the page are in clips/requests.json a
     assert.equal((await s.post("/api/requests", { add: { target: "x", text: "y" } }, { "X-Mclip-Token": "wrong" })).status, 403);
     assert.deepEqual(JSON.parse((await s.post("/api/requests", { remove: item.id })).text).items, []);
   } finally { await s.close(); p.cleanup(); }
+});
+
+// ---- the voice: Paradee on this machine, or a Gemini or ElevenLabs voice over their API ----
+
+test("the plan's voice: paradee by default, gemini and elevenlabs with their default models, a wrong one reported", () => {
+  assert.deepEqual(parseVoice("paradee"), PARADEE);
+  assert.deepEqual(parseVoice("gemini"), { engine: "gemini", voice: "Enya", model: "gemini-3.8-flash-tts", name: "", spec: "gemini Enya gemini-3.8-flash-tts", style: "", key: "gemini Enya gemini-3.8-flash-tts" }, "Enya when no voice is named");
+  assert.equal(parseVoice("Gemini Puck gemini-2.5-pro-preview-tts").spec, "gemini Puck gemini-2.5-pro-preview-tts");
+  const el = parseVoice("elevenlabs 21m00Tcm4TlvDq8ikWAM (Rachel)");
+  assert.deepEqual([el.spec, el.name], ["elevenlabs 21m00Tcm4TlvDq8ikWAM eleven_v3", "Rachel"]);
+  assert.equal(voiceField(el), "elevenlabs 21m00Tcm4TlvDq8ikWAM eleven_v3 (Rachel)");
+  assert.equal(parseVoice(voiceField(el)).spec, el.spec, "the field reads back as it was written");
+  assert.match(parseVoice("elevenlabs").error, /needs a voice/);
+  assert.match(parseVoice("elevenlabs ../../v1/user").error, /needs a voice/, "an id never walks the API's path");
+  assert.match(parseVoice("google Kore").error, /paradee, gemini/);
+  assert.match(parseVoice("gemini Kore model extra").error, /one word/);
+
+  const p = project({ "clips/plan.md": PLAN.replace("- ความเร็วเสียง: 0.80\n", "- ความเร็วเสียง: 0.80\n- เสียงพากย์: openai alloy\n") });
+  try {
+    const data = load(p.clips);
+    assert.ok(data.problems.some((x) => /เสียงพากย์.*paradee, gemini/.test(x)));
+    assert.equal(data.voice.spec, "paradee", "a wrong voice falls back to Paradee");
+    assert.equal(makeVoice(p.clips, "01-in", { speak: stub().speak }).code, 2, "never spoken with a voice the plan did not mean");
+  } finally { p.cleanup(); }
+});
+
+test("a new voice makes every step's voice stale; voices made before 0.6 count as Paradee", () => {
+  const p = project();
+  try {
+    const v = stub();
+    makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.equal(v.calls[0].voice.spec, "paradee");
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.stale, false);
+    const json = path.join(p.clips, "01-in", "voice", "voice.json");
+    const old = JSON.parse(fs.readFileSync(json, "utf8"));
+    delete old.steps["1"].voice;
+    fs.writeFileSync(json, JSON.stringify(old));
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.stale, false, "an older voice.json is Paradee's");
+
+    setPlanField(p.clips, VOICE_FIELD, "gemini Sulafat");
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.why, "เปลี่ยนเสียงพากย์");
+    const r = makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.deepEqual([r.spoken, r.voice], [[1], "gemini Sulafat gemini-3.8-flash-tts"]);
+    assert.equal(v.calls.at(-1).voice.voice, "Sulafat");
+    assert.equal(JSON.parse(fs.readFileSync(json, "utf8")).steps["1"].voice, "gemini Sulafat gemini-3.8-flash-tts");
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.stale, false);
+    assert.equal(makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global }).spoken.length, 0, "the same voice is not paid for twice");
+  } finally { p.cleanup(); }
+});
+
+test("API keys: the environment first, then tts/keys.json; only whether each is set ever leaves this machine", () => {
+  const p = project({ "tools/TutorialRecorder/tts/keys.json": JSON.stringify({ GEMINI_API_KEY: "g-secret-123", ELEVENLABS_API_KEY: "  " }) });
+  const tts = path.join(p.root, "tools", "TutorialRecorder", "tts");
+  try {
+    assert.deepEqual(keyStatus(tts, {}), { GEMINI_API_KEY: true, ELEVENLABS_API_KEY: false });
+    assert.deepEqual(keyStatus(tts, { ELEVENLABS_API_KEY: "e" }), { GEMINI_API_KEY: true, ELEVENLABS_API_KEY: true });
+    assert.equal(apiKey(tts, "GEMINI_API_KEY", {}), "g-secret-123");
+    assert.equal(apiKey(tts, "GEMINI_API_KEY", { GEMINI_API_KEY: "from-env" }), "from-env");
+    fs.writeFileSync(path.join(tts, "keys.json"), "﻿" + JSON.stringify({ ELEVENLABS_API_KEY: "e" }));
+    assert.deepEqual(keyStatus(tts, {}), { GEMINI_API_KEY: false, ELEVENLABS_API_KEY: true }, "a file saved with a BOM (Notepad) reads");
+    fs.writeFileSync(path.join(tts, "keys.json"), "{ not json");
+    assert.deepEqual(keyStatus(tts, {}), { GEMINI_API_KEY: false, ELEVENLABS_API_KEY: false }, "a broken file is no key");
+  } finally { p.cleanup(); }
+});
+
+test("the keys file is git-ignored even in a recorder installed before 0.6; doctor fails when it is not", () => {
+  const p = project({ "tools/TutorialRecorder/.gitignore": "bin/\nobj/\ntts/.venv/", "tools/TutorialRecorder/tts/keys.json": "{}" });
+  const tts = path.join(p.root, "tools", "TutorialRecorder", "tts");
+  const ignoreFile = path.join(p.root, "tools", "TutorialRecorder", ".gitignore");
+  const git = (...a) => spawnSync("git", a, { cwd: p.root, encoding: "utf8" });
+  try {
+    git("init", "-q");
+    const doc = () => checkProject(p.root, "0.6.0").find((c) => c.id === "keys-ignored");
+    assert.equal(doc().status, "fail", "an old recorder's .gitignore leaves the keys in a commit");
+    assert.ok(!JSON.stringify(checkProject(p.root, "0.6.0")).includes("ELEVENLABS"), "doctor names no key it was not asked about");
+
+    assert.equal(ensureKeysIgnored(tts), true);
+    assert.equal(fs.readFileSync(ignoreFile, "utf8"), "bin/\nobj/\ntts/.venv/\ntts/keys.json\n");
+    assert.equal(ensureKeysIgnored(tts), false, "once");
+    assert.equal(git("check-ignore", "-q", "tools/TutorialRecorder/tts/keys.json").status, 0);
+    assert.equal(doc().status, "ok");
+    assert.equal(ensureKeysIgnored(path.join(p.root, "none", "tts")), false, "no recorder, nothing written");
+  } finally { p.cleanup(); }
+});
+
+test("the speaker makes the keys file ignored before it speaks, and gets the voice on its command line, never a key", () => {
+  const p = project({ "tools/TutorialRecorder/.gitignore": "bin/\n", "tools/TutorialRecorder/tts/keys.json": JSON.stringify({ GEMINI_API_KEY: "g-secret-9" }) });
+  const tts = path.join(p.root, "tools", "TutorialRecorder", "tts");
+  const venvPy = process.platform === "win32" ? path.join(tts, ".venv", "Scripts", "python.exe") : path.join(tts, ".venv", "bin", "python");
+  try {
+    // a stand-in "python" that is node: it records its arguments and fails, so nothing else runs
+    fs.mkdirSync(path.dirname(venvPy), { recursive: true });
+    fs.copyFileSync(process.execPath, venvPy);
+    const script = path.join(p.root, "fake.js");
+    fs.writeFileSync(script, "require('fs').writeFileSync(process.argv[1] + '.args', JSON.stringify(process.argv.slice(2))); process.exit(5)");
+    const out = path.join(p.root, "out"); fs.mkdirSync(out);
+    assert.throws(() => pyThaiTts(tts, script)(["สวัสดีค่ะ"], out, 0.9, [], withStyle(parseVoice("gemini Leda"), "Friendly")), /the voice \(gemini\) failed \(5\)/);
+    const args = JSON.parse(fs.readFileSync(script + ".args", "utf8"));
+    assert.deepEqual(args.slice(args.indexOf("--engine")), ["--engine", "gemini", "--voice", "Leda", "--model", "gemini-3.8-flash-tts", "--keys", path.join(tts, "keys.json"), "--style", "Friendly"]);
+    assert.ok(!args.join(" ").includes("g-secret-9"), "the key is never an argument");
+    assert.match(fs.readFileSync(path.join(p.root, "tools", "TutorialRecorder", ".gitignore"), "utf8"), /^tts\/keys\.json$/m);
+  } finally { p.cleanup(); }
+});
+
+test("the ElevenLabs voice list: the account's voices, ids checked; an error says what the API said", async () => {
+  const seen = [];
+  const api = http.createServer((req, res) => {
+    seen.push({ url: req.url, key: req.headers["xi-api-key"] });
+    if (req.headers["xi-api-key"] !== "k1") { res.writeHead(401, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ detail: { status: "invalid_api_key", message: "Invalid API key" } })); }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ voices: [
+      { voice_id: "abc123", name: "Ploy", labels: { gender: "female", accent: "thai" }, verified_languages: [{ language: "th" }] },
+      { voice_id: "../x", name: "bad" }, { voice_id: "def456", name: "Adam" }] }));
+  });
+  await new Promise((r) => api.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${api.address().port}`;
+  try {
+    const voices = await elevenLabsVoices("k1", base);
+    assert.deepEqual(voices, [{ id: "abc123", name: "Ploy", note: "female, thai", thai: true }, { id: "def456", name: "Adam", note: "", thai: false }]);
+    assert.equal(seen[0].url, "/v2/voices?page_size=100");
+    await assert.rejects(elevenLabsVoices("wrong", base), /ElevenLabs answered 401: Invalid API key/);
+  } finally { await new Promise((r) => api.close(r)); }
+});
+
+test("the live server: the voice chosen on the page, a sample to hear, the keys never on the page", async () => {
+  const p = project({ "tools/TutorialRecorder/tts/keys.json": JSON.stringify({ GEMINI_API_KEY: "g-secret-123" }) });
+  const s = await serve(p);
+  try {
+    const page = await s.call("GET", `/?t=${s.token}`);
+    assert.match(page.text, /class="kv live-voice" data-engine="paradee"/);
+    assert.ok(!page.text.includes("g-secret-123"), "the key's value is never on the page");
+
+    let r = await s.post("/api/voice-sample", { engine: "gemini", id: "Leda", model: "", speed: 0.9 });
+    assert.equal(r.status, 200, r.text);
+    const sample = JSON.parse(r.text);
+    assert.equal(Buffer.from(sample.mp3, "base64").toString("utf8"), SAMPLE, "the stand-in voice wrote the words as the mp3");
+    assert.deepEqual([s.v.calls.at(-1).voice.spec, s.v.calls.at(-1).speed], ["gemini Leda gemini-3.8-flash-tts", 0.9]);
+    assert.equal((await s.post("/api/voice-sample", { engine: "elevenlabs", id: "" })).status, 400);
+
+    r = await s.post("/api/voice-engine", { engine: "elevenlabs", id: "abc123", model: "eleven_v3", name: "Ploy (Thai)\n" });
+    assert.equal(r.status, 200, r.text);
+    assert.match(fs.readFileSync(path.join(p.clips, "plan.md"), "utf8"), /^- เสียงพากย์: elevenlabs abc123 eleven_v3 \(Ploy Thai\)$/m);
+    assert.equal(load(p.clips).voice.spec, "elevenlabs abc123 eleven_v3");
+    assert.equal((await s.post("/api/voice-engine", { engine: "elevenlabs", id: "a/b" })).status, 400);
+    assert.equal((await s.post("/api/voice-engine", { engine: "paradee" })).status, 200);
+    assert.match(fs.readFileSync(path.join(p.clips, "plan.md"), "utf8"), /^- เสียงพากย์: paradee$/m);
+
+    const gem = JSON.parse((await s.post("/api/voices", { engine: "gemini" })).text).voices;
+    assert.equal(gem.length, 31);
+    assert.equal(gem[0].id, "Enya", "the default first");
+    assert.deepEqual(gem.find((v) => v.id === "Kore"), { id: "Kore", name: "Kore", note: "Firm", thai: true });
+    r = await s.post("/api/voices", { engine: "elevenlabs" });
+    assert.deepEqual([r.status, JSON.parse(r.text).error], [400, "no ELEVENLABS_API_KEY in tools/TutorialRecorder/tts/keys.json"]);
+  } finally { await s.close(); p.cleanup(); }
+});
+
+test("a Gemini voice's style: from the plan, part of what makes a voice stale, ignored by other voices", () => {
+  const p = project();
+  try {
+    const v = stub();
+    setPlanField(p.clips, VOICE_FIELD, "gemini Kore");
+    makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.equal(v.calls.at(-1).voice.style, "");
+
+    setPlanField(p.clips, STYLE_FIELD, "  warm   and friendly ");
+    const data = load(p.clips);
+    assert.deepEqual([data.voice.style, data.voice.key], ["warm and friendly", "gemini Kore gemini-3.8-flash-tts | warm and friendly"]);
+    assert.equal(data.lessons[0].steps[0].voice.why, "เปลี่ยนเสียงพากย์", "a new style speaks the steps again");
+    const r = makeVoice(p.clips, "01-in", { speak: v.speak, globalLexicon: p.global });
+    assert.deepEqual([r.spoken, v.calls.at(-1).voice.style], [[1], "warm and friendly"]);
+    assert.equal(load(p.clips).lessons[0].steps[0].voice.stale, false);
+    assert.match(renderPage(load(p.clips)), /Google Gemini \(AI Studio\): Kore \(gemini-3\.8-flash-tts\) · สไตล์: warm and friendly/);
+
+    setPlanField(p.clips, VOICE_FIELD, "elevenlabs abc123");
+    assert.deepEqual([load(p.clips).voice.style, load(p.clips).voice.key], ["", "elevenlabs abc123 eleven_v3"], "ElevenLabs takes no style");
+    assert.deepEqual(withStyle(PARADEE, "Friendly"), PARADEE);
+
+    setPlanField(p.clips, STYLE_FIELD, "");
+    assert.doesNotMatch(fs.readFileSync(path.join(p.clips, "plan.md"), "utf8"), /สไตล์เสียง/, "an empty value removes the line");
+    setPlanField(p.clips, STYLE_FIELD, "");
+  } finally { p.cleanup(); }
+});
+
+test("the live server: the style box is saved with a Gemini voice and dropped with another", async () => {
+  const p = project();
+  const s = await serve(p);
+  try {
+    let r = await s.post("/api/voice-sample", { engine: "gemini", id: "Kore", style: "Friendly" });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(s.v.calls.at(-1).voice.style, "Friendly");
+    r = await s.post("/api/voice-engine", { engine: "gemini", id: "Kore", style: "Friendly\nเป็นกันเอง" });
+    assert.equal(JSON.parse(r.text).voice, "gemini Kore gemini-3.8-flash-tts | Friendly เป็นกันเอง");
+    const plan = () => fs.readFileSync(path.join(p.clips, "plan.md"), "utf8");
+    assert.match(plan(), /^- สไตล์เสียง: Friendly เป็นกันเอง$/m);
+    const page = (await s.call("GET", `/?t=${s.token}`)).text;
+    assert.match(page, /data-style="Friendly เป็นกันเอง"/);
+    assert.match(page, /<datalist id="v-styles"><option value="Friendly">/);
+    await s.post("/api/voice-engine", { engine: "elevenlabs", id: "abc123", style: "Friendly" });
+    assert.doesNotMatch(plan(), /สไตล์เสียง/, "another voice leaves no style behind");
+  } finally { await s.close(); p.cleanup(); }
+});
+
+test("the file page shows the plan's voice with an edit button", () => {
+  const p = project({ "clips/plan.md": PLAN.replace("- ความเร็วเสียง: 0.80\n", "- ความเร็วเสียง: 0.80\n- เสียงพากย์: gemini Achernar\n") });
+  try {
+    const html = renderPage(load(p.clips));
+    assert.match(html, /Google Gemini \(AI Studio\): Achernar \(gemini-3\.8-flash-tts\)/);
+    assert.match(html, /data-target="plan เสียงพากย์"/);
+    assert.doesNotMatch(html, /<span>เสียงพากย์<\/span><p>[^<]*<\/p>[\s\S]*<span>เสียงพากย์<\/span>/, "shown once, not again among the plan's fields");
+  } finally { p.cleanup(); }
 });

@@ -159,7 +159,8 @@ export function parseLesson(text, file = "lesson.md") {
 
 const VOICE_DIR = "voice";
 const voiceFile = (n) => `${String(n).padStart(2, "0")}.mp3`;
-const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+// a file saved by Notepad starts with a BOM: read it as Python's utf-8-sig does
+const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, "utf8").replace(/^﻿/, "")); } catch { return null; } };
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 /** clips/<id>/shots.json (the recorder's --shots): { pictures: { "screen/x.jpg": { date } }, failed: { step, message } | null }. */
@@ -178,7 +179,7 @@ function readVoices(dir) {
   if (isObj(j?.steps)) for (const [k, v] of Object.entries(j.steps)) {
     if (/^\d+$/.test(k) && typeof v?.text === "string" && Number.isFinite(v?.durationMs)) {
       out[Number(k)] = { text: v.text, speed: Number(v.speed) || 0, rules: typeof v.rules === "string" ? v.rules : "",
-        engine: Number(v.engine) || 1, durationMs: v.durationMs, date: typeof v.date === "string" ? v.date : "" };
+        engine: Number(v.engine) || 1, voice: typeof v.voice === "string" ? v.voice : "paradee", durationMs: v.durationMs, date: typeof v.date === "string" ? v.date : "" };
     }
   }
   return out;
@@ -197,6 +198,112 @@ export const SPEED_FIELD = "ความเร็วเสียง";
 export const DEFAULT_SPEED = 0.85;
 // 2: sentences spoken one by one with a pause, silence after the last word (tts_paradee.py of mclip 0.5)
 export const VOICE_ENGINE = 2;
+
+// The voice: the plan's `- เสียงพากย์: <engine> [<voice> [<model>]] [(<name>)]`, else Paradee on this machine.
+//   paradee                                  PyThaiTTS MakHam Paradee, on this machine, no cost
+//   gemini Enya [gemini-3.8-flash-tts]       a Gemini TTS prebuilt voice (GEMINI_API_KEY); Enya without a name
+//   elevenlabs <voice_id> [eleven_v3] (Name) an ElevenLabs voice of the account (ELEVENLABS_API_KEY)
+// The keys: the environment, else tools/TutorialRecorder/tts/keys.json (git-ignored); never shown anywhere.
+export const VOICE_FIELD = "เสียงพากย์";
+export const ENGINES = {
+  paradee: { label: "PyThaiTTS Paradee (ในเครื่อง ไม่มีค่าใช้จ่าย)" },
+  gemini: { label: "Google Gemini (AI Studio)", model: "gemini-3.8-flash-tts", key: "GEMINI_API_KEY", voice: "Enya" },
+  elevenlabs: { label: "ElevenLabs", model: "eleven_v3", key: "ELEVENLABS_API_KEY" },
+};
+// Gemini TTS prebuilt voices and their character: Enya (the default, the user's pick in AI Studio), then the 30 that
+// Google's speech-generation guide lists
+export const GEMINI_VOICES = [["Enya", "ค่าเริ่มต้น"], ["Zephyr", "Bright"], ["Puck", "Upbeat"], ["Charon", "Informative"], ["Kore", "Firm"],
+  ["Fenrir", "Excitable"], ["Leda", "Youthful"], ["Orus", "Firm"], ["Aoede", "Breezy"], ["Callirrhoe", "Easy-going"],
+  ["Autonoe", "Bright"], ["Enceladus", "Breathy"], ["Iapetus", "Clear"], ["Umbriel", "Easy-going"], ["Algieba", "Smooth"],
+  ["Despina", "Smooth"], ["Erinome", "Clear"], ["Algenib", "Gravelly"], ["Rasalgethi", "Informative"],
+  ["Laomedeia", "Upbeat"], ["Achernar", "Soft"], ["Alnilam", "Firm"], ["Schedar", "Even"], ["Gacrux", "Mature"],
+  ["Pulcherrima", "Forward"], ["Achird", "Friendly"], ["Zubenelgenubi", "Casual"], ["Vindemiatrix", "Gentle"],
+  ["Sadachbia", "Lively"], ["Sadaltager", "Knowledgeable"], ["Sulafat", "Warm"]];
+// a voice or model id: it goes into the API's address
+export const VOICE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+export const PARADEE = { engine: "paradee", voice: "", model: "", name: "", spec: "paradee", style: "", key: "paradee" };
+// Gemini only: how every line is delivered, free text as in AI Studio's style box (`- สไตล์เสียง: Friendly`)
+export const STYLE_FIELD = "สไตล์เสียง";
+export const STYLE_SUGGESTIONS = ["Friendly", "warm and friendly", "cheerful and friendly", "calm and clear", "professional and confident",
+  "gentle", "enthusiastic", "informative", "speaking slowly"];
+/** One line, single spaces, at most 200 characters: what the voice is told about its delivery. */
+export const cleanStyle = (s) => String(s ?? "").replace(/[\s\u2028\u2029]+/g, " ").trim().slice(0, 200);
+/** The voice with its style: `key` is what a step's voice was made with, so a new style speaks it again. */
+export const withStyle = (v, style) => {
+  const s = v.engine === "gemini" ? cleanStyle(style) : "";
+  return { ...v, style: s, key: s ? `${v.spec} | ${s}` : v.spec };
+};
+
+/** `gemini Enya` -> { engine, voice, model, name, spec: "gemini Enya gemini-3.8-flash-tts" }, or { error }. */
+export function parseVoice(value) {
+  const text = String(value ?? "").trim();
+  const named = /\(([^()]*)\)\s*$/.exec(text);
+  const [engine = "", voice = "", model = "", ...extra] = (named ? text.slice(0, named.index) : text).trim().split(/\s+/);
+  const e = engine.toLowerCase();
+  if (!ENGINES[e]) return { error: `'${text}': the voice is paradee, gemini <voice> or elevenlabs <voice_id>` };
+  if (e === "paradee") return { ...PARADEE };
+  const v = voice || ENGINES[e].voice || "";
+  const m = model || ENGINES[e].model;
+  if (!VOICE_ID.test(v)) return { error: `'${text}': ${e} needs a voice (${e === "gemini" ? "a name such as Enya" : "the voice_id"})` };
+  if (!VOICE_ID.test(m) || extra.length) return { error: `'${text}': the model is one word of letters, digits, . _ -` };
+  const spec = `${e} ${v} ${m}`;
+  return { engine: e, voice: v, model: m, name: named ? named[1].trim().slice(0, 60) : "", spec, style: "", key: spec };
+}
+
+/** The plan's voice and, for Gemini, its style; Paradee when it names none or names one wrongly (load() reports that). */
+export function planVoice(plan) {
+  const f = plan?.fields?.find((x) => x.key === VOICE_FIELD);
+  const v = f ? parseVoice(f.value) : PARADEE;
+  return v.error ? PARADEE : withStyle(v, plan?.fields?.find((x) => x.key === STYLE_FIELD)?.value);
+}
+
+/** The plan field's text for a voice: `gemini Enya gemini-3.8-flash-tts`, `elevenlabs <id> eleven_v3 (Name)`. */
+export const voiceField = (v) => (v.engine === "paradee" ? "paradee" : `${v.spec}${v.name ? ` (${v.name.replace(/[()\r\n]/g, "")})` : ""}`);
+
+/** Which API keys are there ({ GEMINI_API_KEY: true, ... }): the environment, else <ttsDir>/keys.json. Never the values. */
+export function keyStatus(ttsDir, env = process.env) {
+  const file = readJson(path.join(ttsDir, "keys.json"));
+  return Object.fromEntries(Object.values(ENGINES).filter((x) => x.key).map(({ key }) =>
+    [key, !!String(env[key] ?? "").trim() || (isObj(file) && typeof file[key] === "string" && !!file[key].trim())]));
+}
+
+/**
+ * tools/TutorialRecorder/.gitignore gets `tts/keys.json` when it lacks it: a recorder installed before mclip 0.6 does
+ * not ignore the keys file, and the user is told to make one. Run before anything speaks and when the live page starts.
+ */
+export const KEYS_IGNORE = "tts/keys.json";
+export function ensureKeysIgnored(ttsDir) {
+  const rec = path.dirname(ttsDir);
+  if (!fs.existsSync(rec)) return false;
+  const file = path.join(rec, ".gitignore");
+  const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  if (text.split(/\r?\n/).some((l) => l.trim() === KEYS_IGNORE)) return false;
+  fs.writeFileSync(file, text + (text && !text.endsWith("\n") ? "\n" : "") + KEYS_IGNORE + "\n");
+  return true;
+}
+
+/** The key itself, for this machine's own calls (the voice list); never sent to the page or printed. */
+export function apiKey(ttsDir, name, env = process.env) {
+  const own = String(env[name] ?? "").trim();
+  if (own) return own;
+  const file = readJson(path.join(ttsDir, "keys.json"));
+  return isObj(file) && typeof file[name] === "string" ? file[name].trim() : "";
+}
+
+/** The ElevenLabs account's voices: [{ id, name, note, thai }] (GET /v2/voices). */
+export async function elevenLabsVoices(key, base = process.env.MCLIP_ELEVENLABS_URL || "https://api.elevenlabs.io") {
+  const r = await fetch(`${base.replace(/\/+$/, "")}/v2/voices?page_size=100`, { headers: { "xi-api-key": key } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const d = j?.detail ?? j?.error ?? j;
+    throw new Error(`ElevenLabs answered ${r.status}: ${String(d?.message ?? (typeof d === "string" ? d : JSON.stringify(d))).slice(0, 300)}`);
+  }
+  return (Array.isArray(j.voices) ? j.voices : []).filter((v) => VOICE_ID.test(String(v?.voice_id ?? ""))).map((v) => ({
+    id: v.voice_id, name: String(v.name ?? v.voice_id).slice(0, 80),
+    note: (isObj(v.labels) ? Object.values(v.labels).filter((x) => typeof x === "string") : []).join(", ").slice(0, 120),
+    thai: Array.isArray(v.verified_languages) && v.verified_languages.some((l) => l?.language === "th"),
+  }));
+}
 
 export function parseLexicon(text) {
   const rules = [];
@@ -239,11 +346,12 @@ export function planSpeed(plan) {
 }
 
 /** Why a step's voice no longer fits it, or null. */
-export function voiceStale(v, narration, speed, rules) {
+export function voiceStale(v, narration, speed, rules, voice = "paradee") {
   if (v.text !== narration) return "คำพูดแก้แล้ว";
+  if ((v.voice || "paradee") !== voice) return "เปลี่ยนเสียงพากย์";
   if (Math.abs(v.speed - speed) > 0.001) return `ความเร็ว ${v.speed} ไม่ใช่ ${speed}`;
   if (v.rules !== rules) return "คำอ่านเปลี่ยน";
-  if (v.engine < VOICE_ENGINE) return "เสียงรุ่นเก่า (ไม่เว้นจังหวะท้ายประโยค)";
+  if (voice === "paradee" && v.engine < VOICE_ENGINE) return "เสียงรุ่นเก่า (ไม่เว้นจังหวะท้ายประโยค)";
   return null;
 }
 
@@ -262,6 +370,10 @@ export function load(clipsDir) {
     problems.push(`clips/plan.md: '- ${SPEED_FIELD}: ${speedField.value}' is a number from 0.7 (slow) to 1.0 (normal)`);
   }
   const speed = planSpeed(plan);
+  const voiceFieldOf = plan.fields.find((f) => f.key === VOICE_FIELD);
+  const badVoice = voiceFieldOf && parseVoice(voiceFieldOf.value).error;
+  if (badVoice) problems.push(`clips/plan.md: '- ${VOICE_FIELD}:' ${badVoice}`);
+  const voice = planVoice(plan);
   const lexicon = readLexicon(clipsDir);
   const lessons = plan.toc.map(({ id, title, apps: keys, teaches, sources }) => {
     const dir = path.join(clipsDir, id);
@@ -285,7 +397,7 @@ export function load(clipsDir) {
         s.made[img] = s.present[img] && img in shots.pictures ? shots.pictures[img] : null;
       }
       const v = voices[s.n];
-      const why = v && s.narration ? voiceStale(v, s.narration, speed, rulesFor(s.narration, lexicon.merged)) : null;
+      const why = v && s.narration ? voiceStale(v, s.narration, speed, rulesFor(s.narration, lexicon.merged), voice.key) : null;
       s.voice = v && s.narration && fs.existsSync(path.join(dir, VOICE_DIR, voiceFile(s.n)))
         ? { file: `${VOICE_DIR}/${voiceFile(s.n)}`, durationMs: v.durationMs, stale: !!why, why, date: v.date } : null;
     }
@@ -317,7 +429,7 @@ export function load(clipsDir) {
       problems.push(`clips/${name}/lesson.md: not in the contents of clips/plan.md (a renamed or renumbered lesson?)`);
     }
   }
-  return { plan, lessons, problems, speed, lexicon: { global: lexicon.global, project: lexicon.project } };
+  return { plan, lessons, problems, speed, voice, lexicon: { global: lexicon.global, project: lexicon.project } };
 }
 
 // ---- page ------------------------------------------------------------------------------------------------------------
@@ -421,7 +533,11 @@ function lessonSlide(l, index, live = false) {
  * The plan page. `live` ({ token }) is the page `serve.mjs` hands out: narration edited in place and spoken at once,
  * the speed and the project's words saved from the page. Without it the page is a file that copies requests.
  */
-export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, lexicon = { global: [], project: [] } }, builtAt = new Date(), { live = null } = {}) {
+/** How the page names a voice: `ElevenLabs: Rachel (eleven_v3)`. */
+export const voiceLabel = (v) => (v.engine === "paradee" ? ENGINES.paradee.label
+  : `${ENGINES[v.engine].label}: ${v.name || v.voice} (${v.model})${v.style ? ` · สไตล์: ${v.style}` : ""}`);
+
+export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voice = PARADEE, lexicon = { global: [], project: [] } }, builtAt = new Date(), { live = null } = {}) {
   const p = plan ?? { title: "ยังไม่มีแผน", fields: [], toc: [], apps: [] };
   const built = builtAt.toISOString().replace("T", " ").slice(0, 16);
   const counts = Object.keys(STATUS).map((k) => [k, lessons.filter((l) => l.status === k).length]).filter(([, n]) => n);
@@ -431,9 +547,21 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, lex
     <p class="built">สร้างหน้านี้เมื่อ ${esc(built)} UTC — กดปุ่ม ✎ แก้ ที่จุดไหนก็ได้ แล้วคัดลอกคำสั่งไปวางใน Claude Code</p></section>`;
   const scope = `<section class="slide scope" data-title="ขอบเขตและรูปแบบ">
     <header><h2>ขอบเขตและรูปแบบ</h2>${editButton("plan", p.title)}</header>
-    <div class="fields big">${p.fields.filter((f) => f.key !== SPEED_FIELD).map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p>${editButton(`plan ${f.key}`, f.value)}</div>`).join("")}</div>
+    <div class="fields big">${p.fields.filter((f) => f.key !== SPEED_FIELD && f.key !== VOICE_FIELD && f.key !== STYLE_FIELD).map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p>${editButton(`plan ${f.key}`, f.value)}</div>`).join("")}</div>
     <h3>เสียงพากย์</h3>
-    <div class="fields big"><div class="kv"><span>${SPEED_FIELD} (0.70 ช้า – 1.00 ปกติ)</span>${live
+    <div class="fields big">${live
+      ? `<div class="kv live-voice" data-engine="${voice.engine}" data-voice="${esc(voice.voice)}" data-model="${esc(voice.model)}" data-name="${esc(voice.name)}" data-style="${esc(voice.style)}"><span>${VOICE_FIELD}</span>
+        <p>ตอนนี้: <b>${esc(voiceLabel(voice))}</b></p>
+        <div class="row"><select class="v-engine">${Object.entries(ENGINES).map(([k, e]) => `<option value="${k}">${esc(e.label)}</option>`).join("")}</select>
+        <select class="v-voice"></select><input class="v-model" size="22" title="model"></div>
+        <div class="row v-style-row"><label>${STYLE_FIELD} <input class="v-style" size="30" maxlength="200" list="v-styles" placeholder="เช่น Friendly, warm and friendly"></label>
+        <datalist id="v-styles">${STYLE_SUGGESTIONS.map((s) => `<option value="${esc(s)}">`).join("")}</datalist><small class="v-hint">พิมพ์ได้เอง ว่าง = ปกติ</small></div>
+        <p class="v-key"></p>
+        <div class="row"><button data-act="voice-try">ลองฟัง</button><button class="go" data-act="voice-use">ใช้เสียงนี้</button><em class="msg"></em></div>
+        <audio class="v-sample" controls hidden></audio>
+        <p class="note">เสียงจาก Google หรือ ElevenLabs: ส่งคำพูดไปที่บริษัทนั้นและคิดเงินตามที่ใช้ · key อยู่ใน tools/TutorialRecorder/tts/keys.json (ไม่ถูก commit) · พูดตามจังหวะปกติของเสียงนั้น แล้วชะลอตามความเร็วด้านล่าง · เปลี่ยนเสียงแล้ว ทุกขั้นขึ้น "ต้องสร้างใหม่"</p></div>`
+      : `<div class="kv"><span>${VOICE_FIELD}</span><p>${esc(voiceLabel(voice))}${p.fields.some((f) => f.key === VOICE_FIELD) ? "" : " (ค่าเริ่มต้น)"}</p>${editButton(`plan ${VOICE_FIELD}`, voiceField(voice) + (voice.style ? `; ${STYLE_FIELD}: ${voice.style}` : ""))}</div>`}
+    <div class="kv"><span>${SPEED_FIELD} (0.70 ช้า – 1.00 ปกติ)</span>${live
       ? `<p class="live-speed"><select>${[0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1].map((v) => `<option value="${v}"${Math.abs(v - speed) < 0.001 ? " selected" : ""}>${v.toFixed(2)}</option>`).join("")}</select> <button data-act="speed">บันทึกความเร็ว</button><em class="msg"></em></p>`
       : `<p>${speed.toFixed(2)}${p.fields.some((f) => f.key === SPEED_FIELD) ? "" : " (ค่าเริ่มต้น)"}</p>${editButton(`plan ${SPEED_FIELD}`, speed.toFixed(2))}`}</div>
     <div class="kv"><span>คำอ่าน: คำที่เสียงอ่านผิด เขียนเป็นคำอ่านไทย (มีผลกับเสียงเท่านั้น ไม่เปลี่ยนคำบนจอ)</span>
@@ -466,7 +594,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, lex
     }).join("")}`).join("")}${problems.length ? `<a class="item warn" data-go="${lessons.length + 3}">ปัญหาในไฟล์แผน (${problems.length})</a>` : ""}`;
   // replacer functions: a '$' in the plan's words must not be read as a replacement pattern
   // live: the token goes in as JSON inside a script, '<' escaped so no text can close the script
-  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token, requests: live.requests ?? [] }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")};</script>` : "";
+  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token, requests: live.requests ?? [], keys: live.keys ?? {}, engines: ENGINES, gemini: GEMINI_VOICES }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")};</script>` : "";
   return PAGE.replace("{{TITLE}}", () => esc(p.title)).replace("{{NAME}}", () => esc(p.title)).replace("{{SIDE}}", () => side).replace("{{SLIDES}}", () => slides).replace("{{BUILT}}", () => esc(built)).replace("{{LIVE}}", () => liveTag);
 }
 
@@ -534,7 +662,10 @@ figcaption{font-size:12px;color:var(--muted)}figure.missing div{aspect-ratio:16/
 .live-say{margin:6px 0}.live-say>span{display:inline-block;font-size:12px;color:#fff;background:var(--orange);border-radius:4px;padding:0 6px}
 .live-say textarea,.live-lex textarea{width:100%;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #cbd5e1;margin:4px 0}
 .live-say .row,.live-lex .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.live-say button,.live-lex button,.live-speed button,.live-btn{font:inherit;font-size:13px;border:1px solid var(--blue2);background:#fff;color:var(--blue);border-radius:8px;padding:2px 10px;cursor:pointer}
-.live-say button.go,.live-btn{background:var(--blue2);color:#fff}button:disabled{opacity:.5;cursor:wait}.msg{font-size:13px;color:var(--muted)}.live-speed select{font:inherit;padding:2px 6px;border-radius:6px}
+.live-voice button{font:inherit;font-size:13px;border:1px solid var(--blue2);background:#fff;color:var(--blue);border-radius:8px;padding:2px 10px;cursor:pointer}
+.live-voice .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}.live-voice select,.live-voice input{font:inherit;font-size:14px;padding:2px 6px;border-radius:6px;border:1px solid #cbd5e1;max-width:100%}
+.live-voice .v-key{font-size:13px;color:var(--muted);margin:2px 0}.live-voice audio{height:32px;max-width:100%}
+.live-say button.go,.live-btn,.live-voice button.go{background:var(--blue2);color:#fff}button:disabled{opacity:.5;cursor:wait}.msg{font-size:13px;color:var(--muted)}.live-speed select{font:inherit;padding:2px 6px;border-radius:6px}
 .lex code{background:#f1f5f9;border-radius:4px;padding:0 4px}
 .by{font-style:normal;font-size:11px;border-radius:4px;padding:0 6px;color:#fff}.by.ai{background:var(--blue2)}.by.own{background:#64748b}
 .edit{font:inherit;font-size:13px;border:1px solid var(--orange);background:#fff;color:#c2410c;border-radius:8px;padding:1px 8px;cursor:pointer}.edit:hover{background:var(--orange);color:#fff}
@@ -645,7 +776,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
     addEventListener("beforeunload", (e) => { if (!reloading && dirty().length) { e.preventDefault(); e.returnValue = ""; } });
     const post = async (where, body, box, button) => {
       const msg = box && box.querySelector(".msg");
-      const buttons = [...document.querySelectorAll(".live-say button, .live-btn, .live-speed button, .live-lex button")];
+      const buttons = [...document.querySelectorAll(".live-say button, .live-btn, .live-speed button, .live-lex button, .live-voice button")];
       if (msg) msg.textContent = body.voice || where === "/api/voice" ? "กำลังสร้างเสียง… (บรรทัดละหลายวินาที)" : "กำลังบันทึก…";
       if (button && !msg) button.textContent = "กำลังสร้างเสียง…";
       buttons.forEach((b) => b.disabled = true);
@@ -668,6 +799,49 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
     if (sp) sp.querySelector("button").onclick = () => post("/api/speed", { speed: +sp.querySelector("select").value }, sp);
     const lx = document.querySelector(".live-lex");
     if (lx) lx.querySelector("button").onclick = () => post("/api/lexicon", { text: lx.querySelector("textarea").value }, lx);
+    // the voice: this machine's Paradee, a Gemini voice or one of the ElevenLabs account; tried on a sample, then used
+    const vb = document.querySelector(".live-voice");
+    if (vb) {
+      const M = window.MCLIP, eng = vb.querySelector(".v-engine"), sel = vb.querySelector(".v-voice"), mod = vb.querySelector(".v-model");
+      const keyLine = vb.querySelector(".v-key"), out = vb.querySelector(".msg"), sample = vb.querySelector("audio");
+      const style = vb.querySelector(".v-style"), styleRow = vb.querySelector(".v-style-row");
+      const opt = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text; return o; };
+      const fillVoices = async () => {
+        const e = eng.value, info = M.engines[e] || {}, mine = e === vb.dataset.engine;
+        sel.replaceChildren(); sel.hidden = mod.hidden = e === "paradee"; out.textContent = "";
+        mod.placeholder = info.model || ""; mod.value = mine ? vb.dataset.model : (info.model || "");
+        styleRow.hidden = e !== "gemini"; style.value = mine ? vb.dataset.style : "";
+        keyLine.textContent = info.key ? info.key + (M.keys[info.key] ? ": มีแล้ว" : ": ยังไม่มี — สร้างไฟล์ tools/TutorialRecorder/tts/keys.json เป็น {\\"" + info.key + "\\": \\"<key>\\"} (ไม่ถูก commit) แล้วโหลดหน้านี้ใหม่") : "";
+        if (e === "gemini") { M.gemini.forEach(([n, d]) => sel.appendChild(opt(n, n + " — " + d))); if (!mine && info.voice) sel.value = info.voice; }
+        if (e === "elevenlabs" && M.keys[info.key]) {
+          sel.appendChild(opt("", "กำลังโหลดรายชื่อเสียงของบัญชี…"));
+          try {
+            const j = await api("/api/voices", { engine: "elevenlabs" });
+            sel.replaceChildren();
+            j.voices.forEach((v) => { const o = opt(v.id, v.name + (v.note ? " — " + v.note : "") + (v.thai ? " · ไทย" : "")); o.dataset.name = v.name; sel.appendChild(o); });
+            if (!j.voices.length) sel.appendChild(opt("", "บัญชีนี้ยังไม่มีเสียง"));
+          } catch (err) { sel.replaceChildren(opt("", "โหลดรายชื่อไม่สำเร็จ")); out.textContent = err.message; }
+        }
+        if (mine && vb.dataset.voice) {
+          if (![...sel.options].some((o) => o.value === vb.dataset.voice)) { const o = opt(vb.dataset.voice, vb.dataset.name || vb.dataset.voice); o.dataset.name = vb.dataset.name; sel.appendChild(o); }
+          sel.value = vb.dataset.voice;
+        }
+      };
+      eng.value = vb.dataset.engine; eng.onchange = fillVoices; fillVoices();
+      const chosen = () => ({ engine: eng.value, id: sel.value, model: mod.value.trim(), name: (sel.selectedOptions[0] && sel.selectedOptions[0].dataset.name) || "",
+        style: eng.value === "gemini" ? style.value.trim() : "" });
+      vb.querySelector("[data-act=voice-try]").onclick = async (ev) => {
+        const b = ev.target; b.disabled = true; out.textContent = "กำลังสร้างเสียงตัวอย่าง…";
+        try {
+          const sp = document.querySelector(".live-speed select");
+          const j = await api("/api/voice-sample", { ...chosen(), speed: sp ? +sp.value : 1 });
+          sample.src = "data:audio/mpeg;base64," + j.mp3; sample.hidden = false; sample.play().catch(() => {});
+          out.textContent = "ตัวอย่าง: " + j.text;
+        } catch (err) { out.textContent = "ไม่สำเร็จ: " + err.message; }
+        b.disabled = false;
+      };
+      vb.querySelector("[data-act=voice-use]").onclick = () => post("/api/voice-engine", chosen(), vb);
+    }
   }
   document.getElementById("askCancel").onclick = () => ask.close();
   document.getElementById("askAdd").onclick = async () => { const text = document.getElementById("askText").value.trim();
@@ -801,7 +975,7 @@ export function setNarration(clipsDir, id, n, text) {
   fs.writeFileSync(file, lines.join(eol));
 }
 
-/** Sets (or adds) the plan's '- <key>: <value>' line, among the fields before the first '##'. */
+/** Sets (or adds) the plan's '- <key>: <value>' line, among the fields before the first '##'; "" removes it. */
 export function setPlanField(clipsDir, key, value) {
   const file = path.join(clipsDir, "plan.md");
   const v = oneLine(value, key, 200);
@@ -810,6 +984,7 @@ export function setPlanField(clipsDir, key, value) {
   let first = lines.findIndex((l) => /^##\s/.test(l));
   if (first < 0) first = lines.length;
   const at = lines.findIndex((l, i) => i < first && field(l)?.[0] === key);
+  if (!v) { if (at >= 0) { lines.splice(at, 1); fs.writeFileSync(file, lines.join(eol)); } return; }
   if (at >= 0) lines[at] = `- ${key}: ${v}`;
   else {
     let last = -1;
@@ -891,16 +1066,20 @@ export const requestsCommand = (items) =>
  */
 export const TTS_SCRIPT = path.join(PLUGIN_ROOT, "templates", "TutorialRecorder", "tts", "tts_paradee.py");
 export function pyThaiTts(ttsDir, script = TTS_SCRIPT) {
-  return (lines, outDir, speed, lexicons = []) => {
+  return (lines, outDir, speed, lexicons = [], voice = PARADEE) => {
     const python = process.platform === "win32" ? path.join(ttsDir, ".venv", "Scripts", "python.exe") : path.join(ttsDir, ".venv", "bin", "python");
     if (!fs.existsSync(python)) {
       throw new Error(`no voice at ${ttsDir}: install the recorder (/mclip:init), then py -3.13 -m venv ${path.join(ttsDir, ".venv")} and pip install pythaitts==1.0.0 soundfile (see its README)`);
     }
+    ensureKeysIgnored(ttsDir);
     const input = path.join(outDir, "lines.txt");
     fs.writeFileSync(input, lines.join("\n") + "\n");
     const args = [script, "--input", input, "--out", outDir, "--speed", String(speed), "--mp3", ...lexicons.flatMap((f) => ["--lexicon", f])];
+    // an API voice: its key reaches the speaker through the environment or the keys file, never on the command line
+    if (voice.engine !== "paradee") args.push("--engine", voice.engine, "--voice", voice.voice, "--model", voice.model, "--keys", path.join(ttsDir, "keys.json"));
+    if (voice.style) args.push("--style", voice.style);
     const r = spawnSync(python, args, { encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
-    if (r.status !== 0) throw new Error(`tts_paradee.py failed (${r.status ?? r.error?.message}): ${(r.stderr ?? "").trim().split("\n").at(-1)}`);
+    if (r.status !== 0) throw new Error(`the voice (${voice.engine}) failed (${r.status ?? r.error?.message}): ${(r.stderr ?? "").trim().split("\n").at(-1)}`);
     const items = readJson(path.join(outDir, "manifest.json"))?.items ?? [];
     return items.map((it) => ({ file: path.join(outDir, String(it.file).replace(/\.wav$/, ".mp3")), durationMs: it.durationMs }));
   };
@@ -917,8 +1096,12 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   const file = path.join(dir, "lesson.md");
   if (!ID.test(id) || !fs.existsSync(file)) return { code: 2, error: `no lesson clips/${id}/lesson.md (a topic: /mclip:plan lesson ${id} writes it)` };
   const planFile = path.join(clipsDir, "plan.md");
-  speed ??= fs.existsSync(planFile) ? planSpeed(parsePlan(fs.readFileSync(planFile, "utf8")).plan) : DEFAULT_SPEED;
+  const plan = fs.existsSync(planFile) ? parsePlan(fs.readFileSync(planFile, "utf8")).plan : null;
+  speed ??= plan ? planSpeed(plan) : DEFAULT_SPEED;
   if (!(speed >= 0.7 && speed <= 1)) return { code: 2, error: "--speed is between 0.7 and 1.0" };
+  const named = plan?.fields?.find((f) => f.key === VOICE_FIELD);
+  if (named && parseVoice(named.value).error) return { code: 2, error: `clips/plan.md: '- ${VOICE_FIELD}:' ${parseVoice(named.value).error}` };
+  const voice = planVoice(plan);
   const { merged } = readLexicon(clipsDir, globalLexicon);
   const lexicons = [globalLexicon, path.join(clipsDir, "lexicon.txt")].filter((f) => fs.existsSync(f));
   const { lesson } = parseLesson(fs.readFileSync(file, "utf8"));
@@ -933,7 +1116,7 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   if (!chosen.length) return { code: 2, error: `no step of clips/${id} has a '- พูด:'` };
   const vdir = path.join(dir, VOICE_DIR);
   const spoken = readVoices(dir);
-  const fresh = (s) => spoken[s.n] && !voiceStale(spoken[s.n], s.narration, speed, rulesFor(s.narration, merged)) && fs.existsSync(path.join(vdir, voiceFile(s.n)));
+  const fresh = (s) => spoken[s.n] && !voiceStale(spoken[s.n], s.narration, speed, rulesFor(s.narration, merged), voice.key) && fs.existsSync(path.join(vdir, voiceFile(s.n)));
   const todo = chosen.filter((s) => force || !fresh(s));
   // one sentence per line, as the speaker reads them (it skips blank lines and lines starting with '#')
   for (const s of todo) if (/^\s*#/.test(s.narration)) return { code: 2, error: `step ${s.n}: a '- พูด:' line cannot start with '#'` };
@@ -942,11 +1125,11 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
     fs.rmSync(work, { recursive: true, force: true });
     fs.mkdirSync(work, { recursive: true });
     try {
-      const items = speak(todo.map((s) => s.narration), work, speed, lexicons);
+      const items = speak(todo.map((s) => s.narration), work, speed, lexicons, voice);
       if (items.length !== todo.length || items.some((it) => !fs.existsSync(it.file))) throw new Error(`the voice made ${items.length} of ${todo.length} lines`);
       todo.forEach((s, i) => {
         fs.copyFileSync(items[i].file, path.join(vdir, voiceFile(s.n)));
-        spoken[s.n] = { text: s.narration, speed, rules: rulesFor(s.narration, merged), engine: VOICE_ENGINE, durationMs: items[i].durationMs, date: now.toISOString() };
+        spoken[s.n] = { text: s.narration, speed, rules: rulesFor(s.narration, merged), engine: VOICE_ENGINE, voice: voice.key, durationMs: items[i].durationMs, date: now.toISOString() };
       });
     } catch (e) {
       return { code: 2, error: e.message };
@@ -962,9 +1145,9 @@ export function makeVoice(clipsDir, id, { step = null, speed = null, force = fal
   }
   fs.mkdirSync(vdir, { recursive: true });
   const steps = Object.fromEntries(Object.entries(spoken).sort(([a], [b]) => a - b));
-  fs.writeFileSync(path.join(vdir, "voice.json"), JSON.stringify({ voice: "makham_paradee", steps }, null, 2) + "\n");
+  fs.writeFileSync(path.join(vdir, "voice.json"), JSON.stringify({ voice: voice.key, steps }, null, 2) + "\n");
   const seconds = chosen.reduce((t, s) => t + (spoken[s.n]?.durationMs ?? 0), 0) / 1000;
-  return { code: 0, dir: vdir, spoken: todo.map((s) => s.n), unchanged: chosen.filter((s) => !todo.includes(s)).map((s) => s.n), seconds };
+  return { code: 0, dir: vdir, voice: voice.key, spoken: todo.map((s) => s.n), unchanged: chosen.filter((s) => !todo.includes(s)).map((s) => s.n), seconds };
 }
 
 // ---- command line ----------------------------------------------------------------------------------------------------

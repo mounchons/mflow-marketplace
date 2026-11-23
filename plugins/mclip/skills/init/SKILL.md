@@ -40,8 +40,9 @@ rests on in the question itself:
    waits for. a) as shown, b) change it.
 2. **The test users**: one row per role the clips need (key such as `Admin`, which seeded user, its role). Their emails
    and passwords go only into the git-ignored `tutorial.secrets.json`, never into chat or a committed file. a) as shown.
-3. **Thai voice-over** (PyThaiTTS, MakHam Paradee, female; a Python venv of about 260 MB plus a model downloaded on
-   first use): a) yes, b) later.
+3. **Thai voice-over** (a Python venv of about 260 MB): PyThaiTTS MakHam Paradee, female, on this machine with a model
+   downloaded on first use; the same venv also speaks with a Google Gemini or ElevenLabs voice, chosen later on the
+   plan's live page, which costs what that account is charged: a) yes, b) later.
 
 Done when: each question has an answer.
 
@@ -60,7 +61,10 @@ Done when: each question has an answer.
    `pwsh tools/TutorialRecorder/bin/Debug/net10.0/playwright.ps1 install chromium` (about 450 MB; skipped when that
    Chromium build is already in the Playwright cache).
 5. **Voice** (when 3a): `py -3.13 -m venv tools/TutorialRecorder/tts/.venv` (or any 3.10+), then
-   `tools/TutorialRecorder/tts/.venv/Scripts/python -m pip install pythaitts==1.0.0 soundfile`.
+   `tools/TutorialRecorder/tts/.venv/Scripts/python -m pip install pythaitts==1.0.0 soundfile`. For an API voice, copy
+   `tts/keys.example.json` to `tts/keys.json` (git-ignored: check with `git check-ignore`) and tell the user to put
+   their `GEMINI_API_KEY` or `ELEVENLABS_API_KEY` in it themselves. Never ask for a key in chat, and never read, print
+   or copy that file once it may hold one.
 6. **Check**: `pwsh tools/TutorialRecorder/stack/reset.ps1 -Build` prints `ready: <url>`, and
    `dotnet run --project tools/TutorialRecorder -- scenarios/example.yaml --check` lists the example's steps.
 
@@ -70,5 +74,5 @@ Done when: the stack answers and `--check` passes. Leave the stack up for `/mcli
 
 What was installed (version), the stack's URL and how to stop it (`reset.ps1 -Down`), where the secrets are, whether
 the voice is ready, and the files to commit: `tools/TutorialRecorder/` (its `.gitignore` keeps `bin/`, `obj/`,
-`Output/`, the venv and the secrets out) and `scenarios/`. Do not commit unless the user asks. Next: `/mclip:record
+`Output/`, the venv, the secrets and `tts/keys.json` out) and `scenarios/`. Do not commit unless the user asks. Next: `/mclip:record
 <the flow to teach>`.

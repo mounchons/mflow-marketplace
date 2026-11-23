@@ -70,6 +70,7 @@ The contents first, the steps later: agreeing on what to teach is cheaper than r
    - ขอบเขต: <what is taught>
    - ไม่รวม: <what is left out, and why when it is not obvious>
    - รูปแบบ: <caption or callout, voice, 1920×1080, length per lesson>
+   - เสียงพากย์: paradee
    - stack ทดสอบ: <where recordings run; never a copy with real data>
 
    ## แอป
@@ -158,6 +159,7 @@ to read; stop.
      every project shares belongs in the plugin's `lexicon.txt` (in the mflow-marketplace repository; it reaches
      projects with the next mclip release): say so, and put it in `clips/lexicon.txt` meanwhile.
    - `plan ความเร็วเสียง`: the plan's `- ความเร็วเสียง: <0.70 to 1.00>` line.
+   - `plan เสียงพากย์`: the plan's `- เสียงพากย์:` line, as **5** writes it, and `- สไตล์เสียง:` for a Gemini voice.
    - Renumbering or reordering the contents renames each moved lesson's folder (`git mv` when tracked); never reuse
      the number of a lesson that has versions (`v1/`, ...).
    - Removing a lesson that has versions: ask first (AskUserQuestion), a) remove it from the contents and keep its
@@ -212,20 +214,34 @@ action has settled. No video, no voice; a lesson takes seconds.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs voice <id> [--step <n>]
 ```
 
-Each step's `พูด` line, in the recorder's Thai voice (PyThaiTTS, a female voice), becomes `clips/<id>/voice/NN.mp3`
-(NN = the step), recorded in `voice/voice.json`; the page plays it under the step, and ▶ ฟังทั้งบท plays the lesson's
-steps one after another.
-- **Speed**: the plan's `- ความเร็วเสียง:` (0.70 slow to 1.00 normal), else 0.85.
+Each step's `พูด` line, in the plan's voice, becomes `clips/<id>/voice/NN.mp3` (NN = the step), recorded in
+`voice/voice.json`; the page plays it under the step, and ▶ ฟังทั้งบท plays the lesson's steps one after another.
+- **Voice**: the plan's `- เสียงพากย์:`, chosen on the live page (**6**) or written as
+  - `paradee` (no field: the same): PyThaiTTS MakHam Paradee, female, on this machine, no cost;
+  - `gemini <voice> [<model>]`: a Google Gemini TTS voice (`Enya` when none is named, `Kore`, `Leda`, ...; model `gemini-3.8-flash-tts`),
+    with the plan's `- สไตล์เสียง:` when there is one: how every line is delivered, free text as in AI Studio's style
+    box (`Friendly`, `warm and friendly`, `calm and clear`; no line: the voice's own way). A new style speaks the steps again;
+  - `elevenlabs <voice_id> [<model>] (<name>)`: a voice of the user's ElevenLabs account (model `eleven_v3`, which
+    speaks Thai; `eleven_multilingual_v2` and `eleven_flash_v2_5` do not).
+  An API voice sends the narration to that company and costs what the account is charged: change the field only when
+  the user asks. Its key is `GEMINI_API_KEY` / `ELEVENLABS_API_KEY` in the environment or in
+  `tools/TutorialRecorder/tts/keys.json` (git-ignored; `keys.example.json` beside it). The user puts the key there
+  themselves: never ask for it in chat, never read, print or copy that file. A missing or refused key ends the run
+  with what the API said (exit 2): report it as it is.
+- **Speed**: the plan's `- ความเร็วเสียง:` (0.70 slow to 1.00 normal), else 0.85. Paradee speaks at that speed; an API
+  voice speaks at its own pace and is then slowed to it (ffmpeg, the pitch kept), so 1.00 is that voice as it is.
 - **Words the voice says wrong**: `<written> = <spoken>` rules, the plugin's `lexicon.txt` (every project) then the
   project's `clips/lexicon.txt` (wins for the same word); only what is spoken changes, never captions or the manual.
 - **Prices** are said in words: `5,877.50 บาท` or `฿5,877.50` → ห้าพันแปดร้อยเจ็ดสิบเจ็ดบาทห้าสิบสตางค์ (voice only; the
   words on screen keep the number).
-- **Sentences**: a line is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) followed by a
-  space, with a pause between them and silence after the last word, so no particle is run into what follows.
-- A step is spoken again only when its words, the speed, a rule it uses or the voice itself changed (`--force`: anyway);
-  a whole-lesson run removes the audio of steps that no longer speak.
+- **Sentences**: Paradee speaks a line sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) followed
+  by a space, with a pause between them; an API voice speaks the whole line at once. Every line ends with silence after
+  its last word, so no particle is run into what follows.
+- A step is spoken again only when its words, the voice, the speed or a rule it uses changed (`--force`: anyway); a
+  whole-lesson run removes the audio of steps that no longer speak.
 
-It needs the recorder's voice (`tools/TutorialRecorder/tts/.venv`): exit 2 names how to set it up. `voice/` is
+It needs the recorder's voice (`tools/TutorialRecorder/tts/.venv`; an API voice needs only its `soundfile`): exit 2
+names how to set it up. `voice/` is
 git-ignored: it is a preview to listen to; `/mclip:record ... voice` speaks the scenario's narration again, with the
 same speed and words.
 
@@ -241,8 +257,10 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/serve.mjs --open
 Run it in the background: it prints `{"url": ...}` and serves until stopped. Give the user the URL (it carries the
 page's token: it is the only way in) and say what the page does there: each step's narration in a box with บันทึกคำพูด
 and บันทึกและสร้างเสียง (the voice is made at once and plays on the page), สร้างเสียงทั้งบทตอนนี้ on a lesson, and on
-ขอบเขตและรูปแบบ the speed and the project's words. ✎ แก้ and ถ่ายรูป there save their requests in
+ขอบเขตและรูปแบบ the voice (Paradee, a Gemini voice, or a voice of the ElevenLabs account listed from it; ลองฟัง speaks a
+sample, ใช้เสียงนี้ writes `- เสียงพากย์:` and, for Gemini, the style box as `- สไตล์เสียง:` and every step then shows ต้องสร้างใหม่), whether each API key is set (never
+its value), the speed and the project's words. ✎ แก้ and ถ่ายรูป there save their requests in
 `clips/requests.json`: when the user asks for them to be done, in whatever words (แก้ตามคำขอ, ทำตามที่ขอไว้), apply
 them as **3** says, without asking them to copy anything. It listens on 127.0.0.1 only and writes only the narration
-lines, the speed line, `clips/lexicon.txt`, the requests and the voice. Stop it when the user is done (or says so), and
+lines, the speed and voice lines, `clips/lexicon.txt`, the requests and the voice. Stop it when the user is done (or says so), and
 report the lessons whose narration changed: their scenarios and recordings follow at the next `/mclip:record`.

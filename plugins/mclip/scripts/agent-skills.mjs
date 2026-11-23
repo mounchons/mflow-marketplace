@@ -97,7 +97,8 @@ export function plan(root) {
   for (const s of SKILLS) {
     const dir = path.join(root, SKILLS_DIR, `mclip-${s}`), file = path.join(dir, "SKILL.md");
     const text = convert(s, fs.readFileSync(path.join(PLUGIN, "skills", s, "SKILL.md"), "utf8"));
-    if (!inside(root, dir)) { out.refused.push(`${SKILLS_DIR}/mclip-${s}: leads outside the project`); continue; }
+    if (!inside(root, dir) || !inside(root, file)) { out.refused.push(`${SKILLS_DIR}/mclip-${s}: leads outside the project`); continue; }
+    if (fs.existsSync(file) && fs.lstatSync(file).isSymbolicLink()) { out.refused.push(`${SKILLS_DIR}/mclip-${s}/SKILL.md: a link, left as it is`); continue; }
     if (fs.existsSync(dir) && !generatedVersion(file)) { out.refused.push(`${SKILLS_DIR}/mclip-${s}: the user's own skill (no ${MARK}), left as it is`); continue; }
     const now = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
     out.skills.push({ name: `mclip-${s}`, file, text, action: now === null ? "create" : now === text ? "same" : "update" });
@@ -118,7 +119,10 @@ export function write(root) {
   for (const s of p.skills) {
     if (s.action === "same") continue;
     fs.mkdirSync(path.dirname(s.file), { recursive: true });
-    fs.writeFileSync(s.file, s.text);
+    // a new file renamed over the old: nothing is written through whatever stood at that path
+    const tmp = `${s.file}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, s.text, { flag: "wx" });
+    fs.renameSync(tmp, s.file);
   }
   if (p.runtime && p.runtime.action !== "same") {
     fs.rmSync(p.runtime.dir, { recursive: true, force: true });

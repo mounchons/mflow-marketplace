@@ -88,6 +88,22 @@ test("a skill folder of the user's own is never touched; an old version is updat
   } finally { p.cleanup(); }
 });
 
+test("a SKILL.md that is a link is never written through", (t) => {
+  const p = project();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "mclip-outside-"));
+  try {
+    const target = path.join(outside, "victim.md");
+    fs.writeFileSync(target, "---\nname: x\ndescription: y\nmetadata:\n  mclip/generated: \"0.0.1\"\n---\nkeep me\n");
+    const dir = path.join(p.root, ".agents", "skills", "mclip-help");
+    fs.mkdirSync(dir, { recursive: true });
+    try { fs.symlinkSync(target, path.join(dir, "SKILL.md"), "file"); }
+    catch { t.skip("this machine cannot make a file link"); return; }
+    const done = write(p.root);
+    assert.match(done.refused.join(), /mclip-help/);
+    assert.match(fs.readFileSync(target, "utf8"), /keep me/, "the file the link leads to is untouched");
+  } finally { p.cleanup(); fs.rmSync(outside, { recursive: true, force: true }); }
+});
+
 test("doctor: an older copy of the skills is a warning with how to update", async () => {
   const { checkProject } = await import(`file://${path.join(REPO, "plugins", "mclip", "scripts", "doctor.mjs").replace(/\\/g, "/")}`);
   const p = project();

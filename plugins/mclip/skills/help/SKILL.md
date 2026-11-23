@@ -36,6 +36,10 @@ Three short parts:
 | `/mclip:manual [pdf]` | Exports the user manual from the lessons and their pictures: `clips/manual/manual.md`, `.docx` (Word) and with `pdf` a `.pdf` (made by Microsoft Word) |
 | `/mclip:help` | This list; `check setup` checks the machine and the project |
 
+The same commands work in Codex (`$mclip-plan`, ...) and Google Antigravity (`/mclip-plan`, ...) once `/mclip:init`
+wrote them into `.agents/skills/` (or, with no Claude Code, `node <mflow-marketplace clone>/plugins/mclip/scripts/agent-skills.mjs write --root .`);
+`/mclip:finish` stays Claude Code's, since it needs WeftCut's MCP server.
+
 3. **The next command**, with one line on why, the first that applies: a doctor `fail` → `/mclip:help check setup`;
    no recorder, or one older than the plugin → `/mclip:init` (`--update`); no plan → `/mclip:plan`; plan problems →
    `/mclip:plan` (the page lists them); topics → `/mclip:plan lesson all`; a web lesson with pictures missing or a

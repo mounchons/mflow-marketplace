@@ -43,6 +43,10 @@ rests on in the question itself:
 3. **Thai voice-over** (a Python venv of about 260 MB): PyThaiTTS MakHam Paradee, female, on this machine with a model
    downloaded on first use; the same venv also speaks with a Google Gemini or ElevenLabs voice, chosen later on the
    plan's live page, which costs what that account is charged: a) yes, b) later.
+4. **Codex and Google Antigravity**: mclip's skills for them too, in `.agents/skills/mclip-*` (both read that folder;
+   Codex calls one `$mclip-plan`, Antigravity `/mclip-plan`) with a copy of what they run in `.agents/mclip/` (about
+   400 KB, committed with the project so others get them): a) yes, b) no. Already there (`.agents/mclip/.mclip-agents`):
+   no question, they are updated in step 3.
 
 Done when: each question has an answer.
 
@@ -67,6 +71,10 @@ Done when: each question has an answer.
    or copy that file once it may hold one.
 6. **Check**: `pwsh tools/TutorialRecorder/stack/reset.ps1 -Build` prints `ready: <url>`, and
    `dotnet run --project tools/TutorialRecorder -- scenarios/example.yaml --check` lists the example's steps.
+7. **Codex and Antigravity** (when 4a, or already there): `node ${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills.mjs write
+   --root <root>`. It writes the skills and the copy, and never touches a skill folder of the user's own (`refused`
+   says which). This needs the plugin itself: in Codex or Antigravity, tell the user to run it from Claude Code, or
+   from a clone of the mflow-marketplace repository with `node <clone>/plugins/mclip/scripts/agent-skills.mjs write --root .`.
 
 Done when: the stack answers and `--check` passes. Leave the stack up for `/mclip:record`.
 
@@ -74,5 +82,6 @@ Done when: the stack answers and `--check` passes. Leave the stack up for `/mcli
 
 What was installed (version), the stack's URL and how to stop it (`reset.ps1 -Down`), where the secrets are, whether
 the voice is ready, and the files to commit: `tools/TutorialRecorder/` (its `.gitignore` keeps `bin/`, `obj/`,
-`Output/`, the venv, the secrets and `tts/keys.json` out) and `scenarios/`. Do not commit unless the user asks. Next: `/mclip:record
+`Output/`, the venv, the secrets and `tts/keys.json` out) and `scenarios/`, and with 4a `.agents/skills/mclip-*` and
+`.agents/mclip/` (how to call them: `$mclip-help` in Codex, `/mclip-help` in Antigravity). Do not commit unless the user asks. Next: `/mclip:record
 <the flow to teach>`.

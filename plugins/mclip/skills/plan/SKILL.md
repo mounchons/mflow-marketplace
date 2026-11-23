@@ -183,7 +183,7 @@ The requests come from two places, and both are applied:
 Each request is `- <target> ("<the words now>"): <the request>`. Targets: `plan` (the whole plan), `plan <field>`,
 `plan สารบัญ`, `plan แอป <key>`, `plan คำอ่าน` (the words the voice says wrong), `<id>` (a lesson or topic),
 `<id> ขั้น <n>` (one step), `<id> เปิด` / `<id> สรุป` (a title card: its `## เปิด` / `## สรุป`). None saved and none pasted: say the page keeps them in the browser when it was opened as a
-file (press คำขอแก้ at the top right, then คัดลอก, and paste here), or that `/mclip:plan serve` saves them for Claude
+file (press คำขอแก้ at the top right, then คัดลอก, and paste here), or that `/mclip:plan serve` saves them for the AI
 to read; stop.
 
 1. Read the files the targets name. A file changed since the page was built (its time is later): read it as it is now,

@@ -857,8 +857,8 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
     try { localStorage.setItem(KEY, JSON.stringify(edits)); } catch {}
     count(); return "";
   };
-  const HOW = LIVE ? "คำขอถูกบันทึกลงไฟล์ clips/requests.json — ใน Claude Code สั่ง /mclip:plan edit ได้เลย ไม่ต้องคัดลอก"
-    : "คำขอเก็บในเบราว์เซอร์นี้เท่านั้น Claude ยังมองไม่เห็น — กดปุ่ม \\"คำขอแก้\\" มุมขวาบน แล้ว \\"คัดลอก\\" ไปวางใน Claude Code";
+  const HOW = LIVE ? "คำขอถูกบันทึกลงไฟล์ clips/requests.json — ใน Claude Code สั่ง /mclip:plan edit ได้เลย ไม่ต้องคัดลอก (Codex: $mclip-plan edit, Antigravity: /mclip-plan edit)"
+    : "คำขอเก็บในเบราว์เซอร์นี้เท่านั้น AI ยังมองไม่เห็น — กดปุ่ม \\"คำขอแก้\\" มุมขวาบน แล้ว \\"คัดลอก\\" ไปวางใน Claude Code";
   document.getElementById("askHow").textContent = HOW;
   document.getElementById("trayHow").textContent = LIVE ? HOW + " (หรือกด \\"คัดลอก\\" แล้ววางก็ได้)"
     : "กด \\"คัดลอก\\" แล้ววางใน Claude Code (Ctrl+V) — AI จะแก้ไฟล์แผนแล้วสร้างหน้านี้ใหม่";

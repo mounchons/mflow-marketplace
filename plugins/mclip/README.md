@@ -25,7 +25,7 @@ Phase 6 (0.6.0) — เลือกเสียงพากย์ได้ที
 `eleven_v3` ที่พูดไทยได้) กด "ลองฟัง" ก่อน แล้ว "ใช้เสียงนี้" เก็บลง `- เสียงพากย์:` ในแผน; เสียงตอนอัดคลิป (`--speaker`) ใช้
 ตัวเดียวกัน; key อยู่ใน `tools/TutorialRecorder/tts/keys.json` (git-ignore) หรือ environment — AI ไม่อ่านและไม่แสดงค่า key
 
-## คำสั่ง (v0.6)
+## คำสั่ง (v0.7)
 
 | คำสั่ง | ทำอะไร |
 |---|---|
@@ -36,6 +36,20 @@ Phase 6 (0.6.0) — เลือกเสียงพากย์ได้ที
 | `/mclip:finish <clip>` | ตกแต่งใน WeftCut: เอาคลิปโหมด clean (ไม่มี caption ในภาพ) มาวาง caption จาก `.srt` และ title card เปิด/สรุปเป็น layer ที่แก้ได้ ตรวจด้วย `check_composition` + ภาพจริง และ export เมื่อสั่ง |
 | `/mclip:manual [pdf]` | export คู่มือการใช้งานจากแผน: บทละหนึ่งบท ขั้นตอน (`คู่มือ:` หรือ `บนจอ:`) รูปอ้างอิง และหมายเหตุ เป็น `clips/manual/manual.md`, `manual.docx` (ฟอนต์ไทย ปก สารบัญ หัวกระดาษ เลขหน้า) และ `manual.pdf` เมื่อสั่ง `pdf` (ทำด้วย Microsoft Word ซึ่งเติมเลขหน้าในสารบัญให้) แล้วดูทุกหน้าก่อนรายงาน |
 | `/mclip:help` | บอกสถานะคลิปของโปรเจกต์ (บทตามสถานะ รูปและเสียงที่ยังขาด รุ่นของ recorder) รายการคำสั่ง และคำสั่งถัดไปที่ควรใช้; `check setup` ตรวจเครื่องและโปรเจกต์ว่ามีของที่ต้องใช้ครบไหม (Node, Git, .NET 10, PowerShell 7, ffmpeg, Chromium, Python เสียงไทย) พร้อมคำสั่งติดตั้งของที่ขาด ใช้ตอนตั้งเครื่องใหม่ได้ |
+
+### ใช้กับ Codex และ Google Antigravity (0.7.0)
+
+ทั้งสองตัวอ่าน skill จาก `.agents/skills/` ของโปรเจกต์ mclip จึงเขียน skill ชุดเดียวใช้ได้ทั้งคู่:
+`mclip-help`, `mclip-init`, `mclip-plan`, `mclip-record`, `mclip-manual` (Codex เรียก `$mclip-plan`, Antigravity เรียก
+`/mclip-plan`) พร้อมสำเนา script, template ของ recorder และกฎคำอ่านใน `.agents/mclip/` (ราว 400 KB, commit ไปกับโปรเจกต์)
+`/mclip:finish` ใช้ได้แค่ใน Claude Code เพราะต้องใช้ MCP ของ WeftCut
+
+ติดตั้งหรืออัปเดตได้ 2 ทาง:
+- ใน Claude Code: `/mclip:init` (ตอบข้อ Codex / Antigravity ว่า a) หรือ `--update` เมื่อมีอยู่แล้ว)
+- เครื่องที่ไม่มี Claude Code: clone repo นี้แล้วรัน
+  `node <clone>/plugins/mclip/scripts/agent-skills.mjs write --root <โปรเจกต์>` (`plan` ดูก่อนว่าจะเขียนอะไร, `status` ดูรุ่น)
+
+skill ที่ผู้ใช้เขียนเองใน `.agents/skills/` (ไม่มี `mclip/generated` ใน frontmatter) จะไม่ถูกแตะ
 
 ## ได้อะไร
 
@@ -64,7 +78,7 @@ Phase 6 (0.6.0) — เลือกเสียงพากย์ได้ที
 - .NET 10 SDK, ffmpeg และ PowerShell 7 (`pwsh`) บน PATH
 - Chromium ของ Playwright (`/mclip:init` ติดตั้งให้ ราว 450 MB)
 - สำเนาระบบสำหรับอัดที่รีเซ็ตข้อมูลได้ (เช่น Docker Compose อีก project) — **ห้ามอัดบนระบบที่มีข้อมูลจริง**
-- เสียงพากย์ (ไม่บังคับ): Python 3.10+ กับ `pythaitts==1.0.0` (venv ราว 260 MB และโมเดล Apache-2.0 ที่โหลดครั้งแรก) เสียงผู้หญิง ให้เขียนบทลงท้าย "ค่ะ"
+- เสียงพากย์ (ไม่บังคับ): Python 3.10+ กับ `pythaitts==1.0.0` (venv ราว 260 MB และโมเดล Apache-2.0 ที่โหลดครั้งแรก) หรือเสียง Gemini / ElevenLabs (บทพูดแบบกระชับ ไม่มี ค่ะ/ครับ)
 - `/mclip:finish`: แอป WeftCut พร้อม MCP server ที่เชื่อมกับ Claude Code แล้ว
 
 ## โครงสร้าง plugin
@@ -79,6 +93,7 @@ mclip/
 │   ├── clips.mjs            # แผนใน clips/: ตรวจ (check), สร้างหน้า (page), version ของบท, เทียบรูปหน้าจอ (ffmpeg ssim), เสียงคำพูด (voice)
 │   ├── manual.mjs           # คู่มือ: .md และ .docx (Node ล้วน) และ .pdf ผ่าน Microsoft Word
 │   ├── serve.mjs            # หน้าแผนแบบแก้ได้: แก้คำพูดแล้วสร้างเสียง ความเร็ว คำอ่าน (127.0.0.1 + token)
+│   ├── agent-skills.mjs     # skill สำหรับ Codex / Antigravity ใน .agents/skills + สำเนาใน .agents/mclip
 │   └── install.mjs          # คัดลอก recorder ลงโปรเจกต์, ไม่ทับ settings/secrets/stack/scenarios, ประทับ .mclip-version
 ├── skills/
 │   ├── help/SKILL.md

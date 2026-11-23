@@ -110,6 +110,14 @@ export function checkProject(root, pluginVersion) {
     else add("voice", "warn", "no Thai voice (tts/.venv): /mclip:plan voice and recording with voice need it (optional)",
       `py -3.13 -m venv ${path.join(RECORDER, "tts", ".venv")}, then its python -m pip install pythaitts==1.0.0 soundfile`);
   }
+  // mclip's skills for Codex and Antigravity (.agents/skills/mclip-*, .agents/mclip/), when the project has them
+  const agents = path.join(root, ".agents", "mclip", ".mclip-agents");
+  if (fs.existsSync(agents)) {
+    const v = fs.readFileSync(agents, "utf8").trim();
+    if (older(v, pluginVersion)) add("agents", "warn", `the Codex / Antigravity skills are mclip ${v}, the plugin is ${pluginVersion}`,
+      "/mclip:init --update, or node <mflow-marketplace clone>/plugins/mclip/scripts/agent-skills.mjs write --root .");
+    else add("agents", "ok", `Codex / Antigravity skills: mclip ${v} ($mclip-help in Codex, /mclip-help in Antigravity)`);
+  }
   const clips = path.join(root, "clips");
   if (!fs.existsSync(path.join(clips, "plan.md"))) add("plan", "warn", "no clips/plan.md", "/mclip:plan");
   else {

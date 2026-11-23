@@ -8,7 +8,7 @@ using TutorialRecorder.Writing;
 
 // dotnet run -- <scenario.yaml> [--mode caption|callout|both] [--headed] [--no-shots] [--durations file.json] [--secrets file.json]
 // dotnet run -- <scenario.yaml> --shots [--only screen/a.jpg,screen/b.jpg]   the lesson's reference pictures, no video
-const string usage = "usage: dotnet run -- <scenario.yaml> [--mode caption|callout|both|clean] [--voice] [--speed 0.85] [--check] [--headed] [--no-shots] [--no-setup] [--keep-webm] [--durations <file.json>] [--secrets <file.json>]\n"
+const string usage = "usage: dotnet run -- <scenario.yaml> [--mode caption|callout|both|clean] [--voice] [--speed 0.85] [--lexicon <words.txt> ...] [--check] [--headed] [--no-shots] [--no-setup] [--keep-webm] [--durations <file.json>] [--secrets <file.json>]\n"
     + "       dotnet run -- <scenario.yaml> --shots [--only <screen/x.jpg,...>] [--headed] [--no-setup] [--secrets <file.json>]";
 if (args.Length == 0 || args[0] is "-h" or "--help") { Console.WriteLine(usage); return 1; }
 
@@ -74,7 +74,10 @@ List<Voice.Line>? voice = null;
 if (Flag("--voice") && !shots)
 {
     var speed = Opt("--speed") ?? "0.85";
-    try { voice = Voice.Prepare(toolDir, outRoot, scenario.Clip, narrationTxt, narrated.Select(x => (x.Step, x.Text!)).ToList(), speed); }
+    // --lexicon <file>, any number (later wins): how words are said, e.g. the plugin's lexicon.txt, then clips/lexicon.txt
+    var lexicons = args.Select((a, i) => (a, i)).Where(x => x.a == "--lexicon" && x.i + 1 < args.Length).Select(x => args[x.i + 1]).ToList();
+    foreach (var f in lexicons.Where(f => !File.Exists(f))) Console.WriteLine($"  warning: --lexicon {f} not found");
+    try { voice = Voice.Prepare(toolDir, outRoot, scenario.Clip, narrationTxt, narrated.Select(x => (x.Step, x.Text!)).ToList(), speed, lexicons.Where(File.Exists).ToList()); }
     catch (Exception e) when (e is InvalidOperationException or FileNotFoundException) { Console.Error.WriteLine(e.Message); return 2; }
     foreach (var v in voice) holds[v.ScenarioStep] = v.DurationMs + settings.VoiceTailMs;
     Console.WriteLine($"voice: {voice.Count} lines, {voice.Sum(v => v.DurationMs) / 1000.0:0.0}s of speech");

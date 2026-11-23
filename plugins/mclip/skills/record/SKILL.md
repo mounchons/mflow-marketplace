@@ -57,7 +57,10 @@ dotnet run --project tools/TutorialRecorder -- <scenario> [--mode <mode>] [--voi
 
 Mode: the scenario's own unless the user named one (`caption` by default; `callout` for clips watched without sound;
 `clean` for `/mclip:finish`, which lays captions and title cards in WeftCut). Add `--voice` when the user asked for it
-or the scenario has narration and `tools/TutorialRecorder/tts/.venv` exists.
+or the scenario has narration and `tools/TutorialRecorder/tts/.venv` exists, with the same speed and words as the
+plan's preview: `--speed <the plan's ความเร็วเสียง, else 0.85> --lexicon ${CLAUDE_PLUGIN_ROOT}/lexicon.txt` and, when
+the project has one, `--lexicon clips/lexicon.txt` (later wins). A recorder older than 0.5.0
+(`tools/TutorialRecorder/.mclip-version`) has no `--lexicon` and no pause after a sentence: `/mclip:init --update` first.
 
 Exit 3 means a step could not find its target: read the message and `tools/TutorialRecorder/Output/<clip>/steps/failed-step-NN.png`, fix the
 target (prefer a `data-tour` attribute), and run again. Exit 2 means the scenario or the stack setup is wrong.

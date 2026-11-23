@@ -2,7 +2,7 @@
 name: plan
 description: Plan a project's how-to clips before any recording — read the project's apps (web, iPhone, Android), their e2e tests, tests and code, and draft the teaching topics in clips/plan.md; write a topic's steps, on-screen words, narration and reference pictures in clips/<id>/lesson.md; take a web lesson's reference pictures in the test stack and speak its narration to listen to, per lesson or per step; apply edit requests pasted from the plan page; and build clips/index.html, the plan as slides with a left menu and edit buttons.
 disable-model-invocation: true
-argument-hint: "[scan | lesson <id>|all | shots|voice|shots voice <id>|all [ขั้น <n>] | edit <requests pasted from the page>]"
+argument-hint: "[scan | lesson <id>|all | shots|voice|shots voice <id>|all [ขั้น <n>] | serve | edit <requests pasted from the page>]"
 ---
 
 Plan the project's clips in `clips/`, the folder of the project's own repository that the clips are taught from. The
@@ -25,6 +25,7 @@ The user's answers are the customer's: act on them without asking again.
 - `shots <id> [ขั้น <n>]`: **4. Take the reference pictures** of a lesson, or of one step (`all`: every web lesson).
 - `voice <id> [ขั้น <n>]`: **5. Speak the narration** of a lesson, or of one step (`all`: every lesson).
 - `shots voice <id> [ขั้น <n>]`: both, pictures first.
+- `serve`: **6. The live page**, where the user edits narration and hears it at once, sets the speed and the words.
 - `edit ...`: **3. Apply edit requests**.
 
 A topic named by `shots` or `voice` has no steps yet: write its lesson first (**2**), then go on.
@@ -131,7 +132,7 @@ Build the page; report the lessons written (steps each) and the pictures still m
 
 `$ARGUMENTS` is what the page copied: `edit (หน้าแผนสร้างเมื่อ <time> UTC)` and one line per request,
 `- <target> ("<the words now>"): <the request>`. Targets: `plan` (the whole plan), `plan <field>`, `plan สารบัญ`,
-`plan แอป <key>`, `<id>` (a lesson or topic), `<id> ขั้น <n>` (one step).
+`plan แอป <key>`, `plan คำอ่าน` (the words the voice says wrong), `<id>` (a lesson or topic), `<id> ขั้น <n>` (one step).
 
 1. Read the files the targets name. A file changed since the page was built (its time is later): read it as it is now,
    and when a request's quoted words are no longer there, apply it to the nearest text and say so in the report.
@@ -139,6 +140,10 @@ Build the page; report the lessons written (steps each) and the pictures still m
    - `ถ่ายรูปอ้างอิงใหม่` (the page's ถ่ายรูป button) on `<id>` or `<id> ขั้น <n>`: **4** for that lesson or step;
      `สร้างเสียงให้ฟัง` (สร้างเสียง): **5**. Do them after the other requests, so the pictures and voice show the
      edited lesson.
+   - `plan คำอ่าน`: add or change `<written> = <spoken>` lines in `clips/lexicon.txt` (this project's words). A word
+     every project shares belongs in the plugin's `lexicon.txt` (in the mflow-marketplace repository; it reaches
+     projects with the next mclip release): say so, and put it in `clips/lexicon.txt` meanwhile.
+   - `plan ความเร็วเสียง`: the plan's `- ความเร็วเสียง: <0.70 to 1.00>` line.
    - Renumbering or reordering the contents renames each moved lesson's folder (`git mv` when tracked); never reuse
      the number of a lesson that has versions (`v1/`, ...).
    - Removing a lesson that has versions: ask first (AskUserQuestion), a) remove it from the contents and keep its
@@ -148,7 +153,8 @@ Build the page; report the lessons written (steps each) and the pictures still m
 3. Build the page; report each request with what was changed (file and line), or why it was not.
 
 A lesson changed after it was recorded shows as ต้องอัดใหม่ until `/mclip:record` records its next version. A step
-whose `พูด` changed after its voice was made shows เสียงของคำพูดเดิม: offer `/mclip:plan voice <id> ขั้น <n>`.
+whose voice no longer fits it (its `พูด`, the speed or a word it uses changed) shows ต้องสร้างใหม่ with the reason:
+offer `/mclip:plan voice <id>`, which speaks only those steps.
 
 ## 4. Take the reference pictures
 
@@ -191,12 +197,33 @@ action has settled. No video, no voice; a lesson takes seconds.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/clips.mjs voice <id> [--step <n>]
 ```
 
-Each step's `พูด` line, in the recorder's Thai voice (PyThaiTTS, a female voice, speed 0.85), becomes
-`clips/<id>/voice/NN.mp3` (NN = the step), recorded in `voice/voice.json`; the page plays it under the step, and
-▶ ฟังทั้งบท plays the lesson's steps one after another. A line spoken before with the same words is not spoken again
-(`--force` speaks it anyway); a whole-lesson run removes the audio of steps that no longer speak. It needs the
-recorder's voice (`tools/TutorialRecorder/tts/.venv`): exit 2 names how to set it up. `voice/` is git-ignored: it is a
-preview to listen to; `/mclip:record ... voice` speaks the scenario's narration again when it records.
+Each step's `พูด` line, in the recorder's Thai voice (PyThaiTTS, a female voice), becomes `clips/<id>/voice/NN.mp3`
+(NN = the step), recorded in `voice/voice.json`; the page plays it under the step, and ▶ ฟังทั้งบท plays the lesson's
+steps one after another.
+- **Speed**: the plan's `- ความเร็วเสียง:` (0.70 slow to 1.00 normal), else 0.85.
+- **Words the voice says wrong**: `<written> = <spoken>` rules, the plugin's `lexicon.txt` (every project) then the
+  project's `clips/lexicon.txt` (wins for the same word); only what is spoken changes, never captions or the manual.
+- **Sentences**: a line is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) followed by a
+  space, with a pause between them and silence after the last word, so no particle is run into what follows.
+- A step is spoken again only when its words, the speed, a rule it uses or the voice itself changed (`--force`: anyway);
+  a whole-lesson run removes the audio of steps that no longer speak.
 
-Build the page; report the steps spoken (seconds each) and any line that sounds wrong to fix in `lesson.md`
-(a word the voice reads badly: spell it as it is said).
+It needs the recorder's voice (`tools/TutorialRecorder/tts/.venv`): exit 2 names how to set it up. `voice/` is
+git-ignored: it is a preview to listen to; `/mclip:record ... voice` speaks the scenario's narration again, with the
+same speed and words.
+
+Build the page; report the steps spoken (seconds each). A word the user says is read wrong: add it to
+`clips/lexicon.txt` (spelled as it is said, in Thai letters) and speak again.
+
+## 6. The live page
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/serve.mjs --open
+```
+
+Run it in the background: it prints `{"url": ...}` and serves until stopped. Give the user the URL (it carries the
+page's token: it is the only way in) and say what the page does there: each step's narration in a box with บันทึกคำพูด
+and บันทึกและสร้างเสียง (the voice is made at once and plays on the page), สร้างเสียงทั้งบทตอนนี้ on a lesson, and on
+ขอบเขตและรูปแบบ the speed and the project's words. It listens on 127.0.0.1 only and writes only the narration lines,
+the speed line, `clips/lexicon.txt` and the voice. Stop it when the user is done (or says so), and report the lessons
+whose narration changed: their scenarios and recordings follow at the next `/mclip:record`.

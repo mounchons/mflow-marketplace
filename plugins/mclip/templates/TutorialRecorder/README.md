@@ -74,6 +74,11 @@ the step's caption appears; `timing.json` gives each step's `audio` span, and th
 its step or into the next one. The voice is female: write narration with ค่ะ, not ครับ. Put the introduction on an opening `title`
 card and a short line on the explicit `login` step, so each sentence matches what is on screen.
 
+`--lexicon <file>` (any number, later wins) gives the words the voice says wrong, one `<written> = <spoken>` per line
+(`Login = ล๊อก อิน`; a Latin word matches whole and in any case): only the voice changes, never the captions. A line of
+several sentences is spoken sentence by sentence, cut after a closing particle (ค่ะ, คะ, ครับ, ...) and a space, with a
+pause between them and silence after the last word. A changed rule file or speed speaks the lines again.
+
 The TTS script works on its own too:
 `tts/.venv/Scripts/python tts/tts_paradee.py --input lines.txt --out out_dir --speed 0.85 [--mp3] [--merge]`
 (one sentence per line, `#` lines skipped; writes `001.wav` …, `manifest.json`, and with `--merge` `merged.wav`).

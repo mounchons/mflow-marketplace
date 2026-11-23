@@ -1,0 +1,6 @@
+# mclip: how the Thai voice says words it gets wrong, for every project (a project's own words: clips/lexicon.txt).
+# One rule per line: <the word as written> = <how it is said, in Thai letters>
+# A Latin word matches whole and in any case (Login, LOGIN); a Thai word wherever it appears; longer words first.
+# Only the voice changes: captions, the plan and the manual keep the word as written.
+# A word added here reaches projects with the next mclip release.
+Login = ล๊อก อิน

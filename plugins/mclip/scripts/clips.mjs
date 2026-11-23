@@ -167,16 +167,78 @@ function readShots(dir) {
   return { pictures, failed: f ? { step: Number.isInteger(f.step) ? f.step : null, message: typeof f.message === "string" ? f.message : "" } : null };
 }
 
-/** clips/<id>/voice/voice.json: { steps: { "<n>": { text, speed, durationMs, date } } }, only well-formed entries. */
+/** clips/<id>/voice/voice.json: { steps: { "<n>": { text, speed, rules, engine, durationMs, date } } }, well-formed only. */
 function readVoices(dir) {
   const j = readJson(path.join(dir, VOICE_DIR, "voice.json"));
   const out = {};
   if (isObj(j?.steps)) for (const [k, v] of Object.entries(j.steps)) {
     if (/^\d+$/.test(k) && typeof v?.text === "string" && Number.isFinite(v?.durationMs)) {
-      out[Number(k)] = { text: v.text, speed: Number(v.speed) || 0, durationMs: v.durationMs, date: typeof v.date === "string" ? v.date : "" };
+      out[Number(k)] = { text: v.text, speed: Number(v.speed) || 0, rules: typeof v.rules === "string" ? v.rules : "",
+        engine: Number(v.engine) || 1, durationMs: v.durationMs, date: typeof v.date === "string" ? v.date : "" };
     }
   }
   return out;
+}
+
+// ---- how words are spoken --------------------------------------------------------------------------------------------
+//
+// Pronunciation rules, `<written> = <spoken>` per line: the plugin's lexicon.txt (words every project shares) and the
+// project's clips/lexicon.txt (its own words; a word in both is spoken the project's way). The voice applies them
+// (tts_paradee.py --lexicon); here they only tell which steps a changed rule affects. Speed: the plan's
+// `- ความเร็วเสียง:` (0.7 to 1.0), else 0.85.
+
+const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const GLOBAL_LEXICON = path.join(PLUGIN_ROOT, "lexicon.txt");
+export const SPEED_FIELD = "ความเร็วเสียง";
+export const DEFAULT_SPEED = 0.85;
+// 2: sentences spoken one by one with a pause, silence after the last word (tts_paradee.py of mclip 0.5)
+export const VOICE_ENGINE = 2;
+
+export function parseLexicon(text) {
+  const rules = [];
+  for (const raw of String(text ?? "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#") || !line.includes("=")) continue;
+    const at = line.indexOf("=");
+    const written = line.slice(0, at).trim(), spoken = line.slice(at + 1).trim();
+    if (written && spoken) rules.push({ written, spoken });
+  }
+  return rules;
+}
+
+/** { global, project, merged }: merged is keyed by the lower-case written form, the project's rule winning. */
+export function readLexicon(clipsDir, globalFile = GLOBAL_LEXICON) {
+  const read = (f) => (fs.existsSync(f) ? parseLexicon(fs.readFileSync(f, "utf8")) : []);
+  const global = read(globalFile), project = read(path.join(clipsDir, "lexicon.txt"));
+  const merged = new Map();
+  for (const r of [...global, ...project]) merged.set(r.written.toLowerCase(), r);
+  return { global, project, merged };
+}
+
+const escRx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** The rules a line uses, as one string ("" for none): a voice made under other rules for those words is stale. */
+export function rulesFor(text, merged) {
+  const used = [];
+  for (const [key, r] of merged) {
+    const p = /[A-Za-z0-9]/.test(key) ? `(?<![A-Za-z0-9])${escRx(key)}(?![A-Za-z0-9])` : escRx(key);
+    if (new RegExp(p, "i").test(text)) used.push(`${key}=${r.spoken}`);
+  }
+  return used.sort().join("\n");
+}
+
+/** The plan's speed, or the default; a value out of 0.7–1.0 is reported by load(). */
+export function planSpeed(plan) {
+  const v = Number(plan?.fields?.find((f) => f.key === SPEED_FIELD)?.value);
+  return v >= 0.7 && v <= 1 ? v : DEFAULT_SPEED;
+}
+
+/** Why a step's voice no longer fits it, or null. */
+export function voiceStale(v, narration, speed, rules) {
+  if (v.text !== narration) return "คำพูดแก้แล้ว";
+  if (Math.abs(v.speed - speed) > 0.001) return `ความเร็ว ${v.speed} ไม่ใช่ ${speed}`;
+  if (v.rules !== rules) return "คำอ่านเปลี่ยน";
+  if (v.engine < VOICE_ENGINE) return "เสียงรุ่นเก่า (ไม่เว้นจังหวะท้ายประโยค)";
+  return null;
 }
 
 const versionDirs = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir) : [])
@@ -189,6 +251,12 @@ export function load(clipsDir) {
   if (!fs.existsSync(planFile)) return { plan: null, lessons: [], problems: [`${planFile}: no plan yet`] };
   const { plan, problems: pp } = parsePlan(fs.readFileSync(planFile, "utf8"), "clips/plan.md");
   problems.push(...pp);
+  const speedField = plan.fields.find((f) => f.key === SPEED_FIELD);
+  if (speedField && !(Number(speedField.value) >= 0.7 && Number(speedField.value) <= 1)) {
+    problems.push(`clips/plan.md: '- ${SPEED_FIELD}: ${speedField.value}' is a number from 0.7 (slow) to 1.0 (normal)`);
+  }
+  const speed = planSpeed(plan);
+  const lexicon = readLexicon(clipsDir);
   const lessons = plan.toc.map(({ id, title, apps: keys, teaches, sources }) => {
     const dir = path.join(clipsDir, id);
     const file = path.join(dir, "lesson.md");
@@ -211,8 +279,9 @@ export function load(clipsDir) {
         s.made[img] = s.present[img] && img in shots.pictures ? shots.pictures[img] : null;
       }
       const v = voices[s.n];
+      const why = v && s.narration ? voiceStale(v, s.narration, speed, rulesFor(s.narration, lexicon.merged)) : null;
       s.voice = v && s.narration && fs.existsSync(path.join(dir, VOICE_DIR, voiceFile(s.n)))
-        ? { file: `${VOICE_DIR}/${voiceFile(s.n)}`, durationMs: v.durationMs, stale: v.text !== s.narration } : null;
+        ? { file: `${VOICE_DIR}/${voiceFile(s.n)}`, durationMs: v.durationMs, stale: !!why, why, date: v.date } : null;
     }
     const versions = versionDirs(dir).map((n) => {
       const vdir = path.join(dir, `v${n}`);
@@ -242,7 +311,7 @@ export function load(clipsDir) {
       problems.push(`clips/${name}/lesson.md: not in the contents of clips/plan.md (a renamed or renumbered lesson?)`);
     }
   }
-  return { plan, lessons, problems };
+  return { plan, lessons, problems, speed, lexicon: { global: lexicon.global, project: lexicon.project } };
 }
 
 // ---- page ------------------------------------------------------------------------------------------------------------
@@ -276,7 +345,7 @@ function groups(lessons) {
   return out;
 }
 
-function lessonSlide(l, index) {
+function lessonSlide(l, index, live = false) {
   const [label, cls] = STATUS[l.status] ?? ["?", "draft"];
   const why = [];
   if (l.textChanged) why.push(`บทแก้หลัง v${l.latest}`);
@@ -287,7 +356,7 @@ function lessonSlide(l, index) {
   // pictures are taken by the recorder: one web app only (a phone app's pictures are the user's)
   const shootable = l.appKeys.length <= 1 && l.kinds.every((k) => k === "web");
   const stale = l.steps.filter((s) => s.voice?.stale).length;
-  if (stale) why.push(`เสียง ${stale} ขั้นเป็นของคำพูดเดิม (แก้คำพูดหลังสร้างเสียง)`);
+  if (stale) why.push(`เสียง ${stale} ขั้นต้องสร้างใหม่ (คำพูด ความเร็ว หรือคำอ่านเปลี่ยนหลังสร้างเสียง)`);
   const changedImgs = new Set((l.compare?.changed ?? []).map((c) => c.image));
   const own = [["สอน", l.teaches], ["ที่มา", l.sources]].filter(([, v]) => v).map(([key, value]) => ({ key, value }));
   const fields = [...own, ...l.fields].map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p></div>`).join("");
@@ -309,12 +378,15 @@ function lessonSlide(l, index) {
     return `<li class="step" id="${esc(`${l.id}-${s.n}`)}">
       <div class="pics">${pics}</div>
       <div class="words">
-        <h4><b>${s.n}</b> ${esc(s.title)} ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}${shootable && s.images.length ? quick(`${l.id} ขั้น ${s.n}`, SHOTS_REQUEST, "ถ่ายรูป", "ให้ AI ถ่ายรูปขั้นนี้ใหม่ (เก็บไว้ในคำขอ)") : ""}${s.narration ? quick(`${l.id} ขั้น ${s.n}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดขั้นนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
+        <h4><b>${s.n}</b> ${esc(s.title)} ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}${shootable && s.images.length ? quick(`${l.id} ขั้น ${s.n}`, SHOTS_REQUEST, "ถ่ายรูป", "ให้ AI ถ่ายรูปขั้นนี้ใหม่ (เก็บไว้ในคำขอ)") : ""}${s.narration && !live ? quick(`${l.id} ขั้น ${s.n}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดขั้นนี้ (เก็บไว้ในคำขอ)") : ""}</h4>
         <p class="act">${esc(s.action)}</p>
         <p class="cap"><span>บนจอ</span>${esc(s.caption)}</p>
-        ${s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
+        ${live
+          ? `<div class="live-say" data-id="${esc(l.id)}" data-step="${s.n}"><span>พูด</span><textarea rows="2" placeholder="คำพูดของขั้นนี้ (เสียงผู้หญิง ลงท้าย ค่ะ)">${esc(s.narration)}</textarea>
+            <div class="row"><button data-act="save">บันทึกคำพูด</button><button class="go" data-act="save-voice">บันทึกและสร้างเสียง</button><em class="msg"></em></div></div>`
+          : s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
         ${s.narration ? (s.voice
-          ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? " · เสียงของคำพูดเดิม" : ""}</small></p>`
+          ? `<p class="voice${s.voice.stale ? " stale" : ""}"><audio controls preload="none" src="${url(`${l.id}/${s.voice.file}`)}${s.voice.date ? `?v=${encodeURIComponent(s.voice.date)}` : ""}"></audio><small>${(s.voice.durationMs / 1000).toFixed(1)} วิ${s.voice.stale ? ` · ต้องสร้างใหม่: ${esc(s.voice.why)}` : ""}</small></p>`
           : `<p class="voice none"><small>ยังไม่มีเสียง</small></p>`) : ""}
         ${s.manual ? `<p class="man"><span>คู่มือ</span>${esc(s.manual)}</p>` : ""}
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
@@ -328,7 +400,7 @@ function lessonSlide(l, index) {
     ? `<p class="topic-note">ยังไม่มีขั้นตอน — เป็นหัวข้อที่ตกลงกันก่อน เมื่อหัวข้อนี้ใช้ได้แล้ว สั่ง <code>/mclip:plan lesson ${esc(l.id)}</code> ให้ AI เขียนขั้นตอนและคำพูด แล้ว <code>/mclip:plan shots voice ${esc(l.id)}</code> ให้ AI ถ่ายรูปอ้างอิงและสร้างเสียงให้ฟัง</p>`
     : `<ol class="steps">${steps}</ol>`;
   const voiced = l.steps.some((s) => s.voice);
-  const tools = l.status === "topic" ? "" : `${voiced ? `<button class="play-all" title="เล่นเสียงทุกขั้นต่อกัน">▶ ฟังทั้งบท</button>` : ""}${shootable && l.steps.some((s) => s.images.length) ? quick(l.id, SHOTS_REQUEST, "ถ่ายรูปทั้งบท", "ให้ AI ถ่ายรูปอ้างอิงทั้งบท (เก็บไว้ในคำขอ)") : ""}${l.steps.some((s) => s.narration) ? quick(l.id, VOICE_REQUEST, "สร้างเสียงทั้งบท", "ให้ AI สร้างเสียงทุกขั้น (เก็บไว้ในคำขอ)") : ""}`;
+  const tools = l.status === "topic" ? "" : `${voiced ? `<button class="play-all" title="เล่นเสียงทุกขั้นต่อกัน">▶ ฟังทั้งบท</button>` : ""}${live && l.steps.some((s) => s.narration) ? `<button class="live-btn" data-act="voice-lesson" data-id="${esc(l.id)}" title="สร้างเสียงขั้นที่ยังไม่มีหรือต้องสร้างใหม่ ตอนนี้เลย">สร้างเสียงทั้งบทตอนนี้</button>` : ""}${shootable && l.steps.some((s) => s.images.length) ? quick(l.id, SHOTS_REQUEST, "ถ่ายรูปทั้งบท", "ให้ AI ถ่ายรูปอ้างอิงทั้งบท (เก็บไว้ในคำขอ)") : ""}${l.steps.some((s) => s.narration) && !live ? quick(l.id, VOICE_REQUEST, "สร้างเสียงทั้งบท", "ให้ AI สร้างเสียงทุกขั้น (เก็บไว้ในคำขอ)") : ""}`;
   return `<section class="slide lesson" data-title="${esc(`${index}. ${l.title}`)}">
     <header><span class="num">${esc(l.id.slice(0, 2))}</span><h2>${esc(l.title)}</h2><span class="badge ${cls}">${label}${l.latest ? ` v${l.latest}` : ""}</span>${plat}${tools}${editButton(l.id, l.title)}</header>
     ${l.apps.length ? `<div class="apps">${l.apps.map(appChip).join("")}</div>` : ""}
@@ -339,8 +411,12 @@ function lessonSlide(l, index) {
   </section>`;
 }
 
-export function renderPage({ plan, lessons, problems }, builtAt = new Date()) {
-  const p = plan ?? { title: "ยังไม่มีแผน", fields: [], toc: [] };
+/**
+ * The plan page. `live` ({ token }) is the page `serve.mjs` hands out: narration edited in place and spoken at once,
+ * the speed and the project's words saved from the page. Without it the page is a file that copies requests.
+ */
+export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, lexicon = { global: [], project: [] } }, builtAt = new Date(), { live = null } = {}) {
+  const p = plan ?? { title: "ยังไม่มีแผน", fields: [], toc: [], apps: [] };
   const built = builtAt.toISOString().replace("T", " ").slice(0, 16);
   const counts = Object.keys(STATUS).map((k) => [k, lessons.filter((l) => l.status === k).length]).filter(([, n]) => n);
   const cover = `<section class="slide cover" data-title="ปก">
@@ -349,7 +425,17 @@ export function renderPage({ plan, lessons, problems }, builtAt = new Date()) {
     <p class="built">สร้างหน้านี้เมื่อ ${esc(built)} UTC — กดปุ่ม ✎ แก้ ที่จุดไหนก็ได้ แล้วคัดลอกคำสั่งไปวางใน Claude Code</p></section>`;
   const scope = `<section class="slide scope" data-title="ขอบเขตและรูปแบบ">
     <header><h2>ขอบเขตและรูปแบบ</h2>${editButton("plan", p.title)}</header>
-    <div class="fields big">${p.fields.map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p>${editButton(`plan ${f.key}`, f.value)}</div>`).join("")}</div>
+    <div class="fields big">${p.fields.filter((f) => f.key !== SPEED_FIELD).map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p>${editButton(`plan ${f.key}`, f.value)}</div>`).join("")}</div>
+    <h3>เสียงพากย์</h3>
+    <div class="fields big"><div class="kv"><span>${SPEED_FIELD} (0.70 ช้า – 1.00 ปกติ)</span>${live
+      ? `<p class="live-speed"><select>${[0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1].map((v) => `<option value="${v}"${Math.abs(v - speed) < 0.001 ? " selected" : ""}>${v.toFixed(2)}</option>`).join("")}</select> <button data-act="speed">บันทึกความเร็ว</button><em class="msg"></em></p>`
+      : `<p>${speed.toFixed(2)}${p.fields.some((f) => f.key === SPEED_FIELD) ? "" : " (ค่าเริ่มต้น)"}</p>${editButton(`plan ${SPEED_FIELD}`, speed.toFixed(2))}`}</div>
+    <div class="kv"><span>คำอ่าน: คำที่เสียงอ่านผิด เขียนเป็นคำอ่านไทย (มีผลกับเสียงเท่านั้น ไม่เปลี่ยนคำบนจอ)</span>
+      ${lexicon.global.length ? `<p class="lex"><b>ทุกโปรเจกต์ (plugin)</b> ${lexicon.global.map((r) => `<code>${esc(r.written)}</code> → ${esc(r.spoken)}`).join(" · ")}</p>` : ""}
+      ${live
+        ? `<div class="live-lex"><b>โปรเจกต์นี้ (clips/lexicon.txt)</b> บรรทัดละคำ: <code>คำที่เขียน = คำอ่าน</code><textarea rows="4">${esc(lexicon.project.map((r) => `${r.written} = ${r.spoken}`).join("\n"))}</textarea><div class="row"><button data-act="lexicon">บันทึกคำอ่าน</button><em class="msg"></em></div></div>`
+        : `<p class="lex"><b>โปรเจกต์นี้</b> ${lexicon.project.length ? lexicon.project.map((r) => `<code>${esc(r.written)}</code> → ${esc(r.spoken)}`).join(" · ") : "ยังไม่มี"}</p>${editButton("plan คำอ่าน", "")}`}
+    </div></div>
     ${p.apps.length ? `<h3>แอปในแผนนี้ (${p.apps.length})</h3><div class="app-cards">${p.apps.map((a) => `<div class="app-card">${editButton(`plan แอป ${a.key}`, a.name)}
       <h4>${appChip(a)}</h4><code>${esc(a.key)}</code>
       ${[["โค้ด", a.code], ["เทสต์", a.tests], ["e2e", a.e2e], ["url", a.url]].filter(([, v]) => v).map(([k, v]) => `<p><span>${k}</span>${esc(v)}</p>`).join("")}
@@ -364,7 +450,7 @@ export function renderPage({ plan, lessons, problems }, builtAt = new Date()) {
     }).join("")}`).join("")}</ol></section>`;
   const issues = problems.length
     ? `<section class="slide problems" data-title="ปัญหาในไฟล์แผน"><header><h2>ปัญหาในไฟล์แผน</h2></header><ul>${problems.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>` : "";
-  const slides = [cover, scope, toc, ...lessons.map((l, i) => lessonSlide(l, i + 1)), issues].join("\n");
+  const slides = [cover, scope, toc, ...lessons.map((l, i) => lessonSlide(l, i + 1, !!live)), issues].join("\n");
   // the left menu: the plan's own pages, then each lesson (main item) with its steps (sub items)
   const side = `<a class="item" data-go="0">ปก</a><a class="item" data-go="1">ขอบเขตและรูปแบบ</a><a class="item" data-go="2">สารบัญ</a>
     ${groups(lessons).map((g) => `<div class="group">${esc(g.label)}</div>${g.items.map(({ l, i }) => {
@@ -373,7 +459,9 @@ export function renderPage({ plan, lessons, problems }, builtAt = new Date()) {
         <ol class="sub">${l.steps.map((s) => `<li><a data-go="${i + 3}" data-step="${esc(`${l.id}-${s.n}`)}">${s.n}. ${esc(s.title)}</a></li>`).join("")}</ol></div>`;
     }).join("")}`).join("")}${problems.length ? `<a class="item warn" data-go="${lessons.length + 3}">ปัญหาในไฟล์แผน (${problems.length})</a>` : ""}`;
   // replacer functions: a '$' in the plan's words must not be read as a replacement pattern
-  return PAGE.replace("{{TITLE}}", () => esc(p.title)).replace("{{NAME}}", () => esc(p.title)).replace("{{SIDE}}", () => side).replace("{{SLIDES}}", () => slides).replace("{{BUILT}}", () => esc(built));
+  // live: the token goes in as JSON inside a script, '<' escaped so no text can close the script
+  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token }).replace(/</g, "\\u003c")};</script>` : "";
+  return PAGE.replace("{{TITLE}}", () => esc(p.title)).replace("{{NAME}}", () => esc(p.title)).replace("{{SIDE}}", () => side).replace("{{SLIDES}}", () => slides).replace("{{BUILT}}", () => esc(built)).replace("{{LIVE}}", () => liveTag);
 }
 
 const PAGE = `<!doctype html>
@@ -437,6 +525,11 @@ figcaption{font-size:12px;color:var(--muted)}figure.missing div{aspect-ratio:16/
 .quick{font:inherit;font-size:13px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:1px 8px;cursor:pointer}.quick:hover{background:#eef2fb}.quick.added{background:var(--green);border-color:var(--green);color:#fff}
 .play-all{font:inherit;font-size:13px;border:0;background:var(--orange);color:#fff;border-radius:8px;padding:2px 12px;cursor:pointer}
 .voice{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.voice audio{height:32px;max-width:100%}.voice small{color:var(--muted)}.voice.stale small{color:var(--red);font-weight:600}
+.live-say{margin:6px 0}.live-say>span{display:inline-block;font-size:12px;color:#fff;background:var(--orange);border-radius:4px;padding:0 6px}
+.live-say textarea,.live-lex textarea{width:100%;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #cbd5e1;margin:4px 0}
+.live-say .row,.live-lex .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.live-say button,.live-lex button,.live-speed button,.live-btn{font:inherit;font-size:13px;border:1px solid var(--blue2);background:#fff;color:var(--blue);border-radius:8px;padding:2px 10px;cursor:pointer}
+.live-say button.go,.live-btn{background:var(--blue2);color:#fff}button:disabled{opacity:.5;cursor:wait}.msg{font-size:13px;color:var(--muted)}.live-speed select{font:inherit;padding:2px 6px;border-radius:6px}
+.lex code{background:#f1f5f9;border-radius:4px;padding:0 4px}
 .by{font-style:normal;font-size:11px;border-radius:4px;padding:0 6px;color:#fff}.by.ai{background:var(--blue2)}.by.own{background:#64748b}
 .edit{font:inherit;font-size:13px;border:1px solid var(--orange);background:#fff;color:#c2410c;border-radius:8px;padding:1px 8px;cursor:pointer}.edit:hover{background:var(--orange);color:#fff}
 dialog{border:0;border-radius:14px;padding:20px;width:min(640px,92vw);box-shadow:0 20px 60px #0f172a55}dialog::backdrop{background:#0f172a66}
@@ -458,7 +551,7 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
 <p class="quote">กด "คัดลอก" แล้ววางใน Claude Code (Ctrl+V) — AI จะแก้ไฟล์แผนแล้วสร้างหน้านี้ใหม่</p>
 <textarea id="trayText" readonly></textarea>
 <div class="row"><button id="trayClear">ล้าง</button><button id="trayClose">ปิด</button><button class="go" id="trayCopy">คัดลอก</button></div></dialog>
-<script>
+{{LIVE}}<script>
 (() => {
   const BUILT = "{{BUILT}}", KEY = "mclip-edits:" + location.pathname;
   const slides = [...document.querySelectorAll(".slide")];
@@ -504,6 +597,46 @@ dialog button.go{background:var(--orange);color:#fff}.quote{color:var(--muted);f
       playing = list[i++]; playing.closest(".step").scrollIntoView({ block: "center" }); playing.currentTime = 0;
       playing.onended = next; playing.play().catch(stopAll); };
     b.textContent = "■ หยุด"; next(); });
+  // live (serve.mjs): narration saved and spoken, the speed and the project's words saved, from the page itself
+  if (window.MCLIP) {
+    const oneLine = (s) => s.replace(/\\s*\\n\\s*/g, " ").trim();
+    const send = async (where, body) => {
+      const r = await fetch(where, { method: "POST", headers: { "Content-Type": "application/json", "X-Mclip-Token": window.MCLIP.token }, body: JSON.stringify(body) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+      return j;
+    };
+    // narration typed and not saved yet: saved before anything else runs, since the page reloads after each action
+    const dirty = () => [...document.querySelectorAll(".live-say")].filter((b) => {
+      const t = b.querySelector("textarea"); return oneLine(t.value) !== oneLine(t.defaultValue); });
+    let reloading = false;
+    addEventListener("beforeunload", (e) => { if (!reloading && dirty().length) { e.preventDefault(); e.returnValue = ""; } });
+    const post = async (where, body, box, button) => {
+      const msg = box && box.querySelector(".msg");
+      const buttons = [...document.querySelectorAll(".live-say button, .live-btn, .live-speed button, .live-lex button")];
+      if (msg) msg.textContent = body.voice || where === "/api/voice" ? "กำลังสร้างเสียง… (บรรทัดละหลายวินาที)" : "กำลังบันทึก…";
+      if (button && !msg) button.textContent = "กำลังสร้างเสียง…";
+      buttons.forEach((b) => b.disabled = true);
+      try {
+        for (const other of dirty()) if (other !== box) {
+          await send("/api/narration", { id: other.dataset.id, step: +other.dataset.step, text: oneLine(other.querySelector("textarea").value), voice: false });
+        }
+        await send(where, body);
+        reloading = true;
+        location.reload();
+      } catch (e) {
+        if (msg) msg.textContent = "ไม่สำเร็จ: " + e.message; else if (button) button.textContent = "ไม่สำเร็จ: " + e.message;
+        buttons.forEach((b) => b.disabled = false);
+      }
+    };
+    document.querySelectorAll(".live-say").forEach((box) => box.querySelectorAll("button").forEach((b) => b.onclick = () =>
+      post("/api/narration", { id: box.dataset.id, step: +box.dataset.step, text: oneLine(box.querySelector("textarea").value), voice: b.dataset.act === "save-voice" }, box)));
+    document.querySelectorAll("[data-act=voice-lesson]").forEach((b) => b.onclick = () => post("/api/voice", { id: b.dataset.id }, null, b));
+    const sp = document.querySelector(".live-speed");
+    if (sp) sp.querySelector("button").onclick = () => post("/api/speed", { speed: +sp.querySelector("select").value }, sp);
+    const lx = document.querySelector(".live-lex");
+    if (lx) lx.querySelector("button").onclick = () => post("/api/lexicon", { text: lx.querySelector("textarea").value }, lx);
+  }
   document.getElementById("askCancel").onclick = () => ask.close();
   document.getElementById("askAdd").onclick = () => { const text = document.getElementById("askText").value.trim();
     if (text) { edits.push({ ...current, text }); save(); } ask.close(); };
@@ -597,23 +730,97 @@ export function compareLesson(clipsDir, id, { threshold = 0.97, measure = ssim }
   return { code: 0, ...result };
 }
 
+// ---- small writes from the live page (serve.mjs) ---------------------------------------------------------------------
+//
+// Each keeps the file's line endings and touches one line or one file the page owns; the text is one line, never a
+// newline (it would add fields or steps).
+
+const eolOf = (text) => (text.includes("\r\n") ? "\r\n" : "\n");
+const oneLine = (s, what, max = 2000) => {
+  const v = String(s ?? "").trim();
+  if (/[\r\n\u2028\u2029]/.test(v)) throw new Error(`${what} is one line`);
+  if (v.length > max) throw new Error(`${what} is at most ${max} characters`);
+  return v;
+};
+
+/** Sets (or, with "", removes) step `n`'s '- พูด:' line in clips/<id>/lesson.md. */
+export function setNarration(clipsDir, id, n, text) {
+  if (!ID.test(String(id))) throw new Error(`no lesson ${id}`);
+  const file = path.join(clipsDir, id, "lesson.md");
+  if (!fs.existsSync(file)) throw new Error(`no lesson clips/${id}/lesson.md`);
+  const value = oneLine(text, "the narration");
+  const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
+  const lines = src.split(/\r?\n/);
+  const head = lines.findIndex((l) => new RegExp(`^##\\s+${Number(n)}\\.\\s`).test(l));
+  if (head < 0) throw new Error(`clips/${id}/lesson.md has no step ${n}`);
+  let end = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
+  if (end < 0) end = lines.length;
+  const say = lines.findIndex((l, i) => i > head && i < end && /^\s*-\s+พูด\s*:/.test(l));
+  if (say >= 0) {
+    if (value) lines[say] = lines[say].replace(/^(\s*-\s+พูด\s*:).*$/, `$1 ${value.replace(/\$/g, "$$$$")}`);
+    else lines.splice(say, 1);
+  } else if (value) {
+    const after = lines.findIndex((l, i) => i > head && i < end && /^\s*-\s+บนจอ\s*:/.test(l));
+    lines.splice((after >= 0 ? after : head) + 1, 0, `- พูด: ${value}`);
+  }
+  fs.writeFileSync(file, lines.join(eol));
+}
+
+/** Sets (or adds) the plan's '- <key>: <value>' line, among the fields before the first '##'. */
+export function setPlanField(clipsDir, key, value) {
+  const file = path.join(clipsDir, "plan.md");
+  const v = oneLine(value, key, 200);
+  const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
+  const lines = src.split(/\r?\n/);
+  let first = lines.findIndex((l) => /^##\s/.test(l));
+  if (first < 0) first = lines.length;
+  const at = lines.findIndex((l, i) => i < first && field(l)?.[0] === key);
+  if (at >= 0) lines[at] = `- ${key}: ${v}`;
+  else {
+    let last = -1;
+    for (let i = 0; i < first; i++) if (field(lines[i])) last = i;
+    const where = last >= 0 ? last + 1 : Math.max(1, lines.findIndex((l) => /^#\s/.test(l)) + 1);
+    lines.splice(where, 0, `- ${key}: ${v}`);
+  }
+  fs.writeFileSync(file, lines.join(eol));
+}
+
+/** Writes the project's pronunciation rules (clips/lexicon.txt) from `<written> = <spoken>` lines; returns how many. */
+export function writeProjectLexicon(clipsDir, text) {
+  const raw = String(text ?? "");
+  if (raw.length > 20000) throw new Error("the word list is at most 20000 characters");
+  const rules = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const l = line.trim();
+    if (!l || l.startsWith("#")) continue;
+    if (!l.includes("=")) throw new Error(`'${l.slice(0, 40)}' is '<word> = <how it is said>'`);
+    const [r] = parseLexicon(l);
+    if (!r) throw new Error(`'${l.slice(0, 40)}' needs a word and how it is said`);
+    rules.push(r);
+  }
+  const head = "# Words the Thai voice says wrong in this project: <written> = <spoken> (mclip; every project's words: the plugin's lexicon.txt)";
+  fs.writeFileSync(path.join(clipsDir, "lexicon.txt"), [head, ...rules.map((r) => `${r.written} = ${r.spoken}`)].join("\n") + "\n");
+  return rules.length;
+}
+
 // ---- voice previews --------------------------------------------------------------------------------------------------
 
 /**
- * The speaker of the recorder's own voice (tools/TutorialRecorder/tts: tts_paradee.py in its .venv): speaks `lines` into
- * `outDir` and returns [{ file (mp3), durationMs }] in their order.
+ * The recorder's Thai voice: the project's tts/.venv Python (tools/TutorialRecorder/tts) running this plugin's own
+ * tts_paradee.py, so the preview always speaks the way the newest recorder does. Speaks `lines` into `outDir` with the
+ * pronunciation rules `lexicons` (files, later wins) and returns [{ file (mp3), durationMs }] in their order.
  */
-export function pyThaiTts(ttsDir) {
-  return (lines, outDir, speed) => {
+export const TTS_SCRIPT = path.join(PLUGIN_ROOT, "templates", "TutorialRecorder", "tts", "tts_paradee.py");
+export function pyThaiTts(ttsDir, script = TTS_SCRIPT) {
+  return (lines, outDir, speed, lexicons = []) => {
     const python = process.platform === "win32" ? path.join(ttsDir, ".venv", "Scripts", "python.exe") : path.join(ttsDir, ".venv", "bin", "python");
-    const script = path.join(ttsDir, "tts_paradee.py");
-    if (!fs.existsSync(python) || !fs.existsSync(script)) {
+    if (!fs.existsSync(python)) {
       throw new Error(`no voice at ${ttsDir}: install the recorder (/mclip:init), then py -3.13 -m venv ${path.join(ttsDir, ".venv")} and pip install pythaitts==1.0.0 soundfile (see its README)`);
     }
     const input = path.join(outDir, "lines.txt");
     fs.writeFileSync(input, lines.join("\n") + "\n");
-    const r = spawnSync(python, [script, "--input", input, "--out", outDir, "--speed", String(speed), "--mp3"],
-      { encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+    const args = [script, "--input", input, "--out", outDir, "--speed", String(speed), "--mp3", ...lexicons.flatMap((f) => ["--lexicon", f])];
+    const r = spawnSync(python, args, { encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
     if (r.status !== 0) throw new Error(`tts_paradee.py failed (${r.status ?? r.error?.message}): ${(r.stderr ?? "").trim().split("\n").at(-1)}`);
     const items = readJson(path.join(outDir, "manifest.json"))?.items ?? [];
     return items.map((it) => ({ file: path.join(outDir, String(it.file).replace(/\.wav$/, ".mp3")), durationMs: it.durationMs }));
@@ -622,14 +829,19 @@ export function pyThaiTts(ttsDir) {
 
 /**
  * Speaks lesson `id`'s narration (one step, or every step with a '- พูด:') into clips/<id>/voice/NN.mp3 and records it
- * in voice.json. A step whose words and speed are what was spoken before is not spoken again (unless `force`). The voice
- * speaks into a working folder first: tts_paradee.py empties its output folder, the other steps' audio must stay.
+ * in voice.json. A step whose words, speed, pronunciation rules and voice engine are what was spoken before is not
+ * spoken again (unless `force`). `speed` defaults to the plan's. The voice speaks into a working folder first:
+ * tts_paradee.py empties its output folder, the other steps' audio must stay.
  */
-export function makeVoice(clipsDir, id, { step = null, speed = 0.85, force = false, speak, now = new Date() }) {
+export function makeVoice(clipsDir, id, { step = null, speed = null, force = false, speak, now = new Date(), globalLexicon = GLOBAL_LEXICON }) {
   const dir = path.join(clipsDir, id);
   const file = path.join(dir, "lesson.md");
   if (!ID.test(id) || !fs.existsSync(file)) return { code: 2, error: `no lesson clips/${id}/lesson.md (a topic: /mclip:plan lesson ${id} writes it)` };
+  const planFile = path.join(clipsDir, "plan.md");
+  speed ??= fs.existsSync(planFile) ? planSpeed(parsePlan(fs.readFileSync(planFile, "utf8")).plan) : DEFAULT_SPEED;
   if (!(speed >= 0.7 && speed <= 1)) return { code: 2, error: "--speed is between 0.7 and 1.0" };
+  const { merged } = readLexicon(clipsDir, globalLexicon);
+  const lexicons = [globalLexicon, path.join(clipsDir, "lexicon.txt")].filter((f) => fs.existsSync(f));
   const { lesson } = parseLesson(fs.readFileSync(file, "utf8"));
   const narrated = lesson.steps.filter((s) => s.narration);
   let chosen = narrated;
@@ -642,7 +854,7 @@ export function makeVoice(clipsDir, id, { step = null, speed = 0.85, force = fal
   if (!chosen.length) return { code: 2, error: `no step of clips/${id} has a '- พูด:'` };
   const vdir = path.join(dir, VOICE_DIR);
   const spoken = readVoices(dir);
-  const fresh = (s) => spoken[s.n]?.text === s.narration && Math.abs(spoken[s.n].speed - speed) < 0.001 && fs.existsSync(path.join(vdir, voiceFile(s.n)));
+  const fresh = (s) => spoken[s.n] && !voiceStale(spoken[s.n], s.narration, speed, rulesFor(s.narration, merged)) && fs.existsSync(path.join(vdir, voiceFile(s.n)));
   const todo = chosen.filter((s) => force || !fresh(s));
   // one sentence per line, as the speaker reads them (it skips blank lines and lines starting with '#')
   for (const s of todo) if (/^\s*#/.test(s.narration)) return { code: 2, error: `step ${s.n}: a '- พูด:' line cannot start with '#'` };
@@ -651,11 +863,11 @@ export function makeVoice(clipsDir, id, { step = null, speed = 0.85, force = fal
     fs.rmSync(work, { recursive: true, force: true });
     fs.mkdirSync(work, { recursive: true });
     try {
-      const items = speak(todo.map((s) => s.narration), work, speed);
+      const items = speak(todo.map((s) => s.narration), work, speed, lexicons);
       if (items.length !== todo.length || items.some((it) => !fs.existsSync(it.file))) throw new Error(`the voice made ${items.length} of ${todo.length} lines`);
       todo.forEach((s, i) => {
         fs.copyFileSync(items[i].file, path.join(vdir, voiceFile(s.n)));
-        spoken[s.n] = { text: s.narration, speed, durationMs: items[i].durationMs, date: now.toISOString() };
+        spoken[s.n] = { text: s.narration, speed, rules: rulesFor(s.narration, merged), engine: VOICE_ENGINE, durationMs: items[i].durationMs, date: now.toISOString() };
       });
     } catch (e) {
       return { code: 2, error: e.message };
@@ -687,7 +899,7 @@ function openFile(file) {
 
 /** clips/.gitignore: the page, recordings and voice previews stay on the machine that made them. Adds missing lines. */
 // the manual's .docx and .pdf are rebuilt from the plan at any time (manual.mjs); its manual.md stays in git
-const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`, "manual/*.docx", "manual/*.pdf", "manual/.work/"];
+const IGNORED = ["index.html", "*.mp4", `${VOICE_DIR}/`, "manual/*.docx", "manual/*.pdf", "manual/.work/", ".mclip-open.html"];
 export function ensureIgnored(clips) {
   const file = path.join(clips, ".gitignore");
   const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "# rebuilt or remade by /mclip:plan and /mclip:record; kept on the machine that made them\n";
@@ -740,7 +952,7 @@ function main(argv) {
     const step = opts.step === undefined ? null : Number(opts.step);
     if (step !== null && !(Number.isInteger(step) && step > 0)) return { code: 2, out: { error: "--step is a step number" } };
     const tts = path.resolve(opts.tts ?? path.join(path.dirname(clips), "tools", "TutorialRecorder", "tts"));
-    const r = makeVoice(clips, pos[0] ?? "", { step, speed: opts.speed ? Number(opts.speed) : 0.85, force: opts.force, speak: pyThaiTts(tts) });
+    const r = makeVoice(clips, pos[0] ?? "", { step, speed: opts.speed ? Number(opts.speed) : null, force: opts.force, speak: pyThaiTts(tts) });
     if (!r.code) ensureIgnored(clips);
     return { code: r.code, out: r.code ? { error: r.error } : r };
   }

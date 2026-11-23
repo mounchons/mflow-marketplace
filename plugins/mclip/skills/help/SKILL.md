@@ -29,6 +29,7 @@ Three short parts:
 | `/mclip:plan shots <id>\|all [ขั้น <n>]` | The AI takes a web lesson's reference pictures in the test stack, the whole lesson or one step; the user's own pictures are kept |
 | `/mclip:plan voice <id>\|all [ขั้น <n>]` | Speaks the narration in the Thai voice to listen to on the plan page (▶ ฟังทั้งบท); only changed lines are spoken again |
 | `/mclip:plan shots voice <id>` | Both |
+| `/mclip:plan serve` | The live plan page (127.0.0.1): edit a step's narration and hear it at once, make a lesson's voice, set the speed and the project's words (`clips/lexicon.txt`) |
 | `/mclip:plan edit ...` | Applies the requests copied from the plan page (✎ แก้, ถ่ายรูป, สร้างเสียง) |
 | `/mclip:record <id>\|<flow>` | Records a lesson (or a flow in words) as a video with clicks, highlights, zoom, Thai captions and voice, checks the frames, and keeps it as the lesson's next version `clips/<id>/v<n>/` |
 | `/mclip:finish <clip>` | Lays captions and title cards over the clean video in WeftCut, as layers that stay editable |

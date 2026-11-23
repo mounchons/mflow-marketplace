@@ -17,19 +17,28 @@ public static class Voice
 
     static readonly JsonSerializerOptions Read = new() { PropertyNameCaseInsensitive = true };
 
-    /// <summary>Returns the audio of every narrated step, speaking it again when the narration or the speed changed.</summary>
-    public static List<Line> Prepare(string toolDir, string outRoot, string clip, string narrationTxt, List<(int Step, string Text)> narrated, string speed)
+    /// <summary>
+    /// Returns the audio of every narrated step, speaking it again when the narration, the speed, the pronunciation rules
+    /// (<paramref name="lexicons"/>: files of `written = spoken` lines, later wins) or the voice script changed.
+    /// </summary>
+    public static List<Line> Prepare(string toolDir, string outRoot, string clip, string narrationTxt, List<(int Step, string Text)> narrated, string speed, IReadOnlyList<string>? lexicons = null)
     {
         if (narrated.Count == 0) throw new InvalidOperationException("--voice: no step has a narration");
+        lexicons ??= [];
         var dir = Path.Combine(outRoot, clip + "-voice");
         var manifestPath = Path.Combine(dir, "manifest.json");
         var manifest = Load(manifestPath);
         var wanted = double.Parse(speed, CultureInfo.InvariantCulture);
-        if (manifest is null || Math.Abs(manifest.Speed - wanted) > 0.001 || !manifest.Items.Select(i => i.Text).SequenceEqual(narrated.Select(n => n.Text.Trim())))
+        // what the audio was made from besides the words: the rules' text and the script, so a new word is heard
+        var inputsPath = Path.Combine(dir, "inputs.txt");
+        var inputs = Inputs(toolDir, lexicons);
+        var sameInputs = File.Exists(inputsPath) && File.ReadAllText(inputsPath) == inputs;
+        if (manifest is null || !sameInputs || Math.Abs(manifest.Speed - wanted) > 0.001 || !manifest.Items.Select(i => i.Text).SequenceEqual(narrated.Select(n => n.Text.Trim())))
         {
-            Console.WriteLine($"voice: speaking {narrated.Count} lines (PyThaiTTS makham_paradee, speed {speed})");
-            Speak(toolDir, narrationTxt, dir, speed);
+            Console.WriteLine($"voice: speaking {narrated.Count} lines (PyThaiTTS makham_paradee, speed {speed}{(lexicons.Count > 0 ? $", rules {string.Join(", ", lexicons.Select(Path.GetFileName))}" : "")})");
+            Speak(toolDir, narrationTxt, dir, speed, lexicons);
             manifest = Load(manifestPath) ?? throw new InvalidOperationException($"--voice: {manifestPath} was not written");
+            File.WriteAllText(inputsPath, inputs);
         }
         if (manifest.Items.Count != narrated.Count) throw new InvalidOperationException("--voice: the voice does not match the narration; delete " + dir);
         return narrated.Zip(manifest.Items, (n, i) => new Line(n.Step, n.Text, Path.Combine(dir, i.File), i.DurationMs)).ToList();
@@ -37,7 +46,17 @@ public static class Voice
 
     static Manifest? Load(string path) => File.Exists(path) ? JsonSerializer.Deserialize<Manifest>(File.ReadAllText(path), Read) : null;
 
-    static void Speak(string toolDir, string input, string outDir, string speed)
+    static string Inputs(string toolDir, IReadOnlyList<string> lexicons)
+    {
+        var script = Path.Combine(toolDir, "tts", "tts_paradee.py");
+        var parts = new List<string> { "script:" + Hash(File.Exists(script) ? File.ReadAllText(script) : "") };
+        foreach (var f in lexicons) parts.Add($"{Path.GetFullPath(f)}:{Hash(File.Exists(f) ? File.ReadAllText(f) : "")}");
+        return string.Join("\n", parts);
+    }
+
+    static string Hash(string text) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)))[..16];
+
+    static void Speak(string toolDir, string input, string outDir, string speed, IReadOnlyList<string> lexicons)
     {
         var ttsDir = Path.Combine(toolDir, "tts");
         var python = OperatingSystem.IsWindows() ? Path.Combine(ttsDir, ".venv", "Scripts", "python.exe") : Path.Combine(ttsDir, ".venv", "bin", "python");
@@ -46,6 +65,7 @@ public static class Voice
         var psi = new ProcessStartInfo(python) { UseShellExecute = false };
         psi.Environment["PYTHONIOENCODING"] = "utf-8";
         foreach (var a in new[] { Path.Combine(ttsDir, "tts_paradee.py"), "--input", input, "--out", outDir, "--speed", speed }) psi.ArgumentList.Add(a);
+        foreach (var f in lexicons) { psi.ArgumentList.Add("--lexicon"); psi.ArgumentList.Add(Path.GetFullPath(f)); }
         using var p = Process.Start(psi)!;
         p.WaitForExit();
         if (p.ExitCode != 0) throw new InvalidOperationException($"--voice: tts_paradee.py failed ({p.ExitCode})");

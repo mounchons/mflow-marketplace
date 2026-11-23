@@ -278,15 +278,15 @@ test("voice: one step, then the lesson speaks only what changed; the page plays 
     let l = load(p.clips).lessons[0];
     assert.deepEqual(l.steps.map((s) => s.voice?.file ?? null), [null, "voice/02.mp3", "voice/03.mp3"]);
     let html = renderPage(load(p.clips));
-    assert.match(html, /<audio controls preload="none" src="01-sign-in\/voice\/02\.mp3">/);
+    assert.match(html, /<audio controls preload="none" src="01-sign-in\/voice\/02\.mp3\?v=[^"]+">/, "a new voice is not served from the cache");
     assert.match(html, /class="play-all"/);
 
     fs.writeFileSync(path.join(p.clips, "01-sign-in", "lesson.md"), VOICED.replace("กดปุ่มเพิ่มค่ะ", "กดปุ่มเพิ่มผู้ใช้ค่ะ").replace("- พูด: กดบันทึกค่ะ\n", ""));
     l = load(p.clips).lessons[0];
     assert.equal(l.steps[1].voice.stale, true);
     html = renderPage(load(p.clips));
-    assert.match(html, /เสียงของคำพูดเดิม/);
-    assert.match(html, /เสียง 1 ขั้นเป็นของคำพูดเดิม/);
+    assert.match(html, /ต้องสร้างใหม่: คำพูดแก้แล้ว/);
+    assert.match(html, /เสียง 1 ขั้นต้องสร้างใหม่/);
 
     r = makeVoice(p.clips, "01-sign-in", { speak: v.speak });
     assert.deepEqual(r.spoken, [2]);
@@ -355,6 +355,6 @@ test("page adds the lines missing from an existing clips/.gitignore, once", () =
   try {
     cli("page", "--clips", p.clips);
     cli("page", "--clips", p.clips);
-    assert.equal(fs.readFileSync(path.join(p.clips, ".gitignore"), "utf8"), "index.html\n*.mp4\nvoice/\nmanual/*.docx\nmanual/*.pdf\nmanual/.work/\n");
+    assert.equal(fs.readFileSync(path.join(p.clips, ".gitignore"), "utf8"), "index.html\n*.mp4\nvoice/\nmanual/*.docx\nmanual/*.pdf\nmanual/.work/\n.mclip-open.html\n");
   } finally { p.cleanup(); }
 });

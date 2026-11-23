@@ -1,6 +1,6 @@
 {
   "name": "mclip",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "How-to clips of a web system from a scenario file: /mclip:init puts the recorder in the project, /mclip:record writes the scenario for a flow (with the data-tour attributes it needs) and records it with real clicks, highlights, zoom, Thai captions and a Thai voice-over, /mclip:finish lays captions and title cards over the clean video in the WeftCut editor.",
   "author": { "name": "Mounchon" },
   "license": "MIT",

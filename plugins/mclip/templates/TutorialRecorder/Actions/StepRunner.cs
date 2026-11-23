@@ -233,7 +233,10 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
     async Task Hold(Step step, StepTiming t, int index, int? explicitMs = null)
     {
         // --shots: no one reads, so no reading time and no title card; a wait step's own time is for the page, it stays
-        var hold = refs is not null && step.Action != "wait" ? 0 : explicitMs ?? HoldFor(step, index);
+        // a card's or a wait's own time, but never shorter than its spoken sentence (the voice would run into what follows)
+        var hold = refs is not null && step.Action != "wait" ? 0
+            : explicitMs is { } ms && holdOverrides.TryGetValue(index, out var voiced) ? Math.Max(ms, voiced)
+            : explicitMs ?? HoldFor(step, index);
         await Shot(step, t);
         await page.WaitForTimeoutAsync(hold);
         t.HoldMs = hold;

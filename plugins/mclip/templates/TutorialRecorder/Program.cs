@@ -46,11 +46,20 @@ if (Flag("--check"))
     Console.WriteLine($"ok: {scenario.Clip}, {scenario.Steps.Count} steps, mode {scenario.Mode}");
     foreach (var (st, i) in scenario.Steps.Select((st, i) => (st, i + 1)))
         Console.WriteLine($"  {i,2}. {st.Action,-9} {st.Role,-8} {st.Caption ?? st.Callout ?? st.Target ?? st.Url}");
+    foreach (var m in ScenarioLoader.MissingSlides(scenario))
+        Console.WriteLine($"  picture not there yet: {m} (recording stops on it; --shots passes it by)");
     return 0;
 }
 
 // --shots: the pictures the steps' shot: name, and with --only just those (a run of one lesson step).
 var shots = Flag("--shots");
+// a picture step shows its picture: a recording cannot start without every one of them (--shots does not show them)
+if (!shots && ScenarioLoader.MissingSlides(scenario) is { Count: > 0 } missingSlides)
+{
+    Console.Error.WriteLine("the pictures of these slide steps are not there yet (make them: /mclip:plan edit, the page's สร้างรูป, or put your own there):\n  "
+        + string.Join("\n  ", missingSlides));
+    return 2;
+}
 HashSet<string>? only = null;
 if (shots)
 {
@@ -121,6 +130,9 @@ var context = await browser.NewContextAsync(new()
     RecordVideoSize = new() { Width = settings.ViewportWidth, Height = settings.ViewportHeight },
     Locale = "th-TH",
     TimezoneId = "Asia/Bangkok",
+    // the overlay draws a slide's picture and the cards' logo from data: URIs inside the app's page: an app whose
+    // Content-Security-Policy leaves data: out of img-src would hide them
+    BypassCSP = true,
 });
 await context.AddInitScriptAsync(overlayJs);
 
@@ -131,7 +143,7 @@ var runner = new StepRunner(page, context, scenario, settings, secrets, new Over
 
 var failed = false;
 try { await runner.RunAll(); }
-catch (TargetNotFoundException e)
+catch (Exception e) when (e is TargetNotFoundException or SlideFailedException)
 {
     Console.Error.WriteLine($"STOPPED: {e.Message}");
     failed = true;

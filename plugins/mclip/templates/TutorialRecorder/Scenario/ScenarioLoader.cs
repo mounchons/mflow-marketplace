@@ -9,7 +9,7 @@ public static partial class ScenarioLoader
     static readonly HashSet<string> Actions =
     [
         "navigate", "click", "fill", "select", "check", "uncheck", "upload", "press", "wait",
-        "zoom", "zoom-out", "login", "logout", "title",
+        "zoom", "zoom-out", "login", "logout", "title", "slide",
     ];
     static readonly HashSet<string> NeedsTarget = ["click", "fill", "select", "check", "uncheck", "upload"];
     static readonly HashSet<string> Highlights = ["box", "arrow", "spotlight", "none"];
@@ -54,6 +54,14 @@ public static partial class ScenarioLoader
             if (st.Role is not null && !s.Roles.ContainsKey(st.Role)) errors.Add($"{at}: role '{st.Role}' is not in roles");
             if (st.Action == "title" && string.IsNullOrWhiteSpace(st.Caption)) errors.Add($"{at}: title needs a caption (the card's title)");
             if (st.Action == "login" && st.Role is null) errors.Add($"{at}: login needs a role");
+            // a picture step: a picture in the scenario's slides/ folder, shown full screen
+            if (st.Action == "slide")
+            {
+                // whether the picture is there yet is the recording's concern (MissingSlides): --check and --shots run without it
+                if (st.Image is null || !SlideName().IsMatch(st.Image)) errors.Add($"{at}: slide needs image: slides/<name>.png, .jpg or .svg");
+                if (st.Shot is not null) errors.Add($"{at}: a slide shows its own picture: no shot");
+            }
+            else if (st.Image is not null) errors.Add($"{at}: image is for a slide step only");
             if (st.Highlight is not null && !Highlights.Contains(st.Highlight)) errors.Add($"{at}: highlight '{st.Highlight}' is not box, arrow, spotlight or none");
             if (st.Placement is not null && !Placements.Contains(st.Placement)) errors.Add($"{at}: placement '{st.Placement}' is not auto, top, bottom, left or right");
             if (st.Zoom is < 1 or > 3) errors.Add($"{at}: zoom must be between 1 and 3");
@@ -67,6 +75,12 @@ public static partial class ScenarioLoader
         if (errors.Count > 0) throw new InvalidDataException("the scenario has errors:\n  " + string.Join("\n  ", errors));
     }
 
+    /// <summary>The slide steps whose picture is not in the scenario's folder yet: "steps[3] slides/x.png".</summary>
+    public static List<string> MissingSlides(ScenarioFile s) =>
+        s.Steps.Select((st, i) => (st, i)).Where(x => x.st.Action == "slide" && x.st.Image is not null
+            && !File.Exists(Path.Combine(s.SourceDir, x.st.Image.Replace('/', Path.DirectorySeparatorChar))))
+            .Select(x => $"steps[{x.i + 1}] {x.st.Image}").ToList();
+
     /// <summary>"${users.NewUser.password}" in a value reads the secrets file, so no password is written in a scenario.</summary>
     static string? Expand(string? value, Secrets secrets) =>
         value is null ? null : SecretRef().Replace(value, m => secrets.Get(m.Groups[1].Value, m.Groups[2].Value)!);
@@ -79,4 +93,7 @@ public static partial class ScenarioLoader
 
     [GeneratedRegex(@"^screen/[A-Za-z0-9][A-Za-z0-9._-]*\.(jpe?g|png)$", RegexOptions.IgnoreCase)]
     private static partial Regex ShotName();
+
+    [GeneratedRegex(@"^slides/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(jpe?g|png|svg)$", RegexOptions.IgnoreCase)]
+    private static partial Regex SlideName();
 }

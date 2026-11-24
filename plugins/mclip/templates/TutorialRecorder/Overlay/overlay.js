@@ -85,6 +85,12 @@
 .__t-card .__t-steps.many li { padding: 7px 0; font-size: 32px; }
 .__t-card .__t-steps.many::before { left: 23px; }
 .__t-card .__t-steps.many b { width: 50px; height: 50px; font-size: 23px; }
+/* A picture step (slide): the picture on the cards' backdrop with their accent along the top, whole and centred, room
+   left below for the caption. */
+.__t-slide { display: grid; place-items: center; background: var(--c-backdrop, #e8edf5); animation: __t-fade 350ms ease both; }
+.__t-slide .__t-bar { position: absolute; left: 0; top: 0; right: 0; height: 10px; background: var(--c-accent, #2453b3); }
+.__t-slide img { max-width: calc(100vw - 192px); max-height: calc(100vh - 210px); margin-bottom: 96px; object-fit: contain;
+  border-radius: 18px; background: #fff; box-shadow: 0 24px 60px rgba(15,23,42,.18); }
 @keyframes __t-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes __t-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes __t-rise2 { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
@@ -332,6 +338,20 @@
         });
       } else if (subtitle) { const p = el('p'); p.textContent = subtitle; main.appendChild(p); }
       if (cursor) cursor.style.display = 'none';
+    },
+
+    // A picture step: `src` (a data: URI) full screen on the cards' backdrop; resolves once the picture is drawn, so the
+    // step's time starts with the picture on screen, and fails when it cannot be (a broken file): never a blank slide.
+    slide(src, theme) {
+      const look = cardLook(theme || {});
+      const c = add(el('div', '__t-card __t-slide'));
+      c.style.setProperty('--c-backdrop', look.backdrop);
+      c.style.setProperty('--c-accent', look.accent);
+      c.appendChild(el('div', '__t-bar'));
+      const img = el('img'); img.alt = ''; img.src = src;
+      c.appendChild(img);
+      if (cursor) cursor.style.display = 'none';
+      return img.decode().catch(() => { throw new Error('the picture could not be drawn (a broken or unsupported file)'); });
     },
 
     // The colours and font the page shows: its background (a gradient's colours first), then a primary button's.

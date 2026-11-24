@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // The plan page, live: edit a step's narration and hear it again, set the voice's speed and the project's words, from
 // the page in the browser. A file:// page cannot write files or run the voice, so this small server does, on this
-// machine only:
+// machine only. It also adds to the plan from the page: a topic, a picture step.
 //
 //   node serve.mjs [--clips <dir>] [--port <n>] [--open] [--tts <dir>]
 //     prints {"url": "http://127.0.0.1:<port>/?t=<token>"} and serves until stopped (Ctrl+C, or the process is killed)
 //
 // Safety: it listens on 127.0.0.1 only; every request must name this host (no other site can reach it through a
 // renamed domain), every write carries the token printed at start (a page of another site cannot read it), a request
-// from another origin is refused, and no CORS header is ever sent. It writes six things only: a step's or title card's words (บนจอ, คำรอง, พูด),
-// the plan's '- ความเร็วเสียง:', '- เสียงพากย์:' and '- สไตล์เสียง:' lines, clips/lexicon.txt, the edit requests (clips/requests.json,
+// from another origin is refused, and no CORS header is ever sent. It writes eight things only: a step's or title card's words (บนจอ, คำรอง, พูด, a picture step's
+// รายละเอียดรูป), a picture step inserted or removed (its lesson.md block; the voice and requests of the steps after it
+// renumbered), a topic added to the plan's contents (with an overview's first lesson.md), the plan's '- ความเร็วเสียง:', '- เสียงพากย์:' and '- สไตล์เสียง:' lines, clips/lexicon.txt, the edit requests (clips/requests.json,
 // which /mclip:plan edit reads), and the voice (clips/<id>/voice/). One voice run at a time. API keys
 // (tools/TutorialRecorder/tts/keys.json or the environment) stay on this machine: the page learns only whether each is
 // set, and this server uses the ElevenLabs one to list the account's voices.
@@ -20,14 +21,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
 import { load, renderPage, makeVoice, pyThaiTts, setLessonFields, setPlanField, writeProjectLexicon, SPEED_FIELD, ensureIgnored,
-  readRequests, addRequest, removeRequests, VOICE_FIELD, parseVoice, voiceField, keyStatus, apiKey, elevenLabsVoices,
+  readRequests, addRequest, removeRequests, insertSlideStep, removeSlideStep, addTopic, SLIDE_REQUEST, VOICE_FIELD, parseVoice, voiceField, keyStatus, apiKey, elevenLabsVoices,
   GEMINI_VOICES, GLOBAL_LEXICON, ENGINES, ensureKeysIgnored, withStyle, STYLE_FIELD, partKey } from "./clips.mjs";
 
 // what "ลองฟัง" says: a closing particle, an English word of the rules and a price
 export const SAMPLE = "สวัสดีค่ะ กดปุ่ม Login เพื่อเข้าสู่ระบบ แล้วดูราคา 5,877.50 บาท ได้ที่หน้านี้ค่ะ";
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp3": "audio/mpeg",
-  ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".json": "application/json", ".pdf": "application/pdf" };
+  ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".json": "application/json", ".pdf": "application/pdf",
+  // a picture step's diagram: shown in an <img>, where an SVG runs nothing; opened on its own, CSP keeps it inert
+  ".svg": "image/svg+xml" };
 
 /** The request handler, separate from listening so tests drive it on any port. `speak` is the voice (pyThaiTts). */
 export function createHandler({ clips, token, speak, port: getPort, tts = path.join(path.dirname(path.resolve(clips)), "tools", "TutorialRecorder", "tts"), globalLexicon = GLOBAL_LEXICON, env = process.env }) {
@@ -78,7 +81,8 @@ export function createHandler({ clips, token, speak, port: getPort, tts = path.j
       if (!file.startsWith(root + path.sep) || rel.split(/[\\/]/).some((p) => p.startsWith(".")) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return send(res, 404, { error: "not found" });
       const type = TYPES[path.extname(file).toLowerCase()];
       if (!type) return send(res, 404, { error: "not found" });
-      res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+      res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+        ...(type === "image/svg+xml" ? { "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; sandbox" } : {}) });
       return fs.createReadStream(file).pipe(res);
     }
     if (req.method !== "POST") return send(res, 405, { error: "GET or POST" });
@@ -90,7 +94,7 @@ export function createHandler({ clips, token, speak, port: getPort, tts = path.j
         const step = partKey(body.step);  // a step number, or a title card: open, close
         if (step === null) throw new Error("step is a step number, open or close");
         // every word the clip shows or says: บนจอ, a card's คำรอง, พูด (a field left out stays as it is)
-        setLessonFields(root, String(body.id ?? ""), step, { caption: body.caption, subtitle: body.subtitle, narration: body.text ?? "" });
+        setLessonFields(root, String(body.id ?? ""), step, { caption: body.caption, subtitle: body.subtitle, brief: body.brief, narration: body.text ?? "" });
         const out = { saved: true };
         if (body.voice && String(body.text ?? "").trim()) out.voice = voice(String(body.id), step);
         return send(res, 200, out);
@@ -132,6 +136,17 @@ export function createHandler({ clips, token, speak, port: getPort, tts = path.j
           if (!item || !fs.existsSync(item.file)) throw new Error("the voice made no sample");
           return send(res, 200, { text: SAMPLE, voice: v.key, durationMs: item.durationMs, mp3: fs.readFileSync(item.file).toString("base64") });
         } finally { fs.rmSync(work, { recursive: true, force: true }); }
+      }
+      if (u.pathname === "/api/step-insert") {
+        // {id, after, title, caption, narration, brief, ask}: ask also saves the request for the AI to make its picture
+        const id = String(body.id ?? "");
+        const r = insertSlideStep(root, id, body.after, { title: body.title, caption: body.caption, narration: body.narration, brief: body.brief });
+        if (body.ask === true) addRequest(root, { target: `${id} ขั้น ${r.n}`, quote: "", text: SLIDE_REQUEST });
+        return send(res, 200, r);
+      }
+      if (u.pathname === "/api/step-remove") return send(res, 200, removeSlideStep(root, String(body.id ?? ""), body.step));
+      if (u.pathname === "/api/topic") {
+        return send(res, 200, addTopic(root, { title: body.title, slug: body.slug, kind: body.kind, app: body.app, teaches: body.teaches, after: String(body.after ?? "") }));
       }
       if (u.pathname === "/api/requests") {
         // {add: {target, quote, text}} | {remove: id} | {clear: true} | {} (read); answers with the list

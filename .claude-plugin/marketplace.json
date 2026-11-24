@@ -37,7 +37,7 @@
     },
     {
       "name": "mclip",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "source": "./plugins/mclip",
       "description": "How-to clips of a web system from a scenario file: real clicks, highlights, zoom, Thai captions and voice-over, rerun whenever the UI changes; optional finishing in the WeftCut editor."
     }

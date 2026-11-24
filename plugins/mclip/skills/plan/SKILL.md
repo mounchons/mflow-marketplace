@@ -58,7 +58,11 @@ The contents first, the steps later: agreeing on what to teach is cheaper than r
 3. **The topics.** One topic is one task a user sets out to do, one to three minutes. Per app, in the order a user
    learns it: signing in and finding the way, the daily tasks, then settings and administration. A task that crosses
    apps (the client sends from the portal, the office approves in the back office) is one topic naming both apps.
-   Number them `01`, `02`, ... across the whole plan, not per app.
+   Number them `01`, `02`, ... across the whole plan, not per app. A system that needs explaining before its tasks
+   (several apps, roles or a flow between departments) may open with an overview topic, `00-overview — แนะนำระบบ`:
+   picture steps (diagrams of its parts, who uses what, how work flows), no recording in the app; propose it, the
+   user decides. The user may also add topics on the live page (**6**): the contents' order is the list's, a number
+   only names the folder.
 4. **Write `clips/plan.md`** (`scan`: add to it, keeping what is there):
 
    ```
@@ -127,7 +131,22 @@ For each topic named (`all`: each without `lesson.md`), read its `ที่ม�
 - พูด: <the summary, one or two sentences>
 ```
 
-- One step is one thing the viewer does or sees change. `ทำ` and `บนจอ` are required on every step.
+- One step is one thing the viewer does or sees change. `ทำ` and `บนจอ` are required on every step, but a picture step.
+- **A picture step** shows a picture full screen instead of the app: a diagram, an overview, a flow between roles. It
+  has no `ทำ` and no `รูป`:
+
+  ```
+  ## 3. <step title>
+  - สไลด์: slides/picture-1.png
+  - รายละเอียดรูป: <what the picture shows, the brief it is made from: its boxes, arrows and words>
+  - บนจอ: <short, as any step's>
+  - พูด: <as any step's>
+  ```
+
+  The picture is `clips/<id>/slides/<name>.png`, `.jpg` or `.svg`, made from its `รายละเอียดรูป` (see **Making a
+  picture** under **3**) or the user's own file under that name. Use one where a picture explains better than the
+  screen: how the parts fit, what happens between two apps, the steps of an approval. The overview topic (**1**) is
+  made of them.
 - `## เปิด` and `## สรุป` are the clip's opening and closing title cards, not steps: no picture, no number; the page
   shows them before and after the steps, their words editable like a step's, and the recording takes them as its
   first and last `title`. The manual leaves them out. A lesson written before them whose `scenario.yaml` has `title`
@@ -164,7 +183,8 @@ Reference pictures: for a lesson of one web app, the AI takes them (**4**); the 
 only; for iPhone and Android this plan and the user's pictures are what there is, and the page says so on those
 lessons. A picture not there yet shows as an empty frame.
 
-Build the page; report the lessons written (steps each) and the pictures still missing. Next:
+Build the page; report the lessons written (steps each) and the pictures still missing (`check` counts the picture
+steps' pictures as `slides` / `slidesThere`). Next:
 `/mclip:plan shots voice <id>` to see and hear the lesson before recording.
 
 ## 3. Apply edit requests
@@ -189,6 +209,8 @@ to read; stop.
 1. Read the files the targets name. A file changed since the page was built (its time is later): read it as it is now,
    and when a request's quoted words are no longer there, apply it to the nearest text and say so in the report.
 2. Apply each request to the files: `plan.md` for the plan, its apps and its contents; `<id>/lesson.md` for a lesson.
+   - `สร้างรูปตามรายละเอียดรูป` (the page's สร้างรูป button) on `<id> ขั้น <n>`, a picture step: make its picture
+     (**Making a picture** below), then build the page so the user sees it.
    - `ถ่ายรูปอ้างอิงใหม่` (the page's ถ่ายรูป button) on `<id>` or `<id> ขั้น <n>`: **4** for that lesson or step;
      `สร้างเสียงให้ฟัง` (สร้างเสียง): **5** (on `<id> เปิด` / `<id> สรุป`: `--step open` / `--step close`). Do them after the other requests, so the pictures and voice show the
      edited lesson.
@@ -205,6 +227,23 @@ to read; stop.
      recommend first.
 3. Remove the saved requests applied: `clips.mjs requests --done <id>,<id>` (one left waiting on the user's answer
    stays). Build the page; report each request with what was changed (file and line), or why it was not.
+
+**Making a picture** (a picture step's `สไลด์`, from its `รายละเอียดรูป`; read the lesson and the plan for the words
+the system uses):
+- **A diagram** (boxes, arrows, a flow, the parts of the system, who does what; anything with words in it): write it as
+  an SVG by hand, `viewBox="0 0 1920 1080"`, a white background, Thai words exactly as the lesson and the screens
+  say them, `font-family="'Noto Sans Thai','Leelawadee UI',Tahoma,sans-serif"`, text 36 px or larger, a title of
+  56–64 px, at most about seven boxes, the colours of the project's `card` (`tools/TutorialRecorder/tutorial.settings.json`)
+  or of its app. Save it at the step's name with `.svg` and change the step's `สไลด์` line to that name. For the
+  manual (Word takes no SVG), also a PNG of it beside it, same name, when the machine has Edge or Chrome:
+  `"<msedge.exe or chrome>" --headless --disable-gpu --hide-scrollbars --window-size=1920,1080 --screenshot=<absolute png path> file:///<absolute svg path>`
+  (Windows: `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`); look at the PNG before saying it is
+  done. Without either, say the manual leaves the picture out.
+- **An illustration** (a scene, an icon-like picture, few or no words): the tool's own image generator when it has one
+  (Codex's image generation), 16:9, saved as the step's `.png`; keep Thai words out of a generated picture (they come
+  out wrong): put them in `บนจอ`. A tool without one: say so and write a diagram instead, or ask the user for a file.
+- Never a real person, customer or account in a picture; test data only, as in the lessons.
+- The user's own file under the step's name is kept: make one only when there is none or they ask for it again.
 
 A lesson changed after it was recorded shows as ต้องอัดใหม่ until `/mclip:record` records its next version. A step
 whose voice no longer fits it (its `พูด`, the speed or a word it uses changed) shows ต้องสร้างใหม่ with the reason:
@@ -225,7 +264,9 @@ action has settled. No video, no voice; a lesson takes seconds.
    `data-tour` attributes proposed first when none fits). On the scenario step that shows each picture of the lesson,
    put `shot: <the picture's name from the lesson's รูป line>`, and `shotAt: after` when the picture shows what the
    action opened or saved (a dialog, a saved row) rather than what to press. Every picture of the lesson is on one
-   step; a picture of a phone (`-ios`, `-android`) is not. `--check` passes.
+   step; a picture of a phone (`-ios`, `-android`) is not. A picture step (`สไลด์`) is `action: slide` with no `shot:`:
+   the run passes it by (its picture is made from its brief, not photographed), so a lesson of picture steps only has
+   nothing to take: skip it. `--check` passes (it lists the picture steps whose picture is not made yet).
 3. **Take them**, in the background (the scenario's `setup:` resets the stack first):
 
    ```
@@ -297,11 +338,16 @@ Run it in the background: it prints `{"url": ...}` and serves until stopped. Giv
 page's token: it is the only way in) and say what the page does there: every word the clip shows or says, edited in
 place (a step's บนจอ and พูด; a title card's บนจอ, คำรอง and พูด; the user's own words win over a transliteration the
 AI chose), with บันทึก and บันทึกและสร้างเสียง (the voice is made at once and plays on the page); the title cards
-drawn as the recording draws them, in the project's `card` colours over the lesson's first and last picture; สร้างเสียงทั้งบทตอนนี้ on a lesson, and on
+drawn as the recording draws them, in the project's `card` colours over the lesson's first and last picture; สร้างเสียงทั้งบทตอนนี้ on a lesson;
+＋ แทรกขั้นรูป between the steps (a picture step: its title, รายละเอียดรูป, บนจอ, พูด, and a request for the AI to make
+its picture), ลบขั้นนี้ on a picture step, and ＋ เพิ่มหัวข้อ on สารบัญ (an overview, written with its first picture
+step, or a task topic whose steps `/mclip:plan lesson` writes; first or after a lesson; its app when the plan has
+several); and on
 ขอบเขตและรูปแบบ the voice (Paradee, a Gemini voice, or a voice of the ElevenLabs account listed from it; ลองฟัง speaks a
 sample, ใช้เสียงนี้ writes `- เสียงพากย์:` and, for Gemini, the style box as `- สไตล์เสียง:` and every step then shows ต้องสร้างใหม่), whether each API key is set (never
 its value), the speed and the project's words. ✎ แก้ and ถ่ายรูป there save their requests in
 `clips/requests.json`: when the user asks for them to be done, in whatever words (แก้ตามคำขอ, ทำตามที่ขอไว้), apply
 them as **3** says, without asking them to copy anything. It listens on 127.0.0.1 only and writes only the narration
-lines, the speed and voice lines, `clips/lexicon.txt`, the requests and the voice. Stop it when the user is done (or says so), and
+lines, a picture step's lines, a topic's contents entry (and an overview's `lesson.md`), the speed and voice lines,
+`clips/lexicon.txt`, the requests and the voice. Stop it when the user is done (or says so), and
 report the lessons whose narration changed: their scenarios and recordings follow at the next `/mclip:record`.

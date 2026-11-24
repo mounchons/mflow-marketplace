@@ -59,6 +59,14 @@ public sealed class OverlayClient(IPage page, string script)
         await page.EvaluateAsync("([t, s, th, l]) => window.__tour.card(t, s, th, l)", new object?[] { title, subtitle, th, label });
     }
 
+    /// <summary>A picture step: `src` (a data: URI) full screen on the cards' backdrop, room left below for the caption.</summary>
+    public async Task Slide(string src, CardTheme? theme = null)
+    {
+        await Ensure();
+        var th = theme is null ? null : new { primary = theme.Primary, dark = theme.Dark, accent = theme.Accent };
+        await page.EvaluateAsync("([s, th]) => window.__tour.slide(s, th)", new object?[] { src, th });
+    }
+
     /// <summary>The colours and font the page shows (its background gradient, a primary button), for the cards' theme.</summary>
     public async Task<CardTheme> PageTheme()
     {

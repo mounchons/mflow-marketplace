@@ -6,6 +6,8 @@
 //                              the words spoken, the reference pictures); `## เปิด` and `## สรุป` are its opening and
 //                              closing title cards (บนจอ, คำรอง, พูด), around the steps
 //   clips/<id>/screen/*.jpg    the lesson's reference pictures (`-ios` / `-android` before the extension: one platform's)
+//   clips/<id>/slides/*        the pictures of its picture steps (`- สไลด์:`: a diagram, an overview shown full screen),
+//                              made by the AI from each step's `- รายละเอียดรูป:`, or the user's own
 //   clips/<id>/v<n>/           a recorded version (lesson, scenario, pictures, srt, timing; the mp4 is git-ignored)
 //
 //   node clips.mjs check   [--clips <dir>]           parse everything, print JSON { lessons, problems }
@@ -34,7 +36,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // คู่มือ: the step explained for the user manual (manual.mjs), when the words on screen are too short for it
-export const STEP_KEYS = { "ทำ": "action", "บนจอ": "caption", "พูด": "narration", "รูป": "image", "หมายเหตุ": "note", "คู่มือ": "manual" };
+// สไลด์: a picture step, the picture itself on screen (a diagram, an overview) instead of something done in the app;
+// รายละเอียดรูป: what that picture shows, the brief the AI makes it from
+export const STEP_KEYS = { "ทำ": "action", "บนจอ": "caption", "พูด": "narration", "รูป": "image", "หมายเหตุ": "note", "คู่มือ": "manual",
+  "สไลด์": "slide", "รายละเอียดรูป": "brief" };
+/** A picture step's picture: slides/<name>.png, .jpg or .svg in the lesson's folder. */
+export const SLIDE = /^slides\/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(png|jpe?g|svg)$/i;
 const ID = /^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const APP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const KINDS = { web: "เว็บ", ios: "iPhone", android: "Android" };
@@ -155,7 +162,7 @@ export function parseLesson(text, file = "lesson.md") {
     if (h2) {
       const n = Number(h2[1]);
       if (n !== lesson.steps.length + 1) problems.push(`${at}: step ${n} follows step ${lesson.steps.length}`);
-      step = { n, title: h2[2].trim(), line: i + 1, action: "", caption: "", narration: "", images: [], note: "", manual: "" };
+      step = { n, title: h2[2].trim(), line: i + 1, action: "", caption: "", narration: "", images: [], note: "", manual: "", slide: "", brief: "" };
       lesson.steps.push(step);
       return;
     }
@@ -168,12 +175,18 @@ export function parseLesson(text, file = "lesson.md") {
     if (key === "image") {
       if (!/^screen\/[^/\\]+\.(jpe?g|png)$/i.test(f[1])) problems.push(`${at}: a picture is screen/<name>.jpg or .png`);
       else step.images.push(f[1]);
-    } else step[key] = f[1];
+    } else if (key === "slide" && !SLIDE.test(f[1])) problems.push(`${at}: a picture step's picture is slides/<name>.png, .jpg or .svg`);
+    else step[key] = f[1];
   });
   if (!lesson.title) problems.push(`${file}: no '# <title>'`);
   if (!lesson.steps.length) problems.push(`${file}: no steps ('## 1. <title>')`);
   for (const s of lesson.steps) {
-    if (!s.action) problems.push(`${file}:${s.line}: step ${s.n} has no '- ทำ:'`);
+    // a picture step shows its picture: nothing is done in the app, so it has no ทำ and no reference pictures
+    if (s.slide) {
+      if (s.action) problems.push(`${file}:${s.line}: step ${s.n} shows a picture (สไลด์): it has no '- ทำ:'`);
+      if (s.images.length) problems.push(`${file}:${s.line}: step ${s.n} shows a picture (สไลด์): its picture is the สไลด์, no '- รูป:'`);
+    } else if (!s.action) problems.push(`${file}:${s.line}: step ${s.n} has no '- ทำ:' (or '- สไลด์:' for a picture step)`);
+    if (s.brief && !s.slide) problems.push(`${file}:${s.line}: step ${s.n} has a '- รายละเอียดรูป:' but no '- สไลด์:'`);
     if (!s.caption) problems.push(`${file}:${s.line}: step ${s.n} has no '- บนจอ:'`);
   }
   for (const c of lesson.cards) if (!c.caption) c.caption = c.n === "open" ? lesson.title : "สรุปขั้นตอน";
@@ -469,6 +482,7 @@ export function load(clipsDir) {
         s.present[img] = fs.existsSync(path.join(dir, img));
         s.made[img] = s.present[img] && img in shots.pictures ? shots.pictures[img] : null;
       }
+      if (s.slide) s.slidePresent = fs.existsSync(path.join(dir, s.slide));
       const v = voices[s.n];
       const why = v && s.narration ? voiceStale(v, s.narration, speed, rulesOf(s.narration, lexicon.merged, voice), voice.key) : null;
       s.voice = v && s.narration && fs.existsSync(path.join(dir, VOICE_DIR, voiceFile(s.n)))
@@ -483,17 +497,23 @@ export function load(clipsDir) {
       return { ...meta, n, date: str(meta.date), appCommit: str(meta.appCommit), hasMp4: fs.existsSync(path.join(vdir, "clip.mp4")) };
     });
     const latest = versions.at(-1);
-    let textChanged = false;
+    let textChanged = false, slidesChanged = false;
     if (latest) {
       const old = path.join(dir, `v${latest.n}`, "lesson.md");
       textChanged = fs.existsSync(old) && fs.readFileSync(old, "utf8").replace(/\r\n/g, "\n") !== text.replace(/\r\n/g, "\n");
+      // a picture step's picture made again after the recording: the clip shows the old one
+      slidesChanged = lesson.steps.some((s) => {
+        if (!s.slidePresent) return false;
+        const then = path.join(dir, `v${latest.n}`, s.slide);
+        return !fs.existsSync(then) || !fs.readFileSync(then).equals(fs.readFileSync(path.join(dir, s.slide)));
+      });
     }
     let compare = null;
     try { compare = JSON.parse(fs.readFileSync(path.join(dir, "compare.json"), "utf8")); } catch { /* not compared yet */ }
     const hasScenario = fs.existsSync(path.join(dir, "scenario.yaml"));
     const screensChanged = !!compare && latest && compare.against === latest.n && (compare.failed || compare.changed?.length > 0);
-    const status = !latest ? (hasScenario ? "ready" : "draft") : textChanged || screensChanged ? "changed" : "recorded";
-    return { ...topic, ...lesson, title: lesson.title || title, versions, latest: latest?.n ?? null, textChanged, compare, hasScenario, status, shotsFailed: shots.failed };
+    const status = !latest ? (hasScenario ? "ready" : "draft") : textChanged || screensChanged || slidesChanged ? "changed" : "recorded";
+    return { ...topic, ...lesson, title: lesson.title || title, versions, latest: latest?.n ?? null, textChanged, slidesChanged, compare, hasScenario, status, shotsFailed: shots.failed };
   });
   // a lesson folder the contents do not name: a typo in an id, or a folder left behind when the contents were renumbered
   const listed = new Set(plan.toc.map((t) => t.id));
@@ -519,6 +539,7 @@ function editButton(target, quote) {
 // a request added to the tray in one click: the words are what /mclip:plan edit reads as "take the pictures" / "speak"
 export const SHOTS_REQUEST = "ถ่ายรูปอ้างอิงใหม่";
 export const VOICE_REQUEST = "สร้างเสียงให้ฟัง";
+export const SLIDE_REQUEST = "สร้างรูปตามรายละเอียดรูป";
 const quick = (target, text, label, title) =>
   `<button class="quick" data-target="${esc(target)}" data-text="${esc(text)}" title="${esc(title)}">${label}</button>`;
 
@@ -540,6 +561,7 @@ function lessonSlide(l, index, live = false, card = {}) {
   const [label, cls] = STATUS[l.status] ?? ["?", "draft"];
   const why = [];
   if (l.textChanged) why.push(`บทแก้หลัง v${l.latest}`);
+  if (l.slidesChanged) why.push(`รูปประกอบเปลี่ยนหลัง v${l.latest}`);
   if (l.compare?.failed) why.push(`ถ่ายรูปไม่ผ่านที่ขั้น ${esc(l.compare.failed.step ?? "?")}: ${esc(l.compare.failed.message ?? "")}`);
   if (l.compare?.changed?.length) why.push(`หน้าจอเปลี่ยน ${l.compare.changed.length} รูป`);
   if (l.compare?.unavailable) why.push(esc(l.compare.unavailable));
@@ -555,6 +577,7 @@ function lessonSlide(l, index, live = false, card = {}) {
       <label class="lf"><span class="cap-tag">บนจอ</span><input data-f="caption" value="${esc(s.caption)}" placeholder="${isCard(s) ? "หัวข้อบนการ์ด" : "คำบนจอ สั้น บอกว่าทำอะไร"}"></label>
       ${isCard(s) ? `<label class="lf"><span class="cap-tag">คำรอง</span><input data-f="subtitle" value="${esc(s.subtitle ?? "")}" placeholder="${s.n === "close" ? "ขั้นตอนย่อ เช่น Login → เลือกเมนู → กดค้นหา" : "บรรทัดใต้หัวข้อ"}"></label>` : ""}
       <label class="lf"><span>พูด</span><textarea data-f="narration" rows="2" placeholder="คำพูด สั้น กระชับ ไม่มี ค่ะ/ครับ">${esc(s.narration)}</textarea></label>
+      ${s.slide ? `<label class="lf"><span class="pic-tag">รูป</span><textarea data-f="brief" rows="2" placeholder="รูปนี้แสดงอะไร เช่น diagram ขั้นตอนอนุมัติ: ลูกค้าส่งเอกสาร → เจ้าหน้าที่ตรวจ → อนุมัติ">${esc(s.brief)}</textarea></label>` : ""}
       <div class="row"><button data-act="save">บันทึก</button><button class="go" data-act="save-voice">บันทึกและสร้างเสียง</button><em class="msg"></em></div></div>`
     : s.narration ? `<p class="say"><span>พูด</span>${esc(s.narration)}</p>` : ""}
     ${s.narration ? (s.voice
@@ -566,7 +589,26 @@ function lessonSlide(l, index, live = false, card = {}) {
   const fields = [...own, ...l.fields].map((f) => `<div class="kv"><span>${esc(f.key)}</span><p>${esc(f.value)}</p></div>`).join("");
   const mobile = l.kinds.some((k) => k !== "web");
   const both = l.kinds.includes("ios") && l.kinds.includes("android");
+  // a picture step: its picture (slides/...) where a step's screens go, made by the AI from its รายละเอียดรูป (or the
+  // user's own file under that name); its words and voice as any step's
+  const slideStep = (s) => {
+    const pic = s.slidePresent
+      ? `<figure class="slide-pic"><a href="${url(`${l.id}/${s.slide}`)}" target="_blank"><img loading="lazy" src="${url(`${l.id}/${s.slide}`)}" alt="${esc(s.brief || s.title)}"></a><figcaption><i class="by pic">รูปประกอบ</i> ${esc(s.slide)}</figcaption></figure>`
+      : `<figure class="missing slide-pic"><div>ยังไม่มีรูป — กด "สร้างรูป" ให้ AI ทำจากรายละเอียดรูป<br>หรือวางรูปของคุณเองชื่อ ${esc(s.slide)}</div><figcaption>${esc(s.slide)}</figcaption></figure>`;
+    return `<li class="step slide-step" id="${esc(`${l.id}-${s.n}`)}">
+      <div class="pics">${pic}</div>
+      <div class="words">
+        <h4><b>${s.n}</b> ${esc(s.title)} <i class="kind">ขั้นรูป</i> ${editButton(`${l.id} ขั้น ${s.n}`, s.caption)}${quick(`${l.id} ขั้น ${s.n}`, SLIDE_REQUEST, s.slidePresent ? "สร้างรูปใหม่" : "สร้างรูป", "ให้ AI สร้างรูปจากรายละเอียดรูป (เก็บไว้ในคำขอ)")}${s.narration && !live ? quick(`${l.id} ขั้น ${s.n}`, VOICE_REQUEST, "สร้างเสียง", "ให้ AI สร้างเสียงคำพูดขั้นนี้ (เก็บไว้ในคำขอ)") : ""}${live ? `<button class="live-btn del" data-act="remove-step" data-id="${esc(l.id)}" data-step="${s.n}" title="ลบขั้นรูปนี้ (ไฟล์รูปยังอยู่ใน slides/)">ลบขั้นนี้</button>` : ""}</h4>
+        ${live ? "" : `${s.brief ? `<p class="brief"><span>รูป</span>${esc(s.brief)}</p>` : ""}<p class="cap"><span>บนจอ</span>${esc(s.caption)}</p>`}
+        ${sayBlock(s)}
+        ${s.manual ? `<p class="man"><span>คู่มือ</span>${esc(s.manual)}</p>` : ""}
+        ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
+      </div></li>`;
+  };
+  // live: a button between the steps (after the opening card, after each step) that inserts a picture step there
+  const insertAt = (after) => (live ? `<li class="insert"><button class="ins" data-id="${esc(l.id)}" data-after="${after}" title="แทรกขั้นที่แสดงรูป (diagram, ภาพรวม) ตรงนี้">＋ แทรกขั้นรูป</button></li>` : "");
   const steps = l.steps.map((s) => {
+    if (s.slide) return slideStep(s) + insertAt(s.n);
     const pics = s.images.length
       ? s.images.map((img) => {
         const changed = changedImgs.has(img) && l.latest
@@ -588,7 +630,7 @@ function lessonSlide(l, index, live = false, card = {}) {
         ${sayBlock(s)}
         ${s.manual ? `<p class="man"><span>คู่มือ</span>${esc(s.manual)}</p>` : ""}
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
-      </div></li>`;
+      </div></li>${insertAt(s.n)}`;
   }).join("");
   // the clip's opening and closing title cards, around the steps: what the card shows and what is said over it, drawn
   // as the recorder draws it (the theme of tools/TutorialRecorder/tutorial.settings.json, overlay.js's layout)
@@ -614,7 +656,7 @@ function lessonSlide(l, index, live = false, card = {}) {
         ${sayBlock(c)}
       </div></li>`;
   };
-  const stepsAndCards = `${cardBlock("open")}${steps}${cardBlock("close")}`;
+  const stepsAndCards = `${cardBlock("open")}${insertAt(0)}${steps}${cardBlock("close")}`;
   const versions = l.versions.length
     ? `<div class="versions">${l.versions.map((v) => `<span class="ver">v${v.n}${v.date ? ` · ${esc(v.date.slice(0, 10))}` : ""}${v.appCommit ? ` · ${esc(v.appCommit.slice(0, 7))}` : ""}${v.hasMp4 ? ` · <a href="${url(`${l.id}/v${v.n}/clip.mp4`)}" target="_blank">คลิป</a>` : " · คลิปไม่อยู่ในเครื่องนี้"}</span>`).join("")}</div>`
     : "";
@@ -624,7 +666,7 @@ function lessonSlide(l, index, live = false, card = {}) {
     : `<ol class="steps">${stepsAndCards}</ol>`;
   const voiced = spokenParts(l).some((s) => s.voice);
   const tools = l.status === "topic" ? "" : `${voiced ? `<button class="play-all" title="เล่นเสียงทุกขั้นต่อกัน">▶ ฟังทั้งบท</button>` : ""}${live && l.steps.some((s) => s.narration) ? `<button class="live-btn" data-act="voice-lesson" data-id="${esc(l.id)}" title="สร้างเสียงขั้นที่ยังไม่มีหรือต้องสร้างใหม่ ตอนนี้เลย">สร้างเสียงทั้งบทตอนนี้</button>` : ""}${shootable && l.steps.some((s) => s.images.length) ? quick(l.id, SHOTS_REQUEST, "ถ่ายรูปทั้งบท", "ให้ AI ถ่ายรูปอ้างอิงทั้งบท (เก็บไว้ในคำขอ)") : ""}${l.steps.some((s) => s.narration) && !live ? quick(l.id, VOICE_REQUEST, "สร้างเสียงทั้งบท", "ให้ AI สร้างเสียงทุกขั้น (เก็บไว้ในคำขอ)") : ""}`;
-  return `<section class="slide lesson" data-title="${esc(`${index}. ${l.title}`)}">
+  return `<section class="slide lesson" data-id="${esc(l.id)}" data-title="${esc(`${index}. ${l.title}`)}">
     <header><span class="num">${esc(l.id.slice(0, 2))}</span><h2>${esc(l.title)}</h2><span class="badge ${cls}">${label}${l.latest ? ` v${l.latest}` : ""}</span>${plat}${tools}${editButton(l.id, l.title)}</header>
     ${l.apps.length ? `<div class="apps">${l.apps.map(appChip).join("")}</div>` : ""}
     ${why.length ? `<p class="why">${why.join(" · ")}</p>` : ""}
@@ -641,6 +683,28 @@ function lessonSlide(l, index, live = false, card = {}) {
 /** How the page names a voice: `ElevenLabs: Rachel (eleven_v3)`. */
 export const voiceLabel = (v) => (v.engine === "paradee" ? ENGINES.paradee.label
   : `${ENGINES[v.engine].label}: ${v.name || v.voice} (${v.model})${v.style ? ` · สไตล์: ${v.style}` : ""}`);
+
+/** The live page's forms: a picture step to insert, a topic to add (its app and its place among the lessons). */
+function liveDialogs(p, lessons) {
+  return `<dialog id="insBox" class="form"><h3>แทรกขั้นรูป</h3>
+<p class="quote">ขั้นที่แสดงรูปเต็มจอ เช่น diagram ภาพรวมระบบ ขั้นตอนอนุมัติ มีคำบนจอ คำพูด และเสียง เหมือนขั้นอื่น</p>
+<label>หัวข้อขั้น<input id="insTitle" maxlength="120" placeholder="เช่น ภาพรวมการอนุมัติ"></label>
+<label>รูปนี้แสดงอะไร (AI สร้างรูปจากข้อนี้)<textarea id="insBrief" rows="3" placeholder="เช่น diagram: ลูกค้าส่งเอกสาร → เจ้าหน้าที่ตรวจ → หัวหน้าอนุมัติ → แจ้งลูกค้า"></textarea></label>
+<label>บนจอ<input id="insCap" maxlength="300" placeholder="คำสั้น ๆ บนจอ (ว่าง = ใช้หัวข้อขั้น)"></label>
+<label>พูด<textarea id="insSay" rows="2" placeholder="คำพูด สั้น กระชับ ไม่มี ค่ะ/ครับ"></textarea></label>
+<label class="check"><input type="checkbox" id="insAsk" checked> ขอให้ AI สร้างรูปนี้ (เก็บไว้ในคำขอ)</label>
+<p class="msg" id="insMsg"></p>
+<div class="row"><button id="insCancel">ยกเลิก</button><button class="go" id="insGo">แทรกขั้น</button></div></dialog>
+<dialog id="topicBox" class="form"><h3>เพิ่มหัวข้อ</h3>
+<label>ชนิด<select id="tpKind"><option value="overview">แนะนำระบบ: ขั้นรูป เช่น diagram ภาพรวม (เขียนบทเริ่มต้นให้เลย)</option><option value="task">ขั้นตอนใช้งาน: AI เขียนขั้นตอนให้ภายหลัง</option></select></label>
+<label>ชื่อหัวข้อ<input id="tpTitle" maxlength="120" placeholder="เช่น แนะนำระบบ"></label>
+<label>ชื่อย่อภาษาอังกฤษ ใช้ตั้งชื่อโฟลเดอร์<input id="tpSlug" maxlength="40" placeholder="overview"></label>
+<label>สอนอะไร<input id="tpTeaches" maxlength="300" placeholder="ผู้ชมรู้อะไรหลังดูจบ"></label>
+${p.apps.length > 1 ? `<label>แอป<select id="tpApp">${p.apps.map((a) => `<option value="${esc(a.key)}">${esc(a.name)} (${esc(a.key)})</option>`).join("")}</select></label>` : ""}
+<label>ตำแหน่งในสารบัญ<select id="tpAfter"><option value="">แรกสุด</option>${lessons.map((l) => `<option value="${esc(l.id)}">ต่อจาก ${esc(l.id.slice(0, 2))} ${esc(l.title)}</option>`).join("")}</select></label>
+<p class="msg" id="tpMsg"></p>
+<div class="row"><button id="tpCancel">ยกเลิก</button><button class="go" id="tpGo">เพิ่มหัวข้อ</button></div></dialog>`;
+}
 
 export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voice = PARADEE, card = {}, lexicon = { global: [], project: [] } }, builtAt = new Date(), { live = null } = {}) {
   const p = plan ?? { title: "ยังไม่มีแผน", fields: [], toc: [], apps: [] };
@@ -686,7 +750,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voi
       ${[["โค้ด", a.code], ["เทสต์", a.tests], ["e2e", a.e2e], ["url", a.url]].filter(([, v]) => v).map(([k, v]) => `<p><span>${k}</span>${esc(v)}</p>`).join("")}
       <p><span>บทเรียน</span>${lessons.filter((l) => l.appKeys.includes(a.key)).length}</p></div>`).join("")}</div>` : ""}</section>`;
   const toc = `<section class="slide toc" data-title="สารบัญ">
-    <header><h2>สารบัญ</h2>${editButton("plan สารบัญ", "")}</header>
+    <header><h2>สารบัญ</h2>${live ? `<button class="live-btn go" id="addTopic" title="เพิ่มหัวข้อลงสารบัญ เช่น แนะนำระบบ ภาพรวม">＋ เพิ่มหัวข้อ</button>` : ""}${editButton("plan สารบัญ", "")}</header>
     <ol class="toc-list">${groups(lessons).map((g) => `${p.apps.length ? `<li class="grp">${esc(g.label)}</li>` : ""}${g.items.map(({ l, i }) => {
       const [label, cls] = STATUS[l.status] ?? ["?", "draft"];
       const first = l.steps.flatMap((s) => s.images.filter((img) => s.present?.[img]))[0];
@@ -705,7 +769,7 @@ export function renderPage({ plan, lessons, problems, speed = DEFAULT_SPEED, voi
     }).join("")}`).join("")}${problems.length ? `<a class="item warn" data-go="${lessons.length + 3}">ปัญหาในไฟล์แผน (${problems.length})</a>` : ""}`;
   // replacer functions: a '$' in the plan's words must not be read as a replacement pattern
   // live: the token goes in as JSON inside a script, '<' escaped so no text can close the script
-  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token, requests: live.requests ?? [], keys: live.keys ?? {}, engines: ENGINES, gemini: GEMINI_VOICES }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")};</script>` : "";
+  const liveTag = live ? `<script>window.MCLIP=${JSON.stringify({ token: live.token, requests: live.requests ?? [], keys: live.keys ?? {}, engines: ENGINES, gemini: GEMINI_VOICES }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")};</script>${liveDialogs(p, lessons)}` : "";
   return PAGE.replace("{{TITLE}}", () => esc(p.title)).replace("{{NAME}}", () => esc(p.title)).replace("{{SIDE}}", () => side).replace("{{SLIDES}}", () => slides).replace("{{BUILT}}", () => esc(built)).replace("{{LIVE}}", () => liveTag);
 }
 
@@ -832,6 +896,18 @@ button:disabled{opacity:.5;cursor:wait}.msg{font-size:13px;color:var(--muted)}
 .live-voice .v-key{font-size:13px;color:var(--muted);margin:2px 0}.live-voice audio{height:32px;max-width:100%}
 .lex code{background:var(--blue-t);color:var(--blue-ink);border-radius:4px;padding:0 5px}
 .by{font-style:normal;font-size:11px;border-radius:4px;padding:0 6px;color:#fff}.by.ai{background:var(--blue)}.by.own{background:#6b7588}
+/* picture steps (purple = the picture's brief) and the live page's insert, remove and add forms */
+.slide-step{background:var(--soft)}.slide-pic img{background:#fff}
+.words h4 .kind{font:500 12px/1.6 var(--head);font-style:normal;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 7px}
+.brief span,.live-say .lf>span.pic-tag{background:#efe9fb;color:#5b3fa8}.by.pic{background:#6d4fc2}
+.insert{list-style:none;display:flex;align-items:center;gap:10px;margin:-6px 0}
+.insert::before,.insert::after{content:"";flex:1;border-top:1px dashed var(--line)}
+.ins{font:500 13px/1.6 var(--head);border:1px dashed #b8c3d4;background:var(--sheet);color:var(--muted);border-radius:999px;padding:1px 14px;cursor:pointer}
+.ins:hover{border:1px solid var(--blue);color:var(--blue-ink)}
+.live-btn.del{background:var(--sheet);color:var(--red);border-color:#f2b5b5}.live-btn.del.sure{background:var(--red);color:#fff;border-color:var(--red)}
+dialog.form label{display:block;margin:10px 0 0;font:500 14px/1.5 var(--head);color:var(--muted)}
+dialog.form input:not([type=checkbox]),dialog.form select,dialog.form textarea{display:block;width:100%;margin-top:4px;font:16px/1.6 var(--body);color:var(--ink);padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--sheet);min-height:0}
+dialog.form label.check{display:flex;gap:8px;align-items:center;color:var(--ink)}
 /* a title card as the recorder draws it: the app's screen, a brand panel on its left 60%, a seam (sizes in 1920ths) */
 .card-step .card-pic{position:relative;container-type:inline-size;aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:var(--p-backdrop,#e8edf5);font-family:'Noto Sans Thai','Sarabun','Leelawadee UI',Tahoma,system-ui,sans-serif}
 .card-pic .cp-app{position:absolute;left:63%;top:33%;width:34%;height:34%;object-fit:cover;object-position:left top;border-radius:.94cqw;outline:.1cqw solid rgba(255,255,255,.7);box-shadow:0 1.5cqw 3.6cqw rgba(0,0,0,.3)}
@@ -953,22 +1029,24 @@ code{font-size:.9em}
     // a step's or card's words (บนจอ, คำรอง, พูด) typed and not saved yet: saved before anything else runs, since the
     // page reloads after each action
     const fieldsOf = (b) => Object.fromEntries([...b.querySelectorAll("[data-f]")].map((x) => [x.dataset.f, oneLine(x.value)]));
-    const wordsOf = (b, voice) => { const f = fieldsOf(b); return { id: b.dataset.id, step: b.dataset.step, caption: f.caption, subtitle: f.subtitle, text: f.narration ?? "", voice }; };
+    const wordsOf = (b, voice) => { const f = fieldsOf(b); return { id: b.dataset.id, step: b.dataset.step, caption: f.caption, subtitle: f.subtitle, brief: f.brief, text: f.narration ?? "", voice }; };
     const dirty = () => [...document.querySelectorAll(".live-say")].filter((b) =>
       [...b.querySelectorAll("[data-f]")].some((x) => oneLine(x.value) !== oneLine(x.defaultValue)));
     let reloading = false;
     addEventListener("beforeunload", (e) => { if (!reloading && dirty().length) { e.preventDefault(); e.returnValue = ""; } });
-    const post = async (where, body, box, button) => {
+    // then(answer): before the page reloads (where to land: the step inserted, the topic added)
+    const post = async (where, body, box, button, then) => {
       const msg = box && box.querySelector(".msg");
-      const buttons = [...document.querySelectorAll(".live-say button, .live-btn, .live-speed button, .live-lex button, .live-voice button")];
+      const buttons = [...document.querySelectorAll(".live-say button, .live-btn, .live-speed button, .live-lex button, .live-voice button, .ins, dialog.form button")];
       if (msg) msg.textContent = body.voice || where === "/api/voice" ? "กำลังสร้างเสียง… (บรรทัดละหลายวินาที)" : "กำลังบันทึก…";
-      if (button && !msg) button.textContent = "กำลังสร้างเสียง…";
+      if (button && !msg) button.textContent = where === "/api/voice" ? "กำลังสร้างเสียง…" : "กำลังบันทึก…";
       buttons.forEach((b) => b.disabled = true);
       try {
         for (const other of dirty()) if (other !== box) {
           await send("/api/narration", wordsOf(other, false));
         }
-        await send(where, body);
+        const answer = await send(where, body);
+        if (then) then(answer);
         reloading = true;
         location.reload();
       } catch (e) {
@@ -978,6 +1056,40 @@ code{font-size:.9em}
     };
     document.querySelectorAll(".live-say").forEach((box) => box.querySelectorAll("button").forEach((b) => b.onclick = () =>
       post("/api/narration", wordsOf(box, b.dataset.act === "save-voice"), box)));
+    // a picture step inserted between two steps: the form, then the page lands on it
+    const ins = document.getElementById("insBox");
+    let insAt = null;
+    document.querySelectorAll(".ins").forEach((b) => b.onclick = () => {
+      insAt = { id: b.dataset.id, after: +b.dataset.after };
+      ["insTitle", "insBrief", "insCap", "insSay"].forEach((k) => document.getElementById(k).value = "");
+      document.getElementById("insMsg").textContent = ""; ins.showModal(); document.getElementById("insTitle").focus(); });
+    document.getElementById("insCancel").onclick = () => ins.close();
+    document.getElementById("insGo").onclick = () => {
+      const v = (k) => oneLine(document.getElementById(k).value);
+      if (!v("insTitle") && !v("insCap")) { document.getElementById("insMsg").textContent = "ใส่หัวข้อขั้นหรือคำบนจอก่อน"; return; }
+      post("/api/step-insert", { id: insAt.id, after: insAt.after, title: v("insTitle"), caption: v("insCap"), narration: v("insSay"), brief: v("insBrief"),
+        ask: document.getElementById("insAsk").checked }, ins, null,
+        (r) => history.replaceState(null, "", "#" + (at + 1) + "/" + insAt.id + "-" + r.n));
+    };
+    // a picture step removed: a second press confirms
+    document.querySelectorAll("[data-act=remove-step]").forEach((b) => b.onclick = () => {
+      if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "กดอีกครั้งเพื่อลบ"; setTimeout(() => { b.classList.remove("sure"); b.textContent = "ลบขั้นนี้"; }, 4000); return; }
+      post("/api/step-remove", { id: b.dataset.id, step: +b.dataset.step }, null, b);
+    });
+    // a topic added to the contents; an overview's lesson is written with it, and the page opens it
+    const tp = document.getElementById("topicBox"), tpKind = document.getElementById("tpKind"), tpAfter = document.getElementById("tpAfter");
+    const tpPlace = () => { tpAfter.value = tpKind.value === "overview" ? "" : (tpAfter.options[tpAfter.options.length - 1] || {}).value || "";
+      document.getElementById("tpSlug").placeholder = tpKind.value === "overview" ? "overview" : "เช่น approve-claim"; };
+    tpKind.onchange = tpPlace;
+    const addTopic = document.getElementById("addTopic");
+    if (addTopic) addTopic.onclick = () => { document.getElementById("tpMsg").textContent = ""; tpPlace(); tp.showModal(); document.getElementById("tpTitle").focus(); };
+    document.getElementById("tpCancel").onclick = () => tp.close();
+    document.getElementById("tpGo").onclick = () => {
+      const v = (k) => { const e = document.getElementById(k); return e ? oneLine(e.value) : ""; };
+      if (!v("tpTitle")) { document.getElementById("tpMsg").textContent = "ใส่ชื่อหัวข้อก่อน"; return; }
+      post("/api/topic", { kind: tpKind.value, title: v("tpTitle"), slug: v("tpSlug").toLowerCase(), teaches: v("tpTeaches"), app: v("tpApp"), after: tpAfter.value }, tp, null,
+        (r) => { try { sessionStorage.setItem("mclip-go", r.id); } catch {} });
+    };
     document.querySelectorAll("[data-act=voice-lesson]").forEach((b) => b.onclick = () => post("/api/voice", { id: b.dataset.id }, null, b));
     const sp = document.querySelector(".live-speed");
     if (sp) sp.querySelector("button").onclick = () => post("/api/speed", { speed: +sp.querySelector("select").value }, sp);
@@ -1047,7 +1159,10 @@ code{font-size:.9em}
     setTimeout(() => document.getElementById("trayCopy").textContent = "คัดลอก", 2500); };
   // #<n> opens page n and #<n>/<lesson>-<step> one step, so a link can point at a lesson or a step
   const [page, step] = location.hash.slice(1).split("/");
-  count(); show((parseInt(page, 10) || 1) - 1, step);
+  let go = null;
+  try { go = sessionStorage.getItem("mclip-go"); sessionStorage.removeItem("mclip-go"); } catch {}
+  const added = go ? slides.findIndex((x) => x.dataset.id === go) : -1;
+  count(); show(added >= 0 ? added : (parseInt(page, 10) || 1) - 1, added >= 0 ? undefined : step);
 })();
 </script></body></html>
 `;
@@ -1067,7 +1182,7 @@ function copyDir(from, to) {
   }
 }
 
-/** Snapshot lesson `id` as its next version: lesson.md, scenario.yaml, screen/, and the recording's files. */
+/** Snapshot lesson `id` as its next version: lesson.md, scenario.yaml, screen/, slides/, and the recording's files. */
 export function makeVersion(clipsDir, id, { mp4, srt, timing, mode = null, voice = false, recorder = null, now = new Date() }) {
   const dir = path.join(clipsDir, id);
   if (!ID.test(id) || !fs.existsSync(path.join(dir, "lesson.md"))) return { code: 2, error: `no lesson clips/${id}/lesson.md` };
@@ -1080,6 +1195,7 @@ export function makeVersion(clipsDir, id, { mp4, srt, timing, mode = null, voice
   fs.copyFileSync(path.join(dir, "lesson.md"), path.join(vdir, "lesson.md"));
   if (fs.existsSync(path.join(dir, "scenario.yaml"))) fs.copyFileSync(path.join(dir, "scenario.yaml"), path.join(vdir, "scenario.yaml"));
   copyDir(path.join(dir, "screen"), path.join(vdir, "screen"));
+  copyDir(path.join(dir, "slides"), path.join(vdir, "slides"));
   fs.copyFileSync(mp4, path.join(vdir, "clip.mp4"));
   fs.copyFileSync(srt, path.join(vdir, "clip.srt"));
   fs.copyFileSync(timing, path.join(vdir, "timing.json"));
@@ -1141,6 +1257,8 @@ const EDITABLE = {
   caption: { key: "บนจอ", stepMayEmpty: false, step: true },
   subtitle: { key: "คำรอง", stepMayEmpty: true, step: false },
   narration: { key: "พูด", stepMayEmpty: true, step: true },
+  // a picture step's brief: what its picture shows (the step must be a picture step, see setLessonFields)
+  brief: { key: "รายละเอียดรูป", stepMayEmpty: true, step: true, slideOnly: true },
 };
 
 /**
@@ -1158,8 +1276,9 @@ export function setLessonFields(clipsDir, id, n, fields = {}) {
   for (const [name, v] of Object.entries(fields)) {
     if (v === undefined || v === null) continue;
     const spec = EDITABLE[name];
-    if (!spec) throw new Error(`${name} is not a field the page edits (caption, subtitle, narration)`);
+    if (!spec) throw new Error(`${name} is not a field the page edits (caption, subtitle, narration, brief)`);
     if (!card && !spec.step) throw new Error(`a step has no ${spec.key}: only a title card has`);
+    if (card && spec.slideOnly) throw new Error(`a title card has no ${spec.key}: only a picture step has`);
     const value = oneLine(v, spec.key === "พูด" ? "the narration" : `'${spec.key}'`);
     if (!card && !value && !spec.stepMayEmpty) throw new Error(`a step needs its '${spec.key}'`);
     values[spec.key] = value;
@@ -1183,8 +1302,13 @@ export function setLessonFields(clipsDir, id, n, fields = {}) {
     return;
   }
   // the fields in the order a block lists them: a missing one goes after the last of those before it
-  const ORDER = ["ทำ", "บนจอ", "คำรอง", "พูด"];
-  for (const key of ["บนจอ", "คำรอง", "พูด"]) {
+  const ORDER = ["สไลด์", "รายละเอียดรูป", "ทำ", "บนจอ", "คำรอง", "พูด"];
+  let end0 = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
+  if (end0 < 0) end0 = lines.length;
+  if ("รายละเอียดรูป" in values && !lines.slice(head + 1, end0).some((l) => /^\s*-\s+สไลด์\s*:/.test(l))) {
+    throw new Error(`step ${n} of clips/${id} is not a picture step (no '- สไลด์:')`);
+  }
+  for (const key of ["รายละเอียดรูป", "บนจอ", "คำรอง", "พูด"]) {
     if (!(key in values)) continue;
     let end = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
     if (end < 0) end = lines.length;
@@ -1208,6 +1332,199 @@ export function setLessonFields(clipsDir, id, n, fields = {}) {
 
 /** Sets (or, with "", removes) the '- พูด:' line of step `n` or of a title card ("open", "close"). */
 export const setNarration = (clipsDir, id, n, text) => setLessonFields(clipsDir, id, n, { narration: text ?? "" });
+
+// ---- picture steps and topics added from the live page ---------------------------------------------------------------
+//
+// A step inserted or removed renumbers the steps after it: their headings, their voice (voice/NN.mp3 and voice.json)
+// and the saved requests that name them (`<id> ขั้น <n>`) move with them, so no step plays another's voice.
+
+const lessonFile = (clipsDir, id) => {
+  if (!ID.test(String(id))) throw new Error(`no lesson ${id}`);
+  const file = path.join(clipsDir, id, "lesson.md");
+  if (!fs.existsSync(file)) throw new Error(`no lesson clips/${id}/lesson.md`);
+  return file;
+};
+const STEP_HEAD = /^(##\s+)(\d+)(\.\s.*)$/;
+
+/** Steps numbered `from` and up move by `by` (+1 or -1) in what is keyed by number; `gone` (a removed step) goes. */
+function shiftSteps(clipsDir, id, from, by, gone = null) {
+  const vdir = path.join(clipsDir, id, VOICE_DIR);
+  const vjson = path.join(vdir, "voice.json");
+  const j = readJson(vjson);
+  if (gone !== null) fs.rmSync(path.join(vdir, voiceFile(gone)), { force: true });
+  if (isObj(j) && isObj(j.steps)) {
+    if (gone !== null) delete j.steps[String(gone)];
+    const nums = Object.keys(j.steps).filter((k) => /^\d+$/.test(k)).map(Number).filter((k) => k >= from)
+      .sort((a, b) => (by > 0 ? b - a : a - b));
+    for (const k of nums) {
+      const f = path.join(vdir, voiceFile(k));
+      if (fs.existsSync(f)) fs.renameSync(f, path.join(vdir, voiceFile(k + by)));
+      j.steps[String(k + by)] = j.steps[String(k)];
+      delete j.steps[String(k)];
+    }
+    const order = (k) => (k === "open" ? -1 : k === "close" ? 1e9 : Number(k));
+    j.steps = Object.fromEntries(Object.entries(j.steps).sort(([a], [b]) => order(a) - order(b)));
+    fs.writeFileSync(vjson, JSON.stringify(j, null, 2) + "\n");
+  }
+  const items = readRequests(clipsDir);
+  if (!items.length) return;
+  const rx = new RegExp(`^${escRx(id)} ขั้น (\\d+)$`);
+  const kept = [];
+  for (const x of items) {
+    const m = rx.exec(x.target);
+    const k = m ? Number(m[1]) : null;
+    if (k !== null && k === gone) continue;
+    kept.push(k !== null && k >= from ? { ...x, target: `${id} ขั้น ${k + by}` } : x);
+  }
+  writeRequests(clipsDir, kept);
+}
+
+/** A picture's name no step of the lesson uses and no file in slides/ has: slides/picture-<k>.png. */
+function freeSlideName(clipsDir, id, steps) {
+  const dir = path.join(clipsDir, id, "slides");
+  const taken = new Set([...steps.map((s) => (s.slide || "").replace(/\.[a-z]+$/i, "").toLowerCase()),
+    ...(fs.existsSync(dir) ? fs.readdirSync(dir).map((f) => `slides/${f.replace(/\.[a-z]+$/i, "").toLowerCase()}`) : [])]);
+  for (let k = 1; ; k++) if (!taken.has(`slides/picture-${k}`)) return `slides/picture-${k}.png`;
+}
+
+/**
+ * Inserts a picture step after step `after` (0: before the first step, after the opening card) of clips/<id>/lesson.md:
+ * `## <n>. <title>`, `- สไลด์: slides/picture-<k>.png` (the picture to make), `- รายละเอียดรูป:`, `- บนจอ:`, `- พูด:`.
+ * Each text is one line; the title and บนจอ default to each other. Returns { n, slide }.
+ */
+export function insertSlideStep(clipsDir, id, after, { title = "", caption = "", narration = "", brief = "" } = {}) {
+  const file = lessonFile(clipsDir, id);
+  const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
+  const { lesson } = parseLesson(src);
+  const a = Number(after);
+  if (!Number.isInteger(a) || a < 0 || a > lesson.steps.length) throw new Error(`after is a step of clips/${id} (0 to ${lesson.steps.length})`);
+  let t = oneLine(title, "the step's title", 120), c = oneLine(caption, "'บนจอ'", 300);
+  const say = oneLine(narration, "the narration"), what = oneLine(brief, "'รายละเอียดรูป'");
+  t ||= c || "รูปประกอบ";
+  c ||= t;
+  if (/^\s*#/.test(say)) throw new Error("a '- พูด:' line cannot start with '#'");
+  const slide = freeSlideName(clipsDir, id, lesson.steps);
+  const n = a + 1;
+  const lines = src.split(/\r?\n/);
+  // where it goes: before step n's heading, else before the closing card, else at the end
+  let at = lines.findIndex((l) => STEP_HEAD.exec(l) && Number(STEP_HEAD.exec(l)[2]) === n);
+  if (at < 0) at = lines.findIndex((l) => /^##\s+สรุป\s*$/.test(l));
+  for (let i = 0; i < lines.length; i++) {
+    const m = STEP_HEAD.exec(lines[i]);
+    if (m && Number(m[2]) >= n) lines[i] = `${m[1]}${Number(m[2]) + 1}${m[3]}`;
+  }
+  const block = [`## ${n}. ${t}`, `- สไลด์: ${slide}`, ...(what ? [`- รายละเอียดรูป: ${what}`] : []), `- บนจอ: ${c}`, ...(say ? [`- พูด: ${say}`] : []), ""];
+  if (at >= 0) lines.splice(at, 0, ...block);
+  else {
+    while (lines.length && lines.at(-1) === "") lines.pop();
+    lines.push("", ...block);
+  }
+  shiftSteps(clipsDir, id, n, +1);
+  fs.writeFileSync(file, lines.join(eol));
+  return { n, slide };
+}
+
+/** Removes picture step `n` of clips/<id>/lesson.md (a step that does something in the app is not removed here); its
+ * picture file stays in slides/. Returns { removed, slide }. */
+export function removeSlideStep(clipsDir, id, n) {
+  const file = lessonFile(clipsDir, id);
+  const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
+  const { lesson } = parseLesson(src);
+  const step = lesson.steps.find((s) => s.n === Number(n));
+  if (!step) throw new Error(`clips/${id}/lesson.md has no step ${n}`);
+  if (!step.slide) throw new Error(`step ${n} of clips/${id} does something in the app: only a picture step is removed from the page (ask the AI for the others)`);
+  if (lesson.steps.length === 1) throw new Error(`step ${n} is the lesson's only step`);
+  const lines = src.split(/\r?\n/);
+  const head = lines.findIndex((l) => STEP_HEAD.exec(l) && Number(STEP_HEAD.exec(l)[2]) === step.n);
+  let end = lines.findIndex((l, i) => i > head && /^##\s/.test(l));
+  if (end < 0) end = lines.length;
+  lines.splice(head, end - head);
+  for (let i = 0; i < lines.length; i++) {
+    const m = STEP_HEAD.exec(lines[i]);
+    if (m && Number(m[2]) > step.n) lines[i] = `${m[1]}${Number(m[2]) - 1}${m[3]}`;
+  }
+  shiftSteps(clipsDir, id, step.n + 1, -1, step.n);
+  fs.writeFileSync(file, lines.join(eol));
+  return { removed: step.n, slide: step.slide };
+}
+
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** What an overview (แนะนำระบบ) lesson starts as: the cards and one picture step, its words to write on the page. */
+const overviewLesson = (title, teaches) => [`# ${title}`, "", "- บทบาท: ผู้ใช้ทุกคน", "- ก่อนเริ่ม: ไม่มี", "",
+  "## เปิด", `- บนจอ: ${title}`, "- คำรอง: แนะนำระบบ", "",
+  "## 1. ภาพรวมระบบ", "- สไลด์: slides/picture-1.png", `- รายละเอียดรูป: diagram ${teaches || "ส่วนหลักของระบบ ใครใช้ส่วนไหน และเชื่อมกันอย่างไร"}`,
+  "- บนจอ: ภาพรวมระบบ", "", "## สรุป", "- บนจอ: สรุป", ""].join("\n");
+
+/**
+ * Adds a topic to the contents of clips/plan.md: { title, slug (its id's words), kind ("overview": a lesson of picture
+ * steps is written with it; "task": a topic, its steps written by /mclip:plan lesson), app (its app's key when the plan
+ * has apps), teaches (สอน), after (a lesson id; "" first) }. Its number: 00 when first and free, else the next after the
+ * highest; the contents' order is the list's, not the numbers'. Returns { id, lesson }.
+ */
+export function addTopic(clipsDir, { title = "", slug = "", kind = "task", app = "", teaches = "", after = "" } = {}) {
+  const file = path.join(clipsDir, "plan.md");
+  if (!fs.existsSync(file)) throw new Error("no clips/plan.md");
+  const src = fs.readFileSync(file, "utf8"), eol = eolOf(src);
+  const { plan } = parsePlan(src);
+  if (!["overview", "task"].includes(kind)) throw new Error("kind is overview or task");
+  const t = oneLine(title, "the topic's title", 120);
+  if (!t) throw new Error("a topic needs a title");
+  if (/[—]/.test(t)) throw new Error("the title cannot have '—'");
+  const words = oneLine(slug, "the id's words", 40).toLowerCase() || (kind === "overview" ? "overview" : "");
+  if (!SLUG.test(words)) throw new Error("the id's words are English lower-case words joined by '-', e.g. overview, add-user");
+  const what = oneLine(teaches, "'สอน'", 300);
+  const keys = plan.apps.map((x) => x.key);
+  const a = String(app ?? "").trim();
+  if (a && !keys.includes(a)) throw new Error(`app ${a} is not under '## แอป' (${keys.join(", ") || "none"})`);
+  if (!a && keys.length > 1) throw new Error(`which app: ${keys.join(", ")}`);
+  if (after && !plan.toc.some((x) => x.id === after)) throw new Error(`no lesson ${after} in the contents`);
+  const used = new Set([...plan.toc.map((x) => x.id.slice(0, 2)), ...fs.readdirSync(clipsDir).filter((d) => ID.test(d)).map((d) => d.slice(0, 2))]);
+  let num;
+  if (!after && !used.has("00")) num = "00";
+  else {
+    const high = Math.max(0, ...[...used].map(Number));
+    if (high >= 99) throw new Error("the contents use every number up to 99");
+    num = String(high + 1).padStart(2, "0");
+  }
+  const id = `${num}-${words}`;
+  if (fs.existsSync(path.join(clipsDir, id))) throw new Error(`clips/${id} is there already`);
+  const lines = src.split(/\r?\n/);
+  const sec = lines.findIndex((l) => /^##\s+สารบัญ\s*$/.test(l));
+  const entry = /^(\s*)\d+(\.\s+.*)$/;
+  const block = [`1. ${id} — ${t}`, ...(a && keys.length > 1 ? [`   - แอป: ${a}`] : []), ...(what ? [`   - สอน: ${what}`] : [])];
+  if (sec < 0) {
+    while (lines.length && lines.at(-1) === "") lines.pop();
+    lines.push("", "## สารบัญ", "", ...block, "");
+  } else {
+    let end = lines.findIndex((l, i) => i > sec && /^##\s/.test(l));
+    if (end < 0) end = lines.length;
+    const entries = [];
+    for (let i = sec + 1; i < end; i++) if (entry.test(lines[i])) entries.push(i);
+    let at;
+    if (!after) at = entries[0] ?? sec + 2;
+    else {
+      const i = entries.find((k) => new RegExp(`^\\s*\\d+\\.\\s+\`?${escRx(after)}\`?\\s`).test(lines[k]));
+      const next = entries.find((k) => k > i) ?? end;
+      at = next;
+      while (at > i + 1 && lines[at - 1].trim() === "") at--;
+    }
+    if (at > lines.length) at = lines.length;
+    lines.splice(at, 0, ...block);
+    // the list numbered again in its order
+    let k = 0;
+    let stop = lines.findIndex((l, i) => i > sec && /^##\s/.test(l));
+    if (stop < 0) stop = lines.length;
+    for (let i = sec + 1; i < stop; i++) { const m = entry.exec(lines[i]); if (m && field(lines[i]) === null) lines[i] = `${m[1]}${++k}${m[2]}`; }
+  }
+  fs.writeFileSync(file, lines.join(eol) + (lines.at(-1) === "" ? "" : eol));
+  let lesson = false;
+  if (kind === "overview") {
+    fs.mkdirSync(path.join(clipsDir, id), { recursive: true });
+    fs.writeFileSync(path.join(clipsDir, id, "lesson.md"), overviewLesson(t, what).replace(/\n/g, eol));
+    lesson = true;
+  }
+  return { id, lesson };
+}
 
 /** Sets (or adds) the plan's '- <key>: <value>' line, among the fields before the first '##'; "" removes it. */
 export function setPlanField(clipsDir, key, value) {
@@ -1428,7 +1745,9 @@ function main(argv) {
     const counts = (steps) => {
       const imgs = steps.flatMap((s) => s.images.map((img) => s.present?.[img]));
       const said = steps.filter((s) => s.narration);
-      return { pictures: imgs.length, picturesThere: imgs.filter(Boolean).length, spoken: said.length, voiced: said.filter((s) => s.voice && !s.voice.stale).length };
+      const slides = steps.filter((s) => s.slide);
+      return { pictures: imgs.length, picturesThere: imgs.filter(Boolean).length, slides: slides.length, slidesThere: slides.filter((s) => s.slidePresent).length,
+        spoken: said.length, voiced: said.filter((s) => s.voice && !s.voice.stale).length };
     };
     return { code: data.problems.length ? 1 : 0, out: { lessons: data.lessons.map(({ id, title, status, latest, steps, appKeys }) => ({ id, title, apps: appKeys, status, latest, steps: steps.length, ...counts(steps) })), requests: readRequests(clips).length, problems: data.problems } };
   }

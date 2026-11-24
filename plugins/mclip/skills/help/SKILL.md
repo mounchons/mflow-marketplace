@@ -29,8 +29,8 @@ Three short parts:
 | `/mclip:plan shots <id>\|all [ขั้น <n>]` | The AI takes a web lesson's reference pictures in the test stack, the whole lesson or one step; the user's own pictures are kept |
 | `/mclip:plan voice <id>\|all [ขั้น <n>]` | Speaks the narration in the Thai voice to listen to on the plan page (▶ ฟังทั้งบท); only changed lines are spoken again |
 | `/mclip:plan shots voice <id>` | Both |
-| `/mclip:plan serve` | The live plan page (127.0.0.1): edit a step's narration and hear it at once, make a lesson's voice, choose the voice (Paradee on this machine, a Google Gemini voice or one of the ElevenLabs account, tried on a sample first; API keys in `tools/TutorialRecorder/tts/keys.json`), set the speed and the project's words (`clips/lexicon.txt`) |
-| `/mclip:plan edit [...]` | Applies the requests the live page saved (`clips/requests.json`) and any pasted from the plan page (✎ แก้, ถ่ายรูป, สร้างเสียง) |
+| `/mclip:plan serve` | The live plan page (127.0.0.1): edit a step's narration and hear it at once, make a lesson's voice, choose the voice (Paradee on this machine, a Google Gemini voice or one of the ElevenLabs account, tried on a sample first; API keys in `tools/TutorialRecorder/tts/keys.json`), set the speed and the project's words (`clips/lexicon.txt`); add a topic (an overview of picture steps, or a task) and insert or remove a picture step (a diagram the AI makes from its brief) |
+| `/mclip:plan edit [...]` | Applies the requests the live page saved (`clips/requests.json`) and any pasted from the plan page (✎ แก้, ถ่ายรูป, สร้างเสียง, สร้างรูป: a picture step's picture made from its รายละเอียดรูป) |
 | `/mclip:record <id>\|<flow>` | Records a lesson (or a flow in words) as a video with clicks, highlights, zoom, Thai captions and voice, checks the frames, and keeps it as the lesson's next version `clips/<id>/v<n>/` |
 | `/mclip:finish <clip>` | Lays captions and title cards over the clean video in WeftCut, as layers that stay editable |
 | `/mclip:manual [pdf]` | Exports the user manual from the lessons and their pictures: `clips/manual/manual.md`, `.docx` (Word) and with `pdf` a `.pdf` (made by Microsoft Word) |

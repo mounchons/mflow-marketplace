@@ -40,12 +40,14 @@ public sealed class LoginDef
 public sealed class Step
 {
     public string? Role { get; set; }
-    /// <summary>navigate | click | fill | select | check | uncheck | upload | press | wait | zoom | zoom-out | login | logout | title</summary>
+    /// <summary>navigate | click | fill | select | check | uncheck | upload | press | wait | zoom | zoom-out | login | logout | title | slide</summary>
     public string Action { get; set; } = "";
     public string? Target { get; set; }
     public string? Value { get; set; }
     public string? Url { get; set; }
     public List<string>? Files { get; set; }
+    /// <summary>slide: the picture shown full screen, slides/&lt;name&gt;.png, .jpg or .svg in the scenario's folder.</summary>
+    public string? Image { get; set; }
     public string? Key { get; set; }
     public double? Zoom { get; set; }
     /// <summary>box | arrow | spotlight | none (default box when there is a target)</summary>

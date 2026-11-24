@@ -55,6 +55,14 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
         return new CardTheme { Primary = seen.Primary, Dark = set.Dark ?? seen.Dark, Accent = set.Accent, Font = set.Font ?? seen.Font, Logo = set.Logo, Name = set.Name };
     }
 
+    /// <summary>A slide's picture (slides/..., checked by the loader) as a data: URI the overlay can show on any page.</summary>
+    string SlideSource(string image)
+    {
+        var file = Path.Combine(scenario.SourceDir, image.Replace('/', Path.DirectorySeparatorChar));
+        var type = Path.GetExtension(file).ToLowerInvariant() switch { ".svg" => "image/svg+xml", ".png" => "image/png", _ => "image/jpeg" };
+        return $"data:{type};base64,{Convert.ToBase64String(File.ReadAllBytes(file))}";
+    }
+
     /// <summary>--shots: the step's reference picture, when it is taken at this moment.</summary>
     async Task Reference(Step step, int index, string when, bool pointing = false)
     {
@@ -94,6 +102,16 @@ public sealed class StepRunner(IPage page, IBrowserContext context, ScenarioFile
                 await Hold(step, t, index, int.TryParse(step.Value, out var cardMs) ? cardMs : null);
                 break;
             }
+            case "slide":
+                // A picture step: the picture itself full screen, in clean mode too (it is the clip's content, not a
+                // caption WeftCut lays later), its caption and narration as any step's. --shots: nothing of the app to
+                // photograph, and its picture may not be made yet: passed by.
+                if (refs is not null) break;
+                try { await overlay.Slide(SlideSource(step.Image!), cardTheme ??= await CardLook()); }
+                catch (PlaywrightException e) { throw new SlideFailedException(index, step.Image!, e.Message.Split('\n')[0].Replace("Error: ", "")); }
+                await Show(step, t, null);
+                await Hold(step, t, index);
+                break;
             case "wait":
                 await Show(step, t, step.Target is null ? null : await Find(step, index));
                 await Hold(step, t, index, int.TryParse(step.Value, out var ms) ? ms : null);

@@ -51,7 +51,7 @@ pwsh tools/TutorialRecorder/stack/reset.ps1 -Down    # remove the stack and its 
 A scenario's `setup:` runs `reset.ps1` before every recording (fresh database), so a rerun gives the same clip.
 
 `--mode clean` records the screen, the cursor, the highlights and the zoom only: no caption bar, no callouts and no title
-cards (the page stays behind a title step for its time). Every step is timed as in caption mode and its caption still
+cards (the page stays behind a title step for its time); a `slide` step's picture stays, as it is the content. Every step is timed as in caption mode and its caption still
 goes to the `.srt`, so the voice-over fits and an editor such as WeftCut lays the captions and title cards over the video
 (`import_media` the `.mp4` and `.srt`, then `apply_subtitles`).
 
@@ -160,6 +160,7 @@ steps:
 | `press` | `key`, `target` optional | presses a key (e.g. `Enter`) |
 | `wait` | `target` optional, `value` ms optional | shows the caption (and highlight) for the reading time |
 | `title` | `caption` (the title), `subtitle` optional, `url` optional | a full-screen title card for an opening, a section or a summary, a presentation slide in the app's colours (`card` in `tutorial.settings.json`); a subtitle of steps `a → b → c` is shown as a numbered list; before any sign-in it opens the sign-in page behind the card, so the opening narration is spoken over the card, not over the typing |
+| `slide` | `image` (`slides/<name>.png`, `.jpg` or `.svg` in the scenario's folder), `caption`, `narration` | a picture step: the picture (a diagram, an overview) full screen on the cards' backdrop for its narration, with the caption below it; shown in `clean` mode too, since it is the clip's content; the file must be there before recording |
 | `zoom` | `target`, `zoom` | zooms to the target, no action |
 | `zoom-out` | | back to 100% |
 | `login` / `logout` | `role` for login | sign in on screen / sign out (a role change does both by itself) |

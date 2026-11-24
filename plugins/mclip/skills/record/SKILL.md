@@ -27,7 +27,13 @@ A lesson of the plan: its scenario is `clips/<id>/scenario.yaml`, and each recor
   card's `caption`, `คำรอง` its `subtitle` (steps written `a → b → c` show as a numbered list) and `พูด` its
   `narration`. A lesson without them whose scenario has title steps: copy those into the lesson first (`## เปิด`
   before step 1, `## สรุป` at the end), so the plan page shows them and the user edits their words there; one with
-  neither: write both in the lesson (an opening that says what the clip teaches, a summary of its steps). A scenario
+  neither: write both in the lesson (an opening that says what the clip teaches, a summary of its steps). A picture
+  step (`- สไลด์:`) becomes `action: slide` with `image:` its `สไลด์` (`slides/<name>`, in the scenario's folder),
+  `caption` and `narration`: the picture full screen for its narration, in `clean` mode too. Its picture must be
+  there: a missing one stops the run before recording; say the step and that `/mclip:plan edit` (the page's สร้างรูป)
+  makes it, or the user puts theirs there. It needs a recorder of mclip 0.8 or later (`doctor` says when the
+  project's is older: `/mclip:init --update`). A lesson of picture steps only (an overview) needs no sign-in: no
+  `login` step, and its opening `title` stands on the sign-in page. A scenario
   `/mclip:plan shots` wrote is updated, not replaced: keep its targets that worked and its `shot:` / `shotAt:` lines
   (recording ignores them).
 

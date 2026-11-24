@@ -49,6 +49,15 @@ export function buildModel({ plan, lessons }, clipsDir, now = new Date()) {
         const plat = platformOf(img);
         figures.push({ file, rel: `../${l.id}/${img}`, caption: plat ? `${s.title} (${KINDS[plat]})` : s.title });
       }
+      // a picture step's picture (a diagram) is a figure too; Word takes PNG and JPG, not SVG
+      // (an SVG's PNG of the same name stands in for it when there is one)
+      if (s.slide) {
+        const png = s.slide.replace(/\.svg$/i, ".png");
+        const pic = /\.svg$/i.test(s.slide) ? (fs.existsSync(path.join(clipsDir, l.id, png)) ? png : null) : s.slide;
+        if (!s.slidePresent) model.missing.push(`clips/${l.id}/${s.slide}`);
+        else if (!pic) model.missing.push(`clips/${l.id}/${png} (the manual needs a PNG of ${s.slide})`);
+        else figures.push({ file: path.join(clipsDir, l.id, pic), rel: `../${l.id}/${pic}`, caption: s.title });
+      }
       return { n: s.n, title: s.title, text: s.manual || s.caption, note: s.note, figures };
     });
     model.chapters.push({

@@ -1,5 +1,9 @@
 namespace TutorialRecorder.Actions;
 
+/// <summary>A slide step whose picture could not be drawn (a broken or unsupported file): the run stops, no blank slide.</summary>
+public sealed class SlideFailedException(int step, string image, string why)
+    : Exception($"step {step} (slide) could not show {image}: {why}. Make the picture again (/mclip:plan edit) or replace the file.");
+
 /// <summary>A step that could not find its target or whose action failed; the run stops with a screenshot.</summary>
 public sealed class TargetNotFoundException(int step, string action, string? caption, string target, string screenshot, Exception inner)
     : Exception(Describe(step, action, caption, target, screenshot, inner), inner)

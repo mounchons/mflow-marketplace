@@ -1,6 +1,6 @@
 ---
 name: audit
-version: 1
+version: 2
 title: ใครทำอะไรเมื่อไร การลบแบบซ่อน และ Activity Log
 prefix: AUDIT
 requires: []
@@ -32,7 +32,7 @@ origin: StemHub 2026-11
 |---|---|---|
 | `{account_kinds}` | ชนิดของบัญชีที่ทะเบียนผู้ทำรู้จัก นอกจาก System | `Staff`, `Partner` |
 | `{business_documents}` | ชนิดเอกสารธุรกิจที่ไปอยู่แท็บ Documents | `Order`, `Invoice` |
-| `{document_types}` | ชนิดเอกสารทั้งหมดที่เลือกในตัวกรองได้ | `Order`, `Account`, `Group`, `SystemSetting` |
+| `{document_types}` | ชนิดเอกสารทั้งหมดที่เลือกในตัวกรองได้ | `Order`, `Account`, `Role`, `SystemSetting` |
 | `{log_view_key}` | สิทธิ์ดูจอ Activity Log | `ActivityLog.View` |
 | `{log_view_all_key}` | สิทธิ์ดูแถวของทุกคน | `ActivityLog.ViewAll` |
 | `{api_prefix}` | ส่วนหน้าของ route API | `/api/v1` |

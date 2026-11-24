@@ -5,7 +5,7 @@ stack: dotnet
 
 # permission on ASP.NET Core
 
-Applies when the back end is ASP.NET Core: profiles `mvc-htmx` (MVC + Razor + HTMX) and `react-vite` (React front end + ASP.NET Core Web API). Guidance for /opsx:propose and apply: which framework feature carries each decision and what has to be written by hand. Not code to paste. Groups, screens, checkboxes and keys are this pack's own tables; Identity roles are not used for them.
+Applies when the back end is ASP.NET Core: profiles `mvc-htmx` (MVC + Razor + HTMX) and `react-vite` (React front end + ASP.NET Core Web API). Guidance for /opsx:propose and apply: which framework feature carries each decision and what has to be written by hand. Not code to paste. Roles, screens, checkboxes and keys are this pack's own tables; Identity roles are not used for them.
 
 ## Building blocks
 
@@ -22,15 +22,15 @@ Applies when the back end is ASP.NET Core: profiles `mvc-htmx` (MVC + Razor + HT
 
 | Decision | .NET | Write yourself |
 |---|---|---|
-| PERM-D01, PERM-D02 | — | Group tables; one group per account as a column on the account |
-| PERM-D03, PERM-D04, PERM-D05 | — | The catalog: screen → checkboxes → `<SCREEN>.<Action>` keys; the View-pulls rules in the group save |
-| PERM-D06 | EF Core migration with data | Move keys and tick the new checkbox for every group that held the old one, in the same migration |
-| PERM-D07 | — | Keys computed at sign-in from the group; a change of the group ends the members' sessions (auth pack) |
+| PERM-D01, PERM-D02 | — | Role tables; one role per account as a column on the account |
+| PERM-D03, PERM-D04, PERM-D05 | — | The catalog: screen → checkboxes → `<SCREEN>.<Action>` keys; the View-pulls rules in the role save |
+| PERM-D06 | EF Core migration with data | Move keys and tick the new checkbox for every role that held the old one, in the same migration |
+| PERM-D07 | — | Keys computed at sign-in from the role; a change of the role ends the members' sessions (auth pack) |
 | PERM-D08 | `IAuthorizationRequirementData` attribute + handler; `IAuthorizationMiddlewareResultHandler` to shape the 403 `ACCESS_DENIED` body | Activity Log entry for a refusal |
 | PERM-D09, PERM-D10 | `GET /me` endpoint | The menu tree and buttons come from `/me`; never from a second permission call per page |
 | PERM-D12, PERM-D13, PERM-D14, PERM-D18 | Named query filter `"Scope"` on every owned entity | A model test that fails when an owned entity lacks the filter; raw SQL only in a reviewed list |
 | PERM-D17 | — | Out-of-scope records answer 404 `NOT_FOUND` because the filter hides them; log `AccessDenied` |
-| PERM-D15, PERM-D16 | Start-up seeder | Seed groups from the customer's role table; "all" scope for seed groups |
+| PERM-D15, PERM-D16 | Start-up seeder | Seed roles from the customer's role table; "all" scope for seed roles |
 
 ## mvc-htmx
 

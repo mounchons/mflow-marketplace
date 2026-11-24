@@ -79,9 +79,9 @@ The mail line SHALL look at the queue every {mail.poll_seconds} seconds while th
 ### Requirement: Recipients of an e-mail
 An e-mail addressed to one account SHALL go to that account's e-mail; a deleted account, or one without an e-mail, SHALL leave it without a recipient.
 
-An e-mail addressed to an {org} SHALL go to each account of that {org} that is Active or Invited, whose {org} is Active, and whose role opens the {area} of the e-mail. Statuses and roles SHALL be read when the mail line takes the e-mail, not when it was queued. Each recipient SHALL get a message of their own (MAIL-D15).
+An e-mail addressed to an {org} SHALL go to each account of that {org} that is Active or Invited, whose {org} is Active, and whose org role opens the {area} of the e-mail. Statuses and org roles SHALL be read when the mail line takes the e-mail, not when it was queued. Each recipient SHALL get a message of their own (MAIL-D15).
 
-#### Scenario: Accounts whose role opens the area
+#### Scenario: Accounts whose org role opens the area
 - **WHEN** an order e-mail to Acme Parts is taken, and Napa (every area) and Wit (orders) are Active while Anan (quality only) is Active too
 - **THEN** Napa and Wit each get a message of their own, and Anan gets nothing
 

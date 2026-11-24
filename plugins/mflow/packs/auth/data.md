@@ -1,6 +1,6 @@
 # auth: data dictionary
 
-Every account table reuses the `id` of its row in the audit pack's `actor` registry as its key, so every who/when column and `activity_log.actor_id` point at `actor.id`. Account tables also carry the who/when and soft-delete columns of the audit pack, not repeated here. With one portal there is one account table; with several, AUTH-D02 decides between one table per portal (shown here as `<portal>_account`) and one table with a `portal` column. The users pack adds the management columns (group, phone, invited by …), and the permission pack the rights a session fixes at sign-in. Secrets are stored only as hashes; `portal` holds the portal's code.
+Every account table reuses the `id` of its row in the audit pack's `actor` registry as its key, so every who/when column and `activity_log.actor_id` point at `actor.id`. Account tables also carry the who/when and soft-delete columns of the audit pack, not repeated here. With one portal there is one account table; with several, AUTH-D02 decides between one table per portal (shown here as `<portal>_account`) and one table with a `portal` column. The users pack adds the management columns (role, phone, invited by …), and the permission pack the rights a session fixes at sign-in. Secrets are stored only as hashes; `portal` holds the portal's code.
 
 ## <portal>_account
 

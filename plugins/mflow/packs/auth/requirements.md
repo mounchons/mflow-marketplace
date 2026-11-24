@@ -213,7 +213,7 @@ The sign-in, sign-in code, resend code, forgot-password and set-new-password req
 - **THEN** the API answers 403 `ORIGIN_REFUSED` and nothing is queued
 
 ### Requirement: Account changes end its sessions
-These changes SHALL end the sessions and pending sign-ins of the account they concern: its status away from Active, its deletion, a change of its sign-in e-mail, a change of its password, a change of what fixes its rights (the group or role of the permission pack), and, when AUTH-D04 holds, its {org} saved with a status other than Active. A password or e-mail changed by the account holder SHALL keep the session that changed it. The next request of an ended session SHALL answer 401 `UNAUTHENTICATED`.
+These changes SHALL end the sessions and pending sign-ins of the account they concern: its status away from Active, its deletion, a change of its sign-in e-mail, a change of its password, a change of what fixes its rights (the role or org role of the permission pack), and, when AUTH-D04 holds, its {org} saved with a status other than Active. A password or e-mail changed by the account holder SHALL keep the session that changed it. The next request of an ended session SHALL answer 401 `UNAUTHENTICATED`.
 
 The ending SHALL hold whatever the order in which such a change and a sign-in of the same account commit: a session opened by a sign-in that read the account before the change committed SHALL answer 401 `UNAUTHENTICATED` from its first request after the change. A change that ends nothing (a display name, a phone number) SHALL leave every session as it was.
 

@@ -1,6 +1,6 @@
 ---
 name: mail
-version: 2
+version: 3
 title: คิวอีเมล การส่ง และเทมเพลต
 prefix: MAIL
 requires: [audit, settings]
@@ -58,5 +58,6 @@ origin: StemHub 2026-11
 
 ## รุ่น
 
+- รุ่น 3: ผู้รับอีเมลถึง `{org}` อ่านจาก org role ของบัญชี (ชื่อเรียกใหม่ของ role ของพอร์ทัลองค์กรในแพ็ก permission)
 - รุ่น 2: ค่า SMTP ทั้งชุดย้ายจาก env มาอยู่บนหน้าตั้งค่าระบบ เพิ่มปุ่มส่งทดสอบ (MAIL-D30) และ SMTP ที่ยังไม่ได้ตั้งไม่หยุดการ start (MAIL-D26)
 - รุ่น 1: ค่า SMTP อยู่ใน env ตรวจตอน start

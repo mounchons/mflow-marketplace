@@ -144,7 +144,7 @@ The API SHALL answer `GET {api_prefix}/activity-log` to a holder of `{log_view_k
 - **THEN** the first entry has action `Approve` in group Approve, document type Order, the order's id, `clerk01` as actor with the role `clerk01` had at the time, and the time of the approval
 
 #### Scenario: Role stays as written
-- **WHEN** `clerk01` approved an order as a member of group Purchasing and later moved to another group
+- **WHEN** `clerk01` approved an order as a member of role Purchasing and later moved to another role
 - **THEN** the entry of that approval still shows the role Purchasing
 
 #### Scenario: Without the View right
@@ -240,7 +240,7 @@ Each entry SHALL belong to the All tab and to exactly one of Access & authorizat
 
 | Entry | Tab |
 |---|---|
-| a sign-in action, a password or terms action, or `AccessDenied`, on any document type; or document type Account, Group or Permission | Access & authorization |
+| a sign-in action, a password or terms action, or `AccessDenied`, on any document type; or document type Account, Role or Permission | Access & authorization |
 | document type one of `{business_documents}`, and not an Access row | Documents |
 | every other entry | Content |
 
@@ -257,10 +257,10 @@ Each entry SHALL belong to the All tab and to exactly one of Access & authorizat
 - **THEN** every tab count counts only Approve entries
 
 ### Requirement: Detail of an entry
-An entry's detail SHALL hold the note, file or related record the Service wrote with the action, and the changed fields of up to {audit.detail_rows_max} of the entry's rows, each with the table, the row, the field and its old and new value, plus the entry's row count. A secret field SHALL show as changed with no value. A document id of an account, a group or a role SHALL also carry its name. (AUDIT-D12, AUDIT-D22)
+An entry's detail SHALL hold the note, file or related record the Service wrote with the action, and the changed fields of up to {audit.detail_rows_max} of the entry's rows, each with the table, the row, the field and its old and new value, plus the entry's row count. A secret field SHALL show as changed with no value. A document id of an account, a role or an org role SHALL also carry its name. (AUDIT-D12, AUDIT-D22)
 
 #### Scenario: Changed fields
-- **WHEN** `admin01` renames a group from Sales to Sales Team A
+- **WHEN** `admin01` renames a role from Sales to Sales Team A
 - **THEN** the `Edit` entry's detail shows field `name`, old Sales, new Sales Team A, and the document id carries the name Sales Team A
 
 #### Scenario: A large save

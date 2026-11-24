@@ -1,6 +1,6 @@
 ---
 name: import-export
-version: 1
+version: 2
 title: นำเข้าและส่งออกข้อมูลด้วย Excel
 prefix: IMPEX
 requires: [audit, upload]

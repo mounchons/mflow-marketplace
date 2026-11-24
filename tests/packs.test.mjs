@@ -88,7 +88,7 @@ test("every shipped pack has its .NET stack file", () => {
 
 test("auth: tokens for clients a cookie cannot serve, the OTP switch on the settings page", () => {
   const read = (f) => fs.readFileSync(path.join(SHIPPED, "auth", f), "utf8");
-  assert.match(read("pack.md"), /^version: 3$/m);
+  assert.match(read("pack.md"), /^version: 4$/m);
   assert.match(read("decisions.md"), /### AUTH-D31:/);
   assert.match(read("decisions.md"), /### AUTH-D32:/);
   assert.match(read("params.md"), /`auth\.otp_enabled`/);

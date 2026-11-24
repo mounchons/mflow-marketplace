@@ -13,7 +13,7 @@ Applies when the back end is ASP.NET Core: profiles `mvc-htmx` (MVC + Razor + HT
 |---|---|---|
 | Create an account | `UserManager<TUser>.CreateAsync(user)` without a password, then the invite or link of the auth pack | The account gets a password only through a link or a starting password |
 | Change the e-mail | `UserManager.SetEmailAsync` + `UpdateNormalizedEmailAsync` | Ends sessions (auth pack) |
-| Change status, group | Own columns; `UserManager.UpdateSecurityStampAsync` | Ends sessions where the auth pack says so |
+| Change status, role | Own columns; `UserManager.UpdateSecurityStampAsync` | Ends sessions where the auth pack says so |
 | Change own password | `UserManager.ChangePasswordAsync(user, current, new)` | Runs the auth pack's password validator; keep the current session |
 | Delete | Soft delete of the audit pack | Identity `DeleteAsync` is never called on accounts |
 | Concurrency | Identity's `ConcurrencyStamp` or the audit pack's version column | Two administrators saving one account: the second gets 409 |

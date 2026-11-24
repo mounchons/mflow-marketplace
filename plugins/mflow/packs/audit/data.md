@@ -35,7 +35,7 @@ One row per changed business row; the rows of one save form one entry (AUDIT-D04
 | id | bigint | serial primary key (AUDIT-D08 exception) |
 | at | timestamptz | time of the save, UTC; same for every row of one save |
 | actor_id | uuid | FK `actor.id`, not null |
-| actor_role | text | the role at the time: the group name, the account kind or `System` (AUDIT-D19) |
+| actor_role | text | the role at the time: the role name, the account kind or `System` (AUDIT-D19) |
 | action | text | the name the Service gave, else `Create`, `Edit` or `Delete` (AUDIT-D11) |
 | document_type | text | one of `{document_types}` |
 | document_id | text | the id of the document the action was on |

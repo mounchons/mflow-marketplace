@@ -1,6 +1,6 @@
 ---
 name: integration
-version: 1
+version: 2
 title: เชื่อมต่อระบบภายนอก: การเรียก การลองใหม่ และจอติดตาม
 prefix: INTG
 requires: [audit, settings, jobs]
@@ -44,7 +44,7 @@ origin: StemHub 2026-11
 | `{record}` | ชนิดรายการของระบบนี้ที่งานเขียนออกหรือการดึงเข้าผูกอยู่ | `Order`, `Invoice`, `Customer` |
 | `{integration_view_key}` | สิทธิ์เปิดจอติดตามการเชื่อมต่อ | `INTEGRATION.View` |
 | `{integration_manage_key}` | สิทธิ์ส่งซ้ำ ดึงซ้ำ และทดสอบการเชื่อมต่อ | `INTEGRATION.Manage` |
-| `{superadmin}` | กลุ่มผู้ดูแลสูงสุดใน seed | SuperAdmin |
+| `{superadmin}` | role ผู้ดูแลสูงสุดใน seed | SuperAdmin |
 | `{api_prefix}` | ส่วนหน้าของ route API | `/api/v1` |
 
 ## ชั้น stack

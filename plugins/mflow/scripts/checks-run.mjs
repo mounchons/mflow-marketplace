@@ -48,32 +48,61 @@ const PROTECTED_SPECS = [".mflow", ".agent", ".agents", ".claude", ".codex", ".o
 
 /** The git-ignored files in the protected places, with their content, to put back after a tool's run. */
 function ignoredProtected(dir) {
-  const out = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...PROTECTED_SPECS], { cwd: dir, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).stdout || "";
+  const r = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...PROTECTED_SPECS], { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  // A listing that failed or overflowed proves nothing: the caller stops the job (fail closed).
+  if (r.error || r.status !== 0) throw new Error(`listing the git-ignored files in protected places failed: ${r.error?.message || (r.stderr || "").trim() || `exit ${r.status}`}`);
+  const out = r.stdout || "";
   const map = new Map();
   for (const f of out.split("\0").filter(Boolean)) {
     try {
-      map.set(f, fs.readFileSync(path.join(dir, f)));
+      const st = fs.lstatSync(path.join(dir, f));
+      // A link's own target path stands for it, so a link that appears or changes counts as a change.
+      map.set(f, st.isSymbolicLink() ? Buffer.from(`link:${fs.readlinkSync(path.join(dir, f))}`) : fs.readFileSync(path.join(dir, f)));
     } catch { /* gone meanwhile */ }
   }
   return map;
 }
+/**
+ * Write a file inside the worktree without following a link a tool may have planted: a link on the way (the file or
+ * a folder above it) is removed, not written through, and the folder must still be inside the worktree.
+ */
+function writeInside(dir, rel, buf) {
+  const parts = rel.split("/");
+  let at = dir;
+  for (let i = 0; i < parts.length; i++) {
+    at = path.join(at, parts[i]);
+    let st = null;
+    try {
+      st = fs.lstatSync(at);
+    } catch { /* not there */ }
+    if (st?.isSymbolicLink()) fs.rmSync(at, { force: true });
+  }
+  const parent = path.dirname(path.join(dir, rel));
+  fs.mkdirSync(parent, { recursive: true });
+  const realDir = fs.realpathSync.native(dir).toLowerCase();
+  const realParent = fs.realpathSync.native(parent).toLowerCase();
+  if (realParent !== realDir && !realParent.startsWith(realDir + path.sep)) throw new Error(`${rel} leads outside the worktree`);
+  fs.writeFileSync(path.join(dir, rel), buf);
+}
+/** Remove a file or a link itself, never what a link points to. */
+const removeInside = (dir, rel) => fs.rmSync(path.join(dir, rel), { force: true });
+
 /** Put the ignored protected files back as they were: new ones removed, changed ones restored. Returns what differed. */
 function restoreIgnored(dir, before) {
   const after = ignoredProtected(dir);
   const differed = [];
   for (const [f, buf] of after) {
     if (!before.has(f)) {
-      fs.rmSync(path.join(dir, f), { force: true });
+      removeInside(dir, f);
       differed.push(f);
-    } else if (!before.get(f).equals(buf)) {
-      fs.writeFileSync(path.join(dir, f), before.get(f));
+    } else if (!before.get(f).equals(buf) || fs.lstatSync(path.join(dir, f)).isSymbolicLink()) {
+      writeInside(dir, f, before.get(f));
       differed.push(f);
     }
   }
   for (const [f, buf] of before) {
     if (!after.has(f)) {
-      fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
-      fs.writeFileSync(path.join(dir, f), buf);
+      writeInside(dir, f, buf);
       differed.push(f);
     }
   }
@@ -87,13 +116,14 @@ function git(cwd, args) {
 }
 /** Files git sees changed or new in the worktree (ignored ones left out), with whether each is new. */
 function changes(dir) {
-  const out = spawnSync("git", ["-c", "core.quotePath=false", "status", "--porcelain=v1", "-z", "--untracked-files=all"], { cwd: dir, encoding: "utf8" }).stdout || "";
+  const out = spawnSync("git", ["-c", "core.quotePath=false", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames"], { cwd: dir, encoding: "utf8" }).stdout || "";
   const parts = out.split("\0").filter(Boolean);
   const list = [];
   for (let i = 0; i < parts.length; i++) {
     const code = parts[i].slice(0, 2);
     list.push({ file: parts[i].slice(3), added: code === "??" || code.includes("A") });
-    if (code.startsWith("R") || code.startsWith("C")) i++;
+    // A rename or copy names its source next: it counts as a changed file too, so a protected one is never missed.
+    if (code.startsWith("R") || code.startsWith("C")) list.push({ file: parts[++i], added: false });
   }
   return list;
 }
@@ -219,18 +249,31 @@ async function doJob(root, got, tool, cfg, sh) {
   const paths = { brief: path.join(dirRuns, `${stem}.brief.md`), out: path.join(dirRuns, `${stem}.out.md`), worktree: got.dir };
   fs.writeFileSync(paths.brief, brief(got, tool));
   const head = git(got.dir, ["rev-parse", "HEAD"]).out;
-  const ignoredBefore = ignoredProtected(got.dir);
+  let ignoredBefore;
+  try {
+    ignoredBefore = ignoredProtected(got.dir);
+  } catch (err) {
+    release(root, j.id, { ...at, note: err.message });
+    return { job: j.id, kind: j.kind, batch: got.batch, result: "not done", stop: err.message };
+  }
   const cmd = command(root, tool, paths, sh.shell);
   const r = await runTool(sh.exe, sh.args(cmd), { cwd: got.dir, minutes: cfg.jobMinutes, heartbeat: () => touch(root, got.batch, j.id) });
   const said = `${fs.existsSync(paths.out) ? fs.readFileSync(paths.out, "utf8") : ""}\n${r.stdout}`;
   const base = { job: j.id, kind: j.kind, batch: got.batch, exit: r.status, out: paths.out };
   const finished = r.status === 0 && /^\s*`?DONE:/m.test(said);
   // Git-ignored files in protected places go back as they were before anything else is read or run.
-  const plantedIgnored = restoreIgnored(got.dir, ignoredBefore);
+  let plantedIgnored;
+  try {
+    plantedIgnored = restoreIgnored(got.dir, ignoredBefore);
+  } catch (err) {
+    // Unsure what the tool left in a protected place: nothing more is read, run or recorded.
+    release(root, j.id, { ...at, note: `protected files not checked: ${err.message}` });
+    return { ...base, result: "not done", stop: `protected files not checked: ${err.message}` };
+  }
   // Commits the tool made: kept only for a fix that finished and touches no protected file; otherwise undone with
   // their files kept, so they count as the job's result or as leftovers like any other file.
   if (git(got.dir, ["rev-parse", "HEAD"]).out !== head) {
-    const inRange = git(got.dir, ["diff", "--name-only", head, "HEAD"]).out.split(/\r?\n/).filter(Boolean);
+    const inRange = git(got.dir, ["diff", "--name-only", "--no-renames", head, "HEAD"]).out.split(/\r?\n/).filter(Boolean);
     if (j.kind !== "fix" || !finished || inRange.some((x) => PROTECTED.test(x))) git(got.dir, ["reset", "-q", "--soft", head]);
   }
   // Undo what the job never asks a tool to write; the runner and done write these.

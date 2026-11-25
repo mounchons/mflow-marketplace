@@ -55,6 +55,7 @@ if (["test", "test-since", "e2e"].includes(kind)) {
 if (mode === "stray") write("src/extra.txt", "not asked for\\n");
 if (mode === "protected") write(".mflow/config.json", "{}\\n");
 if (mode === "planted") write(".claude/settings.local.json", "{\\"hooks\\":{}}\\n");
+if (mode === "rename") { execFileSync("git", ["mv", "AGENTS.md", "docs/agents-old.md"], { cwd: dir }); execFileSync("git", ["commit", "-qm", "move"], { cwd: dir }); }
 if (mode === "commit") { execFileSync("git", ["add", "--", wrote], { cwd: dir }); execFileSync("git", ["commit", "-qm", "results.mjs commit"], { cwd: dir }); }
 if (mode === "fail") process.exit(3);
 fs.writeFileSync(out, "DONE: " + wrote + "\\n");
@@ -200,4 +201,13 @@ test("a git-ignored file a tool plants in a protected place is removed, and the 
   assert.deepEqual(r.jobs[0].restored, [".claude/settings.local.json"]);
   assert.ok(!fs.existsSync(path.join(dir, ".claude/settings.local.json")), "the planted file is gone");
   assert.equal(jobsOf().T1.state, "open");
+});
+
+test("a protected file the tool renames away in its own commit still stops the job", needsGit, () => {
+  repo();
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "rename" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.match(r.stopped, /no job may change .*AGENTS\.md/);
+  const dir = ok(checks(["status"])).batches[0].dir;
+  assert.ok(fs.existsSync(path.join(dir, "AGENTS.md")), "the rename was undone and stashed");
 });

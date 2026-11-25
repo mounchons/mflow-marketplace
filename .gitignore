@@ -15,3 +15,6 @@ desktop.ini
 # Logs / temp
 *.log
 tmp/
+
+# Graph Brain activity log (local only)
+.brain/

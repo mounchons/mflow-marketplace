@@ -71,6 +71,37 @@ test("every skill is invoked by hand only and has a description (NFR-04)", () =>
   }
 });
 
+test("every frontmatter value written without quotes is one YAML can read", () => {
+  // An unquoted value holding ": " or " #" is not valid YAML; Claude Code then loads the skill with
+  // no frontmatter at all, dropping disable-model-invocation and the description (0.51.1, monitor).
+  const files = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(path.join(REPO, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${e.name}`;
+      if (e.isDirectory()) walk(rel);
+      else if (e.name.endsWith(".md")) files.push(rel);
+    }
+  };
+  walk("plugins");
+  // Only the files Claude Code reads as YAML. Packs and other mflow files go through lib.mjs frontmatter(),
+  // which keeps quotes as part of the value, so they stay unquoted.
+  files.splice(0, files.length, ...files.filter((f) => /\/(skills|commands|agents)\//.test(f)));
+  let checked = 0;
+  const bad = [];
+  for (const rel of files) {
+    const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(read(rel))?.[1];
+    if (!fm) continue;
+    checked++;
+    for (const line of fm.split(/\r?\n/)) {
+      const value = /^[\w-]+:\s+(.*)$/.exec(line)?.[1];
+      if (!value || /^["'|>[{&*!]/.test(value)) continue;
+      if (/: |:$| #/.test(value)) bad.push(`${rel}: ${line.split(":")[0]}`);
+    }
+  }
+  assert.ok(checked > 20, `frontmatter found in ${checked} files`);
+  assert.deepEqual(bad, [], 'quote these values (they hold ": " or " #")');
+});
+
 test("the marketplace points at the plugin", () => {
   const market = JSON.parse(read(".claude-plugin/marketplace.json"));
   const entry = market.plugins.find((x) => x.name === "mflow");

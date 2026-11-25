@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | Requirement ของ plugin mflow |
-| เวอร์ชันที่อธิบาย | 0.51.0 |
+| เวอร์ชันที่อธิบาย | 0.51.1 |
 | ผู้ใช้เป้าหมาย | คนที่ต้องการทำระบบ: SA, PM หรือเจ้าของระบบ |
 | ผู้ดูแล plugin | Mounchon |
 | วันที่ | 2026-10-04 |
@@ -477,7 +477,7 @@ flowchart TD
 | NFR-01 | Script ทั้งหมดเป็น Node ล้วน ไม่มี dependency ทำงานได้ทั้ง Windows และ Linux (Node 20+, CI รัน 20, 22, 24 แนะนำ 22 หรือ 24 เพราะ Node 20 หมดระยะซัพพอร์ตเมื่อ 30 เมษายน 2026) |
 | NFR-02 | Hook ต้องไม่ทำให้ session ล้ม: ทุกคำสั่งภายนอกมี timeout และจับ error เงียบ |
 | NFR-03 | Briefing จำกัดขนาด (~9,000 ตัวอักษร) เพื่อไม่กิน context ถ้าเกินจะย่อส่วนที่ยาวที่สุดก่อนและบอกว่าย่อ ส่วนสั้น (งานที่รอ agenda และ Session ritual) จึงมาครบเสมอ |
-| NFR-04 | ทุก skill เป็นแบบเรียกด้วยมือ (`disable-model-invocation: true`) ไม่กิน context ทุก turn |
+| NFR-04 | ทุก skill เป็นแบบเรียกด้วยมือ (`disable-model-invocation: true`) ไม่กิน context ทุก turn frontmatter ต้องเป็น YAML ที่อ่านได้ ค่าที่มี `: ` หรือ ` #` ต้องครอบด้วยเครื่องหมายคำพูด ไม่อย่างนั้น Claude Code จะทิ้งทุกค่า รวมทั้ง `disable-model-invocation` (0.51.1 พบใน monitor; release test ตรวจทุกไฟล์ใน skills, commands และ agents) |
 | NFR-05 | กฎ UI เป็น path-scoped rule โหลดเฉพาะตอนเปิดไฟล์ UI |
 | NFR-06 | ไฟล์ Backlog แก้ผ่าน CLI เท่านั้น, `openspec/specs/` แก้ผ่าน change + archive เท่านั้น |
 | NFR-07 | ข้อความภาษาไทยต้องผ่าน pipe และไฟล์โดยไม่เพี้ยน (UTF-8) |

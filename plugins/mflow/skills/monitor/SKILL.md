@@ -1,6 +1,6 @@
 ---
 name: monitor
-description: See every piece of work in this project at once, read-only, with the guide of what is left to do — by topic (what blocks, the changes not finished, the test, the review and the E2E tests not done, the decisions waiting for the user, the rest), in the order to do it, each with its command — and the page behind it: the features of the story map with their discussion documents, the documents and agenda, the branches against main, the merges, the changes, the rows waiting for test and review, change requests, hotspots and the unattended runs, as one HTML page inside .git, opened in the browser. Writes nothing in the tree.
+description: "See every piece of work in this project at once, read-only, with the guide of what is left to do — by topic (what blocks, the changes not finished, the test, the review and the E2E tests not done, the decisions waiting for the user, the rest), in the order to do it, each with its command — and the page behind it: the features of the story map with their discussion documents, the documents and agenda, the branches against main, the merges, the changes, the rows waiting for test and review, change requests, hotspots and the unattended runs, as one HTML page inside .git, opened in the browser. Writes nothing in the tree."
 disable-model-invocation: true
 argument-hint: "[--no-open]"
 ---

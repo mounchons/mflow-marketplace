@@ -37,8 +37,8 @@ const cwd = root || process.cwd();
 // Runtime and tools.
 const node = process.versions.node;
 const eol = compat.nodeEndOfLife[parts(node)[0]];
-if (cmp(node, compat.minimum.node) < 0) add("node", "fail", `Node ${node}; mflow needs ${compat.minimum.node} or newer`, "Install Node 22 or 24 LTS");
-else if (eol && today > eol) add("node", "warn", `Node ${node} works, but Node ${parts(node)[0]} reached end of life on ${eol}`, "Move to Node 22 or 24 LTS");
+if (cmp(node, compat.minimum.node) < 0) add("node", "fail", `Node ${node}; mflow needs ${compat.minimum.node} or newer`, "Install Node 24 or 26 LTS");
+else if (eol && today > eol) add("node", "warn", `Node ${node} works, but Node ${parts(node)[0]} reached end of life on ${eol}`, "Move to Node 24 or 26 LTS");
 else add("node", "ok", `Node ${node}`);
 
 const git = versionIn(run("git --version", cwd, 8000));

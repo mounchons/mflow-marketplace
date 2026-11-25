@@ -698,7 +698,7 @@ git diff --stat openspec/specs
   → fail  backlog       backlog not found
                         แก้: npm i -g backlog.md
   → warn  node          Node 20.20.2 works, but Node 20 reached end of life on 2026-04-30
-                        แก้: Move to Node 22 or 24 LTS
+                        แก้: Move to Node 24 or 26 LTS
   → info  claude-code   Claude Code 2.1.289 (tested with 2.1.282)
 ```
 

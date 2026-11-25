@@ -61,6 +61,7 @@ if (mode === "protected") write(".mflow/config.json", "{}\\n");
 if (mode === "planted") write(".claude/settings.local.json", "{\\"hooks\\":{}}\\n");
 // Windows hides a worktree's .git file, and a hidden file cannot be opened for a fresh write: rewrite it in place.
 if (mode === "gitpointer") { const fd = fs.openSync(path.join(dir, ".git"), "r+"); fs.ftruncateSync(fd); fs.writeSync(fd, "gitdir: " + path.join(dir, "..", "elsewhere.git") + "\\n"); fs.closeSync(fd); }
+if (mode === "include") execFileSync("git", ["config", "include.path", process.env.FAKE_VICTIM], { cwd: dir });
 if (mode === "gitconfig") execFileSync("git", ["config", "core.fsmonitor", "echo planted"], { cwd: dir });
 if (mode === "linkdir") { fs.rmSync(path.join(dir, ".claude"), { recursive: true, force: true }); fs.symlinkSync(path.join(dir, ".."), path.join(dir, ".claude"), "junction"); }
 if (mode === "rename") { execFileSync("git", ["mv", "AGENTS.md", "docs/agents-old.md"], { cwd: dir }); execFileSync("git", ["commit", "-qm", "move"], { cwd: dir }); }
@@ -268,9 +269,21 @@ test("a read-only tool runs in the registry's review mode and is never handed a 
   p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: {} }));
   const d = ok(runner(["--as", "antigravity", "--dry-run"]));
   assert.match(d.command, /--mode plan --sandbox/, "agy's read-only review mode, not --dangerously-skip-permissions");
+  assert.match(d.command, /antigravity-readonly\.json'/, "its read-only settings file, expanded to the plugin's copy");
+  assert.doesNotMatch(d.command, /\{plugin:/, "no placeholder left");
   assert.doesNotMatch(d.command, /dangerously/);
   const none = ok(runner(["--as", "antigravity"]));
   assert.deepEqual(none.jobs, [], "T1 is a test: agy waits for a review");
   p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { test: "antigravity" } } }));
   assert.match(checks(["status"]).stderr, /checks\.route\.test must be any, claude or codex/);
+});
+
+test("an include.path a tool adds to the git config stops the job, and the file it names is never deleted", needsGit, () => {
+  repo();
+  const victim = path.join(p.temp, "keep-me.txt");
+  fs.writeFileSync(victim, "the user's file\n");
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "include", FAKE_VICTIM: victim }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.equal(fs.readFileSync(victim, "utf8"), "the user's file\n", "the named file is still there");
+  assert.doesNotMatch(fs.readFileSync(path.join(p.root, ".git", "config"), "utf8"), /keep-me/, "the config is put back");
 });

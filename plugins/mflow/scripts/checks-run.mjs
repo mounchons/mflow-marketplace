@@ -23,10 +23,12 @@
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { findRoot, loadConfig } from "./lib.mjs";
 import { checksConfig, next, done, release, block, publish, touch, runsDir, TOOLS, READ_ONLY_TOOLS } from "./checks.mjs";
 
+const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PWSH_QUOTES = new RegExp(`['${String.fromCharCode(0x2018, 0x2019, 0x201a, 0x201b)}]`, "g");
 const QUOTE = {
   bash: (s) => `'${s.replaceAll("'", `'"'"'`)}'`,
@@ -95,11 +97,19 @@ function guardState(dir, paths = null) {
     others = fs.readdirSync(path.join(common, "worktrees"));
   } catch { /* none */ }
   for (const w of others) for (const f of ["config.worktree", "commondir", "gitdir"]) take(path.join(common, "worktrees", w, f));
-  // Files the config includes: a change there is a change of the config.
-  const inc = spawnSync("git", ["config", "--file", path.join(common, "config"), "--get-regexp", "^include(if\\..*)?\\.path$"], { encoding: "utf8" }).stdout || "";
-  for (const line of inc.split(/\r?\n/).filter(Boolean)) {
-    const target = line.slice(line.indexOf(" ") + 1).trim();
-    if (target && !target.startsWith("~")) take(path.resolve(common, target));
+  // Every file git reads its config from here, includes followed (the user's ~/.gitconfig among them): a change in
+  // any of them is a change of the config. Before the run this is the set the guard keeps; after it, a file only the
+  // tool's config names is reported, never touched (restoreGuard).
+  const origins = spawnSync("git", ["config", "--show-origin", "--list", "--includes", "-z"], { cwd: dir, env: gitEnv(dir), encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).stdout || "";
+  const seen = new Set();
+  for (const part of origins.split("\0")) {
+    const m = /^file:(.+)$/.exec(part);
+    if (!m) continue;
+    const f = m[1].startsWith("~") ? path.join(os.homedir(), m[1].slice(1)) : path.resolve(dir, m[1]);
+    if (!seen.has(f)) {
+      seen.add(f);
+      take(f);
+    }
   }
   const hooks = path.join(common, "hooks");
   let names = [];
@@ -148,8 +158,11 @@ function restoreGuard(dir, before) {
     if (was === null && buf === null) continue;
     if (was && buf && was.equals(buf)) continue;
     changed.push(path.relative(dir, p) || p);
-    if (was === null) fs.rmSync(p, { force: true });
-    else writeNoFollow(p, was);
+    if (was !== null) writeNoFollow(p, was);
+    // A file the guard did not know before the run is removed only when it is a new hook in the hooks folder taken
+    // before the run. Any other new path came from the tool's own config (an include.path it added), so it is
+    // reported, never deleted: the runner would otherwise delete whatever file the tool named.
+    else if (!before.files.has(p) && path.dirname(p) === before.hooks) fs.rmSync(p, { force: true });
   }
   for (const [p, was] of before.files) {
     if (was !== null && !after.files.has(p)) {
@@ -272,7 +285,19 @@ export function command(root, tool, paths, shell) {
   const def = cfg.commands[tool] || (tool === "claude" ? CLAUDE : loadConfig(root).tools[tool]?.[mode]);
   const template = def?.[shell];
   if (!template) throw new Error(`no ${shell} command for ${tool}: add checks.commands.${tool}.${shell} to .mflow/config.json, with {brief} {out} {worktree}`);
-  return template.replace(/\{(brief|out|worktree)\}/g, (_, k) => QUOTE[shell](paths[k]));
+  // {plugin:<file>}: a file shipped with this plugin (agy's read-only settings), as delegate-cmd.mjs expands it.
+  const filled = template.replace(/\{(brief|out|worktree)\}|\{plugin:([^{}]+)\}/g, (_, k, rel) => {
+    if (rel === undefined) return QUOTE[shell](paths[k]);
+    const file = path.resolve(PLUGIN_ROOT, rel);
+    const back = path.relative(PLUGIN_ROOT, file);
+    if (back.startsWith("..") || path.isAbsolute(back)) throw new Error(`{plugin:${rel}} points outside the plugin`);
+    if (!fs.existsSync(file)) throw new Error(`{plugin:${rel}} is not in the plugin`);
+    return QUOTE[shell](file);
+  });
+  // Fail closed: a placeholder left would hand the tool a literal "{…}", such as a settings file that does not exist.
+  const left = /\{(?:brief|out|worktree|plugin:[^{}]*)\}/.exec(filled);
+  if (left) throw new Error(`the ${tool} command still holds ${left[0]}`);
+  return filled;
 }
 
 const shellOf = () => {

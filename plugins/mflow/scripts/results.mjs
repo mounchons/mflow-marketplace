@@ -19,7 +19,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot } from "./lib.mjs";
+import { findRoot, worktreeInfo } from "./lib.mjs";
 
 export const KINDS = ["test", "review", "e2e"];
 export const TOOLS = ["codex", "antigravity", "opencode"];
@@ -58,7 +58,9 @@ function changed(root, pathspecs) {
  * names and, for a record or report, its first lines: all the model that words the commit message gets to read.
  */
 export function uncommitted(root, { kind } = {}) {
-  const out = changed(root, ["docs/reviews", "STATUS.md"]).filter((f) => RESULT.test(f.file));
+  // In a linked worktree STATUS.md is the main checkout's to write at the merge: a run there never commits it.
+  const linked = Boolean(worktreeInfo(root)?.linked);
+  const out = changed(root, linked ? ["docs/reviews"] : ["docs/reviews", "STATUS.md"]).filter((f) => RESULT.test(f.file));
   for (const f of out) {
     f.by = null;
     if (/^docs\/reviews\/(tests|code)\/[^/]+\.md$/.test(f.file)) {

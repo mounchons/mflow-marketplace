@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.49)
+## คำสั่ง (v0.50)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -257,6 +257,12 @@ OpenSpec บอกว่า "สร้างอะไร" (change: proposal, spe
 3. ทุก tool ตอบรายงานเป็น "ข้อความสุดท้าย" ที่มี `Understanding` + `Files read` นำหน้า แล้วคำสั่งบันทึกลง `docs/ai/inbox/`
 4. `/mflow:assess` ตรวจความเข้าใจและไฟล์ที่อ่านก่อน แล้วค่อยตรวจ finding ทีละข้อ
 5. โหมด code ทำใน worktree/branch `agent/<tool>/<id>` → `/mflow:review` → merge เมื่อ approve และคุณตกลง
+
+tool ในทะเบียน ได้แก่ `codex`, `antigravity` (Antigravity CLI `agy`), `opencode`, `gemini` และ `chat`
+- `antigravity` ลองกับ agy 1.5.16 แล้ว ทั้ง analyze, review และ code
+- review ใช้ plan mode, sandbox และไฟล์ settings ที่ห้าม agy เขียนไฟล์ ส่วนคำสั่ง shell กันได้ด้วย plan mode ไม่ใช่ sandbox จึงยังไม่แน่นเท่า read-only ของ Codex
+- code รันด้วย `--dangerously-skip-permissions` ใน worktree
+- ถ้าเปิด `agy` เองแล้วจะ apply ให้สั่งว่า "ใช้ skill openspec-apply-change กับ change `<ชื่อ>`" เพราะ agy ไม่มี `/opsx:apply`
 
 Codex และ tool อื่นไม่ได้เรียก `/mflow:*` (คำสั่งเหล่านี้ทำงานใน Claude Code เท่านั้น) tool อื่นได้ทุกอย่างที่ต้องใช้จาก brief
 

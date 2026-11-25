@@ -10,6 +10,7 @@
 // Unknown tool: known=false, so the caller asks the user for the command and saves it
 // under "tools" in .mflow/config.json.
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { findRoot, loadConfig } from "./lib.mjs";
 
 const args = process.argv.slice(2);
@@ -46,8 +47,19 @@ const pathsFor = (name) => ({
   out: path.resolve(root, opt("--out").replaceAll("{tool}", name)),
   worktree: opt("--worktree") ? path.resolve(root, opt("--worktree")) : null,
 });
+// {plugin:<file>}: a file shipped with this plugin, such as a tool's settings file, never one outside it.
+const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const pluginFile = (rel) => {
+  const p = path.resolve(PLUGIN_ROOT, rel);
+  const back = path.relative(PLUGIN_ROOT, p);
+  if (back.startsWith("..") || path.isAbsolute(back)) fail(`{plugin:${rel}} points outside the plugin`);
+  return p;
+};
 const fill = (t, name, shell) =>
-  t.replace(/\{(brief|out|worktree)\}/g, (m, k) => (pathsFor(name)[k] === null ? m : QUOTE[shell](pathsFor(name)[k])));
+  t.replace(/\{(brief|out|worktree)\}|\{plugin:([^{}]+)\}/g, (m, k, rel) => {
+    if (rel !== undefined) return QUOTE[shell](pluginFile(rel));
+    return pathsFor(name)[k] === null ? m : QUOTE[shell](pathsFor(name)[k]);
+  });
 
 function render(name, def) {
   const out = pathsFor(name).out;

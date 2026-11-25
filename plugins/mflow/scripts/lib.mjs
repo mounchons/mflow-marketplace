@@ -29,9 +29,10 @@ export function findRoot(start) {
 
 /**
  * Command templates for other AI tools, per mode and shell.
- * Placeholders: {brief} brief file, {out} report file, {worktree} worktree dir. delegate-cmd.mjs puts
- * each in as an absolute path quoted for that shell, so templates never quote them; PowerShell
- * cmdlets take them through -LiteralPath, where [ and ] are not wildcards.
+ * Placeholders: {brief} brief file, {out} report file, {worktree} worktree dir, {plugin:<file>} a file
+ * shipped in this plugin (relative to its root). delegate-cmd.mjs puts each in as an absolute path
+ * quoted for that shell, so templates never quote them; PowerShell cmdlets take them through
+ * -LiteralPath, where [ and ] are not wildcards.
  * Projects override or add tools under "tools" in .mflow/config.json.
  * `verified` = checked against the tool's documentation when this plugin version was written;
  * flags change between releases, so unverified entries tell the user to check --help.
@@ -43,6 +44,11 @@ const PWSH_UTF8 = "$OutputEncoding = [Console]::OutputEncoding = [System.Text.UT
 // PS 5.1 strips embedded quotes from arguments, and npm .cmd shims cut them at the first newline.
 // Plain ASCII without quotes or $ so the same text is safe in bash and PowerShell.
 const ASK = "\"Follow the mflow brief provided with this message. Your final message is the report in the format of its Output section.\"";
+// agy reads no stdin, so its prompt names the brief's path: the quoted path joins the text around it,
+// by adjacent words in Bash and by + in PowerShell. The text has no quotes or $ of its own.
+const AGY_ASK_BASH = "\"Read the mflow brief at \"{brief}\" and follow it. Your final message is the report in the format of its Output section.\"";
+const AGY_ASK_PWSH = "(\"Read the mflow brief at \" + {brief} + \" and follow it. Your final message is the report in the format of its Output section.\")";
+const AGY_READ_ONLY = "--mode plan --sandbox --settings {plugin:scripts/tools/antigravity-readonly.json}";
 export const DEFAULT_TOOLS = {
   codex: {
     verified: true,
@@ -74,6 +80,22 @@ export const DEFAULT_TOOLS = {
     code: {
       bash: `cd {worktree} && opencode run ${ASK} -f {brief} > {out}`,
       pwsh: PWSH_UTF8 + `Push-Location -LiteralPath {worktree}; opencode run ${ASK} -f {brief} | Out-File -Encoding utf8 -LiteralPath {out}; Pop-Location`,
+    },
+  },
+  antigravity: {
+    verified: true,
+    notes: "Checked against the Antigravity CLI `agy` 1.5.16 on Windows. agy reads no stdin, so the prompt gives the brief's path. Analyze/review: plan mode, the sandbox, and a settings file that allows commands and file reads and denies agy's file writes. The deny rule stops agy's own edits; commands are held back by plan mode, which in the probe stopped to ask before any command that changes files, and not by the sandbox: with a settings file, agy can rerun a command outside it. That is weaker than Codex's read-only sandbox, so keep these briefs to reading. Code: --dangerously-skip-permissions in the worktree, so every command and edit runs without asking. A tool agy still has to ask about is refused without a prompt: the run exits 0, the report file stays empty and the terminal shows 'no output produced'. Interactive: `agy -i` in the repo or worktree, then ask it to read the brief.",
+    analyze: {
+      bash: `agy -p ${AGY_ASK_BASH} ${AGY_READ_ONLY} > {out}`,
+      pwsh: PWSH_UTF8 + `agy -p ${AGY_ASK_PWSH} ${AGY_READ_ONLY} | Out-File -Encoding utf8 -LiteralPath {out}`,
+    },
+    review: {
+      bash: `agy -p ${AGY_ASK_BASH} ${AGY_READ_ONLY} > {out}`,
+      pwsh: PWSH_UTF8 + `agy -p ${AGY_ASK_PWSH} ${AGY_READ_ONLY} | Out-File -Encoding utf8 -LiteralPath {out}`,
+    },
+    code: {
+      bash: `cd {worktree} && agy -p ${AGY_ASK_BASH} --dangerously-skip-permissions > {out}`,
+      pwsh: PWSH_UTF8 + `Push-Location -LiteralPath {worktree}; agy -p ${AGY_ASK_PWSH} --dangerously-skip-permissions | Out-File -Encoding utf8 -LiteralPath {out}; Pop-Location`,
     },
   },
   gemini: {

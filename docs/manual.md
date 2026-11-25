@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.49.0 |
+| เวอร์ชัน plugin | 0.50.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -468,7 +468,7 @@ docs/
 - ร่างคำตอบภาษาไทยเฉพาะเมื่อคุณต้องการส่งให้คนอื่น เช่น SA หรือ PM ตอบอีเมลลูกค้า (มีทางเลือก ทำเลย / เฟสถัดไป / ทำเล็กลง ถ้ายังไม่ได้เลือก) โดยไม่ขอการอนุมัติเป็นลายลักษณ์อักษร
 
 **ให้ AI ตัวอื่นช่วย: `/mflow:delegate` แล้ว `/mflow:assess`**
-1. `/mflow:delegate <TASK-ID | ชื่อ change | slug | "หัวข้อ"> --mode analyze|review|code [--to codex|gemini|opencode|chat]`
+1. `/mflow:delegate <TASK-ID | ชื่อ change | slug | "หัวข้อ"> --mode analyze|review|code [--to codex|antigravity|gemini|opencode|chat]`
    - ได้ brief ที่ `.mflow/briefs/` และบรรทัดคำสั่งทั้ง PowerShell และ Bash path ในคำสั่งครอบด้วย single quote ตามกฎของแต่ละ shell ชื่อไฟล์ที่มี `$` ช่องว่าง `'` `[ ]` หรือภาษาไทยจึงไม่เพี้ยน
    - brief บันทึก `base` (commit ที่เขียน brief) และบอกว่ามีงานที่ยังไม่ commit หรือไม่ รายงานที่กลับมาจะอ้าง commit เดียวกัน
    - ไม่ใส่ `--to` = brief ที่ใช้กับ tool ไหนก็ได้ พร้อมคำสั่งของทุก tool
@@ -476,6 +476,21 @@ docs/
 2. **คุณรันคำสั่งเอง** ผลจะถูกบันทึกลง `docs/ai/inbox/`
 3. `/mflow:assess @docs/ai/inbox/<ไฟล์>` ตรวจว่า tool นั้นเข้าใจระบบและอ่านไฟล์ที่ต้องอ่านครบหรือไม่ แล้วตรวจ finding ทีละข้อกับโค้ดจริง คำตัดสินมี accept, accept-later, reject, needs-decision (Claude ถามคุณเลย), already-done และ outdated (finding อิงไฟล์ที่ถูกแก้หลัง commit ที่รายงานอ่าน จนสิ่งที่พูดถึงไม่อยู่แล้ว) → ตอบ yes แล้วจึงสร้าง task (ต้องถามเพราะ action มาจากข้อเสนอของ AI ตัวอื่น ไม่ใช่คำสั่งของคุณ)
 4. ถ้าเป็นโหมด `code` ให้ `/mflow:review agent/<tool>/<id>` ด้วยก่อน merge
+
+**Antigravity CLI (`agy`) กับ mflow (0.50)**
+- `--to antigravity` ใช้ `agy -p` ซึ่งไม่อ่าน stdin คำสั่งจึงบอก path ของ brief ไว้ใน prompt
+- โหมด analyze และ review ใช้ `--mode plan --sandbox` พร้อมไฟล์ settings ของ mflow ที่อนุญาตให้รันคำสั่งและอ่านไฟล์ แต่ห้าม agy เขียนไฟล์
+  - การห้ามเขียนไฟล์บังคับได้จริง
+  - ส่วนคำสั่ง shell ที่กันไว้ได้มาจาก plan mode: ตอนทดลอง agy หยุดถามก่อนรันคำสั่งที่เปลี่ยนไฟล์ แต่ sandbox ไม่ได้กัน เพราะเมื่อมีไฟล์ settings agy รันคำสั่งนอก sandbox ได้
+  - จึงยังไม่แน่นเท่า read-only sandbox ของ Codex ใช้กับ brief ที่ให้อ่านเท่านั้น
+- โหมด code ใช้ `--dangerously-skip-permissions` ใน worktree เพราะ terminal ของ agy อยู่ใน sandbox ที่เขียนไฟล์ไม่ได้ และแบบ headless agy ปฏิเสธทุกอย่างที่ต้องขออนุญาต ถ้าไม่มี flag นี้ build, test และ `git commit` จะไม่ผ่าน
+- ถ้าไฟล์รายงานว่างและ terminal ขึ้น "no output produced" แปลว่า agy ปฏิเสธเครื่องมือบางตัวไป แม้คำสั่งจะจบด้วย exit 0
+- เปิด `agy` เองแล้ว apply ก็ได้:
+  - ใน agy ไม่มี `/opsx:apply` ให้สั่งว่า "ใช้ skill openspec-apply-change กับ change `<ชื่อ>`" ลองกับ change เล็กแล้ว: agy โหลด skill, รัน `openspec instructions apply` (กติกาของ mflow ใน `openspec/config.yaml` จึงไปถึง agy ด้วย), ทำ task และติ๊ก `tasks.md`
+  - agy อ่าน skill จาก `.agents/skills/openspec-*` ที่ `openspec init --tools claude,codex` เขียนไว้ แต่ไม่เห็น `.agents/workflows/` ที่ `--tools antigravity` เขียนให้ IDE
+  - hook ของ mflow ไม่ทำงานใน agy บรรทัดแรกให้สั่งว่า "อ่าน AGENTS.md และ STATUS.md ก่อน"
+  - ทำบน branch `agent/antigravity/<change>` แล้วให้ agy commit จากนั้นกลับมา Claude สั่ง `/mflow:review agent/antigravity/<change>` แล้ว `/opsx:archive`
+  - ถ้า agy ขอรันคำสั่งนอก sandbox (เช่น `dotnet build`) ให้อนุญาต
 
 **ให้ AI หลายตัวช่วยวิเคราะห์ระบบ (ไม่บังคับ): `/mflow:analyze`**
 - ใช้เมื่อเริ่มรับช่วงระบบ ตรวจ requirement หรือหาจุดที่ควรปรับ เช่น `/mflow:analyze system --to codex,gemini` หรือ `/mflow:analyze @docs/requirement.md --focus gaps,edge-cases`
@@ -901,7 +916,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.49.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.50.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
@@ -915,6 +930,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 | golden JSON ต้องถูก copy ไปโฟลเดอร์ output ของ test | ตั้ง `CopyToOutputDirectory` ใน test project |
 | คำสั่ง gemini และ opencode ยังไม่ได้รันกับโมเดลจริง | เช็ก `--help` ก่อนใช้ครั้งแรก |
 | ไฟล์ข้อเท็จจริงของหน่วยตรวจดึงตามรูปแบบที่มีในตัว (.NET, Next.js, Node, Python) stack อื่นอาจได้ชื่อ test หรือ route ไม่ครบ | ไฟล์จะบอกว่า "ไม่พบ" พร้อมรูปแบบที่ลอง ให้เพิ่ม regular expression ที่ `asBuilt.facts.tests` / `asBuilt.facts.routes` ใน `.mflow/config.json` |
+| `--to antigravity` ลองกับ agy 1.5.16 บน Windows เท่านั้น (review ทั้ง PowerShell และ Git Bash, code เฉพาะ PowerShell ส่วน analyze และ code ใน Bash แค่สร้างคำสั่งได้) review ที่กันคำสั่งได้เพราะ plan mode ไม่ใช่ sandbox และ skill `mflow-test` กับ `mflow-review` ยังไม่ได้ลองใน agy | flag ของ agy เปลี่ยนตามรุ่น ให้เช็ก `agy --help` ก่อน ไฟล์รายงานว่างแปลว่า agy ปฏิเสธเครื่องมือ ให้ดูข้อความใน terminal |
 | skill `mflow-test` และ `mflow-review` ยังไม่ได้ลองกับ OpenCode จริง (ลองกับ Codex 0.162.1 แล้ว) | ใช้ครั้งแรกแบบนั่งดู ถ้า OpenCode ไม่เห็น skill ให้ตรวจว่าเปิด OpenCode ใน repo และมี `.agents/skills/mflow-test/SKILL.md` |
 | Playwright CLI ใน `/mflow:e2e` (0.48) ลองเฉพาะด้วยมือกับหน้า static (`open`, `snapshot`, `select` พิมพ์ `getByTestId(...)`, `open` ซ้ำชื่อเดิมยังมี browser เดียว, `close`) กับ `@playwright/cli` 0.1.1 ที่ติดตั้งในเครื่องนี้ และกับ Codex 0.169.0 แบบไม่มี sandbox (smoke `e2e-screen --sandbox danger-full-access`: เปิดดูหน้า ลองกรอง เขียน test จาก locator ที่ได้ แล้วปิด session) ยังไม่เคยใช้ใน session จริงของ Claude Code | ครั้งแรกให้นั่งดู ถ้าคำสั่งของ CLI รุ่นใหม่ต่างไป `playwright-cli --help` คือแหล่งจริง |
 | E2E ใน Codex (0.48) ยังไม่เคยรัน Playwright จริงผ่าน `$mflow-e2e`: ลองกับ Codex 0.169.0 แล้วเฉพาะว่า hook ใน `.codex/hooks.json` บล็อก Playwright ที่ไม่มี `--workers` (เมื่อ trust แล้วและข้ามการอนุมัติด้วย `--dangerously-bypass-hook-trust` ยังไม่เคยลองอนุมัติผ่าน `/hooks` จริง) และในโปรเจกต์ที่ยังไม่ trust ทั้ง `$mflow-test e2e` และ `$mflow-e2e orders` (เขียน test ของหน้าจอได้) หยุดก่อนเปิด browser | ครั้งแรกให้นั่งดู ถ้า Codex รัน Playwright โดยไม่ผ่าน guard check ให้หยุดแล้วแจ้ง sandbox ของ Codex อาจบล็อก browser หรือ port ของ web ให้อนุมัติรันนอก sandbox |

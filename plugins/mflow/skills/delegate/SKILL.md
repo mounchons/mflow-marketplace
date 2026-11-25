@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Hand a task, change, analysis or code review to another AI tool (Codex, OpenCode, Gemini, a chat UI, or any tool added later) through a self-contained brief with a fixed output contract, so its work comes back in a form Claude can verify.
+description: Hand a task, change, analysis or code review to another AI tool (Codex, the Antigravity CLI, OpenCode, Gemini, a chat UI, or any tool added later) through a self-contained brief with a fixed output contract, so its work comes back in a form Claude can verify.
 disable-model-invocation: true
 argument-hint: "<TASK-ID | change-name | hotspot-slug | \"topic\"> --mode analyze|review|code [--to <tool>]"
 ---
@@ -34,7 +34,8 @@ Done when: the brief alone is enough for a tool that has never seen this project
 ## 3. Workspace (mode `code` only)
 
 - Worktree and branch so Claude and the other tool never share a checkout: `git worktree add ../<repo>-agent-<id> -b agent/<tool or any>/<id>`.
-- For an OpenSpec change, the tool implements `openspec/changes/<name>/tasks.md`; tools set up by `openspec init --tools …` have OpenSpec skills (Codex: `$openspec-apply-change`).
+- For an OpenSpec change, the tool implements `openspec/changes/<name>/tasks.md`; tools set up by `openspec init --tools …` have OpenSpec skills (Codex: `$openspec-apply-change`). The Antigravity CLI (`agy`, `--to antigravity`) uses the same `.agents/skills/openspec-*` that `--tools codex` writes; it does not see the `.agents/workflows/` that `--tools antigravity` writes for the Antigravity IDE.
+- `--to antigravity` in code mode runs `agy` with `--dangerously-skip-permissions` in the worktree, the user's choice: headless `agy` refuses whatever it would have to ask about, and its sandboxed terminal cannot write, so a build or `git commit` would fail. Say so in one line when showing the command.
 - Backlog: assignee `@<tool>` (or `@agent`), status `In Progress`, note pointing at the brief.
 
 ## 4. Show the command
@@ -42,6 +43,7 @@ Done when: the brief alone is enough for a tool that has never seen this project
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool <tool or any> --brief <brief> --out docs/ai/inbox/<date>-{tool}-<id>.md [--worktree <dir>]` and present its result. The script replaces `{tool}` with each tool's name, so with `--tool any` every tool writes its own report instead of overwriting one file:
 - Both `pwsh` and `bash` lines when available; the PowerShell line sets UTF-8 so Thai text in the brief survives the pipe.
 - Mark entries with `verified: false` as "check `--help` first".
+- For `antigravity`, add that an empty report file with "no output produced" in the terminal means `agy` refused a tool without asking; the run still exits 0.
 - `known: false`: ask the user for that tool's non-interactive command (prompt from file or stdin, read-only option, how output is saved), write it into `.mflow/config.json` under `tools.<name>.<mode>.bash` / `.pwsh` using `{brief}` `{out}` `{worktree}` unquoted (the script quotes each path for its shell; PowerShell cmdlets take them with `-LiteralPath`), then rerun the script.
 - Interactive alternative for any CLI tool: open it in the repo and say "read <brief path> and follow it; give the report as your final message and edit no files".
 

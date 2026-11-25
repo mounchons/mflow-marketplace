@@ -47,8 +47,9 @@ Done when: `.mflow/config.json`, `AGENTS.md`, `CLAUDE.md`, `STATUS.md`, `docs/vi
 Both write into the repo and into agent files, so show each command and get a yes before running it. Run mflow's scaffold first (step 3) so both tools append to an AGENTS.md that already exists.
 
 - Missing CLI: give the install line and stop this step until the user installs it: `npm i -g @fission-ai/openspec@latest`, `npm i -g backlog.md`.
-- OpenSpec not initialised: `openspec init --tools claude,codex`. Add `--language th` only if the user wants spec artifacts in Thai.
-- OpenSpec already initialised: `openspec update`.
+- OpenSpec not initialised: `openspec init --tools claude,codex`. Add `--language th` only if the user wants spec artifacts in Thai. In PowerShell quote the list (`--tools 'claude,codex'`): unquoted, PowerShell splits it at the comma and OpenSpec rejects it.
+- OpenSpec already initialised: `openspec update`. To add a tool to a project already initialised, run `openspec init --tools <the full list>` again; it adds that tool's files and keeps the rest.
+- The Antigravity CLI (`agy`) needs nothing more: it reads `.agents/skills/openspec-*`, which `codex` in the list writes (`agents` writes the same folder when the user has no Codex). Add `antigravity` to the list only when the user also works in the Antigravity IDE: it writes `.agents/workflows/opsx-*.md`, which only the IDE sees. Say in one line that in `agy` the user asks for the `openspec-apply-change` skill by name, as there is no `/opsx:apply` there.
 - Backlog.md not initialised: `backlog init "<project name>" --defaults --integration-mode cli --agent-instructions agents` (AGENTS.md only; CLAUDE.md already imports it). If the repo has no git remote, also `backlog config set remoteOperations false`.
 
 Then write mflow's lines into `openspec/config.yaml`: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/openspec-config.mjs" --dry-run`, show what it would remove and add, then run it without `--dry-run`. The lines are, in short:

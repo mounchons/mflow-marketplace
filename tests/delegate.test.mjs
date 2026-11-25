@@ -5,7 +5,10 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
+import { DEFAULT_TOOLS } from "../plugins/mflow/scripts/lib.mjs";
 import { project, run } from "./helpers.mjs";
+
+const PLUGIN = path.resolve(import.meta.dirname, "..", "plugins", "mflow");
 
 let p;
 afterEach(() => p?.cleanup());
@@ -169,6 +172,71 @@ test("the cmdlets of the default templates read and write a file named with [ ] 
     ran++;
   }
   if (!ran) t.skip("neither bash nor pwsh is available");
+});
+
+test("antigravity: the brief's path is in the prompt, review is read-only, code skips permissions in the worktree", () => {
+  p = project();
+  const review = run(p, "delegate-cmd.mjs", ["--mode", "review", "--tool", "antigravity", "--brief", ".mflow/briefs/b.md", "--out", "docs/ai/inbox/r.md"]);
+  assert.equal(review.status, 0, review.stderr);
+  assert.equal(review.json.verified, true);
+  const settings = path.join(PLUGIN, "scripts", "tools", "antigravity-readonly.json");
+  const rules = JSON.parse(fs.readFileSync(settings, "utf8")).permissions;
+  assert.deepEqual(rules.deny, ["write_file(*)"]);
+  for (const shell of ["bash", "pwsh"]) {
+    const c = review.json[shell];
+    assert.match(c, /^(.*; )?agy -p /, shell);
+    assert.ok(c.includes(`'${p.file(".mflow/briefs/b.md")}'`), `${shell}: the brief's path`);
+    assert.match(c, /--mode plan --sandbox --settings '[^']+antigravity-readonly\.json'/, shell);
+    assert.ok(c.includes(settings), `${shell}: the plugin's settings file`);
+    assert.doesNotMatch(c, /dangerously/, shell);
+  }
+  const code = run(p, "delegate-cmd.mjs", ["--mode", "code", "--tool", "antigravity", "--brief", ".mflow/briefs/b.md", "--out", "r.md", "--worktree", "../wt"]);
+  assert.match(code.json.bash, /^cd '[^']+wt' && agy -p .* --dangerously-skip-permissions > /);
+  assert.match(code.json.pwsh, /Push-Location -LiteralPath '[^']+wt'; agy -p .* --dangerously-skip-permissions \| Out-File/);
+  assert.doesNotMatch(code.json.pwsh, /--mode plan/);
+});
+
+test("the antigravity prompt reaches the program as one argument naming the brief, in Bash and in PowerShell", (t) => {
+  p = project();
+  const echo = p.write("echo-args.mjs", 'import fs from "node:fs";\nfs.writeFileSync(process.env.ECHO_OUT, JSON.stringify(process.argv.slice(2)));\n')
+    .split(path.sep).join("/");
+  const agy = DEFAULT_TOOLS.antigravity.review;
+  const config = JSON.parse(p.read(".mflow/config.json"));
+  config.tools = { agyecho: { verified: true, notes: "test", analyze: {
+    bash: agy.bash.replace("agy -p ", `node "${echo}" -p `),
+    pwsh: agy.pwsh.replace("agy -p ", `node "${echo}" -p `),
+  } } };
+  p.write(".mflow/config.json", JSON.stringify(config));
+  const name = "งาน [1] $x it's.md";
+  fs.mkdirSync(p.file("docs/ai/inbox"), { recursive: true });
+  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "agyecho", "--brief", `.mflow/briefs/${name}`, "--out", "docs/ai/inbox/r.md"]);
+  assert.equal(r.status, 0, r.stderr);
+  const prompt = `Read the mflow brief at ${p.file(`.mflow/briefs/${name}`)} and follow it. Your final message is the report in the format of its Output section.`;
+  let ran = 0;
+  for (const [shell, probe, argv] of [
+    ["bash", ["-c", "uname -s"], ["-c", r.json.bash]],
+    ["pwsh", ["-NoProfile", "-NonInteractive", "-Command", "1"], ["-NoProfile", "-NonInteractive", "-Command", r.json.pwsh]],
+  ]) {
+    if (shellWorks(shell, probe) === null) { t.diagnostic(`${shell} is not available here: skipped`); continue; }
+    const outFile = path.join(p.temp, `${shell}.json`);
+    const s = spawnSync(shell, argv, { env: { ...process.env, ECHO_OUT: outFile }, encoding: "utf8" });
+    assert.equal(s.status, 0, `${shell}: ${s.stderr}`);
+    const got = JSON.parse(fs.readFileSync(outFile, "utf8"));
+    assert.deepEqual(got.slice(0, 2), ["-p", prompt], shell);
+    assert.deepEqual(got.slice(2, 5), ["--mode", "plan", "--sandbox"], shell);
+    ran++;
+  }
+  if (!ran) t.skip("neither bash nor pwsh is available");
+});
+
+test("a {plugin:} placeholder that leads out of the plugin is refused", () => {
+  p = project();
+  const config = JSON.parse(p.read(".mflow/config.json"));
+  config.tools = { sneaky: { verified: true, notes: "test", analyze: { bash: "cat {plugin:../../secret.json} > {out}" } } };
+  p.write(".mflow/config.json", JSON.stringify(config));
+  const r = run(p, "delegate-cmd.mjs", ["--mode", "analyze", "--tool", "sneaky", "--brief", "b.md", "--out", "r.md"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /points outside the plugin/);
 });
 
 test("missing --brief or --out, or --worktree in code mode, is refused instead of rendering placeholders", () => {

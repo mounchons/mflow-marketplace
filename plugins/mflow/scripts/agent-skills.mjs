@@ -40,6 +40,10 @@ export const HOOK_ENTRY = {
 const GUARD_CHECK = "E2E guard check, once in the session before its first Playwright run: run `node -e \"process.exit(1)\" && npx playwright test`, exactly so. It cannot start a browser: without the guard, `node` fails first and nothing after it runs. When a hook blocks it with mflow's reason (\"This Playwright run sets no --workers…\"), the guard is on: carry on, every Playwright run with `--workers=2` (at most `e2eMaxWorkers` in `.mflow/config.json`). When it is not blocked, the guard is off: run no `playwright test` command and write no test record (nothing ran), and tell the user how to turn it on: trust this project in Codex (Codex asks when it first opens the folder; `codex exec --trust` for exec), approve mflow's hook in `/hooks` (again after `.codex/hooks.json` changes, when Codex asks), and when `.codex/hooks.json` has no entry for `" + GUARD + "`, run `/mflow:init` in Claude Code.";
 const SANDBOX = "Playwright and Playwright CLI start browsers and the web servers listen on local ports, which Codex's sandbox may block: when a run fails for that, ask the user to approve the command outside the sandbox. On Windows, Codex's sandbox runs commands as its own account, which may not find the user's global npm tools or their browsers: when `playwright-cli --version` fails in the sandbox, run it once outside it (with the user's approval) before treating Playwright CLI as not installed; when you cannot ask (such as in `codex exec`), say in one line of the reply that the page was not looked at because Playwright CLI did not run in Codex's sandbox. Never raise `--workers` past the cap to get around a failure.";
 
+// Codex's and Antigravity's sandboxes keep .git read-only (index.lock: Permission denied), so the commit a skill
+// asks for fails there; Claude Code on Sonnet, run outside the sandbox, commits the run's files by name.
+const commitNote = (name, kind) => "When a `git commit` this skill asks for fails because the sandbox keeps `.git` read-only (Codex and Antigravity: `index.lock: Permission denied`), leave the files as they are and run `node \"" + BASE + "/" + name + "/scripts/results.mjs\" command --tool <codex, antigravity or opencode, whichever you are> --kind " + kind + "`. Run the `command` it gives from the repository root, outside the sandbox (in Codex, ask the user to approve it): Claude Code on Sonnet commits the run's files by name and pushes nothing. When it cannot run (the approval is refused, `claude` is not installed, or you cannot ask, as in `codex exec` or a headless run), end the final message with that command and the files left uncommitted, for the user to run in a terminal in this folder.";
+
 // What each generated skill takes from the plugin. `edits` are the lines of the source that only hold in
 // Claude Code; each must match exactly once, so a reworded source fails the tests instead of drifting.
 // `$&` in an edit's text keeps the source line it matched.
@@ -49,7 +53,7 @@ export const SKILLS = [
     source: "test",
     describe: " In Codex it runs E2E only while mflow's E2E guard in .codex/hooks.json is on; in OpenCode never.",
     references: ["init/references/stacks.md"],
-    scripts: ["pending.mjs", "lib.mjs"],
+    scripts: ["pending.mjs", "results.mjs", "lib.mjs"],
     edits: [
       [/^In the same message, tell the user how to keep working while it runs\..*$/m,
         "In the same message, tell the user how to keep working while it runs: this session is busy until the run ends, so work that only writes documents goes in a second session in the same folder (this tool or Claude Code). Leave anything that changes or builds code in this checkout until the run ends, `$mflow-e2e` included: it breaks the run or what it proves. The record keeps the commit taken when the run started, so documents committed meanwhile need nothing more (see `since`)."],
@@ -61,18 +65,20 @@ export const SKILLS = [
       "In OpenCode E2E never runs, whatever the argument: for `e2e`, tell the user to run `$mflow-test e2e` in Codex or `/mflow:test e2e` in Claude Code.",
       SANDBOX,
       "Run each part in the foreground within this tool's time limit for one command; a part that cannot finish within it is split further, as \"Parts\" says.",
-      "Write `By: codex` or `By: opencode` in the record, whichever tool you are.",
+      "Write `By: codex`, `By: antigravity` or `By: opencode` in the record, whichever tool you are.",
+      commitNote("mflow-test", "test"),
     ],
   },
   {
     name: "mflow-review",
     source: "review",
     references: ["init/references/stacks.md", "theme/references/responsive.md", "screen/references/prototype-data.md"],
-    scripts: ["discuss.mjs", "pending.mjs", "lib.mjs"],
+    scripts: ["discuss.mjs", "pending.mjs", "results.mjs", "lib.mjs"],
     edits: [],
     notes: [
-      "Write `Reviewer: codex` or `Reviewer: opencode` in the report, whichever tool you are, and the `Author:` line as Report says. A verdict counts toward a merge only when the reviewer is not the author.",
+      "Write `Reviewer: codex`, `Reviewer: antigravity` or `Reviewer: opencode` in the report, whichever tool you are, and the `Author:` line as Report says. A verdict counts toward a merge only when the reviewer is not the author.",
       "A review never runs E2E tests here either.",
+      commitNote("mflow-review", "review"),
     ],
   },
   {
@@ -80,7 +86,7 @@ export const SKILLS = [
     source: "e2e",
     describe: " Codex runs them only while mflow's E2E guard in .codex/hooks.json is on; OpenCode writes them but never runs them.",
     references: ["init/references/stacks.md", "theme/references/responsive.md", "e2e/references/chain.md"],
-    scripts: ["e2e-guard.mjs", "lib.mjs"],
+    scripts: ["e2e-guard.mjs", "results.mjs", "lib.mjs"],
     edits: [
       [/^- Only this screen's or this flow's test files, in the foreground,.*$/m,
         "- In this tool, first: in Codex, run nothing below until the E2E guard check of \"Running in Codex or OpenCode\" finds the guard on; in OpenCode, run nothing: no hook there caps the browsers, so stop after section 2 and tell the user to run `$mflow-e2e <screen>` in Codex or `/mflow:e2e <screen>` in Claude Code.\n$&"],
@@ -90,7 +96,8 @@ export const SKILLS = [
       "The one Playwright CLI session of section 2 (`-s=mflow-e2e`, closed at the end of that section) is not a test run: it may look at the page in Codex with the guard off and in OpenCode too.",
       "In OpenCode, write the tests (sections 1 and 2) and stop before section 3: no hook there caps the browsers. Tell the user to run `$mflow-e2e <screen>` in Codex or `/mflow:e2e <screen>` in Claude Code.",
       SANDBOX,
-      "Write `By: codex` or `By: opencode` in the record, whichever tool you are.",
+      "Write `By: codex`, `By: antigravity` or `By: opencode` in the record, whichever tool you are.",
+      commitNote("mflow-e2e", "e2e"),
     ],
   },
 ];

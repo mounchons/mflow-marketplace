@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.53)
+## คำสั่ง (v0.54)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -230,6 +230,7 @@ mflow/
 │   ├─ monitor.mjs         ← หน้า /mflow:monitor (.git/mflow/monitor.html): feature จาก story map, discuss, branch เทียบ main, merge, change, ลำดับงานพร้อมคำสั่ง อ่านอย่างเดียว
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test, mflow-review, mflow-e2e ให้ Codex และ OpenCode ใน .agents/skills/ และ E2E guard ใน .codex/hooks.json
 │   ├─ vendor.mjs          ← สำเนา plugin ใน .claude/skills/mflow/ สำหรับ Claude Code on the web: plan, write, status (0.38.1)
+│   ├─ results.mjs         ← ผล test/review/e2e ของ Codex หรือ agy ที่ยัง commit ไม่ได้: uncommitted, command (claude -p บน Sonnet commit ให้) (0.54)
 │   ├─ worktree.mjs        ← worktree ต่อ change บน feat/<change>: where, setup (.gitignore, .gitattributes, .worktreeinclude), list, new, remove (0.53)
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI

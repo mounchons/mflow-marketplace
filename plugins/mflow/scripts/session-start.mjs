@@ -14,6 +14,7 @@ import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
 import { consultationId, list as listConsultations } from "./consult.mjs";
 import { list as listWorktrees } from "./worktree.mjs";
+import { uncommitted as uncommittedResults, TOOLS as RESULT_TOOLS } from "./results.mjs";
 import { vendorStatus } from "./vendor.mjs";
 
 /** Text from a file anyone can edit, as one line of at most `max` characters: no line breaks or control characters. */
@@ -129,6 +130,19 @@ try {
         others.map((w) => `- \`${w.branch || "(detached)"}\` in ${w.dir}`).join("\n") +
         "\n- Their changes are not in this checkout until merged; do not edit them from here.",
     );
+  }
+  // A run of $mflow-test, $mflow-review or $mflow-e2e by Codex or Antigravity cannot commit from their sandbox:
+  // when its record is still uncommitted here, the briefing names the files and asks once.
+  if (!wt.linked) {
+    const left = uncommittedResults(root);
+    const tools = [...new Set(left.map((f) => f.by).filter((b) => RESULT_TOOLS.includes(b)))];
+    if (tools.length) {
+      parts.push(
+        `## Results of ${tools.join(", ")} not committed\n` +
+          left.map((f) => `- ${f.status} ${f.file}${f.by ? ` (${f.by})` : ""}`).join("\n") +
+          "\n- Ask the user in one line whether to commit them; on a yes, commit them added by name in one commit whose message names the run, its record and its result. Never commit them unasked, and push nothing.",
+      );
+    }
   }
   // CLAUDE.md lets Claude make a worktree when the user asks for parallel work in words; the project cannot
   // know where the plugin is installed, so the briefing names the steps and the script.

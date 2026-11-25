@@ -21,7 +21,7 @@
 //   node checks.mjs enable                                   add "checks" to .mflow/config.json (the project opts in)
 //   node checks.mjs sync [--dry-run]                         put the merged changes no batch holds into the open batch
 //   node checks.mjs status                                   JSON: the open batches, their jobs, who runs what
-//   node checks.mjs next --as <tool> [--batch <b>]           take the next job for that tool (pins the batch)
+//   node checks.mjs next --as <tool> [--batch <b>] [--job <id>]   take the next job for that tool (pins the batch)
 //   node checks.mjs done <job> [--batch <b>] [--record <path> | --report <path>] [--files <a,b>] [--note <text>]
 //   node checks.mjs release <job> [--batch <b>] [--note <text>]   give a taken job back
 //   node checks.mjs block <job> [--batch <b>] --note <text>  the job needs the user's decision
@@ -36,16 +36,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findRoot, loadConfig, readText, readJsonFile, withFileLock, writeFileAtomic, worktreeInfo, MARKER } from "./lib.mjs";
-import { status as pendingStatus, range as pendingRange, readRecord, tickTest } from "./pending.mjs";
+import { status as pendingStatus, range as pendingRange, readRecord, tickTest, tickReview, parse as parsePending, render as renderPending } from "./pending.mjs";
 import { WORKTREES, includedFiles, ignoreWorktrees, list as listWorktrees } from "./worktree.mjs";
 
 export const DIR = "docs/reviews/checks";
 export const PREFIX = "checks/";
-export const KINDS = ["test", "review", "e2e-write", "e2e"];
-export const HEAVY = new Set(["test", "e2e-write", "e2e"]);
+export const KINDS = ["test", "test-since", "review", "review-merge", "fix", "e2e-write", "e2e"];
+export const HEAVY = new Set(["test", "test-since", "fix", "e2e-write", "e2e"]);
 export const TOOLS = ["claude", "codex", "antigravity", "opencode"];
 const E2E_TOOLS = ["claude", "codex"];
-export const DEFAULTS = { route: { test: "any", review: "claude", e2e: "claude" }, staleMinutes: 60 };
+const E2E_KINDS = new Set(["e2e-write", "e2e"]);
+export const DEFAULTS = { route: { test: "any", review: "claude", reviewMerge: "claude", fix: "claude", e2e: "claude" }, staleMinutes: 60, rounds: 3 };
+// A fix that changes a file of a screen sends every E2E run already passed round again.
+const UI_FILE = /\.(cshtml|razor|tsx|jsx|vue|svelte|html|css|scss)$/i;
+const E2E_TEST = (f) => /(^|\/)e2e\/.+\.[cm]?[jt]sx?$/.test(f);
+const PENDING = "docs/reviews/pending.md";
 const COLS = ["Job", "Kind", "Target", "Size", "Agent", "Waits", "State", "Result"];
 const STATES = ["open", "done", "failed", "blocked"];
 // What a test or E2E record's commit may add to the pinned commit: documents of the checks, and E2E test files.
@@ -78,14 +83,17 @@ export function checksConfig(root) {
   if (user !== undefined && (typeof user !== "object" || user === null || Array.isArray(user))) throw new Error(`${MARKER}: "checks" must be an object`);
   const route = { ...DEFAULTS.route, ...(user?.route || {}) };
   for (const [kind, tool] of Object.entries(route)) {
-    const one = Array.isArray(tool) ? tool[0] : tool;
-    if (!["any", ...TOOLS].includes(one)) throw new Error(`${MARKER}: checks.route.${kind} must be any or one of ${TOOLS.join(", ")}`);
-    route[kind] = one;
+    const list = Array.isArray(tool) ? tool : [tool];
+    if (!list.length || !list.every((t) => ["any", ...TOOLS].includes(t))) throw new Error(`${MARKER}: checks.route.${kind} must be any or one of ${TOOLS.join(", ")}${kind === "review" ? ", or a list of them" : ""}`);
+    // Several reviewers only for a review; every other kind has one tool.
+    route[kind] = kind === "review" ? [...new Set(list)] : list[0];
   }
   if (!E2E_TOOLS.includes(route.e2e)) throw new Error(`${MARKER}: checks.route.e2e must be ${E2E_TOOLS.join(" or ")}: no other tool has mflow's guard on Playwright's browsers`);
   const staleMinutes = user?.staleMinutes ?? DEFAULTS.staleMinutes;
   if (!Number.isInteger(staleMinutes) || staleMinutes < 5) throw new Error(`${MARKER}: checks.staleMinutes must be a whole number of 5 or more`);
-  return { enabled: user !== undefined, route, staleMinutes };
+  const rounds = user?.rounds ?? DEFAULTS.rounds;
+  if (!Number.isInteger(rounds) || rounds < 1 || rounds > 9) throw new Error(`${MARKER}: checks.rounds must be a whole number from 1 to 9`);
+  return { enabled: user !== undefined, route, staleMinutes, rounds };
 }
 
 export function enable(root) {
@@ -182,12 +190,21 @@ function changeLines(main, change) {
   }
 }
 
+const job = (fields) => ({ size: null, waits: [], state: "open", result: null, ...fields });
+
+/** One review, or with several reviewers one per tool (R1a, R1b) and the job that merges them (R1). */
+function reviewJobs(id, change, size, agents, waits, mergeAgent) {
+  if (agents.length === 1) return [job({ id, kind: "review", target: change, size, agent: agents[0], waits })];
+  const subs = agents.map((a, i) => job({ id: `${id}${String.fromCharCode(97 + i)}`, kind: "review", target: change, size, agent: a, waits }));
+  return [...subs, job({ id, kind: "review-merge", target: change, size, agent: mergeAgent, waits: subs.map((s) => s.id) })];
+}
+
 function addChangeJobs(doc, main, rows, route) {
   const tests = doc.jobs.filter((j) => j.kind === "test").map((j) => j.id);
   for (const row of rows) {
     if (doc.changes.includes(row.change)) continue;
     doc.changes.push(row.change);
-    doc.jobs.push({ id: nextId(doc.jobs, "R"), kind: "review", target: row.change, size: changeLines(main, row.change), agent: route.review, waits: tests, state: "open", result: null });
+    doc.jobs.push(...reviewJobs(nextId(doc.jobs, "R"), row.change, changeLines(main, row.change), route.review, tests, route.reviewMerge));
     const screens = empty(row.screens) ? [] : row.screens.split(/[,;]/).map((s) => s.replace(/`/g, "").trim()).filter(Boolean);
     for (const screen of screens) {
       if (doc.jobs.some((j) => j.kind === "e2e-write" && j.target.toLowerCase() === screen.toLowerCase())) continue;
@@ -200,11 +217,20 @@ function addChangeJobs(doc, main, rows, route) {
 
 // ---------- batches ----------
 
+const batchKey = (ref) => {
+  const m = /^(?:checks\/)?(.*)-(\d+)$/.exec(ref) || [null, ref, "0"];
+  return [m[1], Number(m[2])];
+};
+const byBatch = (a, b) => {
+  const [x, y] = [batchKey(a), batchKey(b)];
+  return x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : x[1] - y[1];
+};
+
 /** Every checks/* branch with its checklist (the worktree's working copy when it has one), merged or open. */
 export function batches(root) {
   const info = mainInfo(root);
   const main = info.main;
-  const refs = git(main, ["for-each-ref", "--format=%(refname:short)", "refs/heads/checks/"]).out.split(/\r?\n/).filter(Boolean).sort();
+  const refs = git(main, ["for-each-ref", "--format=%(refname:short)", "refs/heads/checks/"]).out.split(/\r?\n/).filter(Boolean).sort(byBatch);
   const wts = listWorktrees(root).worktrees;
   return refs.map((branch) => {
     const name = branch.slice(PREFIX.length);
@@ -306,11 +332,23 @@ export function sync(root, { dryRun = false } = {}) {
 
 // ---------- jobs ----------
 
-const waitsMet = (job, jobs) => job.waits.every((id) => {
-  const w = jobs.find((j) => j.id === id);
-  if (!w) return true;
-  return w.state === "done" || (job.kind === "review" && w.state === "failed");
+// Every wait must be done; a failed job never releases the jobs after it (the rules below rewire them instead).
+const waitsMet = (j, jobs) => j.waits.every((id) => {
+  const w = jobs.find((x) => x.id === id);
+  // A fix starts from what failed; everything else needs what it waits on to have passed.
+  return !w || w.state === "done" || (j.kind === "fix" && w.state === "failed");
 });
+
+const isSubReview = (j) => j.kind === "review" && /^R\d+[a-z]$/.test(j.id);
+/** A review whose verdict is the change's: one reviewer's, the merged one, or a later round. */
+const isVerdictJob = (j) => (j.kind === "review" && !isSubReview(j)) || j.kind === "review-merge";
+const originOf = (j) => (j.kind === "fix" ? /^(\S+) round \d+$/.exec(j.target)?.[1] : j.id.split(".")[0]);
+const verdictOf = (j) => /\b(approve|changes-requested|none)\s*(\(|$)/.exec(j.result || "")?.[1] || null;
+const recordOf = (j) => /^(\S+\.md)\b/.exec(j.result || "")?.[1] || null;
+const rangeOf = (j) => /\bfixed ([0-9a-f]{7,40})\.\.([0-9a-f]{7,40})\b/.exec(j.result || "");
+
+/** The newest review report of a review origin (R1, R1.2 …), for the next round to follow. */
+const lastReport = (b, origin) => b.jobs.filter((x) => isVerdictJob(x) && x.id.split(".")[0] === origin && x.state !== "open").map(recordOf).filter(Boolean).pop() || null;
 
 const HOW = {
   test: (j, dir) => j.id === "T0"
@@ -318,48 +356,74 @@ const HOW = {
     : j.target === "whole suite"
       ? `In ${dir}: /mflow:test, the whole suite`
       : `In ${dir}: /mflow:test ${j.target.replace(/^part /, "")}, that part only, with the build it needs`,
-  review: (j, dir) => `In ${dir}: /mflow:review pending ${j.target}, report only: leave its section 4 (Fix) out; the findings wait for the user or a fix job`,
+  "test-since": (j, dir, b) => `In ${dir}: /mflow:test since (base: ${b.suite?.split(" ")[0] || "the batch's whole-suite record"}), after ${j.waits.join(", ")}; record it`,
+  review: (j, dir, b) => {
+    if (isSubReview(j)) return `In ${dir}: /mflow:review pending ${j.target}, report only, as ${j.agent}: name the report docs/reviews/code/<date>-${j.target}-${j.agent}.md; leave section 4 (Fix) and the tick of pending.md out (${j.id.replace(/[a-z]$/, "")} merges the reports)`;
+    if (j.id.includes(".") && j.size !== "full") {
+      const r = j.size && /fix (\S+)/.exec(j.size)?.[1];
+      return `In ${dir}: /mflow:review pending ${j.target} --short, report only: the diff ${r || "of the fixes"} after ${lastReport(b, originOf(j)) || "the last report"}, each of its findings marked fixed or still open, checks 3–7 on the changed lines; its test proof is the newest since record of this batch; leave section 4 (Fix) and the tick of pending.md out (checks.mjs done ticks it)`;
+    }
+    return `In ${dir}: /mflow:review pending ${j.target}, report only: leave section 4 (Fix) and the tick of pending.md out (checks.mjs done ticks it); the findings go to a fix job`;
+  },
+  "review-merge": (j, dir, b) => `In ${dir}: read the reports of ${j.waits.join(", ")} (${j.waits.map((w) => recordOf(b.jobs.find((x) => x.id === w) || {}) || "?").join(", ")}), check every finding against the code (the way /mflow:assess does), drop the ones that are not real with the reason, and write one report docs/reviews/code/<date>-${j.target}.md with Change: ${j.target}, Reviewer: the tools, and one verdict; report only, no tick`,
+  fix: (j, dir, b) => {
+    const origin = originOf(j);
+    const src = b.jobs.find((x) => x.id === j.waits[0]);
+    const what = origin === "tests" ? `the failing tests of ${recordOf(src || {}) || "the suite record"}`
+      : origin.startsWith("E") ? `the E2E failures of ${recordOf(src || {}) || "its record"}: the screen breaks its spec (fix the code) or the test is wrong (fix the test)`
+        : `the blockers and majors of ${recordOf(src || {}) || "its report"}, each with the test that proves it`;
+    return `In ${dir}: fix ${what}. Never remove, skip or loosen a test to pass. Commit the code by name on this branch (message fix(checks): …), leave STATUS.md; a finding that needs the user's decision: block this job with the question`;
+  },
   "e2e-write": (j, dir) => `In ${dir}: /mflow:e2e ${j.target}, write or update its E2E tests from its spec and run them; commit the test files with done --files`,
   e2e: (j, dir) => `In ${dir}: run the E2E tests of ${j.target} as /mflow:test e2e does, --workers at most e2eMaxWorkers, and write its record`,
 };
+const howOf = (j, dir, b) => HOW[j.kind]?.(j, dir, b) || null;
 
 /**
  * The open batch a job id means. Two are often open at once (one pinned and worked on, one collecting merges), and
  * both have a T0 and an R1: without --batch, the one where the job is taken (claims), else the oldest where it is
  * still open.
  */
-function findBatch(root, { batch, job, claims } = {}) {
+function findBatch(root, { batch, job: id, claims } = {}) {
   const open = batches(root).filter((b) => b.open);
   if (batch) {
     const b = open.find((x) => x.name === batch || x.branch === batch);
     if (!b) throw new Error(`no open batch ${batch}`);
     return b;
   }
-  const holders = open.filter((b) => b.jobs.some((j) => j.id === job));
-  if (!holders.length) throw new Error(`no open batch has job ${job}`);
+  const holders = open.filter((b) => b.jobs.some((j) => j.id === id));
+  if (!holders.length) throw new Error(`no open batch has job ${id}`);
   if (holders.length === 1) return holders[0];
-  const taken = claims ? holders.filter((b) => claims[`${b.name}/${job}`]) : [];
+  const taken = claims ? holders.filter((b) => claims[`${b.name}/${id}`]) : [];
   if (taken.length === 1) return taken[0];
-  const waiting = holders.filter((b) => b.jobs.find((j) => j.id === job).state === "open");
+  const waiting = holders.filter((b) => b.jobs.find((j) => j.id === id).state === "open");
   if (waiting.length) return waiting[0];
-  throw new Error(`job ${job} is in ${holders.map((b) => b.name).join(" and ")}; name one with --batch`);
+  throw new Error(`job ${id} is in ${holders.map((b) => b.name).join(" and ")}; name one with --batch`);
 }
 const liveClaims = (root) => readClaims(claimsFile(root), checksConfig(root).staleMinutes).live;
+
+/** A batch waits while an older one is open (the user's answer 8 a): its fixes are not on main yet. */
+const heldBy = (b, open) => {
+  const i = open.findIndex((x) => x.name === b.name);
+  return i > 0 ? open[0] : null;
+};
 
 export function status(root) {
   const cfg = checksConfig(root);
   const { live, stale } = readClaims(claimsFile(root), cfg.staleMinutes);
-  const open = batches(root).filter((b) => b.open).map((b) => ({
+  const all = batches(root).filter((b) => b.open);
+  const open = all.map((b) => ({
     ...b,
+    heldBy: heldBy(b, all)?.name || null,
     jobs: b.jobs.map((j) => {
       const c = live[`${b.name}/${j.id}`];
-      return { ...j, running: c ? { tool: c.tool, at: c.at } : null, ready: j.state === "open" && !c && waitsMet(j, b.jobs), how: j.state === "open" && b.dir ? HOW[j.kind]?.(j, b.dir) || null : null };
+      return { ...j, running: c ? { tool: c.tool, at: c.at } : null, ready: j.state === "open" && !c && waitsMet(j, b.jobs) && !heldBy(b, all), how: j.state === "open" && b.dir ? howOf(j, b.dir, b) : null };
     }),
   }));
-  return { enabled: cfg.enabled, route: cfg.route, batches: open, stale: stale.map((s) => s.key) };
+  return { enabled: cfg.enabled, route: cfg.route, rounds: cfg.rounds, batches: open, stale: stale.map((s) => s.key) };
 }
 
-export function next(root, { as, batch } = {}) {
+export function next(root, { as, batch, job: only } = {}) {
   if (!TOOLS.includes(as)) throw new Error(`next: --as must be one of ${TOOLS.join(", ")}`);
   const cfg = checksConfig(root);
   const main = mainInfo(root).main;
@@ -367,14 +431,20 @@ export function next(root, { as, batch } = {}) {
   return withFileLock(file, () => {
     const { live, stale } = readClaims(file, cfg.staleMinutes);
     const heavyBusy = Object.values(live).find((c) => c.heavy);
-    let open = batches(root).filter((b) => b.open);
-    if (batch) open = open.filter((b) => b.name === batch || b.branch === batch);
+    const all = batches(root).filter((b) => b.open);
+    const open = batch ? all.filter((b) => b.name === batch || b.branch === batch) : all;
     const skipped = [];
     for (const b of open) {
+      const older = heldBy(b, all);
+      if (older) {
+        skipped.push(`${b.name} waits until ${older.name} is merged or closed, so it starts with that batch's fixes`);
+        continue;
+      }
       for (const j of b.jobs) {
         if (j.state !== "open" || live[`${b.name}/${j.id}`]) continue;
+        if (only && j.id !== only) continue;
         if (j.agent !== "any" && j.agent !== as) continue;
-        if ((j.kind === "e2e" || j.kind === "e2e-write") && !E2E_TOOLS.includes(as)) continue;
+        if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !E2E_TOOLS.includes(as)) continue;
         if (!waitsMet(j, b.jobs)) continue;
         if (HEAVY.has(j.kind) && heavyBusy) {
           skipped.push(`${b.name}/${j.id} waits for the heavy lane (${heavyBusy.tool} runs ${heavyBusy.job})`);
@@ -383,6 +453,12 @@ export function next(root, { as, batch } = {}) {
         const dir = ensureWorktree(main, b);
         if (git(dir, ["status", "--porcelain"]).out) throw new Error(`${dir} has uncommitted changes; commit them (done) or drop them before the next job`);
         if (!b.pinned) {
+          // Main as it is now: the older batch's merged fixes, and any merge since the last sync.
+          const m = git(dir, ["merge", "--no-edit", "main"]);
+          if (!m.ok) {
+            git(dir, ["merge", "--abort"]);
+            throw new Error(`git merge main into ${b.branch} failed: ${m.err}`);
+          }
           b.pinned = git(dir, ["rev-parse", "HEAD"]).out;
           b.pinnedAt = stamp();
           writeFileAtomic(path.join(dir, b.file), renderDoc(b.name, b));
@@ -390,7 +466,7 @@ export function next(root, { as, batch } = {}) {
         }
         live[`${b.name}/${j.id}`] = { tool: as, at: new Date().toISOString(), heavy: HEAVY.has(j.kind), job: `${b.name}/${j.id}` };
         writeClaims(file, live);
-        return { batch: b.name, branch: b.branch, dir, file: b.file, pinned: b.pinned, job: j, how: HOW[j.kind](j, dir), reclaimed: stale.some((s) => s.key === `${b.name}/${j.id}`) };
+        return { batch: b.name, branch: b.branch, dir, file: b.file, pinned: b.pinned, job: j, how: howOf(j, dir, b), reclaimed: stale.some((s) => s.key === `${b.name}/${j.id}`) };
       }
     }
     return { job: null, reason: skipped.length ? skipped.join("; ") : `no open job for ${as} is ready`, batches: open.map((b) => b.name) };
@@ -410,7 +486,7 @@ function combine(b, dir) {
   const tests = b.jobs.filter((j) => j.kind === "test");
   if (!tests.some((j) => j.id === "T0") || b.suite || tests.some((j) => j.state !== "done" && j.state !== "failed")) return null;
   const parts = tests.map((j) => {
-    const rel = /^(\S+\.md)\b/.exec(j.result || "")?.[1];
+    const rel = recordOf(j);
     const text = rel ? readText(path.join(dir, rel)) || "" : "";
     const rec = readRecord(text);
     return { job: j, rel, rec, duration: /^Duration:\s*(.+)$/m.exec(text)?.[1]?.trim() || "—", by: /^By:\s*(.+)$/m.exec(text)?.[1]?.trim() || "claude", failures: (/## Failures\s*\n([\s\S]*?)(\n## |\s*$)/.exec(text)?.[1] || "").trim() };
@@ -437,17 +513,139 @@ function combine(b, dir) {
   ].join("\n");
   writeFileAtomic(path.join(dir, rel), text);
   b.suite = `${rel} ${pass ? "pass" : "fail"}`;
-  const ticked = pass ? tickTest(dir, rel) : null;
-  return { record: rel, result: pass ? "pass" : "fail", ticked };
+  return { record: rel, result: pass ? "pass" : "fail" };
+}
+
+/** The commits of a fix: those after the newest commit this script made (every one starts with `checks:`). */
+function fixRange(dir) {
+  const log = git(dir, ["log", "--format=%H %s", "-200"]).out.split(/\r?\n/).filter(Boolean);
+  const i = log.findIndex((l) => l.slice(41).startsWith("checks:"));
+  if (i <= 0) return null;
+  const to = log[0].slice(0, 40);
+  const from = log[i].slice(0, 40);
+  const files = git(dir, ["diff", "--name-only", from, to]).out.split(/\r?\n/).filter(Boolean);
+  return { from, to, files };
+}
+
+/** The commit a record may differ from in documents only: the newest fix it holds, or the pinned commit. */
+function recordBase(dir, b, commit) {
+  const ends = b.jobs.filter((j) => j.kind === "fix" && j.state === "done").map((j) => rangeOf(j)?.[2]).filter(Boolean);
+  for (const end of ends.reverse()) if (git(dir, ["merge-base", "--is-ancestor", end, commit]).ok) return end;
+  return b.pinned;
 }
 
 function checkRecordCommit(dir, b, rec, rel) {
   if (!rec.commit) throw new Error(`${rel} has no Tested: … at <commit> line`);
   if (rec.uncommitted) throw new Error(`${rel} was run with uncommitted changes; commit first and run again`);
-  const changed = git(dir, ["diff", "--name-only", b.pinned, rec.commit]);
+  const base = recordBase(dir, b, rec.commit);
+  const changed = git(dir, ["diff", "--name-only", base, rec.commit]);
   if (!changed.ok) throw new Error(`${rel}: commit ${rec.commit} is not in this repository`);
   const code = changed.out.split(/\r?\n/).filter(Boolean).filter((f) => !ALLOWED_AFTER_PIN(f));
-  if (code.length) throw new Error(`${rel} ran at ${rec.commit.slice(0, 7)}, which changes ${code.slice(0, 3).join(", ")} after the pinned commit; run it on this batch's branch`);
+  if (code.length) throw new Error(`${rel} ran at ${rec.commit.slice(0, 7)}, which changes ${code.slice(0, 3).join(", ")} after ${base === b.pinned ? "the pinned commit" : "the last fix"}; run it on this batch's branch`);
+}
+
+/** Test of these rows points at this record, also over an older one (a row back from an earlier batch, a fix). */
+function setTest(dir, rel, changes) {
+  tickTest(dir, rel);
+  const file = path.join(dir, PENDING);
+  const text = readText(file);
+  if (text === null) return;
+  const list = parsePending(text);
+  let changed = false;
+  for (const r of list.rows) if (changes.includes(r.change) && r.test !== rel) [r.test, changed] = [rel, true];
+  if (changed) writeFileAtomic(file, renderPending(text, list.rows, list.doneRows));
+}
+
+/**
+ * The rules of the loop: what a finished job starts. Each origin (a review R<k>, the batch's tests, the E2E of one
+ * screen E<k>) gets at most `rounds` fixes; past that, the job that would start one more is blocked for the user.
+ */
+function applyRules(b, j, cfg, { combined, fix, dir } = {}) {
+  const filesOf = (f) => {
+    const r = rangeOf(f);
+    return r ? git(dir, ["diff", "--name-only", r[1], r[2]]).out.split(/\r?\n/).filter(Boolean) : [];
+  };
+  const added = [];
+  const add = (fields) => {
+    const x = job(fields);
+    b.jobs.push(x);
+    added.push(x.id);
+    return x;
+  };
+  const fixesOf = (origin) => b.jobs.filter((x) => x.kind === "fix" && originOf(x) === origin).length;
+  const addFix = (origin, waits, from) => {
+    const round = fixesOf(origin) + 1;
+    if (round > cfg.rounds) {
+      from.state = "blocked";
+      from.result = `${from.result || ""} (out of rounds: ${origin} still fails after ${cfg.rounds} fixes; the user decides)`.trim();
+      return;
+    }
+    const agent = origin.startsWith("E") && !E2E_TOOLS.includes(cfg.route.fix) ? "claude" : cfg.route.fix;
+    add({ id: nextId(b.jobs, "F"), kind: "fix", target: `${origin} round ${round}`, agent, waits });
+  };
+  const roundOf = (origin, kind) => b.jobs.filter((x) => x.kind === kind && x.id.split(".")[0] === origin).length + 1;
+  const reviewRound = (origin, waits, full) => {
+    const first = b.jobs.find((x) => x.id === origin);
+    const range = [...b.jobs].reverse().find((x) => x.kind === "fix" && originOf(x) === origin && rangeOf(x));
+    const r = range && rangeOf(range);
+    const n = b.jobs.filter((x) => isVerdictJob(x) && x.id.split(".")[0] === origin).length + 1;
+    add({ id: `${origin}.${n}`, kind: "review", target: first.target, size: full ? "full" : r ? `fix ${r[1].slice(0, 7)}..${r[2].slice(0, 7)}` : null, agent: first.agent, waits });
+  };
+  // The batch's tests passed: what waited on a failed run waits on this one; a review that said none goes again.
+  const suitePassed = (by) => {
+    for (const x of b.jobs) {
+      if (x.state !== "open") continue;
+      const failed = x.waits.filter((w) => ["failed", "blocked"].includes(b.jobs.find((y) => y.id === w)?.state));
+      if (failed.length) x.waits = [...x.waits.filter((w) => !failed.includes(w)), by];
+    }
+    for (const x of b.jobs.filter((y) => isVerdictJob(y) && y.state === "done" && verdictOf(y) === "none")) {
+      const origin = x.id.split(".")[0];
+      if (b.jobs.some((y) => y.id.startsWith(`${origin}.`) && y.state === "open")) continue;
+      reviewRound(origin, [by], true);
+    }
+  };
+
+  if (isVerdictJob(j) && j.state === "done" && verdictOf(j) === "changes-requested") addFix(j.id.split(".")[0], [j.id], j);
+  if (j.kind === "test" && j.target === "whole suite" && j.state === "failed") addFix("tests", [j.id], j);
+  if (combined?.result === "fail") addFix("tests", b.jobs.filter((x) => x.kind === "test").map((x) => x.id), j);
+  if (j.kind === "e2e" && j.state === "failed") addFix(j.id.split(".")[0], [j.id], j);
+  if (j.kind === "fix" && j.state === "done") {
+    const origin = originOf(j);
+    if (origin.startsWith("E") && fix.files.every(E2E_TEST)) add({ id: `${origin}.${roundOf(origin, "e2e")}`, kind: "e2e", target: b.jobs.find((x) => x.id === origin).target, size: "1 screen", agent: b.jobs.find((x) => x.id === origin).agent, waits: [j.id] });
+    else {
+      // One open test-since covers every fix done before it is taken.
+      const since = b.jobs.find((x) => x.kind === "test-since" && x.state === "open");
+      if (since) since.waits.push(j.id);
+      else add({ id: nextId(b.jobs, "S"), kind: "test-since", target: "after fixes", agent: cfg.route.test, waits: [j.id] });
+    }
+  }
+  if (j.kind === "test-since") {
+    const fixes = j.waits.map((w) => b.jobs.find((x) => x.id === w)).filter((x) => x?.kind === "fix");
+    const origins = [...new Set(fixes.map(originOf))];
+    if (j.state === "failed") for (const o of origins) addFix(o, [j.id], j);
+    else if (j.state === "done") {
+      for (const o of origins) {
+        if (o === "tests") suitePassed(j.id);
+        else if (o.startsWith("E")) {
+          const first = b.jobs.find((x) => x.id === o);
+          add({ id: `${o}.${roundOf(o, "e2e")}`, kind: "e2e", target: first.target, size: "1 screen", agent: first.agent, waits: [j.id] });
+        } else reviewRound(o, [j.id], false);
+      }
+      // A fix that touched a screen's files: every E2E already passed runs again, once.
+      const ui = fixes.some((f) => filesOf(f).some((x) => UI_FILE.test(x)));
+      if (ui) {
+        const screens = [...new Set(b.jobs.filter((x) => x.kind === "e2e").map((x) => x.id.split(".")[0]))];
+        for (const o of screens) {
+          // The screen's latest run passed (an open or failed one is on its way already).
+          const latest = b.jobs.filter((x) => x.kind === "e2e" && x.id.split(".")[0] === o).pop();
+          if (origins.includes(o) || latest.state !== "done") continue;
+          add({ id: `${o}.${roundOf(o, "e2e")}`, kind: "e2e", target: latest.target, size: "1 screen", agent: latest.agent, waits: [j.id] });
+        }
+      }
+    }
+  }
+  if (combined?.result === "pass" || (j.kind === "test" && j.target === "whole suite" && j.state === "done")) suitePassed(combined ? b.jobs.filter((x) => x.kind === "test").pop().id : j.id);
+  return added;
 }
 
 export function done(root, id, { batch, record, report, files = [], note } = {}) {
@@ -466,7 +664,15 @@ export function done(root, id, { batch, record, report, files = [], note } = {})
   };
   const extra = files.map(inside);
   const commitFiles = [b.file, ...extra];
-  if (j.kind === "test" || j.kind === "e2e") {
+  let fix = null;
+  let ticked = null;
+  if (j.kind === "fix") {
+    fix = fixRange(dir);
+    if (!fix) throw new Error(`done ${id}: no fix commit on ${b.branch} after the last checks commit; commit the fix by name first`);
+    if (git(dir, ["status", "--porcelain", "--untracked-files=no"]).out) throw new Error(`done ${id}: ${dir} has uncommitted changes; commit the whole fix first`);
+    j.state = "done";
+    j.result = `fixed ${fix.from.slice(0, 7)}..${fix.to.slice(0, 7)} (${fix.files.length} files)`;
+  } else if (j.kind === "test" || j.kind === "test-since" || j.kind === "e2e") {
     if (!record) throw new Error(`done ${id}: name its record with --record`);
     const rel = inside(record);
     const rec = readRecord(readText(path.join(dir, rel)) || "");
@@ -474,9 +680,12 @@ export function done(root, id, { batch, record, report, files = [], note } = {})
     j.state = rec.result === "pass" ? "done" : "failed";
     j.result = `${rel} ${rec.result || "no result"}`;
     commitFiles.push(rel);
-    // A whole-suite (or since) run that passed ticks Test itself, as /mflow:test does; ticking twice changes nothing.
-    if (j.kind === "test" && rec.result === "pass" && (rec.scope === "whole suite" || /^since\s/.test(rec.scope))) tickTest(dir, rel);
-  } else if (j.kind === "review") {
+    // A passing whole-suite or since run: Test of the batch's rows points at it.
+    if (j.kind !== "e2e" && rec.result === "pass" && (rec.scope === "whole suite" || /^since\s/.test(rec.scope))) {
+      setTest(dir, rel, b.changes);
+      commitFiles.push(PENDING);
+    }
+  } else if (j.kind === "review" || j.kind === "review-merge") {
     if (!report) throw new Error(`done ${id}: name its report with --report`);
     const rel = inside(report);
     const text = readText(path.join(dir, rel)) || "";
@@ -484,15 +693,27 @@ export function done(root, id, { batch, record, report, files = [], note } = {})
       || /\b(approve|changes-requested)\b/i.exec(text)?.[1]?.toLowerCase() || "see report";
     j.state = "done";
     j.result = `${rel} ${verdict}`;
-    commitFiles.push(rel);
+    commitFiles.push(rel, PENDING);
+    // Only this script writes Review: a reviewer that ticked pending.md itself is undone, so a sub-review never settles the row.
+    git(dir, ["checkout", "HEAD", "--", PENDING]);
+    if (isVerdictJob(j) && ["approve", "changes-requested", "none"].includes(verdict)) {
+      try {
+        ticked = tickReview(dir, j.target, { report: rel, verdict });
+      } catch (err) {
+        ticked = { error: err.message };
+      }
+    }
   } else {
     j.state = "done";
     j.result = note || (extra.length ? extra.join(", ") : "no test files changed");
   }
   if (note && j.kind !== "e2e-write") j.result += ` (${note})`;
   const combined = combine(b, dir);
-  if (combined) commitFiles.push(combined.record, "docs/reviews/pending.md");
-  if (j.kind === "test" && j.target === "whole suite" || j.kind === "review") commitFiles.push("docs/reviews/pending.md");
+  if (combined) {
+    commitFiles.push(combined.record, PENDING);
+    if (combined.result === "pass") setTest(dir, combined.record, b.changes);
+  }
+  const added = applyRules(b, j, cfg, { combined, fix, dir });
   writeFileAtomic(path.join(dir, b.file), renderDoc(b.name, b));
   const file = claimsFile(root);
   withFileLock(file, () => {
@@ -501,7 +722,7 @@ export function done(root, id, { batch, record, report, files = [], note } = {})
     writeClaims(file, live);
   });
   const commit = commitIn(dir, commitFiles, `checks: ${id} ${j.kind} ${j.target} ${j.state} (${b.name})`);
-  return { batch: b.name, job: j, combined, commit, left: b.jobs.filter((x) => x.state === "open").map((x) => x.id) };
+  return { batch: b.name, job: j, combined, ticked, added, commit, left: b.jobs.filter((x) => x.state === "open").map((x) => x.id) };
 }
 
 function setJob(root, id, { batch, note }, change) {
@@ -521,7 +742,12 @@ function setJob(root, id, { batch, note }, change) {
   return { batch: b.name, job: j, commit: commitIn(b.dir, [b.file], `checks: ${id} ${j.state} (${b.name})`) };
 }
 
-export const release = (root, id, opts = {}) => setJob(root, id, opts, () => Boolean(opts.note));
+// Back to open: a job taken, or a blocked one once the user has answered.
+export const release = (root, id, opts = {}) => setJob(root, id, opts, (j) => {
+  const blocked = j.state === "blocked";
+  if (blocked) j.state = "open";
+  return blocked || Boolean(opts.note);
+});
 export function block(root, id, opts = {}) {
   if (!opts.note) throw new Error("block: say what the user must decide with --note");
   return setJob(root, id, opts, (j) => {
@@ -530,19 +756,28 @@ export function block(root, id, opts = {}) {
   });
 }
 
+/** Give jobs to a tool; a review given to several tools ("claude,codex") splits into one per tool and a merge. */
 export function assign(root, ids, tool, { batch } = {}) {
-  if (!["any", ...TOOLS].includes(tool)) throw new Error(`assign: the tool must be any or one of ${TOOLS.join(", ")}`);
+  const tools = String(tool || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!tools.length || !tools.every((t) => ["any", ...TOOLS].includes(t))) throw new Error(`assign: the tool must be any or one of ${TOOLS.join(", ")}, or several of them for a review`);
   const list = String(ids || "").split(",").map((s) => s.trim()).filter(Boolean);
   if (!list.length) throw new Error("assign: name the jobs, e.g. assign T2 antigravity");
+  const cfg = checksConfig(root);
   const b = findBatch(root, { batch, job: list[0] });
   for (const id of list) {
     const j = b.jobs.find((x) => x.id === id);
     if (!j) throw new Error(`${b.name} has no job ${id}`);
-    if ((j.kind === "e2e" || j.kind === "e2e-write") && !E2E_TOOLS.includes(tool)) throw new Error(`${id} is E2E: only ${E2E_TOOLS.join(" and ")} have mflow's guard on Playwright's browsers`);
-    j.agent = tool;
+    if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !tools.every((t) => E2E_TOOLS.includes(t))) throw new Error(`${id} is E2E: only ${E2E_TOOLS.join(" and ")} have mflow's guard on Playwright's browsers`);
+    if (tools.length === 1) {
+      j.agent = tools[0];
+      continue;
+    }
+    if (j.kind !== "review" || isSubReview(j) || j.id.includes(".") || j.state !== "open") throw new Error(`${id}: only an open first review can go to several tools`);
+    const at = b.jobs.indexOf(j);
+    b.jobs.splice(at, 1, ...reviewJobs(j.id, j.target, j.size, [...new Set(tools)], j.waits, cfg.route.reviewMerge));
   }
   writeFileAtomic(path.join(b.dir, b.file), renderDoc(b.name, b));
-  return { batch: b.name, assigned: list, tool, commit: commitIn(b.dir, [b.file], `checks: ${list.join(", ")} to ${tool} (${b.name})`) };
+  return { batch: b.name, assigned: list, tool: tools.join(","), jobs: b.jobs.map((j) => j.id), commit: commitIn(b.dir, [b.file], `checks: ${list.join(", ")} to ${tools.join(", ")} (${b.name})`) };
 }
 
 function gh(args, cwd) {
@@ -615,7 +850,7 @@ if (isMain) {
     if (cmd === "enable") out = enable(root);
     else if (cmd === "sync") out = sync(root, { dryRun: rest.includes("--dry-run") });
     else if (cmd === "status") out = status(root);
-    else if (cmd === "next") out = next(root, { as: opt("--as"), batch: common.batch });
+    else if (cmd === "next") out = next(root, { as: opt("--as"), batch: common.batch, job: opt("--job") });
     else if (cmd === "done") out = done(root, arg(0), { ...common, record: opt("--record"), report: opt("--report"), files: (opt("--files") || "").split(",").map((s) => s.trim()).filter(Boolean) });
     else if (cmd === "release") out = release(root, arg(0), common);
     else if (cmd === "block") out = block(root, arg(0), common);

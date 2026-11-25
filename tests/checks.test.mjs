@@ -22,8 +22,30 @@ const ok = (r) => {
 const gitIn = (dir, ...args) => git({ ...p, root: dir }, ...args);
 const readIn = (dir, rel) => fs.readFileSync(path.join(dir, rel), "utf8").replace(/\r\n/g, "\n");
 
-function repo({ parts = true } = {}) {
-  p = project({ checks: {} });
+const jobsOf = (i = 0) => Object.fromEntries(ok(checks(["status"])).batches[i].jobs.map((j) => [j.id, j]));
+function fixCommit(dir, rel, text = "fixed\n") {
+  fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+  fs.writeFileSync(path.join(dir, rel), text);
+  gitIn(dir, "add", "--", rel);
+  gitIn(dir, "commit", "-qm", `fix(checks): ${rel}`);
+}
+/** A review report as /mflow:review writes it; `tick` plays a reviewer that ticked pending.md itself. */
+function reviewReport(dir, change, verdict, { tool = "claude", tick = false, n = "" } = {}) {
+  const rel = `docs/reviews/code/2026-11-26-${change}${tool === "claude" ? "" : `-${tool}`}${n}.md`;
+  fs.mkdirSync(path.join(dir, "docs/reviews/code"), { recursive: true });
+  fs.writeFileSync(path.join(dir, rel), `Reviewed: ${change}\nChange: ${change}\nReviewer: ${tool}\nVerdict: ${verdict}\n`);
+  if (tick) ok(run(p, "pending.mjs", ["tick-review", change, "--report", rel, "--verdict", verdict], { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } }));
+  return rel;
+}
+/** Take the next job for a tool and finish it with a passing (or failing) record. */
+function passTest(as = "claude", { result = "pass", scope = "whole suite", name, job } = {}) {
+  const t = ok(checks(["next", "--as", as, ...(job ? ["--job", job] : [])]));
+  const rel = record(t.dir, name || `run-${t.job.id}`, { result, scope, by: as });
+  return { t, d: ok(checks(["done", t.job.id, "--batch", t.batch, "--record", rel])), rel };
+}
+
+function repo({ parts = true, config = {} } = {}) {
+  p = project({ checks: config });
   p.write("STATUS.md", "# STATUS\n\n## Now\n- start\n");
   p.write(".gitignore", ".env\n.claude/worktrees/\n");
   p.write(".gitattributes", "docs/reviews/pending.md merge=union\n");
@@ -157,7 +179,6 @@ test("the parts combine into one whole-suite record at the pinned commit that ti
     if (id !== "T2") assert.equal(d.combined, null);
     else {
       assert.equal(d.combined.result, "pass");
-      assert.deepEqual(d.combined.ticked.ticked, ["add-a"]);
       const suite = readIn(dir, d.combined.record);
       assert.match(suite, new RegExp(`^Tested: checks/\\S+ at ${pinned}$`, "m"));
       assert.match(suite, /^Scope: whole suite$/m);
@@ -174,7 +195,7 @@ test("the parts combine into one whole-suite record at the pinned commit that ti
   assert.equal(jobs.E1.ready, false, "E1 waits for its tests to be written");
 });
 
-test("a failing part fails the suite: reviews go on, E2E waits; a record from a commit with other code is refused", needsGit, () => {
+test("a failing suite starts a fix; reviews and E2E wait; after the fix's since run passes they wait on it, and Test points at it", needsGit, () => {
   repo({ parts: false });
   merge("add-a", { screens: "Approvals" });
   ok(checks(["sync"]));
@@ -186,11 +207,33 @@ test("a failing part fails the suite: reviews go on, E2E waits; a record from a 
   assert.notEqual(wrong.status, 0);
   assert.match(wrong.stderr, /changes src\/add-a\.cs after the pinned commit/);
   gitIn(job.dir, "reset", "-q", "--hard", "HEAD~1");
+  fs.rmSync(path.join(job.dir, "docs/reviews/tests/wrong.md"));
   const failed = ok(checks(["done", "T1", "--record", record(job.dir, "run", { result: "fail", scope: "whole suite" })]));
   assert.equal(failed.job.state, "failed");
-  const jobs = Object.fromEntries(ok(checks(["status"])).batches[0].jobs.map((j) => [j.id, j]));
-  assert.equal(jobs.R1.ready, true, "a review reads the failed run and says so");
+  assert.deepEqual(failed.added, ["F1"]);
+  let jobs = jobsOf();
+  assert.equal(jobs.F1.target, "tests round 1");
+  assert.equal(jobs.R1.ready, false, "a review waits for a passing suite");
   assert.equal(jobs.EW1.ready, false, "E2E waits for the tests to pass");
+
+  const f = ok(checks(["next", "--as", "claude"]));
+  assert.equal(f.job.id, "F1");
+  assert.match(f.how, /the failing tests of docs\/reviews\/tests\/run\.md/);
+  assert.match(checks(["done", "F1"]).stderr, /no fix commit/, "a fix job needs its commit");
+  fixCommit(f.dir, "src/add-a.cs");
+  const fd = ok(checks(["done", "F1"]));
+  assert.match(fd.job.result, /^fixed [0-9a-f]{7}\.\.[0-9a-f]{7} \(1 files\)$/);
+  assert.deepEqual(fd.added, ["S1"]);
+  const s = ok(checks(["next", "--as", "claude"]));
+  assert.equal(s.job.id, "S1");
+  const sRel = record(s.dir, "since", { scope: "since abc1234" });
+  ok(checks(["done", "S1", "--record", sRel]));
+  jobs = jobsOf();
+  assert.deepEqual(jobs.R1.waits, ["S1"]);
+  assert.equal(jobs.R1.ready, true);
+  assert.equal(jobs.EW1.ready, true);
+  const row = ok(run(p, "pending.mjs", ["status"], { cwd: s.dir, env: { CLAUDE_PROJECT_DIR: s.dir } })).rows.find((r) => r.change === "add-a");
+  assert.equal(row.test, sRel, "Test of the row points at the run after the fix");
 });
 
 test("a review's verdict goes into its row; block keeps a job for the user", needsGit, () => {
@@ -327,4 +370,154 @@ test("a batch given up is closed: its rows still waiting join the next batch", n
   const next = ok(checks(["sync"]));
   assert.notEqual(next.batch, first);
   assert.deepEqual(next.added, ["add-a"]);
+});
+
+test("the loop by rule: changes requested → fix → since run → a short review round, whose approval settles the row", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  ok(checks(["sync"]));
+  passTest();
+  const r = ok(checks(["next", "--as", "claude"]));
+  assert.equal(r.job.id, "R1");
+  assert.match(r.how, /leave section 4 \(Fix\) and the tick of pending\.md out \(checks\.mjs done ticks it\)/);
+  const rd = ok(checks(["done", "R1", "--report", reviewReport(r.dir, "add-a", "changes-requested")]));
+  assert.deepEqual(rd.added, ["F1"]);
+  assert.match(rd.ticked.review, /^changes-requested docs\/reviews\/code\/2026-11-26-add-a\.md$/);
+  const f = ok(checks(["next", "--as", "claude"]));
+  assert.equal(f.job.target, "R1 round 1");
+  assert.match(f.how, /the blockers and majors of docs\/reviews\/code\/2026-11-26-add-a\.md/);
+  fixCommit(f.dir, "src/add-a.cs");
+  assert.deepEqual(ok(checks(["done", "F1"])).added, ["S1"]);
+  const s = passTest("claude", { scope: "since abc1234", name: "since" });
+  assert.deepEqual(s.d.added, ["R1.2"]);
+  const again = ok(checks(["next", "--as", "claude"]));
+  assert.equal(again.job.id, "R1.2");
+  assert.match(again.job.size, /^fix [0-9a-f]{7}\.\.[0-9a-f]{7}$/);
+  assert.match(again.how, /--short, report only: the diff [0-9a-f]{7}\.\.[0-9a-f]{7} after docs\/reviews\/code\/2026-11-26-add-a\.md/);
+  const ad = ok(checks(["done", "R1.2", "--report", reviewReport(again.dir, "add-a", "approve", { n: "-2" })]));
+  assert.equal(ad.ticked.done, true, "Test and an approval: the row moves to Done");
+  assert.deepEqual(ad.added, []);
+  assert.deepEqual(ad.left, []);
+});
+
+test("a review that still requests changes after the last round is blocked for the user", needsGit, () => {
+  repo({ parts: false, config: { rounds: 1 } });
+  merge("add-a");
+  ok(checks(["sync"]));
+  passTest();
+  const r = ok(checks(["next", "--as", "claude"]));
+  ok(checks(["done", "R1", "--report", reviewReport(r.dir, "add-a", "changes-requested")]));
+  const f = ok(checks(["next", "--as", "claude"]));
+  fixCommit(f.dir, "src/add-a.cs");
+  ok(checks(["done", "F1"]));
+  passTest("claude", { scope: "since abc1234", name: "since" });
+  const r2 = ok(checks(["next", "--as", "claude"]));
+  const d = ok(checks(["done", "R1.2", "--report", reviewReport(r2.dir, "add-a", "changes-requested", { n: "-2" })]));
+  assert.deepEqual(d.added, []);
+  assert.equal(d.job.state, "blocked");
+  assert.match(d.job.result, /out of rounds: R1 still fails after 1 fixes; the user decides/);
+  assert.equal(ok(checks(["release", "R1.2", "--note", "the user answered: 1 a"])).job.state, "open", "released once the user answered");
+});
+
+test("a review given to two tools splits into one each and a merge; a reviewer's own tick is undone, the merge ticks once", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  ok(checks(["sync"]));
+  const a = ok(checks(["assign", "R1", "claude,codex"]));
+  assert.deepEqual(a.jobs, ["T1", "R1a", "R1b", "R1"]);
+  let jobs = jobsOf();
+  assert.equal(jobs.R1.kind, "review-merge");
+  assert.deepEqual(jobs.R1.waits, ["R1a", "R1b"]);
+  assert.equal(jobs.R1b.agent, "codex");
+  passTest();
+  const sub = ok(checks(["next", "--as", "codex"]));
+  assert.equal(sub.job.id, "R1b");
+  assert.match(sub.how, /name the report docs\/reviews\/code\/<date>-add-a-codex\.md/);
+  const sd = ok(checks(["done", "R1b", "--report", reviewReport(sub.dir, "add-a", "approve", { tool: "codex", tick: true })]));
+  assert.equal(sd.ticked, null, "a sub-review never ticks");
+  const row = () => ok(run(p, "pending.mjs", ["status"], { cwd: sub.dir, env: { CLAUDE_PROJECT_DIR: sub.dir } })).rows.find((x) => x.change === "add-a");
+  assert.equal(row().review, "—", "the reviewer's own tick was undone");
+  const ra = ok(checks(["next", "--as", "claude"]));
+  assert.equal(ra.job.id, "R1a");
+  ok(checks(["done", "R1a", "--report", reviewReport(ra.dir, "add-a", "changes-requested", { n: "-claude" })]));
+  const m = ok(checks(["next", "--as", "claude"]));
+  assert.equal(m.job.id, "R1");
+  assert.match(m.how, /read the reports of R1a, R1b \(docs\/reviews\/code\/2026-11-26-add-a-claude\.md, docs\/reviews\/code\/2026-11-26-add-a-codex\.md\)/);
+  const md = ok(checks(["done", "R1", "--report", reviewReport(m.dir, "add-a", "approve")]));
+  assert.equal(md.ticked.done, true);
+  jobs = jobsOf();
+  assert.equal(assign_err(), true);
+  function assign_err() {
+    return /only an open first review can go to several tools/.test(checks(["assign", "R1", "claude,codex"]).stderr);
+  }
+});
+
+test("E2E: a failed screen gets a fix, and a fix of tests only goes straight to the screen's next round; a fix of a screen's file reruns passed E2E", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a", { screens: "Approvals" });
+  ok(checks(["sync"]));
+  passTest();
+  const w = ok(checks(["next", "--as", "claude", "--job", "EW1"]));
+  assert.equal(w.job.id, "EW1");
+  ok(checks(["done", "EW1", "--batch", w.batch]));
+  const e = passTest("claude", { result: "fail", scope: "e2e Approvals", name: "e2e", job: "E1" });
+  assert.deepEqual(e.d.added, ["F1"]);
+  assert.equal(jobsOf().F1.target, "E1 round 1");
+  assert.match(checks(["assign", "F1", "antigravity"]).stderr, /E2E: only claude and codex/);
+  const f = ok(checks(["next", "--as", "claude", "--job", "F1"]));
+  fixCommit(f.dir, "tests/e2e/approvals.spec.ts", "test('x', () => {});\n");
+  assert.deepEqual(ok(checks(["done", "F1"])).added, ["E1.2"], "only E2E test files changed: no since run");
+  const e2t = ok(checks(["next", "--as", "claude", "--job", "E1.2"]));
+  const e2 = { d: ok(checks(["done", "E1.2", "--record", record(e2t.dir, "e2e-2", { scope: "e2e Approvals" })])) };
+  assert.equal(e2.d.job.state, "done");
+  // Now a review fix that touches the screen: the passed E2E runs again.
+  const r = ok(checks(["next", "--as", "claude"]));
+  assert.equal(r.job.id, "R1");
+  ok(checks(["done", "R1", "--report", reviewReport(r.dir, "add-a", "changes-requested")]));
+  const f2 = ok(checks(["next", "--as", "claude"]));
+  fixCommit(f2.dir, "web/Approvals.cshtml", "<p>fixed</p>\n");
+  ok(checks(["done", "F2"]));
+  const s = passTest("claude", { scope: "since abc1234", name: "since" });
+  assert.deepEqual(s.d.added.sort(), ["E1.3", "R1.2"]);
+});
+
+test("two fixes done before the since run is taken share one since run, which starts each origin's next round; a fix is recorded without a claim", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  merge("add-b");
+  ok(checks(["sync"]));
+  passTest();
+  for (const [id, change] of [["R1", "add-a"], ["R2", "add-b"]]) {
+    const r = ok(checks(["next", "--as", "claude"]));
+    assert.equal(r.job.id, id);
+    ok(checks(["done", id, "--report", reviewReport(r.dir, change, "changes-requested")]));
+  }
+  const dir = jobsOf() && ok(checks(["status"])).batches[0].dir;
+  fixCommit(dir, "src/add-a.cs");
+  assert.deepEqual(ok(checks(["done", "F1"])).added, ["S1"], "F1 recorded for a tool that took it outside next");
+  fixCommit(dir, "src/add-b.cs");
+  assert.deepEqual(ok(checks(["done", "F2"])).added, [], "the open since run takes F2 too");
+  assert.deepEqual(jobsOf().S1.waits, ["F1", "F2"]);
+  const s = passTest("claude", { scope: "since abc1234", name: "since" });
+  assert.deepEqual(s.d.added, ["R1.2", "R2.2"]);
+});
+
+test("a newer batch waits until the older one is merged or closed, then takes main as it is when it is pinned", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  const first = ok(checks(["sync"])).batch;
+  passTest();
+  merge("add-b");
+  const second = ok(checks(["sync"])).batch;
+  const none = ok(checks(["next", "--as", "claude", "--batch", second]));
+  assert.equal(none.job, null);
+  assert.match(none.reason, new RegExp(`${second} waits until ${first} is merged or closed`));
+  assert.equal(jobsOf(1).T1.ready, false);
+  p.write("docs/notes.md", "after the sync\n");
+  git(p, "add", ".");
+  git(p, "commit", "-qm", "docs after the sync");
+  ok(checks(["close", first, "--note", "done for now"]));
+  const t = ok(checks(["next", "--as", "claude"]));
+  assert.equal(t.batch, second);
+  assert.ok(fs.existsSync(path.join(t.dir, "docs/notes.md")), "main was merged in when the batch was pinned");
 });

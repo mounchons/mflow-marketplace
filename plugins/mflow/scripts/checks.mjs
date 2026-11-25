@@ -46,7 +46,7 @@ export const HEAVY = new Set(["test", "test-since", "fix", "e2e-write", "e2e"]);
 export const TOOLS = ["claude", "codex", "antigravity", "opencode"];
 const E2E_TOOLS = ["claude", "codex"];
 const E2E_KINDS = new Set(["e2e-write", "e2e"]);
-export const DEFAULTS = { route: { test: "any", review: "claude", reviewMerge: "claude", fix: "claude", e2e: "claude" }, staleMinutes: 60, rounds: 3 };
+export const DEFAULTS = { route: { test: "any", review: "claude", reviewMerge: "claude", fix: "claude", e2e: "claude" }, staleMinutes: 60, rounds: 3, jobsPerRun: 2, jobMinutes: 90 };
 // A fix that changes a file of a screen sends every E2E run already passed round again.
 const UI_FILE = /\.(cshtml|razor|tsx|jsx|vue|svelte|html|css|scss)$/i;
 const E2E_TEST = (f) => /(^|\/)e2e\/.+\.[cm]?[jt]sx?$/.test(f);
@@ -93,7 +93,14 @@ export function checksConfig(root) {
   if (!Number.isInteger(staleMinutes) || staleMinutes < 5) throw new Error(`${MARKER}: checks.staleMinutes must be a whole number of 5 or more`);
   const rounds = user?.rounds ?? DEFAULTS.rounds;
   if (!Number.isInteger(rounds) || rounds < 1 || rounds > 9) throw new Error(`${MARKER}: checks.rounds must be a whole number from 1 to 9`);
-  return { enabled: user !== undefined, route, staleMinutes, rounds };
+  const jobsPerRun = user?.jobsPerRun ?? DEFAULTS.jobsPerRun;
+  if (!Number.isInteger(jobsPerRun) || jobsPerRun < 1 || jobsPerRun > 50) throw new Error(`${MARKER}: checks.jobsPerRun must be a whole number from 1 to 50`);
+  const jobMinutes = user?.jobMinutes ?? DEFAULTS.jobMinutes;
+  if (!Number.isInteger(jobMinutes) || jobMinutes < 5 || jobMinutes > 600) throw new Error(`${MARKER}: checks.jobMinutes must be a whole number from 5 to 600`);
+  // checks.commands.<tool>: { bash, pwsh } with {brief} {out} {worktree}, in place of the tool registry's code mode.
+  const commands = user?.commands ?? {};
+  if (typeof commands !== "object" || Array.isArray(commands) || !Object.values(commands).every((c) => c && typeof c === "object" && (typeof c.bash === "string" || typeof c.pwsh === "string"))) throw new Error(`${MARKER}: checks.commands.<tool> must be an object with a bash or pwsh command`);
+  return { enabled: user !== undefined, route, staleMinutes, rounds, jobsPerRun, jobMinutes, commands };
 }
 
 export function enable(root) {
@@ -263,6 +270,25 @@ function readClaims(file, staleMinutes) {
   return { live, stale };
 }
 const writeClaims = (file, claims) => writeFileAtomic(file, JSON.stringify(claims, null, 2) + "\n");
+
+/** The folder the runner keeps its briefs and the tools' output in: inside .git, so the worktree stays clean. */
+export const runsDir = (root) => path.join(path.dirname(claimsFile(root)), "runs");
+
+/** A runner still at work on a job keeps its claim fresh, so it never counts as given up. */
+export function touch(root, batch, id) {
+  const file = claimsFile(root);
+  return withFileLock(file, () => {
+    let all = {};
+    try {
+      all = JSON.parse(fs.readFileSync(file, "utf8")) || {};
+    } catch { /* none */ }
+    const c = all[`${batch}/${id}`];
+    if (!c) return false;
+    c.at = new Date().toISOString();
+    writeClaims(file, all);
+    return true;
+  });
+}
 
 function commitIn(dir, files, message) {
   const rel = [...new Set(files.map(slash))].filter((f) => fs.existsSync(path.join(dir, f)));

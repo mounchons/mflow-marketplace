@@ -259,3 +259,18 @@ E2E มีสองงานต่อจอ ทำทีละจอเหมื
 **ตรวจ record หลัง fix** `done` ยอม record ที่ commit ต่างจาก commit ของ fix ล่าสุดที่อยู่ในประวัติของมัน (หรือจาก `Pinned:` เมื่อยังไม่มี fix) เฉพาะ `docs/reviews/` และไฟล์ test E2E; `done` ของ `fix` อ่านช่วง fix จาก git: commit หลัง commit ล่าสุดของ script (ขึ้นต้น `checks:`) ไม่มีก็ปฏิเสธ
 
 **ปรับตอนสร้าง (คำแนะนำจากการตรวจแบบ)** review รอ test ผ่าน ไม่ใช่แค่จบ (กฎ `none` จึงแทบไม่เกิด ไม่เสีย review สองรอบเมื่อ test ล้ม และไม่เกิด fix ของ review ซ้อนกับ fix ของ test เรื่องเดียวกัน); review ในชุดไม่ติ๊ก `pending.md` เอง `done` คืนไฟล์จาก HEAD แล้วติ๊กจากงาน verdict เท่านั้น; ชุดใหม่รอชุดก่อน (คำตอบข้อ 8 a); fix ของ E2E ให้ได้แค่ claude และ codex; fix หลายงานที่จบก่อน `S` ใช้ `S` เดียวกัน
+
+## 17. ขั้นที่ 3: ตัวรัน (0.56.0, คำของผู้ใช้ 2026-11-26 "ทำขั้นที่ 3 ตัวรันของ codex และ agy ต่อเลย")
+
+`checks-run.mjs --as <tool> [--jobs n] [--until HH:MM]` ผู้ใช้เปิดใน terminal ละ tool นอก sandbox ตัวรันทำสิ่งที่ sandbox ของ Codex และ agy ทำไม่ได้: claim, pin, commit ผล และ commit ของ fix ส่วน tool ทำแค่งานตาม brief แล้วเขียนไฟล์ผล
+
+| ขั้น | ตัวรันทำ |
+|---|---|
+| หยิบ | `next --as <tool>` (heavy lane และชุดที่รอยังมีผลเหมือนเดิม) |
+| สั่ง | เขียน brief ลง `.git/mflow/checks/runs/` แล้วรันคำสั่งโหมด code ของ tool registry ใน worktree ของชุด ต่ออายุ claim ทุก 5 นาที หมดเวลาที่ `checks.jobMinutes` |
+| เก็บ | คืน STATUS.md, `pending.md` และ checklist จาก HEAD; หา record ใหม่หนึ่งไฟล์, รายงานใหม่หนึ่งไฟล์, ไฟล์ test E2E หรือไฟล์ของ fix (commit เอง) แล้ว `done` ให้กฎเดินต่อ |
+| หยุด | ครบ `--jobs`, ถึง `--until`, ไม่มีงานพร้อม, usage/rate limit ตอนที่ไม่มีผล (คืนงาน), ล้มหรือหมดเวลาโดยไม่มีผล, ทิ้งไฟล์ที่งานไม่ได้ขอ (ไฟล์อยู่ให้ผู้ใช้ดู), `BLOCKED:` (งานเป็น blocked) |
+
+ไม่ได้สร้าง `$mflow-checks` แยก เพราะ brief ของตัวรันบอกงาน วิธีทำ และ skill ที่ใช้ (`$mflow-test`, `$mflow-review`, `$mflow-e2e`) ครบแล้ว งานกลางวันที่ผู้ใช้สั่ง tool เองยังใช้ทาง "Claude หยิบแทนแล้วบันทึกให้" ของขั้นที่ 1
+
+ยังต้องพิสูจน์ (ขั้นที่ 0) ก่อนใช้จริง: Codex และ agy รัน test ที่ใช้ Docker ใน sandbox ได้ไหม, ข้อความ usage limit จริงของแต่ละ tool ตรงกับ pattern `LIMIT` ไหม, agy แบบ `--dangerously-skip-permissions` เขียนไฟล์ผลได้ไหม

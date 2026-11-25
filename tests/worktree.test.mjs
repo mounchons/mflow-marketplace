@@ -12,7 +12,9 @@ import { LINES, yamlItem } from "../plugins/mflow/scripts/openspec-config.mjs";
 let p;
 afterEach(() => p?.cleanup());
 const needsGit = { skip: !hasGit && "git not installed" };
-const read = (rel) => fs.readFileSync(path.join(SCRIPTS, "..", rel), "utf8");
+// A Windows checkout may hold CRLF; temp folders may come as 8.3 short names (RUNNER~1) while git gives long ones.
+const read = (rel) => fs.readFileSync(path.join(SCRIPTS, "..", rel), "utf8").replace(/\r\n/g, "\n");
+const real = (dir) => fs.realpathSync.native(dir).toLowerCase();
 
 /** A git project on main with STATUS.md, a git-ignored .env and the review list, committed. */
 function repo() {
@@ -56,13 +58,13 @@ test("new makes .claude/worktrees/<change> on feat/<change> from main, copies wh
   const r = wt(["new", "add-x"]);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.json.branch, "feat/add-x");
-  assert.equal(path.resolve(r.json.dir).toLowerCase(), inTree("add-x").toLowerCase());
+  assert.equal(real(r.json.dir), real(inTree("add-x")));
   assert.deepEqual(r.json.copied, [".env"]);
   assert.match(r.json.gitignored, /added to \.gitignore/);
   assert.ok(r.json.warnings.some((w) => /openspec\/changes\/add-x\/ has uncommitted files/.test(w)), "an uncommitted proposal is named");
   assert.equal(fs.readFileSync(path.join(inTree("add-x"), ".env"), "utf8"), "SECRET=1\n");
   assert.equal(gitIn(inTree("add-x"), "branch", "--show-current").trim(), "feat/add-x");
-  for (const tool of ["claude", "codex", "antigravity", "opencode"]) assert.ok(r.json.start[tool].includes(inTree("add-x")) || r.json.start[tool].toLowerCase().includes(inTree("add-x").toLowerCase()), tool);
+  for (const tool of ["claude", "codex", "antigravity", "opencode"]) assert.ok(r.json.start[tool].includes(r.json.dir), tool);
   assert.equal(git(p, "status", "--porcelain", "--", ".claude").trim(), "", "the worktree is not untracked work of the main checkout");
   const twice = wt(["new", "add-x"]);
   assert.notEqual(twice.status, 0);
@@ -76,7 +78,7 @@ test("where and list tell a worktree from the main checkout", needsGit, () => {
   const here = wt(["where"], { cwd: inTree("add-x"), env: { CLAUDE_PROJECT_DIR: inTree("add-x") } });
   assert.equal(here.json.linked, true);
   assert.equal(here.json.branch, "feat/add-x");
-  assert.equal(path.resolve(here.json.main).toLowerCase(), path.resolve(p.root).toLowerCase());
+  assert.equal(real(here.json.main), real(p.root));
   const all = wt(["list"]).json;
   assert.equal(all.linked, false);
   assert.deepEqual(all.worktrees.map((w) => [w.branch, w.main, w.change]), [["main", true, null], ["feat/add-x", false, "add-x"]]);

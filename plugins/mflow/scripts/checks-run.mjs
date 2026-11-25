@@ -64,7 +64,7 @@ const PROTECTED_SPECS = [
  * folder swapped for a link would lead the checks elsewhere), and the repository's git config, info/exclude and
  * hooks (core.fsmonitor or a hook runs a program at the next git command, in any checkout).
  */
-function guardState(dir) {
+function guardState(dir, paths = null) {
   const kind = (p) => {
     try {
       const st = fs.lstatSync(p);
@@ -74,30 +74,58 @@ function guardState(dir) {
     }
   };
   const top = new Map(PROTECTED_DIRS.map((d) => [d, kind(path.join(dir, d))]));
+  // Resolved once, before the tool runs: afterwards the worktree's .git could point somewhere else.
   const gitPath = (flag) => git(dir, ["rev-parse", "--path-format=absolute", flag]).out;
-  const common = gitPath("--git-common-dir");
-  const own = gitPath("--git-dir");
+  const common = paths?.common || gitPath("--git-common-dir");
+  const own = paths?.own || gitPath("--git-dir");
   const files = new Map();
   const take = (p) => {
     try {
-      files.set(p, fs.readFileSync(p));
+      const st = fs.lstatSync(p);
+      files.set(p, st.isSymbolicLink() ? Buffer.from(`link:${fs.readlinkSync(p)}`) : st.isDirectory() ? Buffer.from("dir") : fs.readFileSync(p));
     } catch {
       files.set(p, null);
     }
   };
-  for (const p of [path.join(common, "config"), path.join(common, "info", "exclude"), path.join(own, "config.worktree")]) take(p);
+  // The worktree's .git file (a pointer to its git dir) as well as the config, exclude and hooks it leads to.
+  for (const p of [path.join(dir, ".git"), path.join(common, "config"), path.join(common, "info", "exclude"), path.join(own, "config.worktree"), path.join(own, "commondir"), path.join(own, "gitdir")]) take(p);
   const hooks = path.join(common, "hooks");
   let names = [];
   try {
     names = fs.readdirSync(hooks);
   } catch { /* none */ }
   for (const n of names) take(path.join(hooks, n));
-  return { top, files, hooks };
+  return { top, files, hooks, paths: { common, own } };
 }
+/** Write a file without following a link put in its place: the link goes, the file is written anew. */
+function writeNoFollow(p, buf) {
+  try {
+    if (fs.lstatSync(p).isSymbolicLink()) fs.rmSync(p, { force: true });
+  } catch { /* not there */ }
+  const fd = fs.openSync(p, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC | (fs.constants.O_NOFOLLOW || 0));
+  try {
+    fs.writeSync(fd, buf);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 /** Put back what guardState saw; returns what had changed. A protected folder turned into a link loses the link. */
 function restoreGuard(dir, before) {
-  const after = guardState(dir);
+  // The .git pointer first, from the paths taken before the run, so nothing below reads through a redirected one.
+  const dotGit = path.join(dir, ".git");
+  const wasGit = before.files.get(dotGit);
+  let gitNow = null;
+  try {
+    gitNow = fs.lstatSync(dotGit).isFile() ? fs.readFileSync(dotGit) : null;
+  } catch { /* gone */ }
   const changed = [];
+  if (wasGit && (!gitNow || !wasGit.equals(gitNow))) {
+    fs.rmSync(dotGit, { recursive: true, force: true });
+    writeNoFollow(dotGit, wasGit);
+    changed.push(".git");
+  }
+  const after = guardState(dir, before.paths);
   for (const [d, k] of after.top) {
     if (k === before.top.get(d)) continue;
     changed.push(d);
@@ -109,12 +137,12 @@ function restoreGuard(dir, before) {
     if (was && buf && was.equals(buf)) continue;
     changed.push(path.relative(dir, p) || p);
     if (was === null) fs.rmSync(p, { force: true });
-    else fs.writeFileSync(p, was);
+    else writeNoFollow(p, was);
   }
   for (const [p, was] of before.files) {
     if (was !== null && !after.files.has(p)) {
       fs.mkdirSync(path.dirname(p), { recursive: true });
-      fs.writeFileSync(p, was);
+      writeNoFollow(p, was);
       changed.push(path.relative(dir, p) || p);
     }
   }
@@ -123,7 +151,7 @@ function restoreGuard(dir, before) {
 
 /** The git-ignored files in the protected places, with their content, to put back after a tool's run. */
 function ignoredProtected(dir) {
-  const r = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...PROTECTED_SPECS], { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync("git", [...SAFE_GIT, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...PROTECTED_SPECS], { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   // A listing that failed or overflowed proves nothing: the caller stops the job (fail closed).
   if (r.error || r.status !== 0) throw new Error(`listing the git-ignored files in protected places failed: ${r.error?.message || (r.stderr || "").trim() || `exit ${r.status}`}`);
   const out = r.stdout || "";
@@ -195,13 +223,15 @@ function restoreIgnored(dir, before) {
 }
 const SKILL = { test: "$mflow-test", "test-since": "$mflow-test", e2e: "$mflow-e2e", "e2e-write": "$mflow-e2e", review: "$mflow-review", "review-merge": "$mflow-review", fix: null };
 
+// Every git command of the runner turns off what a repository's config can make git run (fsmonitor, hooks).
+const SAFE_GIT = ["-c", "core.quotePath=false", "-c", "core.fsmonitor=", "-c", "core.hooksPath=" + (process.platform === "win32" ? "NUL" : "/dev/null")];
 function git(cwd, args) {
-  const r = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd, encoding: "utf8", timeout: 120_000, maxBuffer: 16 * 1024 * 1024 });
+  const r = spawnSync("git", [...SAFE_GIT, ...args], { cwd, encoding: "utf8", timeout: 120_000, maxBuffer: 16 * 1024 * 1024 });
   return { ok: r.status === 0, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
 }
 /** Files git sees changed or new in the worktree (ignored ones left out), with whether each is new. */
 function changes(dir) {
-  const out = spawnSync("git", ["-c", "core.quotePath=false", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames"], { cwd: dir, encoding: "utf8" }).stdout || "";
+  const out = spawnSync("git", [...SAFE_GIT, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames"], { cwd: dir, encoding: "utf8" }).stdout || "";
   const parts = out.split("\0").filter(Boolean);
   const list = [];
   for (let i = 0; i < parts.length; i++) {

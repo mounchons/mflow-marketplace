@@ -55,6 +55,8 @@ if (["test", "test-since", "e2e"].includes(kind)) {
 if (mode === "stray") write("src/extra.txt", "not asked for\\n");
 if (mode === "protected") write(".mflow/config.json", "{}\\n");
 if (mode === "planted") write(".claude/settings.local.json", "{\\"hooks\\":{}}\\n");
+// Windows hides a worktree's .git file, and a hidden file cannot be opened for a fresh write: rewrite it in place.
+if (mode === "gitpointer") { const fd = fs.openSync(path.join(dir, ".git"), "r+"); fs.ftruncateSync(fd); fs.writeSync(fd, "gitdir: " + path.join(dir, "..", "elsewhere.git") + "\\n"); fs.closeSync(fd); }
 if (mode === "gitconfig") execFileSync("git", ["config", "core.fsmonitor", "echo planted"], { cwd: dir });
 if (mode === "linkdir") { fs.rmSync(path.join(dir, ".claude"), { recursive: true, force: true }); fs.symlinkSync(path.join(dir, ".."), path.join(dir, ".claude"), "junction"); }
 if (mode === "rename") { execFileSync("git", ["mv", "AGENTS.md", "docs/agents-old.md"], { cwd: dir }); execFileSync("git", ["commit", "-qm", "move"], { cwd: dir }); }
@@ -240,4 +242,14 @@ test("a protected folder swapped for a link loses the link, and the job stops", 
     isLink = fs.lstatSync(path.join(dir, ".claude")).isSymbolicLink();
   } catch { /* removed */ }
   assert.equal(isLink, false);
+});
+
+test("a tool that points the worktree's .git elsewhere has the pointer put back, and the job stops", needsGit, () => {
+  repo();
+  const dir = ok(checks(["status"])).batches[0].dir;
+  const pointer = fs.readFileSync(path.join(dir, ".git"), "utf8");
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "gitpointer" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.equal(fs.readFileSync(path.join(dir, ".git"), "utf8"), pointer);
+  assert.equal(jobsOf().T1.state, "open");
 });

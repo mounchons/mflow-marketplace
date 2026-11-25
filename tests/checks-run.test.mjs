@@ -55,6 +55,8 @@ if (["test", "test-since", "e2e"].includes(kind)) {
 if (mode === "stray") write("src/extra.txt", "not asked for\\n");
 if (mode === "protected") write(".mflow/config.json", "{}\\n");
 if (mode === "planted") write(".claude/settings.local.json", "{\\"hooks\\":{}}\\n");
+if (mode === "gitconfig") execFileSync("git", ["config", "core.fsmonitor", "echo planted"], { cwd: dir });
+if (mode === "linkdir") { fs.rmSync(path.join(dir, ".claude"), { recursive: true, force: true }); fs.symlinkSync(path.join(dir, ".."), path.join(dir, ".claude"), "junction"); }
 if (mode === "rename") { execFileSync("git", ["mv", "AGENTS.md", "docs/agents-old.md"], { cwd: dir }); execFileSync("git", ["commit", "-qm", "move"], { cwd: dir }); }
 if (mode === "commit") { execFileSync("git", ["add", "--", wrote], { cwd: dir }); execFileSync("git", ["commit", "-qm", "results.mjs commit"], { cwd: dir }); }
 if (mode === "fail") process.exit(3);
@@ -198,7 +200,7 @@ test("a git-ignored file a tool plants in a protected place is removed, and the 
   gitIn(dir, "commit", "-qm", "ignore local settings");
   const r = ok(runner(["--as", "codex"], { FAKE_MODE: "planted" }));
   assert.equal(r.jobs[0].result, "not done");
-  assert.deepEqual(r.jobs[0].restored, [".claude/settings.local.json"]);
+  assert.ok(r.jobs[0].restored.includes(".claude/settings.local.json"), JSON.stringify(r.jobs[0].restored));
   assert.ok(!fs.existsSync(path.join(dir, ".claude/settings.local.json")), "the planted file is gone");
   assert.equal(jobsOf().T1.state, "open");
 });
@@ -210,4 +212,32 @@ test("a protected file the tool renames away in its own commit still stops the j
   assert.match(r.stopped, /no job may change .*AGENTS\.md/);
   const dir = ok(checks(["status"])).batches[0].dir;
   assert.ok(fs.existsSync(path.join(dir, "AGENTS.md")), "the rename was undone and stashed");
+});
+
+test("a git config a tool changed (core.fsmonitor runs a program at the next git command) is put back, and the job stops", needsGit, () => {
+  repo();
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "gitconfig" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.ok(r.jobs[0].restored.some((f) => /config$/.test(f)), JSON.stringify(r.jobs[0]));
+  assert.doesNotMatch(fs.readFileSync(path.join(p.root, ".git", "config"), "utf8"), /fsmonitor/);
+});
+
+test("a protected folder swapped for a link loses the link, and the job stops", needsGit, (t) => {
+  repo();
+  const probe = path.join(p.temp, "probe-link");
+  try {
+    fs.symlinkSync(p.temp, probe, "junction");
+  } catch {
+    t.skip("this machine cannot make links");
+    return;
+  }
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "linkdir" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.ok(r.jobs[0].restored.includes(".claude"));
+  const dir = ok(checks(["status"])).batches[0].dir;
+  let isLink = false;
+  try {
+    isLink = fs.lstatSync(path.join(dir, ".claude")).isSymbolicLink();
+  } catch { /* removed */ }
+  assert.equal(isLink, false);
 });

@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.56.1 |
+| เวอร์ชัน plugin | 0.56.2 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -923,12 +923,12 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.56.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.56.2)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
 | Codex และ agy commit เองไม่ได้ | (0.54) sandbox ของทั้งคู่ห้ามเขียน `.git` เมื่อรัน `$mflow-test`, `$mflow-review` หรือ `$mflow-e2e` จบ มันจะขออนุมัติรัน `claude -p ... --model sonnet` นอก sandbox ให้ Claude Code บน Sonnet commit ไฟล์ของรอบนั้นให้ (Sonnet อ่านผลแล้วเขียนข้อความ commit ส่วน script เป็นคนเลือกไฟล์และ commit เอง Sonnet รันอะไรอื่นไม่ได้ และไม่ push) ถ้ารันไม่ได้ จะพิมพ์คำสั่งไว้ท้ายข้อความให้ copy ไปรันใน terminal ที่ folder นั้น และเมื่อเปิด Claude Code ครั้งถัดไป briefing จะเห็นไฟล์ที่ค้างและถามว่าจะ commit ไหม ต้องมี `claude` ติดตั้งและ login แล้วในเครื่อง; ยังไม่ได้ลองใน session จริงของ Codex และ agy |
-| ตรวจเป็นชุดยังเป็นขั้นที่ 1 | (0.55) `/mflow:checks` ให้ Claude ทำงานใน session ทีละงาน งานที่มอบให้ codex หรือ agy ต้องเปิด tool นั้นเองตามบรรทัด `how` ของงาน จนกว่าตัวรันจะมา; ตัวรันลองกับ tool จำลองเท่านั้น ยังไม่ได้ลองกับ Codex และ agy จริง (sandbox อาจกัน Docker ของ Testcontainers และ NuGet restore) agent บน cloud ยังไม่มี; ชุดใหม่รอจนชุดก่อน merge หรือ close ถ้าไม่ได้ merge PR ตอนเช้า คืนถัดไปไม่มีงานให้ agent; ต้องมี `gh` ที่ login แล้วจึงเปิด PR ได้ ไม่มีก็ใช้แค่ไฟล์; ยังไม่ได้ลองใน session จริง |
+| ตรวจเป็นชุดยังเป็นขั้นที่ 1 | (0.55) `/mflow:checks` ให้ Claude ทำงานใน session ทีละงาน งานที่มอบให้ codex หรือ agy ต้องเปิด tool นั้นเองตามบรรทัด `how` ของงาน จนกว่าตัวรันจะมา; ตัวรันกันได้แค่สิ่งที่ tool ทิ้งไว้ใน repo (ไฟล์ที่ห้ามแก้, git config, hook) agy ในโหมด code รันคำสั่งได้ทุกอย่างโดยไม่ถาม จึงให้ใช้เฉพาะในเครื่องและโปรเจกต์ที่ยอมรับได้; ลองกับ tool จำลองเท่านั้น ยังไม่ได้ลองกับ Codex และ agy จริง (sandbox อาจกัน Docker ของ Testcontainers และ NuGet restore) agent บน cloud ยังไม่มี; ชุดใหม่รอจนชุดก่อน merge หรือ close ถ้าไม่ได้ merge PR ตอนเช้า คืนถัดไปไม่มีงานให้ agent; ต้องมี `gh` ที่ login แล้วจึงเปิด PR ได้ ไม่มีก็ใช้แค่ไฟล์; ยังไม่ได้ลองใน session จริง |
 | หลาย worktree ทำงานพร้อมกัน | (0.53) ยังไม่ได้ลองใน session จริงและกับ Orca; worktree ใหม่ต้องติดตั้ง dependency เอง (`npm install`, `dotnet tool restore`) และไม่มีไฟล์ที่ git ไม่เก็บนอกจากที่ `.worktreeinclude` บอก; บน Windows ที่ปิด long paths ให้ใช้ `--dir` ที่ path สั้นถ้ามีคำเตือน; การกด "allow" ของ Claude Code ใน worktree บน Windows ไม่ใช้ร่วมกับ worktree อื่น; Codex ใน sandbox `git commit` ไม่ได้ (ห้ามเขียน `.git` ทุกที่) ให้อนุมัติเมื่อมันขอ หรือ `/mflow:worktree merge` จะ commit งานที่ค้างให้หลังถามคุณ; worktree ของ Orca และ `claude -w` ใช้ชื่อ branch ของมันเอง ไม่เปลี่ยนเป็น `feat/<change>` |
 | โครง repo ใต้ `src/` และ compose สองไฟล์ใน `deploy/` | (0.51) เป็นค่าเริ่มต้นของโปรเจกต์ใหม่เท่านั้น โปรเจกต์ที่อนุมัติโครงเดิมไปแล้วไม่ถูกถามซ้ำ ถ้าจะย้ายให้แก้เอกสาร `code-structure` ผ่าน `/mflow:discuss` แล้วทำเป็น change เดียว ส่วน compose ลองแค่ `docker compose config` ยังไม่ได้ `up` หรือ build image บน Windows ใส่ `COMPOSE_PATH_SEPARATOR=:` ใน `.env` เมื่อ `COMPOSE_FILE` ใช้ `:` คั่นไฟล์ |
 | แพ็ก `auth` กับเว็บ React, Vue หรือ Angular | (0.43) เว็บที่อยู่ origin เดียวกับ API ใช้ cookie ส่วน JWT ใช้กับแอป mobile ระบบอื่น และเว็บคนละ origin ที่อยู่ site เดียวกัน Vue และ Angular เลือก profile `custom` แล้วระบุ ASP.NET Core ใน `## Stack` |

@@ -40,11 +40,86 @@ const CLAUDE = {
 };
 // What a tool prints when its plan's limit stops it; checked 2026-11 against no tool yet (phase 0 of the proposal).
 export const LIMIT = /usage limit|rate[ -]?limit|quota (?:exceeded|reached)|limit (?:reached|exceeded)|too many requests|\b429\b|out of (?:credits|tokens)|try again (?:in|at|after) \d/i;
-// Matched without case (Windows and macOS folders ignore it), the instruction files at any depth.
-export const PROTECTED = /^(?:\.mflow\/|\.agents?\/|\.claude\/|\.codex\/|\.opencode\/|\.gemini\/|\.cursor\/|\.vscode\/|\.husky\/|\.githooks\/|\.github\/|\.gitattributes$|\.gitignore$|\.worktreeinclude$|\.mcp\.json$|opencode\.jsonc?$|openspec\/config\.yaml$)|(?:^|\/)(?:AGENTS|CLAUDE|GEMINI)\.md$|(?:^|\/)\.gitattributes$|(?:^|\/)\.gitignore$/i;
-// The same places as git pathspecs, to find git-ignored files there (.claude/settings.local.json, .mcp.json): git
-// status leaves those out, and a tool could plant one that Claude Code or another tool loads on its next run.
-const PROTECTED_SPECS = [".mflow", ".agent", ".agents", ".claude", ".codex", ".opencode", ".gemini", ".cursor", ".vscode", ".husky", ".githooks", ".github", ".mcp.json", "opencode.json", "opencode.jsonc", "**/AGENTS.md", "**/CLAUDE.md", "**/GEMINI.md"].map((s) => `:(glob,icase)${s.includes("*") || s.includes(".json") ? s : `${s}/**`}`);
+// The places no job may change: they hold what mflow, the tools and git run later (commands, skills, hooks,
+// rules). One list makes both the check of git's changes and the pathspecs of the git-ignored files, so the two
+// never drift apart. Matched without case (Windows and macOS folders ignore it).
+const PROTECTED_DIRS = [".mflow", ".agent", ".agents", ".claude", ".codex", ".opencode", ".gemini", ".cursor", ".vscode", ".husky", ".githooks", ".github"];
+const PROTECTED_ROOT_FILES = [".worktreeinclude", ".mcp.json", "opencode.json", "opencode.jsonc", "openspec/config.yaml"];
+const PROTECTED_ANY_DEPTH = ["AGENTS.md", "CLAUDE.md", "GEMINI.md", ".gitattributes", ".gitignore"];
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const PROTECTED = new RegExp(
+  `^(?:${PROTECTED_DIRS.map(esc).join("|")})(?:/|$)|^(?:${PROTECTED_ROOT_FILES.map(esc).join("|")})$|(?:^|/)(?:${PROTECTED_ANY_DEPTH.map(esc).join("|")})$`,
+  "i",
+);
+// Git-ignored files there (.claude/settings.local.json, .mcp.json): git status leaves them out, and a tool could
+// plant one that Claude Code or another tool loads on its next run.
+const PROTECTED_SPECS = [
+  ...PROTECTED_DIRS.flatMap((d) => [`:(glob,icase)${d}`, `:(glob,icase)${d}/**`]),
+  ...PROTECTED_ROOT_FILES.map((f) => `:(glob,icase)${f}`),
+  ...PROTECTED_ANY_DEPTH.map((f) => `:(glob,icase)**/${f}`),
+];
+
+/**
+ * What a tool could change outside git's view that git or a tool runs later: each protected folder's own kind (a
+ * folder swapped for a link would lead the checks elsewhere), and the repository's git config, info/exclude and
+ * hooks (core.fsmonitor or a hook runs a program at the next git command, in any checkout).
+ */
+function guardState(dir) {
+  const kind = (p) => {
+    try {
+      const st = fs.lstatSync(p);
+      return st.isSymbolicLink() ? `link:${fs.readlinkSync(p)}` : st.isDirectory() ? "dir" : "file";
+    } catch {
+      return "none";
+    }
+  };
+  const top = new Map(PROTECTED_DIRS.map((d) => [d, kind(path.join(dir, d))]));
+  const gitPath = (flag) => git(dir, ["rev-parse", "--path-format=absolute", flag]).out;
+  const common = gitPath("--git-common-dir");
+  const own = gitPath("--git-dir");
+  const files = new Map();
+  const take = (p) => {
+    try {
+      files.set(p, fs.readFileSync(p));
+    } catch {
+      files.set(p, null);
+    }
+  };
+  for (const p of [path.join(common, "config"), path.join(common, "info", "exclude"), path.join(own, "config.worktree")]) take(p);
+  const hooks = path.join(common, "hooks");
+  let names = [];
+  try {
+    names = fs.readdirSync(hooks);
+  } catch { /* none */ }
+  for (const n of names) take(path.join(hooks, n));
+  return { top, files, hooks };
+}
+/** Put back what guardState saw; returns what had changed. A protected folder turned into a link loses the link. */
+function restoreGuard(dir, before) {
+  const after = guardState(dir);
+  const changed = [];
+  for (const [d, k] of after.top) {
+    if (k === before.top.get(d)) continue;
+    changed.push(d);
+    if (k.startsWith("link:")) fs.rmSync(path.join(dir, d), { force: true });
+  }
+  for (const [p, buf] of after.files) {
+    const was = before.files.has(p) ? before.files.get(p) : null;
+    if (was === null && buf === null) continue;
+    if (was && buf && was.equals(buf)) continue;
+    changed.push(path.relative(dir, p) || p);
+    if (was === null) fs.rmSync(p, { force: true });
+    else fs.writeFileSync(p, was);
+  }
+  for (const [p, was] of before.files) {
+    if (was !== null && !after.files.has(p)) {
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, was);
+      changed.push(path.relative(dir, p) || p);
+    }
+  }
+  return changed;
+}
 
 /** The git-ignored files in the protected places, with their content, to put back after a tool's run. */
 function ignoredProtected(dir) {
@@ -82,7 +157,17 @@ function writeInside(dir, rel, buf) {
   const realDir = fs.realpathSync.native(dir).toLowerCase();
   const realParent = fs.realpathSync.native(parent).toLowerCase();
   if (realParent !== realDir && !realParent.startsWith(realDir + path.sep)) throw new Error(`${rel} leads outside the worktree`);
-  fs.writeFileSync(path.join(dir, rel), buf);
+  // Never through a link, even one made between the check above and this write (O_NOFOLLOW where the system has it).
+  const target = path.join(dir, rel);
+  try {
+    if (fs.lstatSync(target).isSymbolicLink()) fs.rmSync(target, { force: true });
+  } catch { /* not there */ }
+  const fd = fs.openSync(target, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC | (fs.constants.O_NOFOLLOW || 0));
+  try {
+    fs.writeSync(fd, buf);
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 /** Remove a file or a link itself, never what a link points to. */
 const removeInside = (dir, rel) => fs.rmSync(path.join(dir, rel), { force: true });
@@ -210,6 +295,8 @@ function runTool(exe, args, { cwd, minutes, heartbeat }) {
       grace = setTimeout(() => finish(null, `\n(runner: stopped after ${minutes} minutes)`), 10_000);
     }, minutes * 60_000);
     child.on("exit", (status) => {
+      // Whatever the tool left running (POSIX: its process group) is ended before its files are read.
+      if (process.platform !== "win32") killTree(child);
       // 'close' follows once the pipes drain; give it a moment, then go on without it.
       if (!grace) grace = setTimeout(() => finish(status, timedOut ? `\n(runner: stopped after ${minutes} minutes)` : ""), 5_000);
     });
@@ -250,8 +337,10 @@ async function doJob(root, got, tool, cfg, sh) {
   fs.writeFileSync(paths.brief, brief(got, tool));
   const head = git(got.dir, ["rev-parse", "HEAD"]).out;
   let ignoredBefore;
+  let guardBefore;
   try {
     ignoredBefore = ignoredProtected(got.dir);
+    guardBefore = guardState(got.dir);
   } catch (err) {
     release(root, j.id, { ...at, note: err.message });
     return { job: j.id, kind: j.kind, batch: got.batch, result: "not done", stop: err.message };
@@ -264,7 +353,8 @@ async function doJob(root, got, tool, cfg, sh) {
   // Git-ignored files in protected places go back as they were before anything else is read or run.
   let plantedIgnored;
   try {
-    plantedIgnored = restoreIgnored(got.dir, ignoredBefore);
+    // A protected folder made a link first, so the ignored files are not read through it.
+    plantedIgnored = [...restoreGuard(got.dir, guardBefore), ...restoreIgnored(got.dir, ignoredBefore)];
   } catch (err) {
     // Unsure what the tool left in a protected place: nothing more is read, run or recorded.
     release(root, j.id, { ...at, note: `protected files not checked: ${err.message}` });

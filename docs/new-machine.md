@@ -16,6 +16,7 @@
 | Codex CLI | 0.172 ขึ้นไป | ไม่บังคับ | ใช้กับ `/mflow:delegate --to codex` และ `node tests/smoke/codex-skills.mjs` |
 | Antigravity CLI (`agy`) | 1.5.16 | ไม่บังคับ | ใช้กับ `/mflow:delegate --to antigravity` |
 | Python 3, ffmpeg, Microsoft Word | | ไม่บังคับ | ใช้เมื่อรัน mclip จริง (เสียง คลิป เอกสาร docx/pdf) ไม่ต้องใช้ใน `node --test` |
+| WeftCut | 0.8.1 | ไม่บังคับ | ใช้กับ `/mclip:finish` เท่านั้น ไม่มีใน winget ดาวน์โหลด `WeftCut-win-x64.exe` จาก [releases](https://github.com/WeftCut/WeftCut/releases/latest) (`gh release download --repo WeftCut/WeftCut -p "WeftCut-win-x64.exe"`) ติดตั้งแล้ว**เปิดแอปหนึ่งครั้ง** แอปจึงจะวาง `%APPDATA%\WeftCut\cli\weftcut.exe` ที่ MCP ใช้ จากนั้นเพิ่ม MCP ตามข้อ 3 |
 
 ไม่ต้องใช้ Docker หรือ .NET กับ repo นี้ (ต้องใช้ในโปรเจกต์ที่ใช้ mflow เท่านั้น)
 
@@ -38,7 +39,8 @@ gh repo clone mounchons/mflow-marketplace D:\ProjectClaude\mflow-marketplace
 | ค่าตั้ง Claude Code ของ repo | `.claude\settings.json` ใน repo | ไม่บังคับ ไม่ต้อง copy `.claude\scheduled_tasks.lock` |
 | เอกสารที่ไม่ได้ commit | ไฟล์ที่ `git status` แสดงเป็น `??` ใน `docs\` | copy เอง เอกสารที่มีข้อมูลงานของลูกค้าไม่ commit เพราะ repo นี้เป็น public |
 | ค่าตั้งระดับ user | `%USERPROFILE%\.claude\CLAUDE.md` (ภาษาที่ตอบ กติกาโฟลเดอร์ `D:\claude-temp\`) และ `%USERPROFILE%\.claude\settings.json` | copy `CLAUDE.md` ได้เลย ส่วน `settings.json` เปิดดูก่อน: path ของ hook และ status line ชี้ไปที่ script ในเครื่องเดิม |
-| MCP server | `codebase-memory-mcp`, `tamra-kb`, `weftcut` ใน `%USERPROFILE%\.claude.json` | เพิ่มใหม่ด้วย `claude mcp add` ตามคู่มือของแต่ละตัว อย่า copy `.claude.json` ทั้งไฟล์ เพราะมีข้อมูล login และ token |
+| MCP server | `codebase-memory-mcp`, `tamra-kb`, `weftcut` ใน `%USERPROFILE%\.claude.json` | เพิ่มใหม่ด้วย `claude mcp add` ตามคู่มือของแต่ละตัว อย่า copy `.claude.json` ทั้งไฟล์ เพราะมีข้อมูล login และ token; `weftcut` (หลังติดตั้งและเปิดแอปตามข้อ 1) เป็น stdio ไม่ต้องใช้ token หรือ port: `claude mcp add weftcut -s user -- "%APPDATA%\WeftCut\cli\weftcut.exe" mcp` (ใส่ path เต็ม เช่น `C:\Users\<user>\AppData\Roaming\WeftCut\cli\weftcut.exe`) ถ้าคำสั่งใน Settings → Agent → Connect agent ของแอปต่างจากนี้ ให้ใช้ของแอป |
+| GitHub MCP ของ plugin `github` | environment variable `GITHUB_PERSONAL_ACCESS_TOKEN` | ตั้งใหม่บนเครื่องใหม่ (`setx GITHUB_PERSONAL_ACCESS_TOKEN <token>` แล้วเปิด Claude Code ใหม่) ถ้าไม่ตั้ง `claude mcp list` จะขึ้นว่า `Authorization header is badly formatted` |
 | login ของ Codex และ agy | | login ใหม่บนเครื่องใหม่ ไม่ copy ไฟล์ credential |
 
 ไม่ต้อง copy: `node_modules\`, `tmp\`, `.brain\`, cache ใน `%USERPROFILE%\.claude\plugins\` (Claude Code ดึงใหม่เอง)
@@ -66,6 +68,7 @@ claude plugin validate plugins\mflow
 claude plugin validate .
 gh auth status
 openspec --version; backlog --version
+claude mcp list                     # codebase-memory-mcp, tamra-kb, weftcut ขึ้น ✔ Connected
 ```
 
 ใน session แรกของ Claude Code ที่ repo นี้ ถามว่า "จำอะไรเกี่ยวกับ mflow ได้บ้าง" ถ้าตอบเรื่องรุ่นล่าสุด (0.51.0) ได้ แปลว่า memory มาครบ

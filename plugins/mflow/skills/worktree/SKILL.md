@@ -16,8 +16,8 @@ Scripts: `node "${CLAUDE_PLUGIN_ROOT}/scripts/worktree.mjs" <command>`, run from
 3. Install the dependencies in the new folder as AGENTS.md `## Commands` says (package restore, `npm install` per web project, `dotnet tool restore`), in the foreground. When AGENTS.md names none, say so in one line and leave it to the first build.
 4. Tell the user, in a few lines: the folder, the branch, the files copied, every warning (a long path on Windows, no `.worktreeinclude`), and how to start the tool `--to` names (Claude Code when none) from `start`, in a new terminal, because this session stays where it is:
    - Claude Code: `start.claude`, then `/opsx:apply <change>` there.
-   - Codex: `start.codex`, then ask it to apply `<change>` (its `openspec-apply-change` skill); `$mflow-test` and `$mflow-review` work there too.
-   - Antigravity: `start.antigravity`; OpenCode: `start.opencode`; then ask it to apply `<change>`.
+   - Codex: `start.codex`, then ask it to apply `<change>` (its `openspec-apply-change` skill); `$mflow-test` and `$mflow-review` work there too. Give `notes.codex` with it: Codex's sandbox keeps `.git` read-only everywhere, so it asks before each `git commit`; approve it, or Claude commits the work with `merge`.
+   - Antigravity: `start.antigravity` (with `notes.antigravity`); OpenCode: `start.opencode`; then ask it to apply `<change>`.
    Apply in that worktree stays on `feat/<change>` and, when the change is done, asks to merge it.
 
 ## `list`
@@ -28,7 +28,7 @@ Run `worktree.mjs list` and show each worktree: its branch, the change a `feat/`
 
 For a change applied in another worktree, when its session or tool is finished. Merge only on the user's word; `/mflow:worktree merge` typed by the user is that word.
 
-1. `worktree.mjs list` gives the folder of `feat/<change>`. It must have no uncommitted changes (`git -C <folder> status --porcelain`); otherwise its tool is still at work: stop and say so.
+1. `worktree.mjs list` gives the folder of `feat/<change>`. It must have no uncommitted changes (`git -C <folder> status --porcelain`). When it has some, ask in one line whether its tool is done: on a yes, commit them on `feat/<change>`, added by name (a tool that could not commit, such as Codex in its sandbox), and go on; otherwise stop.
 2. In that folder: `git -C <folder> merge main`. Settle a conflict there; for `openspec/specs/`, keep the requirements of both sides. Then run the change's tests there (the build, the unit tests and the test classes it added, filtered as `/opsx:apply` does after a task), and commit the merge.
 3. Here, on `main`: `git merge --no-ff feat/<change> -m "Merge feat/<change>"`. When this checkout is not on `main`, or git would overwrite uncommitted files, stop and say why.
 4. Write the STATUS.md entry for the merge (the change, its merge commit, what is next) and commit it. Do not push; ask about the push once in one line.

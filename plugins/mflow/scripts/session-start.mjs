@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   readStdinJson, findRoot, loadConfig, run, runJson, readText, readJsonFile,
-  sessionStateFile, frontmatter, truncate, gitStatus, compareVersions, mtimeMs, unloggedWork,
+  sessionStateFile, frontmatter, truncate, gitStatus, compareVersions, mtimeMs, unloggedWork, worktreeInfo,
 } from "./lib.mjs";
 import { fileURLToPath } from "node:url";
 import { scan as scanSources } from "./source-index.mjs";
@@ -38,6 +38,9 @@ try {
 } catch (err) {
   configError = err.message;
 }
+
+// A linked worktree (git worktree add, claude --worktree, an Orca workspace) leaves STATUS.md to the main checkout.
+const inWorktree = (() => { try { return Boolean(worktreeInfo(root)?.linked); } catch { return false; } })();
 
 // `git status` once, for the session record and the work STATUS.md does not cover yet.
 let gitNow;
@@ -88,7 +91,7 @@ if (status) {
   // Work since the last entry, from an earlier session that ended without a commit or committed without
   // the entry. Uncommitted deletions and renames have no time of their own and are left out here.
   try {
-    const git = getGit();
+    const git = inWorktree ? null : getGit();
     if (git) {
       const { files, commits } = unloggedWork(root, git, {
         since: mtimeMs(path.join(root, "STATUS.md")),
@@ -118,7 +121,7 @@ try {
     parts.push(
       "## Worktree\n" +
         `- This session works in a worktree on \`${here?.branch || "(detached HEAD)"}\`; the main checkout is ${wt.main}.\n` +
-        "- Leave STATUS.md and new Backlog tasks or decisions to the main checkout (their ids and entries would clash with other branches); merge into main as AGENTS.md `## Branches and worktrees` says.",
+        "- Leave STATUS.md to the main checkout, which writes its entry at the merge. Create Backlog tasks and decisions with the `backlog` CLI run in the main checkout, so their ids never clash with another branch's. Merge into main as AGENTS.md `## Branches and worktrees` says.",
     );
   } else if (others.length) {
     parts.push(
@@ -298,9 +301,12 @@ try {
 
 parts.push(
   "## Session ritual\n" +
-    "Work from the state above. STATUS.md is written as part of a commit: when a commit holds work its log " +
-    "does not cover, the commit hook asks once for the entry ('## Now' rewritten, one log entry with Did / Decided / Next) " +
-    "to go into that commit. Do not add a STATUS.md update after an answer. " +
+    "Work from the state above. " +
+    (inWorktree
+      ? "In this worktree STATUS.md is not written: the main checkout writes its entry when the branch is merged, and the commit hook does not ask here. "
+      : "STATUS.md is written as part of a commit: when a commit holds work its log " +
+        "does not cover, the commit hook asks once for the entry ('## Now' rewritten, one log entry with Did / Decided / Next) " +
+        "to go into that commit. Do not add a STATUS.md update after an answer. ") +
     "Commit each finished piece of work without asking, its files added by name; push, merge or deploy only on the " +
     "user's word, asked once in one line at the end, never as a numbered menu. " +
     "When the user has to choose, number the questions and label the options a), b), c), never ก ข ค, " +

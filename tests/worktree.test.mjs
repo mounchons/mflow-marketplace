@@ -88,7 +88,11 @@ test("the briefing names the worktree and its rules there, and the other worktre
   const brief = (dir) => run(p, "session-start.mjs", [], { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir }, input: { session_id: "t-wt", cwd: dir, source: "startup" } }).json?.hookSpecificOutput?.additionalContext ?? "";
   const there = brief(inTree("add-x"));
   assert.match(there, /## Worktree\n- This session works in a worktree on `feat\/add-x`/);
-  assert.match(there, /Leave STATUS\.md and new Backlog tasks or decisions to the main checkout/);
+  assert.match(there, /Leave STATUS\.md to the main checkout/);
+  assert.match(there, /Create Backlog tasks and decisions with the `backlog` CLI run in the main checkout/);
+  assert.match(there, /In this worktree STATUS\.md is not written/);
+  fs.writeFileSync(path.join(inTree("add-x"), "src", "a.txt"), "changed\n");
+  assert.ok(!/## Not yet in STATUS\.md/.test(brief(inTree("add-x"))), "no STATUS.md reminder in a worktree");
   const main = brief(p.root);
   assert.match(main, /## Other worktrees \(parallel work\)\n- `feat\/add-x` in /);
   assert.ok(!/## Worktree\n/.test(main));
@@ -154,7 +158,7 @@ test("apply on main moves the change to feat/<change>, stays on any other branch
   assert.ok(LINES["rules.tasks"].includes("No task creates or switches a git branch; /opsx:apply puts the change on its branch before the first task."));
   const agents = read("templates/AGENTS.md");
   assert.match(agents, /^## Branches and worktrees\n- `\/opsx:apply` started on `main` first puts the change on its own branch `feat\/<change>`/m);
-  assert.match(agents, /create no Backlog task or decision/);
+  assert.match(agents, /running the `backlog` CLI in the main checkout/);
   assert.match(agents, /`git -C <main checkout> merge --no-ff feat\/<change>`/);
   const skill = read("skills/worktree/SKILL.md");
   assert.match(skill, /^disable-model-invocation: true$/m);
@@ -162,4 +166,43 @@ test("apply on main moves the change to feat/<change>, stays on any other branch
   assert.match(read("skills/init/SKILL.md"), /worktree\.mjs" setup --dry-run/);
   assert.match(read("skills/delegate/SKILL.md"), /git worktree add \.claude\/worktrees\/agent-/);
   assert.ok(!/\.\.\/<repo>-agent-<id>/.test(read("skills/delegate/SKILL.md")), "no worktree outside the main checkout by default");
+});
+
+// Line-by-line merging brings back the old copy of a row that one side changed next to a row the other added.
+test("a row ticked on main while a branch adds its own is read once, with the tick, after the merge", needsGit, () => {
+  repo();
+  wt(["setup"]);
+  assert.equal(run(p, "pending.mjs", ["add", "old-one", "--level", "skip", "--why", "label"]).status, 0);
+  git(p, "add", ".");
+  git(p, "commit", "-q", "-m", "old row");
+  wt(["new", "add-x"]);
+  const dir = inTree("add-x");
+  run(p, "pending.mjs", ["add", "add-x", "--level", "short", "--why", "test", "--branch", "feat/add-x"], { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } });
+  gitIn(dir, "commit", "-q", "-am", "apply add-x");
+  p.write("docs/reviews/pending.md", p.read("docs/reviews/pending.md").replace(/(\| old-one \|[^\n]*?)\| — \| — \| — \|/, "$1| pass 2026-11-25 | — | — |"));
+  git(p, "commit", "-q", "-am", "tick old-one");
+  git(p, "merge", "-q", "--no-ff", "feat/add-x", "-m", "Merge feat/add-x");
+  assert.equal(p.read("docs/reviews/pending.md").match(/^\| old-one \|/gm).length, 2, "the union merge leaves both copies in the file");
+  const rows = run(p, "pending.mjs", ["status"]).json.rows;
+  assert.deepEqual(rows.map((r) => [r.change, r.test]), [["old-one", "pass 2026-11-25"], ["add-x", "—"]]);
+  assert.equal(run(p, "pending.mjs", ["add", "add-z", "--level", "skip", "--why", "x"]).status, 0);
+  assert.equal(p.read("docs/reviews/pending.md").match(/^\| old-one \|/gm).length, 1, "the next write keeps one");
+});
+
+test("a change merged from its worktree is still found by pending.mjs range after the worktree and branch are removed", needsGit, () => {
+  repo();
+  wt(["new", "add-x"]);
+  const dir = inTree("add-x");
+  fs.mkdirSync(path.join(dir, "openspec", "changes", "archive", "2026-11-25-add-x"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "openspec", "changes", "archive", "2026-11-25-add-x", "tasks.md"), "- [x] 1.1 do\n");
+  fs.writeFileSync(path.join(dir, "src", "a.txt"), "x\n");
+  run(p, "pending.mjs", ["add", "add-x", "--level", "short", "--why", "test", "--branch", "feat/add-x"], { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } });
+  gitIn(dir, "add", ".");
+  gitIn(dir, "commit", "-q", "-m", "apply add-x");
+  git(p, "merge", "-q", "--no-ff", "feat/add-x", "-m", "Merge feat/add-x");
+  assert.equal(wt(["remove", "add-x"]).status, 0);
+  const r = run(p, "pending.mjs", ["range", "add-x"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.json.codeFiles.includes("src/a.txt"), JSON.stringify(r.json));
+  assert.equal(run(p, "pending.mjs", ["status"]).json.rows[0].landed, true);
 });

@@ -177,6 +177,13 @@ export function create(root, change, { from = "main", dir } = {}) {
       antigravity: `cd "${target}"; agy`,
       opencode: `cd "${target}"; opencode`,
     },
+    // Checked with codex-cli 0.172 on Windows, 2026-11-25: workspace-write keeps every .git read-only, in a worktree
+    // and in a plain checkout alike, so `git commit` fails inside its sandbox (index.lock: Permission denied), and
+    // --add-dir does not lift it.
+    notes: {
+      codex: "Codex's sandbox keeps .git read-only: approve its request to run `git commit` outside the sandbox, or commit its work yourself.",
+      antigravity: "Not yet tried in a worktree: if a commit fails there, approve it outside the sandbox or commit its work yourself.",
+    },
   };
 }
 

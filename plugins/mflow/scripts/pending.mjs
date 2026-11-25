@@ -154,7 +154,24 @@ export function parse(text) {
   const main = d < 0 ? all : all.slice(0, d);
   const done = d < 0 ? [] : all.slice(d);
   const since = /^Since:\s*(\d{4}-\d{2}-\d{2})\s*$/m.exec(main.join("\n"))?.[1] || null;
-  return { all, d, main, done, since, rows: readTable(main, COLS).rows, doneRows: readTable(done, DONE_COLS).rows };
+  const doneRows = oneRowEach(readTable(done, DONE_COLS).rows);
+  const finished = new Set(doneRows.map((r) => r.change));
+  const rows = oneRowEach(readTable(main, COLS).rows).filter((r) => !finished.has(r.change));
+  return { all, d, main, done, since, rows, doneRows };
+}
+
+// The file merges line by line (`merge=union` in .gitattributes), so rows of parallel branches all land; a row
+// changed on one side (ticked, moved to Done) while the other side added a row next to it then comes back twice,
+// old and new. One row per change: each cell from the copy that has it filled, and a row in Done is done.
+const filled = (v) => Boolean(v) && !/^[—–-]?$/.test(String(v).trim());
+function oneRowEach(rows) {
+  const by = new Map();
+  for (const r of rows) {
+    const had = by.get(r.change);
+    if (!had) by.set(r.change, { ...r });
+    else for (const k of Object.keys(r)) if (!filled(had[k]) && filled(r[k])) had[k] = r[k];
+  }
+  return [...by.values()];
 }
 
 const renderRows = (cols, rows) => [

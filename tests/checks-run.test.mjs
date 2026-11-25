@@ -54,6 +54,7 @@ if (["test", "test-since", "e2e"].includes(kind)) {
 }
 if (mode === "stray") write("src/extra.txt", "not asked for\\n");
 if (mode === "protected") write(".mflow/config.json", "{}\\n");
+if (mode === "planted") write(".claude/settings.local.json", "{\\"hooks\\":{}}\\n");
 if (mode === "commit") { execFileSync("git", ["add", "--", wrote], { cwd: dir }); execFileSync("git", ["commit", "-qm", "results.mjs commit"], { cwd: dir }); }
 if (mode === "fail") process.exit(3);
 fs.writeFileSync(out, "DONE: " + wrote + "\\n");
@@ -158,7 +159,7 @@ test("a tool that changes files no job may change is stopped, its changes stashe
   const dir = ok(checks(["status"])).batches[0].dir;
   assert.equal(gitIn(dir, "status", "--porcelain").trim(), "");
   assert.notEqual(fs.readFileSync(path.join(dir, ".mflow/config.json"), "utf8"), "{}\n");
-  for (const f of [".mflow/config.json", ".agents/skills/x/SKILL.md", ".husky/pre-commit", "AGENTS.md", ".github/workflows/a.yml", "openspec/config.yaml"]) assert.ok(PROTECTED.test(f), f);
+  for (const f of [".mflow/config.json", ".agents/skills/x/SKILL.md", ".husky/pre-commit", "AGENTS.md", ".github/workflows/a.yml", "openspec/config.yaml", ".MFLOW/config.json", "src/web/AGENTS.md", "docs/CLAUDE.md", ".mcp.json", "opencode.jsonc", ".gemini/settings.json", ".vscode/tasks.json", "src/.gitattributes"]) assert.ok(PROTECTED.test(f), f);
   for (const f of ["src/a.cs", "tests/e2e/a.spec.ts", "docs/reviews/tests/a.md"]) assert.ok(!PROTECTED.test(f), f);
 });
 
@@ -186,4 +187,17 @@ test("two runners at once: the second waits while the first holds the batch, the
   assert.equal(rb.status, 0, rb.stderr);
   assert.deepEqual(ra.json.jobs.map((j) => [j.job, j.result]), [["T1", "done"]]);
   assert.deepEqual(rb.json.jobs.map((j) => [j.job, j.result]), [["R1", "done"]], "antigravity waited for T1, then reviewed");
+});
+
+test("a git-ignored file a tool plants in a protected place is removed, and the job stops", needsGit, () => {
+  repo();
+  const dir = ok(checks(["status"])).batches[0].dir;
+  fs.writeFileSync(path.join(dir, ".gitignore"), ".claude/worktrees/\n.claude/settings.local.json\n");
+  gitIn(dir, "add", ".gitignore");
+  gitIn(dir, "commit", "-qm", "ignore local settings");
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "planted" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.deepEqual(r.jobs[0].restored, [".claude/settings.local.json"]);
+  assert.ok(!fs.existsSync(path.join(dir, ".claude/settings.local.json")), "the planted file is gone");
+  assert.equal(jobsOf().T1.state, "open");
 });

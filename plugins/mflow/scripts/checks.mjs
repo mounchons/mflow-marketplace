@@ -295,7 +295,10 @@ function commitIn(dir, files, message) {
   if (!rel.length) return null;
   must(git(dir, ["add", "--", ...rel]), "git add");
   if (git(dir, ["diff", "--cached", "--quiet"]).ok) return null;
-  must(git(dir, ["commit", "-m", message, "--", ...rel]), "git commit");
+  // No hook runs: the batch's files may come from a tool, and a repository's hooks are files a tool could change.
+  const noHooks = path.join(must(git(dir, ["rev-parse", "--path-format=absolute", "--git-common-dir"]), "git common dir"), "mflow", "checks", "no-hooks");
+  fs.mkdirSync(noHooks, { recursive: true });
+  must(git(dir, ["-c", `core.hooksPath=${noHooks}`, "commit", "--no-verify", "-m", message, "--", ...rel]), "git commit");
   return git(dir, ["rev-parse", "HEAD"]).out;
 }
 

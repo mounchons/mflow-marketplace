@@ -40,7 +40,45 @@ const CLAUDE = {
 };
 // What a tool prints when its plan's limit stops it; checked 2026-11 against no tool yet (phase 0 of the proposal).
 export const LIMIT = /usage limit|rate[ -]?limit|quota (?:exceeded|reached)|limit (?:reached|exceeded)|too many requests|\b429\b|out of (?:credits|tokens)|try again (?:in|at|after) \d/i;
-export const PROTECTED = /^(?:\.mflow\/|\.agents\/|\.claude\/|\.codex\/|\.opencode\/|\.husky\/|\.githooks\/|\.github\/|\.gitattributes$|\.gitignore$|\.worktreeinclude$|AGENTS\.md$|CLAUDE\.md$|openspec\/config\.yaml$)/;
+// Matched without case (Windows and macOS folders ignore it), the instruction files at any depth.
+export const PROTECTED = /^(?:\.mflow\/|\.agents?\/|\.claude\/|\.codex\/|\.opencode\/|\.gemini\/|\.cursor\/|\.vscode\/|\.husky\/|\.githooks\/|\.github\/|\.gitattributes$|\.gitignore$|\.worktreeinclude$|\.mcp\.json$|opencode\.jsonc?$|openspec\/config\.yaml$)|(?:^|\/)(?:AGENTS|CLAUDE|GEMINI)\.md$|(?:^|\/)\.gitattributes$|(?:^|\/)\.gitignore$/i;
+// The same places as git pathspecs, to find git-ignored files there (.claude/settings.local.json, .mcp.json): git
+// status leaves those out, and a tool could plant one that Claude Code or another tool loads on its next run.
+const PROTECTED_SPECS = [".mflow", ".agent", ".agents", ".claude", ".codex", ".opencode", ".gemini", ".cursor", ".vscode", ".husky", ".githooks", ".github", ".mcp.json", "opencode.json", "opencode.jsonc", "**/AGENTS.md", "**/CLAUDE.md", "**/GEMINI.md"].map((s) => `:(glob,icase)${s.includes("*") || s.includes(".json") ? s : `${s}/**`}`);
+
+/** The git-ignored files in the protected places, with their content, to put back after a tool's run. */
+function ignoredProtected(dir) {
+  const out = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", ...PROTECTED_SPECS], { cwd: dir, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).stdout || "";
+  const map = new Map();
+  for (const f of out.split("\0").filter(Boolean)) {
+    try {
+      map.set(f, fs.readFileSync(path.join(dir, f)));
+    } catch { /* gone meanwhile */ }
+  }
+  return map;
+}
+/** Put the ignored protected files back as they were: new ones removed, changed ones restored. Returns what differed. */
+function restoreIgnored(dir, before) {
+  const after = ignoredProtected(dir);
+  const differed = [];
+  for (const [f, buf] of after) {
+    if (!before.has(f)) {
+      fs.rmSync(path.join(dir, f), { force: true });
+      differed.push(f);
+    } else if (!before.get(f).equals(buf)) {
+      fs.writeFileSync(path.join(dir, f), before.get(f));
+      differed.push(f);
+    }
+  }
+  for (const [f, buf] of before) {
+    if (!after.has(f)) {
+      fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+      fs.writeFileSync(path.join(dir, f), buf);
+      differed.push(f);
+    }
+  }
+  return differed;
+}
 const SKILL = { test: "$mflow-test", "test-since": "$mflow-test", e2e: "$mflow-e2e", "e2e-write": "$mflow-e2e", review: "$mflow-review", "review-merge": "$mflow-review", fix: null };
 
 function git(cwd, args) {
@@ -181,18 +219,30 @@ async function doJob(root, got, tool, cfg, sh) {
   const paths = { brief: path.join(dirRuns, `${stem}.brief.md`), out: path.join(dirRuns, `${stem}.out.md`), worktree: got.dir };
   fs.writeFileSync(paths.brief, brief(got, tool));
   const head = git(got.dir, ["rev-parse", "HEAD"]).out;
+  const ignoredBefore = ignoredProtected(got.dir);
   const cmd = command(root, tool, paths, sh.shell);
   const r = await runTool(sh.exe, sh.args(cmd), { cwd: got.dir, minutes: cfg.jobMinutes, heartbeat: () => touch(root, got.batch, j.id) });
   const said = `${fs.existsSync(paths.out) ? fs.readFileSync(paths.out, "utf8") : ""}\n${r.stdout}`;
   const base = { job: j.id, kind: j.kind, batch: got.batch, exit: r.status, out: paths.out };
-  // A tool that committed anyway (its skill's results.mjs step): only a fix may; for any other job the commits are
-  // undone and their files kept, so they count as the job's result or as leftovers like any other file.
-  if (j.kind !== "fix" && git(got.dir, ["rev-parse", "HEAD"]).out !== head) git(got.dir, ["reset", "-q", "--soft", head]);
+  const finished = r.status === 0 && /^\s*`?DONE:/m.test(said);
+  // Git-ignored files in protected places go back as they were before anything else is read or run.
+  const plantedIgnored = restoreIgnored(got.dir, ignoredBefore);
+  // Commits the tool made: kept only for a fix that finished and touches no protected file; otherwise undone with
+  // their files kept, so they count as the job's result or as leftovers like any other file.
+  if (git(got.dir, ["rev-parse", "HEAD"]).out !== head) {
+    const inRange = git(got.dir, ["diff", "--name-only", head, "HEAD"]).out.split(/\r?\n/).filter(Boolean);
+    if (j.kind !== "fix" || !finished || inRange.some((x) => PROTECTED.test(x))) git(got.dir, ["reset", "-q", "--soft", head]);
+  }
   // Undo what the job never asks a tool to write; the runner and done write these.
   for (const f of ["STATUS.md", "docs/reviews/pending.md", `docs/reviews/checks/${got.batch}.md`]) git(got.dir, ["checkout", "HEAD", "--", f]);
   const tasks = changes(got.dir).map((c) => c.file).filter((f) => /^openspec\/.+\/tasks\.md$/.test(f));
   if (tasks.length) git(got.dir, ["checkout", "HEAD", "--", ...tasks]);
-  const finished = r.status === 0 && /^\s*`?DONE:/m.test(said);
+  const touched = [...plantedIgnored, ...changes(got.dir).map((c) => c.file).filter((x) => PROTECTED.test(x))];
+  if (touched.length) {
+    const why = `${tool} changed files no job may change (they hold commands, skills, hooks or rules): ${touched.slice(0, 5).join(", ")}`;
+    release(root, j.id, { ...at, note: why });
+    return { ...base, result: "not done", stop: why, left: touched, ...(plantedIgnored.length ? { restored: plantedIgnored } : {}), stashed: stash(got.dir, `${got.batch}/${j.id} ${tool} protected files`) };
+  }
   const asked = /^\s*`?BLOCKED:\s*(.+?)`?\s*$/m.exec(said)?.[1];
   if (asked) {
     block(root, j.id, { ...at, note: `${tool}: ${asked}` });
@@ -200,12 +250,6 @@ async function doJob(root, got, tool, cfg, sh) {
     return { ...base, result: "blocked", question: asked, ...(left.length ? { left, stashed: stash(got.dir, `${got.batch}/${j.id} ${tool} blocked`) } : {}) };
   }
   const changed = changes(got.dir);
-  const touched = changed.map((c) => c.file).filter((x) => PROTECTED.test(x));
-  if (touched.length) {
-    const why = `${tool} changed files no job may change (they hold commands, skills, hooks or rules): ${touched.slice(0, 5).join(", ")}`;
-    release(root, j.id, { ...at, note: why });
-    return { ...base, result: "not done", stop: why, left: touched, stashed: stash(got.dir, `${got.batch}/${j.id} ${tool} protected files`) };
-  }
   const pick = (re) => changed.filter((c) => c.added && re.test(c.file)).map((c) => c.file);
   let opts = null;
   let explained = [];
@@ -227,13 +271,6 @@ async function doJob(root, got, tool, cfg, sh) {
       fs.mkdirSync(noHooks, { recursive: true });
       const c = git(got.dir, ["-c", `core.hooksPath=${noHooks}`, "commit", "--no-verify", "-m", `fix(checks): ${j.id} ${j.target} (${tool})`, "--", ...files]);
       if (!c.ok) return { ...base, result: "error", stop: `the fix's commit failed: ${c.err}` };
-    }
-    const committed = git(got.dir, ["diff", "--name-only", head, "HEAD"]).out.split(/\r?\n/).filter(Boolean).filter((x) => PROTECTED.test(x));
-    if (committed.length) {
-      git(got.dir, ["reset", "-q", "--soft", head]);
-      const why = `${tool}'s fix changes files no job may change: ${committed.slice(0, 5).join(", ")}`;
-      release(root, j.id, { ...at, note: why });
-      return { ...base, result: "not done", stop: why, left: committed, stashed: stash(got.dir, `${got.batch}/${j.id} ${tool} protected files`) };
     }
     if (git(got.dir, ["rev-parse", "HEAD"]).out !== head) [opts, explained] = [{}, files];
   }

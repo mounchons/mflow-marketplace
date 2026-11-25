@@ -208,3 +208,20 @@ test("a change merged from its worktree is still found by pending.mjs range afte
   assert.ok(r.json.codeFiles.includes("src/a.txt"), JSON.stringify(r.json));
   assert.equal(run(p, "pending.mjs", ["status"]).json.rows[0].landed, true);
 });
+
+// The user, 2026-11-25 ("a"): asked in words, Claude makes the worktree itself; the worktrees are for development,
+// so test, review and E2E keep running in the main checkout on main.
+test("parallel work asked in words: CLAUDE.md lets Claude make the worktree, and the briefing names the steps and the plugin folder", needsGit, () => {
+  const claude = read("templates/CLAUDE.md");
+  assert.match(claude, /^- Parallel work asked for in words, without `\/mflow:worktree` \("แยก folder", "ทำพร้อมกัน"/m);
+  assert.match(claude, /following the steps the mflow briefing names under `## Parallel work`[^\n]*Other `\/mflow:\*` commands still run only when the user types them\./);
+  repo();
+  const text = run(p, "session-start.mjs", [], { input: { session_id: "t-pw", cwd: p.root, source: "startup" } }).json.hookSpecificOutput.additionalContext;
+  const skill = path.join(SCRIPTS, "..", "skills", "worktree", "SKILL.md");
+  assert.ok(text.includes(`## Parallel work\n- Asked in words`), text.slice(0, 400));
+  assert.ok(text.includes(skill), "the briefing names the skill file");
+  assert.ok(fs.existsSync(skill));
+  const agents = read("templates/AGENTS.md");
+  assert.match(agents, /keep the main checkout on `main` for `\/mflow:test`, `\/mflow:review pending` and `\/mflow:e2e`/);
+  assert.match(agents, /not while a test, review or E2E run is going in the main checkout/);
+});

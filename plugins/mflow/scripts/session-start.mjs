@@ -130,6 +130,13 @@ try {
         "\n- Their changes are not in this checkout until merged; do not edit them from here.",
     );
   }
+  // CLAUDE.md lets Claude make a worktree when the user asks for parallel work in words; the project cannot
+  // know where the plugin is installed, so the briefing names the steps and the script.
+  const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  parts.push(
+    "## Parallel work\n" +
+      `- Asked in words to work on a change in its own folder, at the same time as other work, or by another tool: follow the \`<change>\` part of ${path.join(pluginRoot, "skills", "worktree", "SKILL.md")} without waiting for /mflow:worktree; \`\${CLAUDE_PLUGIN_ROOT}\` there is ${pluginRoot}.`,
+  );
 } catch { /* not a git repository, or git missing */ }
 
 // 2. Active OpenSpec changes (what WILL be true), and the apply subagent.

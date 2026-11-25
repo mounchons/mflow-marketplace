@@ -7,7 +7,9 @@ argument-hint: "<change> [--to claude|codex|antigravity|opencode] [--dir <path>]
 
 One change, one branch, one folder. Two sessions in one folder share its checkout, so a branch switch in one moves the other; a worktree per change keeps them apart. Everything mflow needs is committed (AGENTS.md, CLAUDE.md, `openspec/config.yaml`, `.agents/skills/`, `.claude/skills/`, `.mflow/config.json`), so every tool finds mflow in the worktree: Claude Code loads the main checkout's project-scope plugins in its worktrees and shares its auto memory, and Codex, Antigravity and OpenCode read AGENTS.md and `.agents/skills/`. The rules every tool follows there are in AGENTS.md `## Branches and worktrees`.
 
-Scripts: `node "${CLAUDE_PLUGIN_ROOT}/scripts/worktree.mjs" <command>`, run from the main checkout or any worktree.
+Scripts: `node "${CLAUDE_PLUGIN_ROOT}/scripts/worktree.mjs" <command>`, run from the main checkout or any worktree. Claude also follows the `<change>` part without the command when the user asks for parallel work in words (CLAUDE.md, the briefing's `## Parallel work`); `list`, `merge` and `remove` wait for the command or a plain yes.
+
+The usual layout: develop in worktrees, one per change, and keep the main checkout on `main` for `/mflow:test`, `/mflow:review pending` and `/mflow:e2e`, which run on what is merged while the next changes go on.
 
 ## `<change>`: a worktree for a change
 
@@ -26,7 +28,7 @@ Run `worktree.mjs list` and show each worktree: its branch, the change a `feat/`
 
 ## `merge <change>`: from the main checkout
 
-For a change applied in another worktree, when its session or tool is finished. Merge only on the user's word; `/mflow:worktree merge` typed by the user is that word.
+For a change applied in another worktree, when its session or tool is finished. Merge only on the user's word; `/mflow:worktree merge` typed by the user is that word. Not while a `/mflow:test`, `/mflow:review` or `/mflow:e2e` run is going in the main checkout: its files would change under the run; ask in one line when unsure.
 
 1. `worktree.mjs list` gives the folder of `feat/<change>`. It must have no uncommitted changes (`git -C <folder> status --porcelain`). When it has some, ask in one line whether its tool is done: on a yes, commit them on `feat/<change>`, added by name (a tool that could not commit, such as Codex in its sandbox), and go on; otherwise stop.
 2. In that folder: `git -C <folder> merge main`. Settle a conflict there; for `openspec/specs/`, keep the requirements of both sides. Then run the change's tests there (the build, the unit tests and the test classes it added, filtered as `/opsx:apply` does after a task), and commit the merge.

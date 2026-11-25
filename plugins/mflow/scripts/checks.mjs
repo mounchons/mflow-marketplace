@@ -460,10 +460,18 @@ export function next(root, { as, batch, job: only } = {}) {
     const all = batches(root).filter((b) => b.open);
     const open = batch ? all.filter((b) => b.name === batch || b.branch === batch) : all;
     const skipped = [];
+    let busy = false;
     for (const b of open) {
       const older = heldBy(b, all);
       if (older) {
         skipped.push(`${b.name} waits until ${older.name} is merged or closed, so it starts with that batch's fixes`);
+        continue;
+      }
+      // One job at a time in a batch: its jobs share one worktree, so two tools there would see each other's files.
+      const running = Object.values(live).find((c) => c.job.startsWith(`${b.name}/`));
+      if (running) {
+        if (b.jobs.some((j) => j.state === "open" && (j.agent === "any" || j.agent === as))) busy = true;
+        skipped.push(`${b.name} runs ${running.job.split("/")[1]} (${running.tool}); one job at a time in a batch`);
         continue;
       }
       for (const j of b.jobs) {
@@ -473,6 +481,7 @@ export function next(root, { as, batch, job: only } = {}) {
         if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !E2E_TOOLS.includes(as)) continue;
         if (!waitsMet(j, b.jobs)) continue;
         if (HEAVY.has(j.kind) && heavyBusy) {
+          busy = true;
           skipped.push(`${b.name}/${j.id} waits for the heavy lane (${heavyBusy.tool} runs ${heavyBusy.job})`);
           continue;
         }
@@ -495,7 +504,7 @@ export function next(root, { as, batch, job: only } = {}) {
         return { batch: b.name, branch: b.branch, dir, file: b.file, pinned: b.pinned, job: j, how: howOf(j, dir, b), reclaimed: stale.some((s) => s.key === `${b.name}/${j.id}`) };
       }
     }
-    return { job: null, reason: skipped.length ? skipped.join("; ") : `no open job for ${as} is ready`, batches: open.map((b) => b.name) };
+    return { job: null, busy, reason: skipped.length ? skipped.join("; ") : `no open job for ${as} is ready`, batches: open.map((b) => b.name) };
   });
 }
 

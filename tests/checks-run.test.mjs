@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { git, hasGit, project, run } from "./helpers.mjs";
+import { git, hasGit, project, run, runAsync } from "./helpers.mjs";
+import { deadlineOf, PROTECTED } from "../plugins/mflow/scripts/checks-run.mjs";
 
 let p;
 afterEach(() => p?.cleanup());
@@ -17,6 +18,7 @@ const ok = (r) => {
 };
 const checks = (args, env = {}) => run(p, "checks.mjs", args, { env: { ...ID, ...env } });
 const runner = (args, env = {}) => run(p, "checks-run.mjs", args, { env: { ...ID, ...env } });
+const runnerAsync = (args, env = {}) => runAsync(p, "checks-run.mjs", args, { env: { ...ID, MFLOW_CHECKS_POLL_MS: "200", ...env } });
 const gitIn = (dir, ...args) => git({ ...p, root: dir }, ...args);
 const jobsOf = () => Object.fromEntries(ok(checks(["status"])).batches[0].jobs.map((j) => [j.id, j]));
 
@@ -28,6 +30,7 @@ const text = fs.readFileSync(brief, "utf8");
 const field = (k) => new RegExp("^" + k + ": (.+)$", "m").exec(text)[1].trim();
 const [kind, id, tool] = [field("Kind"), field("Job"), field("Tool")];
 const mode = process.env.FAKE_MODE || "";
+if (process.env.FAKE_SLOW_MS) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(process.env.FAKE_SLOW_MS));
 const write = (rel, body) => { fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true }); fs.writeFileSync(path.join(dir, rel), body); };
 if (mode === "limit") { console.log("You've hit your usage limit. Try again in 3 hours."); process.exit(1); }
 if (mode === "blocked") { fs.writeFileSync(out, "BLOCKED: the spec says nothing about refunds; a) refund b) no refund\\n"); process.exit(0); }
@@ -50,6 +53,9 @@ if (["test", "test-since", "e2e"].includes(kind)) {
   write(wrote, "test('x', () => {});\\n");
 }
 if (mode === "stray") write("src/extra.txt", "not asked for\\n");
+if (mode === "protected") write(".mflow/config.json", "{}\\n");
+if (mode === "commit") { execFileSync("git", ["add", "--", wrote], { cwd: dir }); execFileSync("git", ["commit", "-qm", "results.mjs commit"], { cwd: dir }); }
+if (mode === "fail") process.exit(3);
 fs.writeFileSync(out, "DONE: " + wrote + "\\n");
 `;
 
@@ -121,7 +127,9 @@ test("BLOCKED from the tool blocks the job for the user; files it did not explai
   assert.equal(s.jobs[0].result, "not done");
   assert.match(s.stopped, /left files the job does not explain: src\/extra\.txt/);
   const dir = ok(checks(["status"])).batches[0].dir;
-  assert.ok(fs.existsSync(path.join(dir, "src/extra.txt")), "the files stay for the user to look at");
+  assert.match(s.jobs[0].stashed, /^checks-run .+\/T1 codex not done$/);
+  assert.ok(!fs.existsSync(path.join(dir, "src/extra.txt")), "the leftovers are stashed, out of the next job's way");
+  assert.match(gitIn(dir, "stash", "list"), /checks-run .+\/T1 codex not done/);
   assert.equal(jobsOf().T1.state, "open");
 });
 
@@ -132,8 +140,50 @@ test("--dry-run shows the command; a tool with no job ready, or a time already p
   const none = ok(runner(["--as", "antigravity"]));
   assert.deepEqual(none.jobs, []);
   assert.match(none.stopped, /no open job for antigravity is ready/);
-  const late = ok(runner(["--as", "codex", "--until", "00:00"]));
-  assert.deepEqual(late.jobs, []);
-  assert.match(late.stopped, /past 00:00/);
+  // 06:00 asked at 22:00 is tomorrow morning, so the evening's run takes jobs.
+  const night = ok(runner(["--as", "codex", "--jobs", "1", "--until", "06:00"], { MFLOW_NOW: "2026-11-26T22:00:00" }));
+  assert.deepEqual(night.jobs.map((j) => j.job), ["T1"]);
+  const d22 = new Date(2026, 10, 26, 22, 0);
+  assert.equal(deadlineOf("06:00", d22).getTime(), new Date(2026, 10, 27, 6, 0).getTime());
+  assert.equal(deadlineOf("23:30", d22).getTime(), new Date(2026, 10, 26, 23, 30).getTime());
+  assert.throws(() => deadlineOf("25:00", d22), /HH:MM/);
   assert.notEqual(runner(["--as", "gemini"]).status, 0);
+});
+
+test("a tool that changes files no job may change is stopped, its changes stashed and nothing committed", needsGit, () => {
+  repo();
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "protected" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.match(r.stopped, /changed files no job may change .*\.mflow\/config\.json/);
+  const dir = ok(checks(["status"])).batches[0].dir;
+  assert.equal(gitIn(dir, "status", "--porcelain").trim(), "");
+  assert.notEqual(fs.readFileSync(path.join(dir, ".mflow/config.json"), "utf8"), "{}\n");
+  for (const f of [".mflow/config.json", ".agents/skills/x/SKILL.md", ".husky/pre-commit", "AGENTS.md", ".github/workflows/a.yml", "openspec/config.yaml"]) assert.ok(PROTECTED.test(f), f);
+  for (const f of ["src/a.cs", "tests/e2e/a.spec.ts", "docs/reviews/tests/a.md"]) assert.ok(!PROTECTED.test(f), f);
+});
+
+test("a tool that committed its record itself has the commit undone and the record recorded; a fix that failed is not recorded", needsGit, () => {
+  repo();
+  const c = ok(runner(["--as", "codex", "--jobs", "1"], { FAKE_MODE: "commit" }));
+  assert.equal(c.jobs[0].result, "done");
+  const dir = ok(checks(["status"])).batches[0].dir;
+  assert.doesNotMatch(gitIn(dir, "log", "--format=%s", "-3"), /results\.mjs commit/, "the tool's own commit was undone");
+  ok(runner(["--as", "codex", "--jobs", "1"], { FAKE_VERDICT: "changes-requested" }));
+  const f = ok(runner(["--as", "codex", "--jobs", "1"], { FAKE_MODE: "fail" }));
+  assert.equal(f.jobs[0].result, "not done", "a fix whose tool failed is never committed");
+  assert.equal(jobsOf().F1.state, "open");
+  assert.match(f.jobs[0].stashed, /F1 codex not done/);
+});
+
+test("two runners at once: the second waits while the first holds the batch, then takes its own job", needsGit, async () => {
+  repo();
+  ok(checks(["assign", "R1", "antigravity"]));
+  const a = runnerAsync(["--as", "codex", "--jobs", "1"], { FAKE_SLOW_MS: "1500" });
+  await new Promise((r) => setTimeout(r, 700));
+  const b = runnerAsync(["--as", "antigravity", "--jobs", "1"]);
+  const [ra, rb] = await Promise.all([a, b]);
+  assert.equal(ra.status, 0, ra.stderr);
+  assert.equal(rb.status, 0, rb.stderr);
+  assert.deepEqual(ra.json.jobs.map((j) => [j.job, j.result]), [["T1", "done"]]);
+  assert.deepEqual(rb.json.jobs.map((j) => [j.job, j.result]), [["R1", "done"]], "antigravity waited for T1, then reviewed");
 });

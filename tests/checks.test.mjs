@@ -130,8 +130,9 @@ test("tests and E2E take turns on the machine, reviews wait for the tests, and a
   ok(checks(["sync"]));
   assert.equal(ok(checks(["next", "--as", "claude"])).job.id, "T0");
   const busy = ok(checks(["next", "--as", "codex"]));
-  assert.equal(busy.job, null, "T1 waits: the heavy lane is busy, and R1 waits for the tests");
-  assert.match(busy.reason, /heavy lane \(claude runs .*T0\)/);
+  assert.equal(busy.job, null, "one job at a time in a batch, and R1 waits for the tests");
+  assert.match(busy.reason, /runs T0 \(claude\); one job at a time in a batch/);
+  assert.equal(busy.busy, true, "a runner knows to wait rather than give up");
   const st = ok(checks(["status"]));
   assert.equal(st.batches[0].jobs.find((j) => j.id === "T0").running.tool, "claude");
   assert.equal(st.batches[0].jobs.find((j) => j.id === "R1").ready, false);
@@ -315,7 +316,7 @@ test("the briefing shows the open batch and names the checks skill once the proj
   const tpl = (f) => fs.readFileSync(path.join(SCRIPTS, "..", "templates", f), "utf8").replace(/\r\n/g, "\n");
   assert.match(tpl("CLAUDE.md"), /When `\.mflow\/config\.json` has `checks`: after each merge into main, put the change into the open checks batch/);
   assert.match(tpl("CLAUDE.md"), /numbered menu\. The `checks\/\*` branches are the one exception/);
-  assert.match(tpl("AGENTS.md"), /One test or E2E job at a time per machine\. The `checks\/\*` branches and their draft pull requests are pushed without asking; the user merges them\./);
+  assert.match(tpl("AGENTS.md"), /One job at a time in a batch, and one test or E2E job at a time per machine\. The `checks\/\*` branches and their draft pull requests are pushed without asking; the user merges them\./);
 });
 
 test("enable opts the project in once; a route that sends E2E to a tool without the browser guard is refused", needsGit, () => {

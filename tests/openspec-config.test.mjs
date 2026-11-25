@@ -156,7 +156,7 @@ test("apply archives the change in the same turn and commits once; archive commi
   assert.match(archive[1], /^After the archive, commit it on the branch checked out without asking/);
   assert.match(archive[1], /when \/opsx:apply ran the archive in its turn, its one commit holds both/);
   assert.match(archive[1], /Push and merge only on the user's word, asked once in one line\.$/);
-  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line whether to merge it into main \(not while a test, review or E2E run is going in the main checkout\), and on a yes merge as AGENTS\.md `## Branches and worktrees` says; on any other branch merge only on the user's word\. Push only on the user's word, asked once in one line\.$/);
+  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line which way, a\) first `\/mflow:test` and `\/mflow:review feat\/<change>` on this branch, merged once the review approves, recommended for business rules, permissions or data scope, queries, migrations, integrations or startup wiring, or b\) merge it into main now, tested and reviewed later on main with the other waiting changes; never merge while a test, review or E2E run is going in the main checkout, and on a merge follow AGENTS\.md `## Branches and worktrees`; on any other branch merge only on the user's word\. Push only on the user's word, asked once in one line\.$/);
   assert.match(apply, /in a linked worktree STATUS\.md is left to the main checkout/);
   for (const line of [apply, ...archive]) assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
 });

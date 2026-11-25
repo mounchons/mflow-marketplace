@@ -156,7 +156,14 @@ test("apply on main moves the change to feat/<change>, stays on any other branch
   assert.match(branch, /^Before the first task, check the branch with `git branch --show-current`\. On `main`, first move the change to its own branch with `git switch -c feat\/<change>`/);
   assert.match(branch, /On any other branch \(a worktree's own, `change\/<change>` of \/mflow:apply-all, one the user made\) stay on it/);
   assert.equal(yamlItem(branch), branch, "a plain YAML item");
-  assert.match(apply.at(-1), /On a `feat\/<change>` branch, then ask in one line whether to merge it into main/);
+  assert.match(apply.at(-1), /On a `feat\/<change>` branch, then ask in one line which way, a\) first `\/mflow:test` and `\/mflow:review feat\/<change>` on this branch/);
+  assert.match(apply.at(-1), /or b\) merge it into main now, tested and reviewed later on main with the other waiting changes/);
+  assert.equal(yamlItem(apply.at(-1)), apply.at(-1), "a plain YAML item");
+  // The user, 2026-11-25 ("a และรองรับ b"): a change reviewed on its branch fills its row, so /mflow:review pending
+  // does not review it again after the merge.
+  const review = read("skills/review/SKILL.md");
+  assert.match(review, /for a change's own branch before it is merged \(`feat\/<change>`, or the branch a row of `docs\/reviews\/pending\.md` names in its Branch column\), name the change in the report \(`Change: <change>`\) and run `node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/pending\.mjs" tick-review <change>/);
+  assert.match(review, /A change reviewed on its branch is then not reviewed again by `\/mflow:review pending` after the merge/);
   assert.ok(LINES["rules.tasks"].includes("No task creates or switches a git branch; /opsx:apply puts the change on its branch before the first task."));
   const agents = read("templates/AGENTS.md");
   assert.match(agents, /^## Branches and worktrees\n- `\/opsx:apply` started on `main` first puts the change on its own branch `feat\/<change>`/m);
@@ -224,4 +231,44 @@ test("parallel work asked in words: CLAUDE.md lets Claude make the worktree, and
   const agents = read("templates/AGENTS.md");
   assert.match(agents, /keep the main checkout on `main` for `\/mflow:test`, `\/mflow:review pending` and `\/mflow:e2e`/);
   assert.match(agents, /not while a test, review or E2E run is going in the main checkout/);
+});
+
+// Way a): test and review on feat/<change> before the merge; the row is Done when the branch lands, and the other
+// rows of way b) still wait for the run on main.
+test("a change tested and reviewed on its branch lands in Done with the merge; a change merged first still waits", needsGit, () => {
+  repo();
+  wt(["setup"]);
+  git(p, "add", ".");
+  git(p, "commit", "-q", "-m", "setup");
+  // Way b): merged first, tested later on main.
+  assert.equal(run(p, "pending.mjs", ["add", "label-fix", "--level", "short", "--why", "label", "--branch", "feat/label-fix"]).status, 0);
+  git(p, "add", ".");
+  git(p, "commit", "-q", "-m", "apply label-fix");
+  // Way a): on its own branch in a worktree.
+  wt(["new", "add-x"]);
+  const dir = inTree("add-x");
+  const inX = (script, args) => run(p, script, args, { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } });
+  fs.mkdirSync(path.join(dir, "openspec", "changes", "archive", "2026-11-25-add-x"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "openspec", "changes", "archive", "2026-11-25-add-x", "tasks.md"), "- [x] 1.1 do\n");
+  fs.writeFileSync(path.join(dir, "src", "a.txt"), "x\n");
+  assert.equal(inX("pending.mjs", ["add", "add-x", "--level", "full", "--why", "rules", "--branch", "feat/add-x"]).status, 0);
+  gitIn(dir, "add", ".");
+  gitIn(dir, "commit", "-q", "-m", "apply add-x");
+  const head = gitIn(dir, "rev-parse", "HEAD").trim();
+  fs.mkdirSync(path.join(dir, "docs", "reviews", "tests"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "docs", "reviews", "tests", "2026-11-25-x.md"), `Tested: feat/add-x at ${head}\nBy: claude\nScope: whole suite\nResult: pass\n`);
+  const t = inX("pending.mjs", ["tick-test", "docs/reviews/tests/2026-11-25-x.md"]);
+  assert.equal(t.status, 0, t.stderr);
+  assert.ok(t.json.ticked.includes("add-x"));
+  fs.mkdirSync(path.join(dir, "docs", "reviews", "code"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "docs", "reviews", "code", "2026-11-25-feat-add-x.md"), `Reviewed: feat/add-x at ${head}\nChange: add-x\nVerdict: approve\n`);
+  const rv = inX("pending.mjs", ["tick-review", "add-x", "--report", "docs/reviews/code/2026-11-25-feat-add-x.md", "--verdict", "approve"]);
+  assert.equal(rv.status, 0, rv.stderr);
+  assert.ok(rv.json.done, "Test and Review filled: the row moves to Done on the branch");
+  gitIn(dir, "add", "docs");
+  gitIn(dir, "commit", "-q", "-m", "test and review add-x on its branch");
+  git(p, "merge", "-q", "--no-ff", "feat/add-x", "-m", "Merge feat/add-x");
+  const s = run(p, "pending.mjs", ["status"]).json;
+  assert.deepEqual(s.done, ["add-x"]);
+  assert.deepEqual(s.rows.map((r) => r.change), ["label-fix"], "the change merged first still waits for /mflow:test and /mflow:review pending");
 });

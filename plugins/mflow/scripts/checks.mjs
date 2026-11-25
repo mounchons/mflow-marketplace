@@ -46,6 +46,14 @@ export const HEAVY = new Set(["test", "test-since", "fix", "e2e-write", "e2e"]);
 export const TOOLS = ["claude", "codex", "antigravity", "opencode"];
 const E2E_TOOLS = ["claude", "codex"];
 const E2E_KINDS = new Set(["e2e-write", "e2e"]);
+// The user's answer b (2026-11-26): a job that writes files (a test record, E2E tests, a fix) goes only to Claude
+// Code and Codex, whose writes stay in a sandbox or in Claude's permission mode. Antigravity and OpenCode run
+// without one in their code mode, so they take reviews only, read-only, their report given as their final message.
+export const WRITE_TOOLS = ["claude", "codex"];
+export const READ_ONLY_TOOLS = ["antigravity", "opencode"];
+export const READ_KINDS = new Set(["review", "review-merge"]);
+/** Whether a tool may take a job of this kind. */
+export const canTake = (tool, j) => tool === "any" || READ_KINDS.has(j.kind) || WRITE_TOOLS.includes(tool);
 export const DEFAULTS = { route: { test: "any", review: "claude", reviewMerge: "claude", fix: "claude", e2e: "claude" }, staleMinutes: 60, rounds: 3, jobsPerRun: 2, jobMinutes: 90 };
 // A fix that changes a file of a screen sends every E2E run already passed round again.
 const UI_FILE = /\.(cshtml|razor|tsx|jsx|vue|svelte|html|css|scss)$/i;
@@ -89,6 +97,9 @@ export function checksConfig(root) {
     route[kind] = kind === "review" ? [...new Set(list)] : list[0];
   }
   if (!E2E_TOOLS.includes(route.e2e)) throw new Error(`${MARKER}: checks.route.e2e must be ${E2E_TOOLS.join(" or ")}: no other tool has mflow's guard on Playwright's browsers`);
+  for (const kind of ["test", "fix"]) {
+    if (READ_ONLY_TOOLS.includes(route[kind])) throw new Error(`${MARKER}: checks.route.${kind} must be any, ${WRITE_TOOLS.join(" or ")}: ${READ_ONLY_TOOLS.join(" and ")} take reviews only (they run without a sandbox when they write)`);
+  }
   const staleMinutes = user?.staleMinutes ?? DEFAULTS.staleMinutes;
   if (!Number.isInteger(staleMinutes) || staleMinutes < 5) throw new Error(`${MARKER}: checks.staleMinutes must be a whole number of 5 or more`);
   const rounds = user?.rounds ?? DEFAULTS.rounds;
@@ -482,6 +493,7 @@ export function next(root, { as, batch, job: only } = {}) {
         if (only && j.id !== only) continue;
         if (j.agent !== "any" && j.agent !== as) continue;
         if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !E2E_TOOLS.includes(as)) continue;
+        if (!canTake(as, j)) continue;
         if (!waitsMet(j, b.jobs)) continue;
         if (HEAVY.has(j.kind) && heavyBusy) {
           busy = true;
@@ -806,6 +818,8 @@ export function assign(root, ids, tool, { batch } = {}) {
     const j = b.jobs.find((x) => x.id === id);
     if (!j) throw new Error(`${b.name} has no job ${id}`);
     if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !tools.every((t) => E2E_TOOLS.includes(t))) throw new Error(`${id} is E2E: only ${E2E_TOOLS.join(" and ")} have mflow's guard on Playwright's browsers`);
+    const refused = tools.find((t) => !canTake(t, j));
+    if (refused) throw new Error(`${id} is a ${j.kind} job: ${refused} takes reviews only (it runs without a sandbox when it writes); give it to ${WRITE_TOOLS.join(" or ")}`);
     if (tools.length === 1) {
       j.agent = tools[0];
       continue;

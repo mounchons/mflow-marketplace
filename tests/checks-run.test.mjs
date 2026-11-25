@@ -42,6 +42,10 @@ if (["test", "test-since", "e2e"].includes(kind)) {
   const scope = kind === "test" ? "whole suite" : kind === "e2e" ? "e2e" : "since abc1234";
   write(wrote, "Tested: " + branch + " at " + head + "\\nBy: " + tool + "\\nScope: " + scope + "\\nResult: " + (process.env.FAKE_RESULT || "pass") + "\\nDuration: 1m\\n\\n## Failures\\nnone\\n");
   write("docs/reviews/pending.md", fs.readFileSync(path.join(dir, "docs/reviews/pending.md"), "utf8") + "\\n<!-- a tool's own edit -->\\n");
+} else if (kind.startsWith("review") && field("Mode") === "read-only") {
+  // A read-only tool writes nothing: its report is its final message.
+  fs.writeFileSync(out, "Here is my review.\\nChange: add-a\\nReviewer: " + tool + "\\nVerdict: " + (process.env.FAKE_VERDICT || "approve") + "\\n\\n## Findings\\nnone\\n");
+  process.exit(0);
 } else if (kind.startsWith("review")) {
   wrote = "docs/reviews/code/fake-" + id + ".md";
   write(wrote, "Change: x\\nReviewer: " + tool + "\\nVerdict: " + (process.env.FAKE_VERDICT || "approve") + "\\n");
@@ -192,6 +196,11 @@ test("two runners at once: the second waits while the first holds the batch, the
   assert.equal(rb.status, 0, rb.stderr);
   assert.deepEqual(ra.json.jobs.map((j) => [j.job, j.result]), [["T1", "done"]]);
   assert.deepEqual(rb.json.jobs.map((j) => [j.job, j.result]), [["R1", "done"]], "antigravity waited for T1, then reviewed");
+  const r1 = jobsOf().R1;
+  assert.match(r1.result, /^docs\/reviews\/code\/\d{4}-\d{2}-\d{2}-add-a-antigravity\.md approve/, "the runner saved its final message as the report");
+  const dir = ok(checks(["status"])).batches[0].dir;
+  const report = fs.readFileSync(path.join(dir, r1.result.split(" ")[0]), "utf8");
+  assert.match(report, /^Change: add-a\nReviewer: antigravity\nVerdict: approve/, "from its Change: line on");
 });
 
 test("a git-ignored file a tool plants in a protected place is removed, and the job stops", needsGit, () => {
@@ -252,4 +261,16 @@ test("a tool that points the worktree's .git elsewhere has the pointer put back,
   assert.equal(r.jobs[0].result, "not done");
   assert.equal(fs.readFileSync(path.join(dir, ".git"), "utf8"), pointer);
   assert.equal(jobsOf().T1.state, "open");
+});
+
+test("a read-only tool runs in the registry's review mode and is never handed a job that writes", needsGit, () => {
+  repo();
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: {} }));
+  const d = ok(runner(["--as", "antigravity", "--dry-run"]));
+  assert.match(d.command, /--mode plan --sandbox/, "agy's read-only review mode, not --dangerously-skip-permissions");
+  assert.doesNotMatch(d.command, /dangerously/);
+  const none = ok(runner(["--as", "antigravity"]));
+  assert.deepEqual(none.jobs, [], "T1 is a test: agy waits for a review");
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { test: "antigravity" } } }));
+  assert.match(checks(["status"]).stderr, /checks\.route\.test must be any, claude or codex/);
 });

@@ -153,12 +153,17 @@ test("assign moves a job to a tool, which alone takes it; E2E goes only to a too
   repo();
   merge("add-a", { screens: "Approvals" });
   ok(checks(["sync"]));
-  const a = ok(checks(["assign", "T0,T1", "antigravity"]));
+  const a = ok(checks(["assign", "T0,T1", "claude"]));
   assert.deepEqual(a.assigned, ["T0", "T1"]);
-  assert.equal(ok(checks(["next", "--as", "codex"])).job.id, "T2", "T0 and T1 are antigravity's now; T2 is anyone's");
-  assert.equal(ok(checks(["next", "--as", "antigravity"])).job, null, "one test at a time on the machine");
+  assert.equal(ok(checks(["next", "--as", "codex"])).job.id, "T2", "T0 and T1 are claude's now; T2 is anyone's");
+  assert.equal(ok(checks(["next", "--as", "claude"])).job, null, "one job at a time in a batch");
   ok(checks(["release", "T2"]));
-  assert.equal(ok(checks(["next", "--as", "antigravity"])).job.id, "T0");
+  assert.equal(ok(checks(["next", "--as", "claude"])).job.id, "T0");
+  ok(checks(["release", "T0"]));
+  // Answer b: a tool without a sandbox for its writes takes reviews only.
+  assert.match(checks(["assign", "T2", "antigravity"]).stderr, /T2 is a test job: antigravity takes reviews only/);
+  assert.equal(ok(checks(["next", "--as", "opencode"])).job, null, "OpenCode is never handed a test");
+  assert.equal(ok(checks(["assign", "R1", "antigravity"])).tool, "antigravity", "a review is fine");
   const e2e = checks(["assign", "EW1", "antigravity"]);
   assert.notEqual(e2e.status, 0);
   assert.match(e2e.stderr, /E2E: only claude and codex/);
@@ -169,8 +174,8 @@ test("the parts combine into one whole-suite record at the pinned commit that ti
   merge("add-a", { screens: "Approvals" });
   ok(checks(["sync"]));
   ok(checks(["assign", "T1", "codex"]));
-  ok(checks(["assign", "T2", "antigravity"]));
-  for (const [id, by] of [["T0", "claude"], ["T1", "codex"], ["T2", "antigravity"]]) {
+  ok(checks(["assign", "T2", "claude"]));
+  for (const [id, by] of [["T0", "claude"], ["T1", "codex"], ["T2", "claude"]]) {
     const job = ok(checks(["next", "--as", by]));
     const { dir, pinned } = job;
     assert.equal(job.job.id, id);
@@ -183,7 +188,7 @@ test("the parts combine into one whole-suite record at the pinned commit that ti
       const suite = readIn(dir, d.combined.record);
       assert.match(suite, new RegExp(`^Tested: checks/\\S+ at ${pinned}$`, "m"));
       assert.match(suite, /^Scope: whole suite$/m);
-      assert.match(suite, /^By: claude, codex, antigravity \(checks /m);
+      assert.match(suite, /^By: claude, codex \(checks /m);
       assert.match(readIn(dir, "docs/reviews/pending.md"), new RegExp(`\\| add-a \\|[^\\n]*${d.combined.record.replace(/[.]/g, "\\.")}`));
       assert.match(readIn(dir, `docs/reviews/checks/${d.batch}.md`), new RegExp(`^Suite: ${d.combined.record.replace(/[.]/g, "\\.")} pass$`, "m"));
       assert.equal(gitIn(dir, "status", "--porcelain").trim(), "", "done commits the record, the suite record, pending.md and the checklist");

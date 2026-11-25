@@ -155,7 +155,9 @@ test("apply archives the change in the same turn and commits once; archive commi
   assert.match(archive[0], /does not stop the archive\. Archive, and name it in one line of the reply instead of asking/);
   assert.match(archive[1], /^After the archive, commit it on the branch checked out without asking/);
   assert.match(archive[1], /when \/opsx:apply ran the archive in its turn, its one commit holds both/);
-  for (const line of [apply, archive[1]]) assert.match(line, /Push and merge only on the user's word, asked once in one line\.$/);
+  assert.match(archive[1], /Push and merge only on the user's word, asked once in one line\.$/);
+  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line whether to merge it into main, and on a yes merge as AGENTS\.md `## Branches and worktrees` says; on any other branch merge only on the user's word\. Push only on the user's word, asked once in one line\.$/);
+  assert.match(apply, /in a linked worktree STATUS\.md is left to the main checkout/);
   for (const line of [apply, ...archive]) assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
 });
 

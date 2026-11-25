@@ -58,6 +58,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Prove a commit made after a whole run (a fix after review) without running everything again | `/mflow:test since` (documents only: nothing to run; code: the failed parts and the tests of what changed; migrations, startup or build files: the whole suite) |
 | Have apply hand its code changes to the Sonnet 5.5 subagent (`mflow:dev`, off by default), or stop it | `/mflow:subagent on` then `/clear` / `off` (`--shared` for the whole team, `status` to check); while on, skip it for one run by saying so in the `/opsx:apply` message |
 | Customer asks for a change after approval | `/mflow:change-request <request>` |
+| Work on several changes at once, each session or tool (Codex, Antigravity, OpenCode) in its own folder and branch `feat/<change>`; merge one into main; remove one once merged | `/mflow:worktree <change> [--to codex]`, `list`, `merge <change>`, `remove <change>`; `/opsx:apply` on main makes `feat/<change>` by itself and asks to merge at the end |
 | Hand work, analysis or review to another AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` (codex, antigravity, opencode, gemini, chat) |
 | Another AI's analysis or review came back | `/mflow:assess @docs/ai/inbox/<file>` |
 | Optional: have several AI tools analyze the system, a part of it or a document, then merge their checked findings | `/mflow:analyze <system \| "topic" \| @file> [--focus …] [--to …]`, then `/mflow:analyze <AN-NNN>` when reports are in |

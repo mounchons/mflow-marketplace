@@ -479,3 +479,21 @@ export function truncate(text, max) {
   if (!text || text.length <= max) return text || "";
   return text.slice(0, max) + "\n…(truncated)";
 }
+
+/**
+ * Where this checkout sits among the repository's worktrees: `linked` is true in a worktree made with
+ * `git worktree add` (Claude Code's --worktree, an Orca workspace, /mflow:worktree), whose STATUS.md and
+ * Backlog ids are left to the main checkout. `main` is the main checkout's folder, `branch` the branch
+ * checked out ("" when detached). Null outside git.
+ */
+export function worktreeInfo(dir) {
+  const out = run("git rev-parse --path-format=absolute --git-dir --git-common-dir --show-toplevel", dir, 8000);
+  if (!out) return null;
+  const [gitDir, commonDir, top] = out.split("\n").map((l) => l.trim());
+  if (!gitDir || !commonDir || !top) return null;
+  const same = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+  const linked = !same(gitDir, commonDir);
+  const main = path.basename(commonDir) === ".git" ? path.dirname(path.resolve(commonDir)) : linked ? null : path.resolve(top);
+  const branch = (run("git branch --show-current", dir, 8000) || "").trim();
+  return { linked, main, top: path.resolve(top), branch };
+}

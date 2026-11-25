@@ -13,6 +13,7 @@ import { scan as scanSources } from "./source-index.mjs";
 import { list as listDiscussions, reportDiscussId, NOT_STARTED } from "./discuss.mjs";
 import { status as applySubagentStatus } from "./apply-subagent.mjs";
 import { consultationId, list as listConsultations } from "./consult.mjs";
+import { list as listWorktrees } from "./worktree.mjs";
 import { vendorStatus } from "./vendor.mjs";
 
 /** Text from a file anyone can edit, as one line of at most `max` characters: no line breaks or control characters. */
@@ -107,6 +108,26 @@ if (status) {
 } else {
   parts.push("## STATUS.md\n(missing: create it from the mflow template before working)");
 }
+
+// Worktrees: several sessions and tools can work at once, each in its own worktree on its own branch.
+try {
+  const wt = listWorktrees(root);
+  const here = wt.worktrees.find((w) => w.here);
+  const others = wt.worktrees.filter((w) => !w.here);
+  if (wt.linked) {
+    parts.push(
+      "## Worktree\n" +
+        `- This session works in a worktree on \`${here?.branch || "(detached HEAD)"}\`; the main checkout is ${wt.main}.\n` +
+        "- Leave STATUS.md and new Backlog tasks or decisions to the main checkout (their ids and entries would clash with other branches); merge into main as AGENTS.md `## Branches and worktrees` says.",
+    );
+  } else if (others.length) {
+    parts.push(
+      "## Other worktrees (parallel work)\n" +
+        others.map((w) => `- \`${w.branch || "(detached)"}\` in ${w.dir}`).join("\n") +
+        "\n- Their changes are not in this checkout until merged; do not edit them from here.",
+    );
+  }
+} catch { /* not a git repository, or git missing */ }
 
 // 2. Active OpenSpec changes (what WILL be true), and the apply subagent.
 // The apply guidance hands tasks to mflow:dev only when this briefing says it is on. Off is the

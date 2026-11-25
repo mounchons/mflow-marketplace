@@ -33,7 +33,7 @@ Done when: the brief alone is enough for a tool that has never seen this project
 
 ## 3. Workspace (mode `code` only)
 
-- Worktree and branch so Claude and the other tool never share a checkout: `git worktree add ../<repo>-agent-<id> -b agent/<tool or any>/<id>`.
+- Worktree and branch so Claude and the other tool never share a checkout: `git worktree add .claude/worktrees/agent-<tool or any>-<id> -b agent/<tool or any>/<id> main`, inside the main checkout where `/mflow:worktree` puts its own (`node "${CLAUDE_PLUGIN_ROOT}/scripts/worktree.mjs" setup` first, when `.claude/worktrees/` is not yet git-ignored), then copy the git-ignored files `.worktreeinclude` names into it. A worktree of a change applied there by a tool is `/mflow:worktree <change>` instead, on `feat/<change>`.
 - For an OpenSpec change, the tool implements `openspec/changes/<name>/tasks.md`; tools set up by `openspec init --tools …` have OpenSpec skills (Codex: `$openspec-apply-change`). The Antigravity CLI (`agy`, `--to antigravity`) uses the same `.agents/skills/openspec-*` that `--tools codex` writes; it does not see the `.agents/workflows/` that `--tools antigravity` writes for the Antigravity IDE.
 - `--to antigravity` in code mode runs `agy` with `--dangerously-skip-permissions` in the worktree, the user's choice: headless `agy` refuses whatever it would have to ask about, and its sandboxed terminal cannot write, so a build or `git commit` would fail. Say so in one line when showing the command.
 - Backlog: assignee `@<tool>` (or `@agent`), status `In Progress`, note pointing at the brief.

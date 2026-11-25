@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.52)
+## คำสั่ง (v0.53)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -51,6 +51,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | โลจิก | `/mflow:hotspot [<ไอเดีย> \| <slug> [TASK-ID [คำตอบ]]]` | chart และแก้กฎใหญ่ทีละตั๋ว → graduate เป็น OpenSpec change จบแต่ละตั๋วบอก readiness bar ตั๋วถัดไป และคำสั่งถัดไป ตั๋ว `ask` ตอบในคำสั่งได้ |
 | | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + unit test ตาม stack (xUnit สำหรับ .NET) |
 | ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมินและบันทึกผลกระทบ แล้วทำต่อเมื่อคุณสั่ง (ร่างตอบลูกค้าเมื่อขอ) |
+| ทำหลายงานพร้อมกัน | `/mflow:worktree <change> [--to codex\|antigravity\|opencode]` / `list` / `merge <change>` / `remove <change>` | (0.53) แยก folder (worktree ใน `.claude/worktrees/<change>`) และ branch `feat/<change>` ให้แต่ละ session หรือ tool ทำงานพร้อมกันได้โดยไม่ลาก checkout ของกันและกัน copy ไฟล์ที่ git ไม่เก็บตาม `.worktreeinclude` บอกคำสั่งเปิด Claude Code, Codex, agy หรือ OpenCode ใน folder นั้น ทุก tool ใช้ mflow ได้เพราะของที่ mflow ใช้ถูก commit ไว้แล้ว; `merge` รวมเข้า main จาก folder หลัก, `remove` ลบเมื่อ merge แล้วเท่านั้น `/opsx:apply` บน main ก็แตก `feat/<change>` เองและถามบรรทัดเดียวว่าจะ merge ไหมเมื่อจบ |
 | หลาย AI | `/mflow:delegate <id> --mode analyze/review/code [--to <tool>]` | สร้าง brief ให้ AI ตัวอื่น + คำสั่ง PowerShell/Bash จากทะเบียน tool |
 | | `/mflow:analyze <system \| "หัวข้อ" \| @ไฟล์> [--focus …] [--to …]` | (ไม่บังคับ) ให้ AI หลายตัววิเคราะห์ระบบ แล้วตรวจหลักฐานและรวมเป็นสรุปเดียวที่ `docs/ai/analysis/AN-NNN/` งานหลักไม่ต้องรอ |
 | | `/mflow:analyze units` → `unit:<ชื่อ> [--to …]` | (ไม่บังคับ) ตรวจระบบที่ทำแล้ว "ตามที่ทำจริง" ทีละหน่วย: Claude แตกโค้ดเป็นหน่วยตรวจจากไฟล์ที่ git เก็บไว้ (`.mflow/review-units.json`, script ยืนยันว่าทุกไฟล์มีหน่วยหรือมีเหตุผลที่ไม่ตรวจ) แล้ว brief ให้ AI ตัวอื่นเข้าใจระบบจากข้อเท็จจริงที่ดึงจากโค้ด spec และโค้ด โดยห้ามอ่านเอกสารลูกค้าและ discuss |
@@ -229,6 +230,7 @@ mflow/
 │   ├─ monitor.mjs         ← หน้า /mflow:monitor (.git/mflow/monitor.html): feature จาก story map, discuss, branch เทียบ main, merge, change, ลำดับงานพร้อมคำสั่ง อ่านอย่างเดียว
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test, mflow-review, mflow-e2e ให้ Codex และ OpenCode ใน .agents/skills/ และ E2E guard ใน .codex/hooks.json
 │   ├─ vendor.mjs          ← สำเนา plugin ใน .claude/skills/mflow/ สำหรับ Claude Code on the web: plan, write, status (0.38.1)
+│   ├─ worktree.mjs        ← worktree ต่อ change บน feat/<change>: where, setup (.gitignore, .gitattributes, .worktreeinclude), list, new, remove (0.53)
 │   ├─ packs.mjs           ← แพ็ก business logic: list, check, selected, use (แพ็กที่โปรเจกต์เลือกใน .mflow/config.json)
 │   └─ context-pack.mjs    ← รวมไฟล์เป็นไฟล์เดียวให้ chat UI
 ├─ skills/<คำสั่ง>/SKILL.md (+ references/, assets/)

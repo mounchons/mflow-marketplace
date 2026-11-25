@@ -96,6 +96,13 @@ Commit each finished piece of work without asking, its files added by name (neve
 ## Working as a tool other than Claude Code
 If you were given a brief in `.mflow/briefs/`, it is your contract: stay in its scope and boundaries, work only on the branch it names, and give your report as your final message in exactly the format of its Output section, starting with `Understanding` and `Files read`. Edit no files unless the brief's mode is `code`. Claude verifies every report before anything is merged.
 
+## Branches and worktrees
+- `/opsx:apply` started on `main` first puts the change on its own branch `feat/<change>`; on any other branch it stays there. A proposal is committed on main before its branch or worktree is made.
+- Sessions or tools working at the same time each take their own worktree on their own branch, never two in one folder: a branch switch in one moves the other. Make one with `/mflow:worktree <change>` in Claude Code, or `git worktree add .claude/worktrees/<change> -b feat/<change> main`, copy the git-ignored files `.worktreeinclude` names from the main checkout, and install the dependencies as `## Commands` says. An Orca workspace or `claude --worktree` is a worktree too, on the branch it named.
+- In a worktree: create no Backlog task or decision (ids come from local files and clash between branches) and leave STATUS.md alone; the main checkout writes both. Start the local stack (`Run locally`) in one checkout at a time, since container names and ports are the same in each; tests that start their own containers are fine.
+- Merge `feat/<change>` into main only on the user's yes. First run `git merge main` on the branch, settle any conflict there and rerun the change's tests. Then, when the main checkout is on `main`, run `git -C <main checkout> merge --no-ff feat/<change>` (from the main checkout itself: `git switch main`, then the merge). Stop and say why when the main checkout is on another branch or the merge would overwrite its uncommitted files. Then write the merge's STATUS.md entry in the main checkout and commit it. The worktree and the branch stay until the user says to remove them.
+- `docs/reviews/pending.md` merges line by line (`merge=union` in `.gitattributes`), so the rows of parallel branches all land; `/mflow:test` and `/mflow:review` then run on main once for them.
+
 ## Definition of done
 A task or change is done when its acceptance criteria are covered by tests that pass:
 - Business rules: data-driven unit tests in the domain test project (Unit tests in Stack), one case per example-table row.

@@ -11,7 +11,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile, gitStatus, unloggedWork } from "./lib.mjs";
+import { readStdinJson, findRoot, loadConfig, run, mtimeMs, sessionStateFile, gitStatus, unloggedWork, worktreeInfo } from "./lib.mjs";
 
 const RETRY_MS = 10 * 60_000;
 // mflow's branches for code only (fixes after a review, a night run's test fixes and E2E tests): their
@@ -63,6 +63,9 @@ function main() {
 
   const branch = run("git rev-parse --abbrev-ref HEAD", root, 8000)?.trim() || "";
   if (CODE_ONLY.test(branch)) pass(`${branch} holds code only; its documents are committed on main`);
+  // A linked worktree works in parallel with others on its own branch: STATUS.md is written in the main
+  // checkout when the branch is merged, so parallel branches never conflict over it.
+  if (worktreeInfo(root)?.linked) pass("linked worktree: STATUS.md is written in the main checkout when the branch is merged");
   const nowMs = Date.now();
   const head = run("git rev-parse HEAD", root, 8000)?.trim() || "";
   if (state.lastBlockAt && state.blockedHead === head && nowMs - state.lastBlockAt < RETRY_MS) pass("asked once for this commit");

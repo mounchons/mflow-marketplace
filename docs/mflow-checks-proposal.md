@@ -208,3 +208,13 @@ E2E มีสองงานต่อจอ ทำทีละจอเหมื
 1. PR ของชุดเป็น draft จนจบ หรือเปิดปกติตั้งแต่แรก แนะนำ a) draft เพื่อกัน merge ก่อนตรวจเสร็จ
 2. agent บน cloud ส่งผลกลับเป็น PR เข้า branch ชุด แล้ว `collect` รวม หรือ push ตรงเข้า branch ชุด แนะนำ a) PR เพราะตรวจได้ว่าแก้แต่ไฟล์ที่ควรแก้ และเป็นทางที่ Codex cloud ทำได้อยู่แล้ว
 3. ชื่อคำสั่ง `/mflow:checks` หรือรวมเข้า `/mflow:night` แนะนำ a) คำสั่งใหม่ เพื่อไม่เพิ่มความซับซ้อนให้คำสั่งเดิม (คำขอของผู้ใช้ 2026-11-07)
+
+## 15. ที่ตัดสินตอนสร้างขั้นที่ 1 (0.55.0, 2026-11-26)
+
+1. **test ทีละ part ไม่ใช่ทั้งชุด** `tick-test` รับแค่ `Scope: whole suite` หรือ `since` จึงมีงาน T0 (build, format, lint, `openspec validate` และนับว่า test ทุกตัวอยู่ใน part ใด part หนึ่ง) แล้ว `checks.mjs` รวม record ของทุก part เป็น record `Scope: whole suite` ที่ commit ที่ตรึงไว้ แล้วติ๊ก `pending.md` เอง โปรเจกต์ที่ไม่มี `- Test parts:` มีงาน T1 ทั้งชุดงานเดียว
+2. **การหยิบงานไม่แตะ tree** งานที่หยิบไว้เก็บใน `<git common dir>/mflow/checks/claims.json` record จึงไม่ติด "with uncommitted changes" ส่วน `Pinned:` commit ลงไฟล์ เพราะ `sync` ใช้ตัดสินว่าชุดไหนรับ change ได้ `done` ยอม record จาก commit ที่ต่างจาก pinned เฉพาะ `docs/reviews/` และไฟล์ test E2E
+3. **review แบบรายงานอย่างเดียว** ไม่ทำหัวข้อ 4 (Fix) ของ `/mflow:review` เหมือน `/mflow:night` เพราะงาน fix เป็นขั้นที่ 2
+4. **จอของ E2E อ่านตอนเพิ่ม change ลงชุด** เพราะแถวที่ย้ายไป Done ไม่มีช่อง E2E screens
+5. **สมาชิกของชุดมาจาก `pending.md`** `sync` อ่านแถวที่ main มีงานแล้วและยังรอ การ merge ด้วยมือหรือด้วย tool อื่นจึงเข้าชุดในครั้งถัดไปที่ `sync`
+6. **เปิดใช้ต่อโปรเจกต์** ต้องมี `checks` ใน `.mflow/config.json` (`/mflow:checks` ครั้งแรก) โปรเจกต์อื่นไม่ push `checks/*` และไม่มีหัวข้อ `## Checks` ใน briefing
+7. **กติกาเรื่อง merge ระหว่าง test ใน folder หลักยังอยู่** เพราะ `/mflow:test` ที่ผู้ใช้สั่งใน folder หลักยังมี งานของชุดรันใน worktree ของชุด จึงไม่ติดกติกานั้น

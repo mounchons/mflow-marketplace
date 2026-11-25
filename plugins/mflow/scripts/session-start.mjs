@@ -15,6 +15,7 @@ import { status as applySubagentStatus } from "./apply-subagent.mjs";
 import { consultationId, list as listConsultations } from "./consult.mjs";
 import { list as listWorktrees } from "./worktree.mjs";
 import { uncommitted as uncommittedResults, TOOLS as RESULT_TOOLS } from "./results.mjs";
+import { status as checksStatus } from "./checks.mjs";
 import { vendorStatus } from "./vendor.mjs";
 
 /** Text from a file anyone can edit, as one line of at most `max` characters: no line breaks or control characters. */
@@ -155,6 +156,21 @@ try {
     "## Parallel work\n" +
       `- Asked in words to work on a change in its own folder, at the same time as other work, or by another tool: follow the \`<change>\` part of ${path.join(pluginRoot, "skills", "worktree", "SKILL.md")} without waiting for /mflow:worktree; \`\${CLAUDE_PLUGIN_ROOT}\` there is ${pluginRoot}.`,
   );
+  // Checks of merged changes (checks.mjs), once the project opted in with "checks" in .mflow/config.json.
+  if (cfg?.checks) {
+    try {
+      const st = checksStatus(root);
+      const lines = st.batches.map((b) => {
+        const count = (s) => b.jobs.filter((j) => (s === "running" ? j.running : j.state === s && !j.running)).length;
+        return `- \`${b.branch}\`${b.pr ? ` (${b.pr})` : ""}: ${b.pinned ? `pinned at ${b.pinned.slice(0, 7)}` : "collecting merges"}; ${count("open")} open, ${count("running")} running, ${count("done") + count("failed")} done, ${count("blocked")} blocked`;
+      });
+      parts.push(
+        "## Checks\n" +
+          (lines.length ? lines.join("\n") : "- no open batch") +
+          `\n- After a merge into main, and when the user gives a job to a tool in words, follow ${path.join(pluginRoot, "skills", "checks", "SKILL.md")} (\`sync\` and \`publish\`; \`<job> to <tool>\`); \`\${CLAUDE_PLUGIN_ROOT}\` there is ${pluginRoot}.`,
+      );
+    } catch { /* checks unreadable: say nothing */ }
+  }
 } catch { /* not a git repository, or git missing */ }
 
 // 2. Active OpenSpec changes (what WILL be true), and the apply subagent.

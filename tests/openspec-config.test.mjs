@@ -261,7 +261,7 @@ test("forms the merge does not handle are reported and left alone; the rest is m
   const text = p.read("openspec/config.yaml");
   assert.match(text, /^context: Our own one-line context$/m);
   assert.match(text, /^  tasks: keep it short$/m);
-  assert.match(text, /# mflow:begin [\d.]+\n      - Only when this session's/);
+  assert.match(text, /# mflow:begin [\d.]+\n      - Do not enter plan mode/);
 });
 
 test("--dry-run writes nothing, line endings are kept, and a missing file is created", () => {
@@ -300,4 +300,35 @@ test("OpenSpec reads the merged file: the context, the task rules and every appl
   assert.match(design.context, /find every caller or writer of it by search/);
   const archive = JSON.parse(spawnSync("openspec instructions archive --change demo --json", { cwd: p.root, encoding: "utf8", shell: true, env }).stdout);
   assert.deepEqual(archive.operationGuidance, LINES["operations.archive.guidance"]);
+});
+
+// BanchiDesk 2026-11-25: the CLAUDE.md template asked for plan mode before an aggregate's invariants, propose copied
+// it into tasks.md, and apply opened Claude Code's plan dialog after the user had approved design and tasks. The user
+// asked for no plan mode; the guidance overrides the old line in projects that still have it.
+test("apply never enters plan mode and no task asks for it", () => {
+  const apply = LINES["operations.apply.guidance"][0];
+  assert.match(apply, /^Do not enter plan mode, even when CLAUDE\.md or tasks\.md asks for it/);
+  assert.match(apply, /design\.md and tasks\.md are the plan the user approved/);
+  assert.match(apply, /reread its part of design\.md and the hotspot's rules\.md/);
+  assert.match(LINES["rules.tasks"].at(-1), /^No task asks for plan mode/);
+  for (const line of [apply, LINES["rules.tasks"].at(-1)]) assert.equal(yamlItem(line), line, "a plain YAML item");
+  const read = (rel) => fs.readFileSync(path.join(SCRIPTS, "..", rel), "utf8");
+  const claude = read("templates/CLAUDE.md");
+  assert.ok(!/Use plan mode/.test(claude), "the template no longer asks for plan mode");
+  assert.match(claude, /^- Never enter plan mode, even when tasks\.md asks for it/m);
+  assert.match(read("skills/init/SKILL.md"), /a line asking for plan mode[^\n]*replace it with the template's `Never enter plan mode…` line/);
+});
+
+// BanchiDesk 2026-11-25: every reply ended "type /opsx:propose <change>" or "type /opsx:apply <change>", and the user
+// typed each one. The opsx commands are project skills Claude can run, so it asks in one line and runs them on a yes.
+test("Claude runs the next /opsx step itself, asking in one line, and /mflow commands stay the user's", () => {
+  const read = (rel) => fs.readFileSync(path.join(SCRIPTS, "..", rel), "utf8");
+  const line = read("templates/CLAUDE.md").split("\n").find((l) => l.includes("`openspec-propose`"));
+  assert.ok(line, "the run-it-yourself line");
+  assert.match(line, /run the next one yourself; never end a reply telling the user to type one/);
+  assert.match(line, /Run it at once when the user's last message already asked for that step/);
+  assert.match(line, /ask in one line whether to go on/);
+  assert.match(line, /If the Skill call is refused, read `\.claude\/skills\/<name>\/SKILL\.md` and follow it/);
+  assert.match(line, /`\/mflow:\*` commands still run only when the user types them/);
+  assert.match(read("skills/change-request/SKILL.md"), /hand it on in this same turn: a change to behaviour in `openspec\/specs\/` → run `\/opsx:propose` yourself/);
 });

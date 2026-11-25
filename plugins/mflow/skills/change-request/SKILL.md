@@ -30,7 +30,7 @@ When the work needs more than one OpenSpec change, split it by topic and list th
 
 ## 4. Go ahead on the user's instruction
 
-- **The user said to do it**, in the request or after seeing the estimate: that is the approval. Write `Approved: <date>, by the user` in the CR file and hand it on: a change to behaviour in `openspec/specs/` → `/opsx:propose` with the CR file as input; a prototype screen → `/mflow:screen`; a defect or clarification → its task, ready to work.
+- **The user said to do it**, in the request or after seeing the estimate: that is the approval. Write `Approved: <date>, by the user` in the CR file and hand it on in this same turn: a change to behaviour in `openspec/specs/` → run `/opsx:propose` yourself (the project's `openspec-propose` skill) with the CR file as input, after committing the CR; when the CR splits into several changes, propose the first and name the rest; a prototype screen → `/mflow:screen`; a defect or clarification → its task, ready to work.
 - **The user asked only for an assessment:** leave the task `To Do` with the note "waits for the user's go", and list it in STATUS.md. Do not ask the customer or wait for them.
 
 ## 5. Draft a reply, only when asked

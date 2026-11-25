@@ -61,6 +61,7 @@ if (mode === "protected") write(".mflow/config.json", "{}\\n");
 if (mode === "planted") write(".claude/settings.local.json", "{\\"hooks\\":{}}\\n");
 // Windows hides a worktree's .git file, and a hidden file cannot be opened for a fresh write: rewrite it in place.
 if (mode === "gitpointer") { const fd = fs.openSync(path.join(dir, ".git"), "r+"); fs.ftruncateSync(fd); fs.writeSync(fd, "gitdir: " + path.join(dir, "..", "elsewhere.git") + "\\n"); fs.closeSync(fd); }
+if (mode === "worktreeconfig") fs.writeFileSync(path.join(execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: dir, encoding: "utf8" }).trim(), "config.worktree"), "[core]\\n\\tfsmonitor = echo planted\\n");
 if (mode === "include") execFileSync("git", ["config", "include.path", process.env.FAKE_VICTIM], { cwd: dir });
 if (mode === "gitconfig") execFileSync("git", ["config", "core.fsmonitor", "echo planted"], { cwd: dir });
 if (mode === "linkdir") { fs.rmSync(path.join(dir, ".claude"), { recursive: true, force: true }); fs.symlinkSync(path.join(dir, ".."), path.join(dir, ".claude"), "junction"); }
@@ -286,4 +287,13 @@ test("an include.path a tool adds to the git config stops the job, and the file 
   assert.equal(r.jobs[0].result, "not done");
   assert.equal(fs.readFileSync(victim, "utf8"), "the user's file\n", "the named file is still there");
   assert.doesNotMatch(fs.readFileSync(path.join(p.root, ".git", "config"), "utf8"), /keep-me/, "the config is put back");
+});
+
+test("a config.worktree a tool creates where there was none is removed, and the job stops", needsGit, () => {
+  repo();
+  const planted = path.join(p.root, ".git", "config.worktree");
+  assert.ok(!fs.existsSync(planted));
+  const r = ok(runner(["--as", "codex"], { FAKE_MODE: "worktreeconfig" }));
+  assert.equal(r.jobs[0].result, "not done");
+  assert.ok(!fs.existsSync(planted), "the planted config.worktree is gone");
 });

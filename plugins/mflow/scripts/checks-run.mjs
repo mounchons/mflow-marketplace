@@ -159,10 +159,10 @@ function restoreGuard(dir, before) {
     if (was && buf && was.equals(buf)) continue;
     changed.push(path.relative(dir, p) || p);
     if (was !== null) writeNoFollow(p, was);
-    // A file the guard did not know before the run is removed only when it is a new hook in the hooks folder taken
-    // before the run. Any other new path came from the tool's own config (an include.path it added), so it is
+    // A new file is removed when its path was in the guard's set taken before the run (a config.worktree that was
+    // not there), or it is a new hook. A path only the tool's own config names (an include.path it added) is
     // reported, never deleted: the runner would otherwise delete whatever file the tool named.
-    else if (!before.files.has(p) && path.dirname(p) === before.hooks) fs.rmSync(p, { force: true });
+    else if (before.files.has(p) || path.dirname(p) === before.hooks) fs.rmSync(p, { force: true });
   }
   for (const [p, was] of before.files) {
     if (was !== null && !after.files.has(p)) {

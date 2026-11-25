@@ -26,7 +26,8 @@
 //   node checks.mjs release <job> [--batch <b>] [--note <text>]   give a taken job back
 //   node checks.mjs block <job> [--batch <b>] --note <text>  the job needs the user's decision
 //   node checks.mjs assign <job[,job]> <tool|any> [--batch <b>]
-//   node checks.mjs publish [--batch <b>]                    push the branch, open or update the draft pull request
+//   node checks.mjs publish [--batch <b>]                    push the branches, open or update their draft pull requests
+//   node checks.mjs close <batch> --note <text>              give up an open batch (its rows join the next one)
 //
 // Tools: claude, codex, antigravity, opencode, or any. E2E goes only to claude and codex, the tools with mflow's
 // guard on the browsers a Playwright run opens. Nothing here merges into main or pushes main.
@@ -98,10 +99,8 @@ export function enable(root) {
 
 // ---------- the checklist ----------
 
-const HEAD_KEYS = ["Branch", "Pinned", "PR", "Changes", "Suite"];
-
 export function parseDoc(text) {
-  const doc = { pinned: null, pinnedAt: null, pr: null, changes: [], suite: null, jobs: [] };
+  const doc = { pinned: null, pinnedAt: null, pr: null, changes: [], suite: null, closed: null, jobs: [] };
   if (!text) return doc;
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   const head = (key) => lines.map((l) => new RegExp(`^${key}:\\s*(.*)$`).exec(l)?.[1]).find((v) => v !== undefined);
@@ -109,6 +108,7 @@ export function parseDoc(text) {
   if (pin) [doc.pinned, doc.pinnedAt] = [pin[1], pin[2] || null];
   if (!empty(head("PR"))) doc.pr = head("PR").trim();
   if (!empty(head("Suite"))) doc.suite = head("Suite").trim();
+  if (!empty(head("Closed"))) doc.closed = head("Closed").trim();
   doc.changes = empty(head("Changes")) ? [] : head("Changes").split(",").map((s) => s.trim()).filter(Boolean);
   const at = lines.findIndex((l) => /^\|\s*Job\s*\|/.test(l));
   if (at < 0) return doc;
@@ -140,6 +140,7 @@ export function renderDoc(name, doc) {
     `PR: ${doc.pr || "—"}`,
     `Changes: ${doc.changes.join(", ") || "—"}`,
     `Suite: ${doc.suite || "—"}`,
+    ...(doc.closed ? [`Closed: ${doc.closed}`] : []),
     "",
     `| ${COLS.join(" | ")} |`,
     `|${COLS.map(() => "---").join("|")}|`,
@@ -214,7 +215,7 @@ export function batches(root) {
     const doc = parseDoc(live ?? (committed.ok ? committed.out : ""));
     // Merged: main holds the branch, or main has its checklist (a squash merge of the pull request).
     const merged = git(main, ["merge-base", "--is-ancestor", branch, "main"]).ok || git(main, ["cat-file", "-e", `main:${file}`]).ok;
-    return { name, branch, file, dir: wt?.dir || null, merged, ...doc };
+    return { name, branch, file, dir: wt?.dir || null, merged, open: !merged && !doc.closed, ...doc };
   });
 }
 
@@ -270,16 +271,17 @@ export function sync(root, { dryRun = false } = {}) {
   if (git(main, ["branch", "--show-current"]).out !== "main") throw new Error(`the main checkout (${main}) is not on main; switch it back to main first`);
   const st = pendingStatus(main);
   const all = batches(root);
-  const listed = new Set(all.flatMap((b) => b.changes));
+  // A change of a merged or closed batch whose row still waits (a failed suite, changes requested) joins the next one.
+  const listed = new Set(all.filter((b) => b.open).flatMap((b) => b.changes));
   const fresh = st.rows.filter((r) => r.landed && (r.testOpen || r.reviewOpen) && !listed.has(r.change));
-  let b = all.find((x) => !x.merged && !x.pinned) || null;
-  const pinnedOpen = all.filter((x) => !x.merged && x.pinned).map((x) => x.name);
+  let b = all.find((x) => x.open && !x.pinned) || null;
+  const pinnedOpen = all.filter((x) => x.open && x.pinned).map((x) => x.name);
   if (!fresh.length || dryRun) return { added: dryRun ? fresh.map((r) => r.change) : [], batch: b?.name || null, dryRun, waitingInPinned: pinnedOpen };
   const warnings = [];
   let created = false;
   if (!b) {
     const date = today();
-    const taken = all.filter((x) => x.name.startsWith(`${date}-`)).length;
+    const taken = Math.max(0, ...all.map((x) => (x.name.startsWith(`${date}-`) ? Number(x.name.slice(date.length + 1)) || 0 : 0)));
     const name = `${date}-${taken + 1}`;
     if (ignoreWorktrees(main)) warnings.push(`${WORKTREES}/ added to .gitignore in the main checkout: commit it`);
     const dir = path.join(main, WORKTREES, `checks-${name}`);
@@ -321,27 +323,37 @@ const HOW = {
   e2e: (j, dir) => `In ${dir}: run the E2E tests of ${j.target} as /mflow:test e2e does, --workers at most e2eMaxWorkers, and write its record`,
 };
 
-function findBatch(root, { batch, job } = {}) {
-  const open = batches(root).filter((b) => !b.merged);
+/**
+ * The open batch a job id means. Two are often open at once (one pinned and worked on, one collecting merges), and
+ * both have a T0 and an R1: without --batch, the one where the job is taken (claims), else the oldest where it is
+ * still open.
+ */
+function findBatch(root, { batch, job, claims } = {}) {
+  const open = batches(root).filter((b) => b.open);
   if (batch) {
     const b = open.find((x) => x.name === batch || x.branch === batch);
     if (!b) throw new Error(`no open batch ${batch}`);
     return b;
   }
   const holders = open.filter((b) => b.jobs.some((j) => j.id === job));
-  if (holders.length === 1) return holders[0];
   if (!holders.length) throw new Error(`no open batch has job ${job}`);
+  if (holders.length === 1) return holders[0];
+  const taken = claims ? holders.filter((b) => claims[`${b.name}/${job}`]) : [];
+  if (taken.length === 1) return taken[0];
+  const waiting = holders.filter((b) => b.jobs.find((j) => j.id === job).state === "open");
+  if (waiting.length) return waiting[0];
   throw new Error(`job ${job} is in ${holders.map((b) => b.name).join(" and ")}; name one with --batch`);
 }
+const liveClaims = (root) => readClaims(claimsFile(root), checksConfig(root).staleMinutes).live;
 
 export function status(root) {
   const cfg = checksConfig(root);
   const { live, stale } = readClaims(claimsFile(root), cfg.staleMinutes);
-  const open = batches(root).filter((b) => !b.merged).map((b) => ({
+  const open = batches(root).filter((b) => b.open).map((b) => ({
     ...b,
     jobs: b.jobs.map((j) => {
       const c = live[`${b.name}/${j.id}`];
-      return { ...j, running: c ? { tool: c.tool, at: c.at } : null, ready: j.state === "open" && !c && waitsMet(j, b.jobs) };
+      return { ...j, running: c ? { tool: c.tool, at: c.at } : null, ready: j.state === "open" && !c && waitsMet(j, b.jobs), how: j.state === "open" && b.dir ? HOW[j.kind]?.(j, b.dir) || null : null };
     }),
   }));
   return { enabled: cfg.enabled, route: cfg.route, batches: open, stale: stale.map((s) => s.key) };
@@ -355,7 +367,7 @@ export function next(root, { as, batch } = {}) {
   return withFileLock(file, () => {
     const { live, stale } = readClaims(file, cfg.staleMinutes);
     const heavyBusy = Object.values(live).find((c) => c.heavy);
-    let open = batches(root).filter((b) => !b.merged);
+    let open = batches(root).filter((b) => b.open);
     if (batch) open = open.filter((b) => b.name === batch || b.branch === batch);
     const skipped = [];
     for (const b of open) {
@@ -440,7 +452,7 @@ function checkRecordCommit(dir, b, rec, rel) {
 
 export function done(root, id, { batch, record, report, files = [], note } = {}) {
   const cfg = checksConfig(root);
-  const b = findBatch(root, { batch, job: id });
+  const b = findBatch(root, { batch, job: id, claims: liveClaims(root) });
   const j = b.jobs.find((x) => x.id === id);
   if (!j) throw new Error(`${b.name} has no job ${id}`);
   if (j.state !== "open") throw new Error(`${b.name}/${id} is already ${j.state}`);
@@ -462,6 +474,8 @@ export function done(root, id, { batch, record, report, files = [], note } = {})
     j.state = rec.result === "pass" ? "done" : "failed";
     j.result = `${rel} ${rec.result || "no result"}`;
     commitFiles.push(rel);
+    // A whole-suite (or since) run that passed ticks Test itself, as /mflow:test does; ticking twice changes nothing.
+    if (j.kind === "test" && rec.result === "pass" && (rec.scope === "whole suite" || /^since\s/.test(rec.scope))) tickTest(dir, rel);
   } else if (j.kind === "review") {
     if (!report) throw new Error(`done ${id}: name its report with --report`);
     const rel = inside(report);
@@ -492,7 +506,7 @@ export function done(root, id, { batch, record, report, files = [], note } = {})
 
 function setJob(root, id, { batch, note }, change) {
   const cfg = checksConfig(root);
-  const b = findBatch(root, { batch, job: id });
+  const b = findBatch(root, { batch, job: id, claims: liveClaims(root) });
   const j = b.jobs.find((x) => x.id === id);
   if (!j) throw new Error(`${b.name} has no job ${id}`);
   const file = claimsFile(root);
@@ -540,10 +554,15 @@ function gh(args, cwd) {
   return { ok: r.status === 0, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
 }
 
+/** Push every open batch (or the one named) and open or update its draft pull request. */
 export function publish(root, { batch } = {}) {
-  const open = batches(root).filter((b) => !b.merged);
-  const b = batch ? open.find((x) => x.name === batch || x.branch === batch) : open[open.length - 1];
-  if (!b) throw new Error(batch ? `no open batch ${batch}` : "no open batch");
+  const open = batches(root).filter((b) => b.open && b.dir);
+  const picked = batch ? open.filter((x) => x.name === batch || x.branch === batch) : open;
+  if (batch && !picked.length) throw new Error(`no open batch ${batch} with a worktree here`);
+  return { batches: picked.map((b) => publishOne(b)) };
+}
+
+function publishOne(b) {
   if (!b.dir) throw new Error(`${b.name} has no worktree on this machine`);
   if (!git(b.dir, ["remote", "get-url", "origin"]).ok) return { batch: b.name, pushed: false, pr: null, reason: "no origin remote: the checklist stays a file, without a pull request" };
   const push = () => git(b.dir, ["push", "-u", "origin", b.branch]);
@@ -562,6 +581,23 @@ export function publish(root, { batch } = {}) {
   }
   const edit = gh(["pr", "edit", b.pr, "--title", title, "--body", body], b.dir);
   return { batch: b.name, pushed: true, pr: b.pr, created: false, reason: edit.ok ? null : `pull request not updated: ${edit.err}` };
+}
+
+export function close(root, name, { note } = {}) {
+  if (!note) throw new Error("close: say why with --note");
+  const b = batches(root).find((x) => x.name === name || x.branch === name);
+  if (!b || !b.open) throw new Error(`no open batch ${name}`);
+  if (!b.dir) throw new Error(`${b.name} has no worktree on this machine`);
+  b.closed = `${stamp()} ${note}`;
+  writeFileAtomic(path.join(b.dir, b.file), renderDoc(b.name, b));
+  const commit = commitIn(b.dir, [b.file], `checks: close ${b.name}`);
+  let pr = null;
+  if (b.pr && git(b.dir, ["remote", "get-url", "origin"]).ok) {
+    git(b.dir, ["push", "-u", "origin", b.branch]);
+    const r = gh(["pr", "close", b.pr, "--comment", `Closed: ${note}`], b.dir);
+    pr = r.ok ? "closed" : `not closed: ${r.err}`;
+  }
+  return { batch: b.name, closed: b.closed, commit, pr, next: "its rows still waiting in pending.md join the next batch at the next sync" };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -585,7 +621,8 @@ if (isMain) {
     else if (cmd === "block") out = block(root, arg(0), common);
     else if (cmd === "assign") out = assign(root, arg(0), arg(1), common);
     else if (cmd === "publish") out = publish(root, common);
-    else throw new Error("usage: checks.mjs enable | sync [--dry-run] | status | next --as <tool> | done <job> [--record|--report <path>] [--files a,b] | release <job> | block <job> --note <text> | assign <job[,job]> <tool|any> | publish [--batch <b>]");
+    else if (cmd === "close") out = close(root, arg(0), common);
+    else throw new Error("usage: checks.mjs enable | sync [--dry-run] | status | next --as <tool> | done <job> [--record|--report <path>] [--files a,b] | release <job> | block <job> --note <text> | assign <job[,job]> <tool|any> | publish [--batch <b>] | close <batch> --note <text>");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

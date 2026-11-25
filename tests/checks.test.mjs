@@ -214,7 +214,7 @@ test("publish without a remote keeps the file; with one it pushes the branch and
   repo();
   merge("add-a");
   const b = ok(checks(["sync"]));
-  const none = ok(checks(["publish"]));
+  const none = ok(checks(["publish"])).batches[0];
   assert.equal(none.pushed, false);
   assert.match(none.reason, /no origin remote/);
 
@@ -225,13 +225,13 @@ test("publish without a remote keeps the file; with one it pushes the branch and
   const calls = path.join(p.temp, "gh-calls.txt");
   fs.writeFileSync(fake, `import fs from "node:fs";\nfs.appendFileSync(${JSON.stringify(calls)}, process.argv.slice(2, 4).join(" ") + "\\n");\nif (process.argv[3] === "create") console.log("https://github.com/o/r/pull/7");\n`);
   const env = { MFLOW_GH: fake };
-  const made = ok(checks(["publish"], { env }));
+  const made = ok(checks(["publish"], { env })).batches[0];
   assert.equal(made.pr, "https://github.com/o/r/pull/7");
   assert.equal(made.created, true);
   assert.equal(made.pushed, true);
   assert.match(readIn(b.dir, `docs/reviews/checks/${b.batch}.md`), /^PR: https:\/\/github\.com\/o\/r\/pull\/7$/m);
   assert.equal(git(p, "--git-dir", bare, "rev-parse", `checks/${b.batch}`).trim(), gitIn(b.dir, "rev-parse", "HEAD").trim(), "the remote has the PR line too");
-  const again = ok(checks(["publish"], { env }));
+  const again = ok(checks(["publish"], { env })).batches[0];
   assert.equal(again.created, false);
   assert.deepEqual(fs.readFileSync(calls, "utf8").trim().split("\n"), ["pr create", "pr edit"]);
 });
@@ -242,8 +242,8 @@ test("merging the batch's pull request into main brings each row once with its t
   ok(checks(["sync"]));
   const t = ok(checks(["next", "--as", "claude"]));
   const rel = record(t.dir, "run", { scope: "whole suite" });
-  ok(run(p, "pending.mjs", ["tick-test", rel], { cwd: t.dir, env: { CLAUDE_PROJECT_DIR: t.dir } }));
   ok(checks(["done", "T1", "--record", rel]));
+  assert.match(readIn(t.dir, "docs/reviews/pending.md"), new RegExp(`\\| add-a \\|[^\\n]*${rel.replace(/[.]/g, "\\.")}`), "a passing whole-suite run ticks Test");
   merge("add-b");
   git(p, "merge", "-q", "--no-ff", "--no-edit", `checks/${t.batch}`);
   // The union merge may leave the old and the ticked copy of a row; pending.mjs reads them as one, with the tick.
@@ -253,7 +253,7 @@ test("merging the batch's pull request into main brings each row once with its t
   const st = ok(checks(["status"]));
   assert.deepEqual(st.batches.map((b) => b.name), [], "a merged batch is closed");
   const next = ok(checks(["sync"]));
-  assert.deepEqual(next.added, ["add-b"]);
+  assert.deepEqual(next.added, ["add-a", "add-b"], "add-a still waits for its review, so it joins the next batch with add-b");
   assert.match(next.batch, /-2$/);
 });
 
@@ -285,4 +285,46 @@ test("enable opts the project in once; a route that sends E2E to a tool without 
   const r = checks(["status"]);
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /checks\.route\.e2e must be claude or codex/);
+});
+
+test("two open batches: done, release and assign find the batch by the job taken or still open, and publish pushes both", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  const first = ok(checks(["sync"])).batch;
+  const t1 = ok(checks(["next", "--as", "claude"]));
+  assert.equal(t1.batch, first);
+  merge("add-b");
+  const second = ok(checks(["sync"])).batch;
+  assert.notEqual(second, first);
+  const st = ok(checks(["status"]));
+  assert.deepEqual(st.batches.map((b) => b.name), [first, second]);
+  assert.ok(st.batches[1].jobs.find((j) => j.id === "T1").how.includes("/mflow:test"), "status gives each open job's how, for a tool that is not Claude");
+  // T1 is in both; the one taken is the first batch's.
+  const d = ok(checks(["done", "T1", "--record", record(t1.dir, "run", { scope: "whole suite" })]));
+  assert.equal(d.batch, first);
+  // R1 is in both and open in both: the oldest.
+  assert.equal(ok(checks(["assign", "R1", "codex"])).batch, first);
+  assert.equal(ok(checks(["assign", "R1", "codex", "--batch", second])).batch, second);
+  const bare = path.join(p.base, "remote.git");
+  git(p, "init", "-q", "--bare", bare);
+  git(p, "remote", "add", "origin", bare);
+  const pub = ok(checks(["publish"], { env: { MFLOW_GH: path.join(p.temp, "missing-gh.mjs") } }));
+  assert.deepEqual(pub.batches.map((b) => [b.batch, b.pushed]), [[first, true], [second, true]]);
+  assert.match(pub.batches[0].reason, /pull request not opened/);
+});
+
+test("a batch given up is closed: its rows still waiting join the next batch", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  const first = ok(checks(["sync"])).batch;
+  const t1 = ok(checks(["next", "--as", "claude"]));
+  ok(checks(["done", "T1", "--record", record(t1.dir, "run", { result: "fail", scope: "whole suite" })]));
+  assert.notEqual(checks(["close", first]).status, 0, "close needs a reason");
+  const c = ok(checks(["close", first, "--note", "suite failed; fixed on main"]));
+  assert.match(c.closed, /suite failed; fixed on main$/);
+  assert.match(readIn(t1.dir, `docs/reviews/checks/${first}.md`), /^Closed: .+suite failed/m);
+  assert.deepEqual(ok(checks(["status"])).batches, []);
+  const next = ok(checks(["sync"]));
+  assert.notEqual(next.batch, first);
+  assert.deepEqual(next.added, ["add-a"]);
 });

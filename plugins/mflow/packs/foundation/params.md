@@ -12,7 +12,7 @@
 | วิธีเลือก SDK ใหม่กว่าที่ pin | `foundation.sdk_roll_forward` | `latestFeature` | `latestFeature`, `latestPatch`, `disable` | ค่าของ `rollForward` ใน `global.json` |
 | port ของฐานข้อมูลบนเครื่องนักพัฒนา | `foundation.db_dev_port` | 15432 | 1024–65535 ยกเว้น 5432 | ต้องไม่ซ้ำกับโปรเจกต์อื่นบนเครื่องเดียวกัน |
 | ความละเอียดของเงิน | `foundation.money_precision` | `numeric(18,2)` | ความละเอียดอื่นตามสกุลเงินหรือกฎของลูกค้า | ปริมาณและน้ำหนักกำหนดต่อคอลัมน์ในเอกสาร data model |
-| โฟลเดอร์ของแอปและ layer | `foundation.src_folder` | `src` | `src` หรือ `apps` คู่ `packages` | ตาม FOUND-D21 |
-| โฟลเดอร์ของ test | `foundation.tests_folder` | `tests` | path ใน repo | |
-| โฟลเดอร์ของ E2E | `foundation.e2e_folder` | `tests/e2e` | path ใน repo | แยกจาก test ของ .NET และเว็บ |
-| โฟลเดอร์ของไฟล์ deploy | `foundation.deploy_folder` | `deploy` | path ใน repo | Dockerfile และไฟล์ตั้งค่า proxy |
+| โฟลเดอร์ของซอร์สโค้ดทั้งหมด | `foundation.src_folder` | `src` | path ใน repo | ตาม FOUND-D21: มี `apps/`, `packages/`, test, `scripts/` และ `.slnx` |
+| โฟลเดอร์ของ test | `foundation.tests_folder` | `src/tests` | path ใน repo | `tests` ที่ root เมื่อเลือกแบบแบนของ FOUND-D21 |
+| โฟลเดอร์ของ E2E | `foundation.e2e_folder` | `src/tests/e2e` | path ใน repo | แยกจาก test ของ .NET และเว็บ |
+| โฟลเดอร์ของไฟล์ deploy | `foundation.deploy_folder` | `deploy` | path ใน repo | ไฟล์ compose, Dockerfile, ไฟล์ตั้งค่า proxy และโฟลเดอร์ย่อยต่อ environment |

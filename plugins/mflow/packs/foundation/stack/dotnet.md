@@ -13,7 +13,7 @@ Applies when the back end is ASP.NET Core: profiles `mvc-htmx` and `react-vite`.
 |---|---|---|
 | SDK pin | `global.json`: `sdk.version`, `sdk.rollForward` | the value of `sdk.version` needs all three parts; `10.0` alone is rejected |
 | Test runner | `global.json`: `test.runner` = `Microsoft.Testing.Platform` | .NET 10 SDK and later; the default is still VSTest |
-| Shared settings | `Directory.Build.props` at the root: `TargetFramework`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors` | analyzers are on by default for net5.0 and later (`EnableNETAnalyzers`), and `AnalysisLevel` defaults to `latest` |
+| Shared settings | `Directory.Build.props` beside the `.slnx` in `src/`: `TargetFramework`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors` | analyzers are on by default for net5.0 and later (`EnableNETAnalyzers`), and `AnalysisLevel` defaults to `latest` |
 | C# version | leave `LangVersion` unset; `net10.0` means C# 14 | Microsoft warns against `latest`, which changes with the compiler on each machine |
 | Central versions | `Directory.Packages.props`, `ManagePackageVersionsCentrally` = `true`, one `PackageVersion` per package, `PackageReference` without `Version` | a `Version` in a project file is error NU1008 |
 | Solution | `.slnx`; `dotnet new sln` creates it by default from .NET 10 | a Node web stays out, with no `.esproj`, so `dotnet build` does not run npm |
@@ -46,13 +46,13 @@ Applies when the back end is ASP.NET Core: profiles `mvc-htmx` and `react-vite`.
 | FOUND-D12 | | see `react-vite` below |
 | FOUND-D13 | `ClosedXML` (`XLWorkbook`) in Infrastructure | an interface in Application, implemented in Infrastructure |
 | FOUND-D14 | none until a document is in scope | the interface, and the choice with its licence check |
-| FOUND-D15 | multi-stage Dockerfile: `dotnet publish` in the SDK stage, `aspnet` as the final stage | the compose file and a `.dockerignore` that leaves out `bin/`, `obj/` and `.env` |
+| FOUND-D15 | multi-stage Dockerfile: `dotnet publish` in the SDK stage, `aspnet` as the final stage; in compose, `build.context: ..` and `dockerfile: deploy/…` (paths in a compose file resolve from its own folder), so the image can copy `global.json`, `src/` and the nginx config from `deploy/` | `deploy/compose.yml` with `name:` and `deploy/compose.local.yml`; the database's `depends_on` in `compose.local.yml`, since `compose.yml` alone has no database service; the database host as `${POSTGRES_HOST:-<service>}`; `.env.example` starting with `COMPOSE_FILE=deploy/compose.yml:deploy/compose.local.yml` and `COMPOSE_PATH_SEPARATOR=:` (the Windows default separator is `;`), and a server's `.env.example` in `deploy/<environment>/` with `COMPOSE_FILE=deploy/compose.yml`; a `.dockerignore` at the root that leaves out `.env`, `docs/`, `bin/`, `obj/` and `node_modules/` |
 | FOUND-D16 | compose `ports` entry bound to the loopback address with `${POSTGRES_PORT}` as the host port and 5432 as the container port, a named volume, `pg_isready` health check | |
 | FOUND-D17 | | `nginx` config in the deploy folder |
 | FOUND-D18 | `global.json` test runner, `xunit.v3`, `Testcontainers.PostgreSql`, `[Theory]` with `[MemberData]` for golden data | the golden-data reader |
 | FOUND-D19 | `Shouldly`; option b: `AwesomeAssertions`; option c: `Xunit.Assert` | |
 | FOUND-D20 | nothing in the .NET solution | a separate npm project in the E2E folder, with its own command |
-| FOUND-D21 | `Project` paths in `.slnx` follow the layout, grouped with `Folder` | |
+| FOUND-D21 | `src/<ProjectName>.slnx`; `Project` paths in it relative to `src/` (`apps/…`, `packages/…`, `tests/…`), grouped with `Folder` | |
 | FOUND-D22 | `ProjectReference` in each project pointing inward only | rules for each layer in the architecture test project, and a project-reference test for the code below |
 | FOUND-D23 | one `DbContext` | folders `Domain/<Module>/`, `Application/Features/<Module>/<UseCase>/` |
 | FOUND-D24 | the project file named as the app; set `RootNamespace` only if it would differ (unverified) | test project names |

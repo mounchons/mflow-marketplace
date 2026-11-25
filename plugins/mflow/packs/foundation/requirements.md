@@ -121,11 +121,15 @@ No PDF library SHALL be added until a printed or PDF document is in scope. When 
 - **THEN** `Directory.Packages.props` lists no PDF library
 
 ### Requirement: Containers and one command
-Every service SHALL run as a container, and one `docker compose up` from a fresh clone, after `.env.example` is copied to `.env`, SHALL start the whole stack. A developer SHALL be able to start only the database from the same compose file and run the API and the web from the machine. Every Dockerfile SHALL be multi-stage, and the final image SHALL hold neither an SDK nor source code. (FOUND-D15)
+Every service SHALL run as a container. The compose files SHALL live in `{foundation.deploy_folder}`: `compose.yml` with the apps, whose `name:` is the project's so every container and volume is grouped under it, and `compose.local.yml` with the local database. `COMPOSE_FILE` in the root `.env` SHALL choose the files, so `docker compose up` at the root SHALL start the whole stack on a developer's machine from a fresh clone after `.env.example` is copied to `.env`, and only the apps on a server whose `.env` names `compose.yml` alone and the server's database. A developer SHALL be able to start only the database service and run the API and the web from the machine. Every Dockerfile SHALL be multi-stage, and the final image SHALL hold neither an SDK nor source code. (FOUND-D15)
 
 #### Scenario: Fresh clone
-- **WHEN** a developer copies `.env.example` to `.env` and runs `docker compose up` on a clean machine
-- **THEN** every service starts without any file being edited
+- **WHEN** a developer copies `.env.example` to `.env` and runs `docker compose up` at the root on a clean machine
+- **THEN** every service starts without any file being edited, grouped under the project's name
+
+#### Scenario: Server database
+- **WHEN** a server's `.env` sets `COMPOSE_FILE` to `compose.yml` alone and the database host to the server's database, and an operator runs `docker compose up`
+- **THEN** the apps start and connect to that database, and no database container starts
 
 #### Scenario: Only the database
 - **WHEN** a developer starts the database service alone and runs the API from the machine
@@ -160,8 +164,8 @@ The reverse proxy SHALL be nginx from its official image, with its configuration
 ### Requirement: Tests on the developer's machine
 .NET tests SHALL use xUnit v3 on Microsoft Testing Platform; integration tests SHALL run against a real PostgreSQL {foundation.postgres_major} started by Testcontainers, and SHALL not use an in-memory database; a `react-vite` web SHALL use Vitest with Testing Library. One test command SHALL run all of the .NET tests on the developer's machine, including the architecture tests. Business rules SHALL be tested data-driven from golden data in `{foundation.tests_folder}/{project_name}.Domain.Tests/Golden/`, one case per row. (FOUND-D18)
 
-#### Scenario: Test command from the root
-- **WHEN** a developer with Docker running runs `dotnet test` at the root
+#### Scenario: One test command
+- **WHEN** a developer with Docker running runs `dotnet test` on `{foundation.src_folder}/{project_name}.slnx`
 - **THEN** unit, integration and architecture tests run, and no browser starts
 
 #### Scenario: One case per row
@@ -187,10 +191,10 @@ Playwright tests SHALL live in `{foundation.e2e_folder}` and SHALL run only when
 - **THEN** the Playwright tests in `{foundation.e2e_folder}` run
 
 ### Requirement: Repository layout
-One repository SHALL hold everything: every app and layer project under `{foundation.src_folder}/`, the tests under `{foundation.tests_folder}/`, deployment files under `{foundation.deploy_folder}/`, documents under `docs/`, and `{project_name}.slnx` at the root. Every path in AGENTS.md `## Stack` SHALL point at a real path in this layout. (FOUND-D21)
+One repository SHALL hold everything. All source code SHALL live under `{foundation.src_folder}/`: the deployable apps in `apps/`, the layers and shared projects in `packages/`, the tests in `{foundation.tests_folder}/`, the scripts in `scripts/`, and `{project_name}.slnx` with the build files beside it. Deployment files SHALL live under `{foundation.deploy_folder}/` and documents under `docs/`, both at the root. Every path in AGENTS.md `## Stack` SHALL point at a real path in this layout. (FOUND-D21)
 
-#### Scenario: Build from the root
-- **WHEN** a developer runs `dotnet build` at the root
+#### Scenario: Build the solution
+- **WHEN** a developer runs `dotnet build` on `{foundation.src_folder}/{project_name}.slnx`
 - **THEN** every .NET project of `{project_name}.slnx` builds
 
 #### Scenario: Stack paths exist
@@ -242,7 +246,7 @@ Every deployable app SHALL be named `{project_name}.<Kind>` or `{project_name}.<
 - **THEN** it reports an SDK of .NET {foundation.dotnet_major}
 
 ### Requirement: Shared build settings
-`Directory.Build.props` at the root SHALL set the target framework, nullable reference types, implicit usings and warnings as errors for every project, with the SDK's analyzers on. No project file SHALL set these again. (FOUND-D26)
+`Directory.Build.props` beside `{project_name}.slnx` in `{foundation.src_folder}/` SHALL set the target framework, nullable reference types, implicit usings and warnings as errors for every project, with the SDK's analyzers on. No project file SHALL set these again. (FOUND-D26)
 
 #### Scenario: A possible null
 - **WHEN** code in any project dereferences a value that may be null
@@ -256,7 +260,7 @@ Every NuGet package version SHALL be set in `Directory.Packages.props`, and no p
 - **THEN** restore fails
 
 ### Requirement: Code format and local settings
-`.editorconfig` at the root SHALL define the code format that `dotnet format` applies. `.env.example` SHALL be committed and SHALL list every setting that the compose file and the apps read, with placeholder values only. `.env`, build output and `node_modules/` SHALL be ignored by git. (FOUND-D28)
+`.editorconfig` at the root SHALL define the code format that `dotnet format` applies. `.env.example` SHALL be committed and SHALL list every setting that the compose files, the scripts and the apps read, with placeholder values only. `.env`, build output and `node_modules/` SHALL be ignored by git. (FOUND-D28)
 
 #### Scenario: .env is ignored
 - **WHEN** a developer creates `.env` at the root and runs `git status`

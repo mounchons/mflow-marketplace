@@ -1,6 +1,6 @@
 ---
 name: foundation
-version: 1
+version: 2
 title: tech stack และโครงโค้ดมาตรฐาน
 prefix: FOUND
 requires: []

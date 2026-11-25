@@ -57,7 +57,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 - Format: `TODO`
 
 ## Architecture
-- Solution layout: TODO (e.g. `src/<ProjectName>.Domain`, `.Application`, `.Infrastructure`, `.Api`, `.Web.Backend`, `.Web.Frontend`; from the approved code-structure discussion doc)
+- Solution layout: TODO (e.g. `src/apps/<ProjectName>.Api`, `.Web.Backend`, `.Web.Frontend`; `src/packages/<ProjectName>.Domain`, `.Application`, `.Infrastructure`; `src/tests/`; `src/<ProjectName>.slnx`; from the approved code-structure discussion doc)
 - References point inward only: the Api and Web apps → Infrastructure → Application → Domain. TODO: the architecture test that enforces it
 - Bounded contexts: TODO
 - Business rules live in the Domain layer (aggregates, value objects, domain services). UI and controllers call them; they never re-implement them.
@@ -86,7 +86,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 | Briefs for other AI tools / their results | `.mflow/briefs/`, `docs/ai/inbox/` | `/mflow:delegate`, `/mflow:assess` |
 | Analyses, designs and challenges from several AI tools (optional) | `docs/ai/analysis/`, `docs/ai/design/`, `docs/ai/challenge/` | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` |
 | Where we are right now | `STATUS.md` | every session |
-| Proof that behaviour works | `tests/` at the root, beside `src/` or `apps/`, never inside them; UI unit and E2E tests where `## Stack` says | test projects |
+| Proof that behaviour works | the tests folder of the approved code-structure doc (`src/tests/` by default, never inside an app or layer project); UI unit and E2E tests where `## Stack` says | test projects |
 
 ## Session ritual
 Start: read `STATUS.md`, run `openspec list` and `backlog task list -s "In Progress" --plain`.

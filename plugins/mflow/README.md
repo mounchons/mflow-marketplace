@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.50)
+## คำสั่ง (v0.51)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -163,7 +163,7 @@ mflow คุม `/opsx:*` ผ่าน `openspec/config.yaml` ไฟล์เด
 
 | แพ็ก | เรื่อง | หัวข้อ discuss | ต้องมีก่อน |
 |---|---|---|---|
-| `foundation` | tech stack และโครงโค้ดมาตรฐาน: ถ้า stack ตรงกับ template จะแสดงทุกหัวข้อให้ยืนยันก่อนเริ่ม | `tech-stack`, `code-structure` | — |
+| `foundation` | tech stack และโครงโค้ดมาตรฐาน: ถ้า stack ตรงกับ template จะแสดงทุกหัวข้อให้ยืนยันก่อนเริ่ม (รุ่น 2, 0.51: โค้ดทั้งหมดใต้ `src/` ทั้ง `apps/`, `packages/`, `tests/`, `scripts/`; compose สองไฟล์ใน `deploy/` เลือกด้วย `COMPOSE_FILE` ใน `.env` ที่ root) | `tech-stack`, `code-structure` | — |
 | `audit` | ผู้ทำและเวลา, soft delete, Activity Log | `audit-history` | — |
 | `settings` | หน้าตั้งค่าระบบ ชนิดค่า ค่าความลับ เวลาที่ค่ามีผล | `system-settings` | audit |
 | `mail` | คิวอีเมล ตัวส่ง เทมเพลต ค่า SMTP บนจอ ปุ่มส่งทดสอบ | `notifications` | audit, settings |

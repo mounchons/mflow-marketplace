@@ -16,17 +16,17 @@ AGENTS.md holds `Project name (code): <Name>` (see "Project name" below), `Profi
 
 | Seam | `mvc-htmx` | `react-vite` |
 |---|---|---|
-| UI files (UI rule `paths:`) | `src/**/Views/**/*.cshtml`, `src/**/Pages/**/*.cshtml`, `src/**/wwwroot/css/**/*.css` | `src/<ProjectName>.Web.<Part>/src/**/*.tsx`, `src/<ProjectName>.Web.<Part>/src/**/*.css` |
+| UI files (UI rule `paths:`) | `src/**/Views/**/*.cshtml`, `src/**/Pages/**/*.cshtml`, `src/**/wwwroot/css/**/*.css` | `src/apps/<ProjectName>.Web.<Part>/src/**/*.tsx`, `src/apps/<ProjectName>.Web.<Part>/src/**/*.css` |
 | Tokens file | `wwwroot/css/tokens.css`, with the Bootstrap 5.3 bridge | `src/styles/tokens.css`; keep the Bootstrap bridge only if the UI uses Bootstrap |
 | App shell | `Views/Shared/_Layout.cshtml` | `src/components/layout/AppShell.tsx` |
 | Components | `Views/Shared/Components/` (partials, view components, tag helpers) | `src/components/ui/` |
 | Style guide | `/_styleguide` | `/_styleguide` route, dev and prototype builds only |
-| Prototype data | `src/<ProjectName>.Web.<Part>/PrototypeData/` | `PrototypeData/` in the API project; the UI reads it only through the API |
+| Prototype data | `src/apps/<ProjectName>.Web.<Part>/PrototypeData/` | `PrototypeData/` in the API project; the UI reads it only through the API |
 | Prototype-mode flag | `Prototype:UseFakeData` | `Prototype:UseFakeData` in the API; the UI shows the banner and switcher only when the API reports it |
 | Data access | EF Core + migrations | EF Core + migrations in the API |
 | Unit tests | xUnit (`[Theory]` + `[InlineData]` / `[MemberData]`) | xUnit for domain and API, Vitest for UI |
 | E2E tests | Playwright | Playwright |
-| Golden data folder | `tests/<ProjectName>.Domain.Tests/Golden/` | `tests/<ProjectName>.Domain.Tests/Golden/` |
+| Golden data folder | `src/tests/<ProjectName>.Domain.Tests/Golden/` | `src/tests/<ProjectName>.Domain.Tests/Golden/` |
 
 For `custom`, fill every row for the named stack. The prototype-mode flag row must also say how fake users, the role switcher and fake repositories are kept out of production: left out of the production build, or refused at startup when the flag is on outside a development or prototype environment. A runtime flag alone is not enough. A row that cannot be filled is written `TODO: <why>` and raised before `/mflow:theme`; it is never guessed.
 

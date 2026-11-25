@@ -1,6 +1,6 @@
 ---
 name: api
-version: 1
+version: 2
 title: ข้อตกลง API และสภาพแวดล้อมที่รัน
 prefix: API
 requires: []

@@ -24,7 +24,7 @@ Checklist:
 - **API:** the runtime (default .NET 10 LTS with C# 14), minimal APIs or controllers, versioning (`/api/v1`), the OpenAPI document and its UI, authentication (cookie session or JWT with refresh), validation, mapping (hand-written or a library), a mediator (none, or a library), error format (ProblemDetails), logging (for example Serilog), health checks, rate limiting.
 - **Data:** the database (default PostgreSQL 18) and access (EF Core 10 with the Npgsql provider), naming (for example snake_case), how migrations reach each environment, money and date types, soft delete and audit columns (details per aggregate in the data-model docs), one tenant or many, backups.
 - **Files and documents:** where uploads live (disk, or S3-compatible storage such as MinIO), Excel, PDF, e-mail, barcodes and QR codes.
-- **Containers and environments:** Docker for every service; `docker-compose` for local work (the database on a free port rather than the default one, so it does not clash with another project); multi-stage Dockerfiles (for .NET, `mcr.microsoft.com/dotnet/sdk` to build and `aspnet` to run); environments (dev, UAT, production) and where each runs (the customer's server, a cloud); reverse proxy and HTTPS; secrets (`.env` locally, never in git); CI/CD only when the user asks for it in this project (until then the whole suite runs on the developer's machine with `/mflow:test`; propose no pipeline).
+- **Containers and environments:** Docker for every service; the compose files in `deploy/`: `compose.yml` with the apps, starting with `name: <project>` so every container and volume is grouped under the project in Docker, and `compose.local.yml` with the database for local work and testing (on a free port rather than the default one, so it does not clash with another project), `COMPOSE_FILE` in the root `.env` choosing the files, so `docker compose up` at the root starts both on a developer's machine and `compose.yml` alone against the server's own database on a server; one folder per environment under `deploy/` for what differs (proxy config, the server's `.env.example`); multi-stage Dockerfiles (for .NET, `mcr.microsoft.com/dotnet/sdk` to build and `aspnet` to run); environments (dev, UAT, production) and where each runs (the customer's server, a cloud); reverse proxy and HTTPS; secrets (`.env` at the root, never in git, left out of images by `.dockerignore`); CI/CD only when the user asks for it in this project (until then the whole suite runs on the developer's machine with `/mflow:test`; propose no pipeline).
 - **Tests:** unit (xUnit for .NET, Vitest for the web), integration against a real database (Testcontainers), E2E (Playwright), the assertion library.
 - **Licences: open source and free is the rule, and it is checked, not assumed.** For every package and container image chosen (NuGet, npm, Docker), verify its current licence for the pinned version at decision time and record it in the libraries table. Licences change between major versions: MediatR, AutoMapper and FluentAssertions moved to commercial licences, EPPlus needs a paid licence for commercial use, QuestPDF is free only under its community terms, and Redis changed its licence (Valkey is the BSD-licensed fork). A paid or non-open-source choice needs the user's explicit decision (D) with the cost stated.
 - **Core now, extras from evidence.** Every extra (a cache such as Redis or Valkey, a message queue such as RabbitMQ, a job scheduler such as Hangfire or Quartz.NET, search, real-time with SignalR, object storage, observability with OpenTelemetry) gets exactly one outcome: **now**, when a cited need requires it (volume, a response-time target, jobs in scope, several instances sharing state); **later**, with the trigger that brings it in and what is prepared now so adding it is cheap (for example an `ICacheService` over the in-memory cache, or an outbox table before a queue); or **not needed**. Nothing is added "just in case".
@@ -59,9 +59,9 @@ Checklist:
   - **One app of a kind, none planned:** no part (`<ProjectName>.Api`).
   - **Not .NET:** a React or other web app keeps the same folder name; its package name is the same in lowercase with hyphens (`schoolhr-web-frontend`).
   - Example: `SchoolHr.Web.Backend` (หลังบ้าน for HR staff), `SchoolHr.Web.Frontend` (หน้าบ้าน for teachers), `SchoolHr.Api` (the only API).
-- **Repository:** one repo for everything (the default: every app and layer project under `src/`, then `tests/`, `docs/`, `deploy/` and `<ProjectName>.slnx` at the root; or `apps/` for the apps and `packages/` for the shared projects) or one per app; the folder of each app from the tech-stack doc, named as above.
+- **Repository:** one repo for everything, or one per app. The default puts all source code under `src/`: `src/apps/` for the deployable apps, `src/packages/` for the layers and shared projects, `src/tests/`, `src/scripts/`, and `<ProjectName>.slnx` with `Directory.Build.props`, `Directory.Packages.props`, `nuget.config` and the web workspace files (`package.json`, `pnpm-workspace.yaml`) beside it. The root keeps only `docs/`, `deploy/`, the tools' folders (`openspec/`, `backlog/`, `.mflow/`), AGENTS.md, `global.json`, `.editorconfig`, `.env.example` and `.env`. The other choice is flat: every project directly under `src/`, with `tests/`, `scripts/` and the `.slnx` at the root, for a small system with one app and no Node web. The folder of each app comes from the tech-stack doc, named as above.
 - **.NET solution, split by layer,** following the team's standard when the knowledge base has one:
-  - `<ProjectName>.Domain`: entities, value objects, enums, domain services and domain rules; references nothing. Some teams call it `.Core`: choose one name (D). The golden-data folder in `## Stack` follows it (`tests/<ProjectName>.Domain.Tests/Golden/`).
+  - `<ProjectName>.Domain`: entities, value objects, enums, domain services and domain rules; references nothing. Some teams call it `.Core`: choose one name (D). The golden-data folder in `## Stack` follows it (`src/tests/<ProjectName>.Domain.Tests/Golden/`).
   - `<ProjectName>.Application`: use cases, DTOs, validation, and the interfaces the outer layers implement (repositories, file storage, e-mail).
   - `<ProjectName>.Infrastructure`: the EF Core DbContext, entity configurations and migrations, repositories, external services, Excel, PDF and file storage.
   - The apps (`<ProjectName>.Api`, each `<ProjectName>.Web.<Part>` that is an MVC app): endpoints or controllers, authentication, middleware, and the composition root that wires the DI.
@@ -70,25 +70,38 @@ Checklist:
 - **Inside Application:** folders by feature (`Features/<Module>/<UseCase>/`, recommended) or by kind (Commands, Queries, Dtos).
 - **Tests:** a test project per project it tests, named after it plus `.Tests` (`<ProjectName>.Domain.Tests` with its golden data, `<ProjectName>.Application.Tests`, `<ProjectName>.Api.Tests` for integration, `<ProjectName>.Web.Backend.Tests`), `<ProjectName>.ArchitectureTests`, and the E2E folder.
 - **Web and mobile apps:** the folder layout of each app (routes or pages, `features/<module>`, `components` for the kit, `lib` for the API client and the date and number formats), and shared packages (`packages/ui` for the kit, an API client generated from the OpenAPI document).
-- **Build settings:** `global.json` pins the SDK; `Directory.Build.props` holds the target framework, nullable and analyzer settings; `Directory.Packages.props` pins package versions in one place; `.editorconfig`; `.env.example` committed and `.env` ignored.
+- **Build settings:** `global.json` at the root pins the SDK; `Directory.Build.props` beside the `.slnx` holds the target framework, nullable and analyzer settings; `Directory.Packages.props` pins package versions in one place; `.editorconfig` at the root; `.env.example` at the root committed and `.env` ignored; a `.dockerignore` at the root.
 - **Names:** namespaces follow folders; code names come from the Domain vocabulary in AGENTS.md.
 - **mflow's seams:** every row of `## Stack` (UI files, tokens, app shell, components, prototype data, prototype-mode flag, tests, golden data) points at a real path in this layout.
 
 Suggested shapes for section 3: the folder tree in a `text` block, such as
 
 ```text
+deploy/
+  compose.yml
+  compose.local.yml
+  live/
+docs/
 src/
-  SchoolHr.Domain/
-  SchoolHr.Application/
-  SchoolHr.Infrastructure/
-  SchoolHr.Api/
-  SchoolHr.Web.Backend/
-  SchoolHr.Web.Frontend/
-tests/
-  SchoolHr.Domain.Tests/
-  SchoolHr.Api.Tests/
-  SchoolHr.ArchitectureTests/
-SchoolHr.slnx
+  apps/
+    SchoolHr.Api/
+    SchoolHr.Web.Backend/
+    SchoolHr.Web.Frontend/
+  packages/
+    SchoolHr.Domain/
+    SchoolHr.Application/
+    SchoolHr.Infrastructure/
+  tests/
+    SchoolHr.Domain.Tests/
+    SchoolHr.Api.Tests/
+    SchoolHr.ArchitectureTests/
+    e2e/
+  scripts/
+  SchoolHr.slnx
+  Directory.Build.props
+  Directory.Packages.props
+global.json
+.env.example
 ```
 
 and
@@ -96,7 +109,7 @@ and
 | Project | Holds | References | Must not reference |
 |---|---|---|---|
 
-Decisions it usually needs: the project name when init did not settle it, whether a kind gets parts now (a second web app or API planned), `.Domain` or `.Core`, folders by feature or by kind.
+Decisions it usually needs: the project name when init did not settle it, the default layout under `src/` or the flat one, whether a kind gets parts now (a second web app or API planned), `.Domain` or `.Core`, folders by feature or by kind.
 
 Creating the solution is work: at approval it becomes a Backlog task or an `/opsx:propose` change, never files written by the discussion.
 

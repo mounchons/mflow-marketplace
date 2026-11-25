@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.50.0 |
+| เวอร์ชัน plugin | 0.51.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -167,6 +167,7 @@ docs/
   - ถ้าชนิดไหนมีมากกว่าหนึ่งแอป หรือ `tech-stack` วางแผนว่าจะมีเพิ่มภายหลัง ทุกแอปของชนิดนั้นใส่ส่วนตั้งแต่แอปแรก จะได้ไม่ต้องเปลี่ยนชื่อทีหลัง ถ้ามีแอปเดียวและไม่มีแผนเพิ่ม ไม่ต้องมีส่วน (`SchoolHr.Api`)
   - ตัวอย่าง: `SchoolHr.Web.Backend` (หลังบ้านของฝ่ายบุคคล), `SchoolHr.Web.Frontend` (หน้าบ้านของครู), `SchoolHr.Api`, `SchoolHr.Domain`, test ใช้ชื่อ project ที่ทดสอบต่อด้วย `.Tests` (`SchoolHr.Api.Tests`) แอปที่ไม่ใช่ .NET ใช้ชื่อโฟลเดอร์เดียวกัน ส่วนชื่อ package เป็นตัวเล็กคั่นด้วยขีด (`schoolhr-web-frontend`)
 - **`code-structure` คุยอะไร:** ชื่อโปรเจกต์ในโค้ด (ถ้า init ยังไม่ได้ตั้ง), repo เดียวหรือหลาย repo, ชื่อและโฟลเดอร์ของแต่ละแอปตามรูปแบบข้างบน, solution .NET แยก project ตาม layer (`<ชื่อโปรเจกต์>.Domain` หรือ `.Core` ให้เลือกชื่อเดียว, `.Application`, `.Infrastructure`, แอป `.Api` และ `.Web.<ส่วน>`) โดยอ้างอิงเข้าด้านในเท่านั้นและมี architecture test บังคับ, โฟลเดอร์แยกตาม feature, test project ของแต่ละ layer, `global.json` `Directory.Build.props` `Directory.Packages.props`, และ path ของ `## Stack` ทุกแถวต้องชี้ที่โฟลเดอร์จริง
+- **โครง repo ที่แนะนำ (0.51):** โค้ดทั้งหมดอยู่ใต้ `src/` (`src/apps/` ของที่ deploy, `src/packages/` layer และของที่ใช้ร่วม, `src/tests/`, `src/scripts/`, `.slnx` กับไฟล์ build) ที่ root เหลือ `docs/`, `deploy/`, `openspec/`, `backlog/`, `.mflow/`, AGENTS.md, `global.json`, `.editorconfig`, `.env.example` และ `.env` ไฟล์ compose อยู่ใน `deploy/` สองไฟล์: `compose.yml` (แอปทุกตัว ตั้ง `name:` เป็นชื่อโปรเจกต์ ใน Docker จึงเห็นเป็นกลุ่มเดียว) และ `compose.local.yml` (ฐานข้อมูลสำหรับเครื่องนักพัฒนาและเครื่องทดสอบ) `COMPOSE_FILE` ใน `.env` เลือกไฟล์ จึงสั่ง `docker compose up -d` ที่ root ได้ทุกเครื่อง บน server ตั้งให้ใช้ `compose.yml` ไฟล์เดียวแล้วชี้ไปฐานข้อมูลของ server
 - **ข้อมูลมาจากไหน (ตามลำดับ):** เอกสารลูกค้าและคำของคุณ → มาตรฐานของทีมใน knowledge base ถ้าเชื่อมไว้ (เช่น Graph Brain: มาตรฐาน .NET 10, PostgreSQL 18, Clean Architecture) ติดป้าย `[ที่มา: brain <ชื่อโน้ต>]` → ข้อเสนอของ Claude `[เสนอ]` โน้ตของโปรเจกต์เก่าเป็นแค่ตัวอย่าง ถ้าขัดกันจะเป็นข้อตัดสินใจให้คุณเลือก
 - **ตอนอนุมัติ:** แอป, library พร้อม licence และตัวเสริมที่ทำภายหลังไปอยู่ใน `## Stack` ของ AGENTS.md (profile และ path ถูกปรับถ้าต่างจากที่เลือกตอน init, คำสั่งใน `## Commands` ติด `(unverified)` จนกว่าจะรันใหม่) โครง solution และกฎการอ้างอิงไปอยู่ใน `## Architecture` ส่วนการสร้าง solution จริงเป็น task หรือ `/opsx:propose`
 
@@ -916,10 +917,11 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.50.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.51.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
+| โครง repo ใต้ `src/` และ compose สองไฟล์ใน `deploy/` | (0.51) เป็นค่าเริ่มต้นของโปรเจกต์ใหม่เท่านั้น โปรเจกต์ที่อนุมัติโครงเดิมไปแล้วไม่ถูกถามซ้ำ ถ้าจะย้ายให้แก้เอกสาร `code-structure` ผ่าน `/mflow:discuss` แล้วทำเป็น change เดียว ส่วน compose ลองแค่ `docker compose config` ยังไม่ได้ `up` หรือ build image บน Windows ใส่ `COMPOSE_PATH_SEPARATOR=:` ใน `.env` เมื่อ `COMPOSE_FILE` ใช้ `:` คั่นไฟล์ |
 | แพ็ก `auth` กับเว็บ React, Vue หรือ Angular | (0.43) เว็บที่อยู่ origin เดียวกับ API ใช้ cookie ส่วน JWT ใช้กับแอป mobile ระบบอื่น และเว็บคนละ origin ที่อยู่ site เดียวกัน Vue และ Angular เลือก profile `custom` แล้วระบุ ASP.NET Core ใน `## Stack` |
 | โปรเจกต์เดิมเขียนกฎ commit ไว้ต่างจาก template | (0.42.1) `/mflow:init` แทนด้วยกฎของ plugin โดยไม่ถาม แล้วบอกหนึ่งบรรทัดว่าแทนบรรทัดไหน |
 | `init` เสนอ `openspec init --language th` ซึ่งจะได้ข้อความ "written in th" ตามตัวอักษร | ถ้าต้องการ spec ภาษาไทย ให้บอก Claude ใช้ `--language "Thai"` แทน |

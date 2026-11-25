@@ -257,7 +257,7 @@ Credentials, such as the database password, the SMTP password and the keys of ot
 - **THEN** it stops with a message naming the SMTP password setting and no value
 
 ### Requirement: One command starts the stack
-`docker compose up` with the project's compose file SHALL start the proxy, the API, the database and every web container. The database SHALL have a healthcheck, and the API SHALL start after it is healthy. After that, every {portal} and `{api.route_prefix}/health/ready` SHALL answer through the proxy. (API-D20)
+`docker compose up` at the root, with the compose files that `COMPOSE_FILE` in `.env` names, SHALL start the proxy, the API, the database and every web container. The database SHALL have a healthcheck, and the API SHALL start after it is healthy. After that, every {portal} and `{api.route_prefix}/health/ready` SHALL answer through the proxy. (API-D20)
 
 #### Scenario: Fresh start
 - **WHEN** a developer copies `.env.example` to `.env` and runs the compose command on a clean machine

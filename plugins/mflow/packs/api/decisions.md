@@ -122,7 +122,7 @@
 - **ถามเมื่อ:** ไม่ถาม
 
 ### API-D20: เปิดทั้งชุดอย่างไร และจำกัดหน่วยความจำไหม
-- **คำตอบ:** `docker compose up` คำสั่งเดียวเปิด proxy, API, ฐานข้อมูล และเว็บ ฐานข้อมูลมี healthcheck และ API เริ่มหลังฐานข้อมูลพร้อม ทุก container มีเพดานหน่วยความจำ (`api.memory_proxy_mb`, `api.memory_api_mb` ที่รวมงานเบื้องหลังใน process เดียว, `api.memory_web_mb`, `api.memory_db_mb`)
+- **คำตอบ:** `docker compose up` ที่ root คำสั่งเดียวเปิด proxy, API, ฐานข้อมูล และเว็บ (ไฟล์ compose ตามแพ็ก `foundation`) ฐานข้อมูลมี healthcheck และ API เริ่มหลังฐานข้อมูลพร้อม บน server ที่ใช้ฐานข้อมูลของ server เปิด `compose.yml` ไฟล์เดียว ทุก container มีเพดานหน่วยความจำ (`api.memory_proxy_mb`, `api.memory_api_mb` ที่รวมงานเบื้องหลังใน process เดียว, `api.memory_web_mb`, `api.memory_db_mb`)
 - **เหตุผล:** เครื่องใหม่ขึ้นระบบได้ในคำสั่งเดียว และ container ตัวเดียวกินหน่วยความจำจนเครื่องล่มไม่ได้
 - **ถ้าผิด:** แก้ทีหลังได้ — ปรับ compose และค่าเพดานใน change ถัดไป
 - **ถามเมื่อ:** ไม่ถาม

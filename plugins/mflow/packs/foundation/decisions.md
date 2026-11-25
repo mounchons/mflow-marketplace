@@ -105,13 +105,13 @@
 ## Container และ environment
 
 ### FOUND-D15: รันระบบอย่างไร
-- **คำตอบ:** ทุก service เป็น container และมี `docker-compose.yml` สำหรับเครื่องนักพัฒนา คำสั่งเดียวเปิดทั้งชุด ระหว่างเขียนโค้ดเปิดเฉพาะฐานข้อมูลใน compose แล้วรัน API และเว็บจากเครื่องได้ Dockerfile เป็นแบบ multi-stage ไม่มี SDK หรือซอร์สโค้ดใน image ที่รันจริง สิ่งที่อยู่ใน compose และเพดานหน่วยความจำเป็นกติกาของแพ็ก `api`
-- **เหตุผล:** เครื่องใหม่ขึ้นระบบได้ทันที และ image ที่รันจริงเล็กและมีของที่โจมตีได้น้อย
+- **คำตอบ:** ทุก service เป็น container ไฟล์ compose อยู่ใน `foundation.deploy_folder`: `compose.yml` มีแอปทุกตัวและตั้ง `name:` เป็นชื่อโปรเจกต์ ทุก container และ volume จึงอยู่กลุ่มเดียวกันใน Docker ส่วน `compose.local.yml` เพิ่มฐานข้อมูลสำหรับเครื่องนักพัฒนาและเครื่องทดสอบ `COMPOSE_FILE` ใน `.env` ที่ root เลือกไฟล์ จึงสั่ง `docker compose up -d` ที่ root ได้ทุกเครื่อง: เครื่องนักพัฒนาใช้สองไฟล์ server ใช้ `compose.yml` ไฟล์เดียวกับฐานข้อมูลของ server ระหว่างเขียนโค้ดเปิดเฉพาะฐานข้อมูลแล้วรัน API และเว็บจากเครื่องได้ Dockerfile เป็นแบบ multi-stage ไม่มี SDK หรือซอร์สโค้ดใน image ที่รันจริง สิ่งที่อยู่ใน compose และเพดานหน่วยความจำเป็นกติกาของแพ็ก `api`
+- **เหตุผล:** เครื่องใหม่ขึ้นระบบได้ทันที server ใช้ฐานข้อมูลของตัวเองโดยแก้แค่ `.env` และ image ที่รันจริงเล็กและมีของที่โจมตีได้น้อย
 - **ถ้าผิด:** แก้ทีหลังได้ — ปรับ compose และ Dockerfile โดยโค้ดของแอปไม่เปลี่ยน
 - **ถามเมื่อ:** ไม่ถาม
 
 ### FOUND-D16: ฐานข้อมูลบนเครื่องนักพัฒนาใช้ port และ volume อย่างไร
-- **คำตอบ:** เปิดที่ port `foundation.db_dev_port` ไม่ใช้ 5432 ผูกกับ loopback ของเครื่องเท่านั้น ข้อมูลอยู่ใน volume ที่มีชื่อ ซึ่งอยู่รอดหลัง `docker compose down`
+- **คำตอบ:** ฐานข้อมูลอยู่ใน `compose.local.yml` เปิดที่ port `foundation.db_dev_port` ไม่ใช้ 5432 ผูกกับ loopback ของเครื่องเท่านั้น ข้อมูลอยู่ใน volume ที่มีชื่อ ซึ่งอยู่รอดหลัง `docker compose down` ชื่อ volume ขึ้นต้นด้วย `name:` ของ compose จึงต้องไม่เปลี่ยน `name:` หลังมีข้อมูลแล้ว
 - **เหตุผล:** เครื่องเดียวรันได้หลายโปรเจกต์โดยไม่ชนกัน และฐานข้อมูลไม่เปิดให้เครื่องอื่นในวง LAN เข้าถึง
 - **ถ้าผิด:** แก้ทีหลังได้ — เปลี่ยนใน `.env` และ compose
 - **ถามเมื่อ:** ไม่ถาม
@@ -146,14 +146,14 @@
 ## โครง repo และ solution
 
 ### FOUND-D21: repo วางโฟลเดอร์ระดับบนอย่างไร
-- **คำตอบ:** repo เดียว มีแอปและ layer ทุกตัวใต้ `src/` แล้วมี `tests/`, `docs/`, `deploy/` และ `<ProjectName>.slnx` ที่ root
-- **เหตุผล:** path สั้น ตรงกับค่าเริ่มต้นของ mflow และเครื่องมือ .NET
-- **ถ้าผิด:** แก้ยาก — ย้ายทุก project แก้ path ใน solution, Dockerfile, compose และตาราง `## Stack`
+- **คำตอบ:** repo เดียว ซอร์สโค้ดทั้งหมดอยู่ใต้ `src/`: `src/apps/` ของที่ deploy (API, เว็บ, worker), `src/packages/` layer และของที่หลายแอปใช้ร่วม, `src/tests/` test ทุกชนิดรวม E2E, `src/scripts/` script ของงานพัฒนาและงานดูแลระบบ และไฟล์ของ build อยู่ที่ `src/` เช่นกัน (`<ProjectName>.slnx`, `Directory.Build.props`, `Directory.Packages.props`, `nuget.config`, `package.json` กับ `pnpm-workspace.yaml` ของเว็บ) ที่ root มีแค่ `docs/`, `deploy/`, โฟลเดอร์ของเครื่องมือ (`openspec/`, `backlog/`, `.mflow/`), AGENTS.md, `global.json`, `.editorconfig`, `.env.example` และ `.env`
+- **เหตุผล:** root อ่านง่าย แยกโค้ด เอกสาร และการนำระบบขึ้นออกจากกันชัดเจน `global.json` กับ `.editorconfig` อยู่ที่ root ได้เพราะ dotnet และ editor หาไฟล์ขึ้นไปทาง parent
+- **ถ้าผิด:** แก้ยาก — ย้ายทุก project แก้ path ใน solution, Dockerfile, compose, script และตาราง `## Stack`
 - **ถามเมื่อ:** ทุกโปรเจกต์
-- **ตัวเลือกอื่น:** b) `apps/` สำหรับของที่ deploy และ `packages/` สำหรับของที่หลายแอปใช้ร่วม เหมาะเมื่อมีหลายเว็บหรือ package ร่วม แต่ path ยาวขึ้น
+- **ตัวเลือกอื่น:** b) แบบแบน: project ทุกตัวอยู่ตรงใต้ `src/` (`src/<ProjectName>.Api`) แล้วมี `tests/`, `scripts/` และ `<ProjectName>.slnx` ที่ root path สั้นกว่า เหมาะกับระบบเล็กที่มีแอปเดียวและไม่มีเว็บ Node ส่วน `deploy/` และ `.env` อยู่ที่เดิม
 
 ### FOUND-D22: solution แบ่ง layer และอ้างถึงกันอย่างไร
-- **คำตอบ:** solution ไฟล์เดียวแบบ `.slnx` ที่ root มีสี่ชั้น `<ProjectName>.Domain` (entity และกฎธุรกิจ ไม่อ้างอะไรเลย), `.Application` (use case, DTO, การตรวจข้อมูล, interface ที่ชั้นนอกทำให้), `.Infrastructure` (EF Core, ไฟล์, อีเมล, ระบบภายนอก) และแอป (endpoint, การเข้าระบบ, middleware, การต่อ DI) อ้างเข้าด้านในเท่านั้น: แอป → Infrastructure → Application → Domain แอปใช้ Infrastructure เฉพาะตอนต่อ DI architecture test ตรวจทุกครั้งที่รัน test และบอกชื่อกฎที่ผิด เว็บ React ไม่อยู่ใน solution
+- **คำตอบ:** solution ไฟล์เดียวแบบ `.slnx` ใน `foundation.src_folder` มีสี่ชั้น `<ProjectName>.Domain` (entity และกฎธุรกิจ ไม่อ้างอะไรเลย), `.Application` (use case, DTO, การตรวจข้อมูล, interface ที่ชั้นนอกทำให้), `.Infrastructure` (EF Core, ไฟล์, อีเมล, ระบบภายนอก) และแอป (endpoint, การเข้าระบบ, middleware, การต่อ DI) อ้างเข้าด้านในเท่านั้น: แอป → Infrastructure → Application → Domain แอปใช้ Infrastructure เฉพาะตอนต่อ DI architecture test ตรวจทุกครั้งที่รัน test และบอกชื่อกฎที่ผิด เว็บ React ไม่อยู่ใน solution
 - **เหตุผล:** กฎธุรกิจไม่ผูกกับ framework และการอ้างผิดชั้นถูกจับตั้งแต่บนเครื่องนักพัฒนา ไม่ต้องรอ review
 - **ถ้าผิด:** แก้ยาก — ย้าย class ข้าม project หลังมีโค้ดแล้วกระทบทั้ง solution
 - **ถามเมื่อ:** ไม่ถาม
@@ -183,7 +183,7 @@
 ## Build settings
 
 ### FOUND-D26: SDK และค่าตั้งของการ build
-- **คำตอบ:** `global.json` ที่ root pin SDK รุ่นหลักของโปรเจกต์ด้วย `rollForward` `foundation.sdk_roll_forward` `Directory.Build.props` ที่ root กำหนด target framework, nullable, implicit usings, ใช้ analyzer ของ SDK และถือ warning เป็น error ทุก project ไม่กำหนดซ้ำในไฟล์ project
+- **คำตอบ:** `global.json` ที่ root pin SDK รุ่นหลักของโปรเจกต์ด้วย `rollForward` `foundation.sdk_roll_forward` `Directory.Build.props` ข้าง `.slnx` ใน `foundation.src_folder` กำหนด target framework, nullable, implicit usings, ใช้ analyzer ของ SDK และถือ warning เป็น error ทุก project ไม่กำหนดซ้ำในไฟล์ project
 - **เหตุผล:** ทุกเครื่องได้ผล build เดียวกัน และเรื่อง null ถูกจับตั้งแต่ build
 - **ถ้าผิด:** แก้ทีหลังได้ — แต่ยิ่งเปิด warning เป็น error ช้า ยิ่งมีของค้างให้ไล่แก้มาก
 - **ถามเมื่อ:** ไม่ถาม
@@ -195,7 +195,7 @@
 - **ถามเมื่อ:** ไม่ถาม
 
 ### FOUND-D28: รูปแบบโค้ดและไฟล์ตั้งค่าในเครื่อง
-- **คำตอบ:** `.editorconfig` ที่ root ใช้กับ `dotnet format` `.env.example` commit ไว้ และมีทุกค่าที่ compose กับแอปอ่าน `.env`, `bin/`, `obj/` และ `node_modules/` อยู่ใน `.gitignore` กติกาว่าความลับมาจากไหนเป็นของแพ็ก `api`
+- **คำตอบ:** `.editorconfig` ที่ root ใช้กับ `dotnet format` `.env.example` ที่ root commit ไว้ และมีทุกค่าที่ compose, script และแอปอ่าน `.env` อยู่ที่ root ไฟล์เดียว ไม่ย้ายเข้า `src/` เพราะ compose และ script อ่านจาก root และ `.dockerignore` กันไม่ให้เข้า image `.env`, `bin/`, `obj/` และ `node_modules/` อยู่ใน `.gitignore` กติกาว่าความลับมาจากไหนเป็นของแพ็ก `api`
 - **เหตุผล:** diff ไม่มีเรื่องจัดรูปแบบปน และคนใหม่รู้ว่าต้องตั้งค่าอะไรบ้าง
 - **ถ้าผิด:** แก้ยาก — ความลับที่ commit ไปแล้วอยู่ในประวัติ git ต้องเปลี่ยนทุกตัว
 - **ถามเมื่อ:** ไม่ถาม

@@ -94,7 +94,7 @@ function repo() {
 test("the runner takes the tool's jobs one at a time, records each and commits it, and stops after --jobs", needsGit, () => {
   repo();
   const r = ok(runner(["--as", "codex", "--jobs", "2"]));
-  assert.deepEqual(r.jobs.map((j) => [j.job, j.result]), [["T1", "done"], ["R1", "done"]]);
+  assert.deepEqual(r.jobs.map((j) => [j.job, j.result]), [["T1", "done"], ["R1", "done"]], JSON.stringify(r.jobs));
   assert.match(r.stopped, /2 jobs done/);
   const jobs = jobsOf();
   assert.match(jobs.T1.result, /^docs\/reviews\/tests\/fake-T1\.md pass \(by codex\)$/);
@@ -265,18 +265,22 @@ test("a tool that points the worktree's .git elsewhere has the pointer put back,
   assert.equal(jobsOf().T1.state, "open");
 });
 
-test("a read-only tool runs in the registry's review mode and is never handed a job that writes", needsGit, () => {
+test("agy writes in the registry's code mode and reviews read-only; OpenCode is never handed a job that writes", needsGit, () => {
   repo();
   p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: {} }));
   const d = ok(runner(["--as", "antigravity", "--dry-run"]));
-  assert.match(d.command, /--mode plan --sandbox/, "agy's read-only review mode, not --dangerously-skip-permissions");
-  assert.match(d.command, /antigravity-readonly\.json'/, "its read-only settings file, expanded to the plugin's copy");
-  assert.doesNotMatch(d.command, /\{plugin:/, "no placeholder left");
-  assert.doesNotMatch(d.command, /dangerously/);
-  const none = ok(runner(["--as", "antigravity"]));
-  assert.deepEqual(none.jobs, [], "T1 is a test: agy waits for a review");
+  assert.match(d.command, /dangerously-skip-permissions/, "a test or a fix: agy's code mode (0.58.0, the user's word)");
+  assert.match(d.reviewCommand, /--mode plan --sandbox/, "a review: agy's read-only review mode");
+  assert.match(d.reviewCommand, /antigravity-readonly\.json'/, "its read-only settings file, expanded to the plugin's copy");
+  assert.doesNotMatch(d.reviewCommand, /\{plugin:|dangerously/, "no placeholder left, no skipped permissions");
+  const o = ok(runner(["--as", "opencode", "--dry-run"]));
+  assert.equal(o.reviewCommand, undefined, "OpenCode has one command, read-only");
+  const none = ok(runner(["--as", "opencode"]));
+  assert.deepEqual(none.jobs, [], "T1 is a test: OpenCode waits for a review");
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { test: "opencode" } } }));
+  assert.match(checks(["status"]).stderr, /checks\.route\.test must be any, claude or codex or antigravity/);
   p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { test: "antigravity" } } }));
-  assert.match(checks(["status"]).stderr, /checks\.route\.test must be any, claude or codex/);
+  ok(checks(["status"]));
 });
 
 test("an include.path a tool adds to the git config stops the job, and the file it names is never deleted", needsGit, () => {

@@ -46,12 +46,16 @@ export const HEAVY = new Set(["test", "test-since", "fix", "e2e-write", "e2e"]);
 export const TOOLS = ["claude", "codex", "antigravity", "opencode"];
 const E2E_TOOLS = ["claude", "codex"];
 const E2E_KINDS = new Set(["e2e-write", "e2e"]);
-// The user's answer b (2026-11-26): a job that writes files (a test record, E2E tests, a fix) goes only to Claude
-// Code and Codex, whose writes stay in a sandbox or in Claude's permission mode. Antigravity and OpenCode run
-// without one in their code mode, so they take reviews only, read-only, their report given as their final message.
-export const WRITE_TOOLS = ["claude", "codex"];
-export const READ_ONLY_TOOLS = ["antigravity", "opencode"];
+// Who writes. The user's answer b (2026-11-26) gave jobs that write files (a test record, E2E tests, a fix) to Claude
+// Code and Codex only; the same day the user asked for Antigravity to do tests, reviews and E2E as they do, in the
+// runner too (0.58.0). OpenCode still takes reviews only. Antigravity's and OpenCode's reviews in the runner stay
+// read-only (REVIEW_READ_ONLY_TOOLS): the registry's review mode, the report given as the final message.
+export const WRITE_TOOLS = ["claude", "codex", "antigravity"];
+export const READ_ONLY_TOOLS = ["opencode"];
+export const REVIEW_READ_ONLY_TOOLS = ["antigravity", "opencode"];
 export const READ_KINDS = new Set(["review", "review-merge"]);
+/** The job kinds behind `next --kind`: what /mflow:test-pr, review-pr and e2e-pr each take. */
+export const KIND_GROUPS = { test: ["test", "test-since"], review: ["review", "review-merge"], e2e: ["e2e-write", "e2e"], fix: ["fix"] };
 /** Whether a tool may take a job of this kind. */
 export const canTake = (tool, j) => tool === "any" || READ_KINDS.has(j.kind) || WRITE_TOOLS.includes(tool);
 export const DEFAULTS = { route: { test: "any", review: "claude", reviewMerge: "claude", fix: "claude", e2e: "claude" }, staleMinutes: 60, rounds: 3, jobsPerRun: 2, jobMinutes: 90 };
@@ -98,7 +102,7 @@ export function checksConfig(root) {
   }
   if (!E2E_TOOLS.includes(route.e2e)) throw new Error(`${MARKER}: checks.route.e2e must be ${E2E_TOOLS.join(" or ")}: no other tool has mflow's guard on Playwright's browsers`);
   for (const kind of ["test", "fix"]) {
-    if (READ_ONLY_TOOLS.includes(route[kind])) throw new Error(`${MARKER}: checks.route.${kind} must be any, ${WRITE_TOOLS.join(" or ")}: ${READ_ONLY_TOOLS.join(" and ")} take reviews only (they run without a sandbox when they write)`);
+    if (READ_ONLY_TOOLS.includes(route[kind])) throw new Error(`${MARKER}: checks.route.${kind} must be any, ${WRITE_TOOLS.join(" or ")}: ${READ_ONLY_TOOLS.join(" and ")} takes reviews only`);
   }
   const staleMinutes = user?.staleMinutes ?? DEFAULTS.staleMinutes;
   if (!Number.isInteger(staleMinutes) || staleMinutes < 5) throw new Error(`${MARKER}: checks.staleMinutes must be a whole number of 5 or more`);
@@ -463,8 +467,10 @@ export function status(root) {
   return { enabled: cfg.enabled, route: cfg.route, rounds: cfg.rounds, batches: open, stale: stale.map((s) => s.key) };
 }
 
-export function next(root, { as, batch, job: only } = {}) {
+export function next(root, { as, batch, job: only, kind } = {}) {
   if (!TOOLS.includes(as)) throw new Error(`next: --as must be one of ${TOOLS.join(", ")}`);
+  if (kind && !KIND_GROUPS[kind]) throw new Error(`next: --kind must be one of ${Object.keys(KIND_GROUPS).join(", ")}`);
+  const kinds = kind ? new Set(KIND_GROUPS[kind]) : null;
   const cfg = checksConfig(root);
   const main = mainInfo(root).main;
   const file = claimsFile(root);
@@ -484,13 +490,14 @@ export function next(root, { as, batch, job: only } = {}) {
       // One job at a time in a batch: its jobs share one worktree, so two tools there would see each other's files.
       const running = Object.values(live).find((c) => c.job.startsWith(`${b.name}/`));
       if (running) {
-        if (b.jobs.some((j) => j.state === "open" && (j.agent === "any" || j.agent === as))) busy = true;
+        if (b.jobs.some((j) => j.state === "open" && (!kinds || kinds.has(j.kind)) && (j.agent === "any" || j.agent === as))) busy = true;
         skipped.push(`${b.name} runs ${running.job.split("/")[1]} (${running.tool}); one job at a time in a batch`);
         continue;
       }
       for (const j of b.jobs) {
         if (j.state !== "open" || live[`${b.name}/${j.id}`]) continue;
         if (only && j.id !== only) continue;
+        if (kinds && !kinds.has(j.kind)) continue;
         if (j.agent !== "any" && j.agent !== as) continue;
         if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !E2E_TOOLS.includes(as)) continue;
         if (!canTake(as, j)) continue;
@@ -519,7 +526,7 @@ export function next(root, { as, batch, job: only } = {}) {
         return { batch: b.name, branch: b.branch, dir, file: b.file, pinned: b.pinned, job: j, how: howOf(j, dir, b), reclaimed: stale.some((s) => s.key === `${b.name}/${j.id}`) };
       }
     }
-    return { job: null, busy, reason: skipped.length ? skipped.join("; ") : `no open job for ${as} is ready`, batches: open.map((b) => b.name) };
+    return { job: null, busy, reason: skipped.length ? skipped.join("; ") : !open.length ? "no checks batch is open" : `no open ${kind ? `${kind} ` : ""}job for ${as} is ready`, batches: open.map((b) => b.name) };
   });
 }
 
@@ -819,7 +826,7 @@ export function assign(root, ids, tool, { batch } = {}) {
     if (!j) throw new Error(`${b.name} has no job ${id}`);
     if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !tools.every((t) => E2E_TOOLS.includes(t))) throw new Error(`${id} is E2E: only ${E2E_TOOLS.join(" and ")} have mflow's guard on Playwright's browsers`);
     const refused = tools.find((t) => !canTake(t, j));
-    if (refused) throw new Error(`${id} is a ${j.kind} job: ${refused} takes reviews only (it runs without a sandbox when it writes); give it to ${WRITE_TOOLS.join(" or ")}`);
+    if (refused) throw new Error(`${id} is a ${j.kind} job: ${refused} takes reviews only; give it to ${WRITE_TOOLS.join(" or ")}`);
     if (tools.length === 1) {
       j.agent = tools[0];
       continue;
@@ -902,14 +909,14 @@ if (isMain) {
     if (cmd === "enable") out = enable(root);
     else if (cmd === "sync") out = sync(root, { dryRun: rest.includes("--dry-run") });
     else if (cmd === "status") out = status(root);
-    else if (cmd === "next") out = next(root, { as: opt("--as"), batch: common.batch, job: opt("--job") });
+    else if (cmd === "next") out = next(root, { as: opt("--as"), batch: common.batch, job: opt("--job"), kind: opt("--kind") });
     else if (cmd === "done") out = done(root, arg(0), { ...common, record: opt("--record"), report: opt("--report"), files: (opt("--files") || "").split(",").map((s) => s.trim()).filter(Boolean) });
     else if (cmd === "release") out = release(root, arg(0), common);
     else if (cmd === "block") out = block(root, arg(0), common);
     else if (cmd === "assign") out = assign(root, arg(0), arg(1), common);
     else if (cmd === "publish") out = publish(root, common);
     else if (cmd === "close") out = close(root, arg(0), common);
-    else throw new Error("usage: checks.mjs enable | sync [--dry-run] | status | next --as <tool> | done <job> [--record|--report <path>] [--files a,b] | release <job> | block <job> --note <text> | assign <job[,job]> <tool|any> | publish [--batch <b>] | close <batch> --note <text>");
+    else throw new Error("usage: checks.mjs enable | sync [--dry-run] | status | next --as <tool> [--kind test|review|e2e|fix] [--job <id>] | done <job> [--record|--report <path>] [--files a,b] | release <job> | block <job> --note <text> | assign <job[,job]> <tool|any> | publish [--batch <b>] | close <batch> --note <text>");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

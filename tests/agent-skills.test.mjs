@@ -17,7 +17,7 @@ const skills = (...args) => {
   assert.equal(r.status, 0, r.stderr);
   return r.json;
 };
-const NAMES = ["mflow-test", "mflow-review", "mflow-e2e"];
+const NAMES = ["mflow-test", "mflow-review", "mflow-e2e", "mflow-test-pr"];
 const GUARD = ".agents/skills/mflow-e2e/scripts/e2e-guard.mjs";
 const ENTRY = { matcher: "Bash", hooks: [{ type: "command", command: `node "$(git rev-parse --show-toplevel)/${GUARD}"`, timeout: 10 }] };
 const version = JSON.parse(fs.readFileSync(new URL("../plugins/mflow/.claude-plugin/plugin.json", import.meta.url), "utf8")).version;
@@ -34,7 +34,7 @@ function front(text) {
   return { top, metadata, name: /^name: (.*)$/m.exec(text)[1], description };
 }
 
-test("write creates the three skills with frontmatter Codex and OpenCode accept and no plugin path left", () => {
+test("write creates the four skills with frontmatter Codex and OpenCode accept and no plugin path left", () => {
   p = project();
   const w = skills("write");
   assert.deepEqual(w.skills.map((s) => [s.name, s.state]), NAMES.map((n) => [n, "create"]));
@@ -52,7 +52,7 @@ test("write creates the three skills with frontmatter Codex and OpenCode accept 
     assert.match(text, /`\/mflow:e2e` is `\$mflow-e2e` \/ `\/mflow-e2e`/, "e2e is named as a skill of this tool, not a Claude Code command");
     assert.ok(!/\]\(references\//.test(text), `${name}: a link relative to the skill is left`);
     assert.equal(p.read(`.agents/skills/${name}/agents/openai.yaml`), "policy:\n  allow_implicit_invocation: false\n");
-    for (const ref of fs.readdirSync(p.file(`.agents/skills/${name}/references`))) {
+    for (const ref of p.exists(`.agents/skills/${name}/references`) ? fs.readdirSync(p.file(`.agents/skills/${name}/references`)) : []) {
       assert.ok(!p.read(`.agents/skills/${name}/references/${ref}`).includes("${CLAUDE_PLUGIN_ROOT}"), `${name}/${ref}: a plugin path is left`);
     }
   }
@@ -86,6 +86,13 @@ test("write creates the three skills with frontmatter Codex and OpenCode accept 
   assert.match(e, /^- In this tool, first: in Codex, run nothing below until the E2E guard check.*\n- Only this screen's or this flow's test files/m, "the stop sits at the top of Run");
   assert.match(e, /In OpenCode, write the tests \(sections 1 and 2\) and stop before section 3/);
   assert.match(front(e).description, /OpenCode writes them but never runs them/);
+  const tp = p.read(".agents/skills/mflow-test-pr/SKILL.md");
+  assert.ok(tp.includes('node ".agents/skills/mflow-test-pr/scripts/checks.mjs" <command>'), "the test of the checks batch runs its own copy of checks.mjs");
+  for (const s of ["checks.mjs", "pending.mjs", "worktree.mjs", "lib.mjs"]) assert.ok(p.exists(`.agents/skills/mflow-test-pr/scripts/${s}`), s);
+  assert.match(tp, /`--as <you>` is `codex` in Codex and `antigravity` in Antigravity/);
+  assert.match(tp, /outside the sandbox/);
+  assert.ok(tp.includes("Run only when the user calls it: `$mflow-test-pr` in Codex"), "called as a Codex skill");
+  assert.match(tp, /never tests in the main checkout/);
   assert.equal(w.hook.state, "create");
   assert.deepEqual(JSON.parse(p.read(".codex/hooks.json")), { hooks: { PreToolUse: [ENTRY] } });
 });
@@ -97,7 +104,7 @@ test("a second write changes nothing, and status reads the version", () => {
   assert.deepEqual(again.skills.map((s) => [s.state, s.write.length]), NAMES.map(() => ["unchanged", 0]));
   assert.equal(again.hook.state, "unchanged");
   const st = skills("status");
-  assert.deepEqual(st.skills.map((s) => s.state), ["current", "current", "current"]);
+  assert.deepEqual(st.skills.map((s) => s.state), NAMES.map(() => "current"));
   assert.equal(st.hook.state, "current");
 });
 
@@ -133,7 +140,7 @@ test("nothing is written through a folder that a junction takes outside the proj
   fs.mkdirSync(p.file(".agents"), { recursive: true });
   fs.symlinkSync(outside, p.file(".agents/skills"), "junction");
   const w = skills("write");
-  assert.deepEqual(w.skills.map((s) => s.state), ["refused", "refused", "refused"]);
+  assert.deepEqual(w.skills.map((s) => s.state), NAMES.map(() => "refused"));
   assert.equal(w.hook.state, "skipped", "no hook for a guard copy that was not written");
   assert.deepEqual(fs.readdirSync(outside), []);
   assert.ok(!p.exists(".codex/hooks.json"));
@@ -192,7 +199,7 @@ test("a .codex/hooks.json that is not valid JSON is left alone, and the skills a
   assert.equal(w.hook.state, "refused");
   assert.match(w.hook.note, /not valid JSON.*by hand/);
   assert.equal(p.read(".codex/hooks.json"), "{ not json");
-  assert.deepEqual(w.skills.map((s) => s.state), ["create", "create", "create"]);
+  assert.deepEqual(w.skills.map((s) => s.state), NAMES.map(() => "create"));
   assert.equal(skills("status").hook.state, "unreadable");
 });
 

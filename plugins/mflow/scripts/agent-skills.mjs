@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Skills for Codex and OpenCode: /mflow:test, /mflow:review and /mflow:e2e, generated from this plugin's own
-// skills into .agents/skills/mflow-test, mflow-review and mflow-e2e, the folder both tools read. Codex calls
+// Skills for Codex and OpenCode: /mflow:test, /mflow:review, /mflow:e2e and /mflow:test-pr, generated from this
+// plugin's own skills into .agents/skills/mflow-test, mflow-review, mflow-e2e and mflow-test-pr, the folder both
+// tools read (Antigravity reads it too). Codex calls
 // them as $mflow-test, OpenCode as /mflow-test. Neither runs mflow's Claude Code hooks, so each skill carries
 // the rules a hook enforces here (write the STATUS.md entry yourself). The one hook that matters for safety,
 // the E2E guard that caps the browsers a Playwright run opens, is also written into the project's
@@ -98,6 +99,22 @@ export const SKILLS = [
       SANDBOX,
       "Write `By: codex`, `By: antigravity` or `By: opencode` in the record, whichever tool you are.",
       commitNote("mflow-e2e", "e2e"),
+    ],
+  },
+  {
+    // The next test job of the open checks batch (0.58.0): the user opens Codex or Antigravity in the project and
+    // calls it, instead of Claude Code taking the job on the tool's behalf.
+    name: "mflow-test-pr",
+    source: "test-pr",
+    describe: "",
+    references: [],
+    scripts: ["checks.mjs", "pending.mjs", "worktree.mjs", "lib.mjs"],
+    edits: [],
+    notes: [
+      "`--as <you>` is `codex` in Codex and `antigravity` in Antigravity. In OpenCode stop at once: OpenCode takes reviews only; tell the user `$mflow-test-pr` in Codex or Antigravity, or `/mflow:test-pr` in Claude Code.",
+      "Run the scripts from the root of the main checkout (the folder this tool was opened in), and the test commands of section 2 in the batch's worktree (`dir`).",
+      "`checks.mjs next`, `done`, `release` and `publish` write under `.git` (the hold on the job, the commit), which the sandbox keeps read-only, and `publish` pushes: run each outside the sandbox (in Codex, ask the user to approve it). The test commands run in the sandbox; when one fails because the sandbox blocks Docker, Testcontainers, a port or the network, ask the user to approve that command outside it. When you cannot ask (`codex exec`, a headless run), stop and tell the user the runner does that: `checks-run.mjs --as <you>` in a terminal.",
+      "Write `By: codex` or `By: antigravity` in the record, whichever tool you are.",
     ],
   },
 ];

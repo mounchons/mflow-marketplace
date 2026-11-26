@@ -26,7 +26,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { findRoot, loadConfig } from "./lib.mjs";
-import { checksConfig, next, done, release, block, publish, touch, runsDir, TOOLS, READ_ONLY_TOOLS } from "./checks.mjs";
+import { checksConfig, next, done, release, block, publish, touch, runsDir, TOOLS, READ_ONLY_TOOLS, REVIEW_READ_ONLY_TOOLS, READ_KINDS } from "./checks.mjs";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PWSH_QUOTES = new RegExp(`['${String.fromCharCode(0x2018, 0x2019, 0x201a, 0x201b)}]`, "g");
@@ -257,7 +257,25 @@ function gitEnv(cwd) {
   const env = { ...process.env, GIT_CONFIG_NOSYSTEM: "1", GIT_ATTR_NOSYSTEM: "1" };
   const pin = PINNED.get(path.resolve(cwd).toLowerCase());
   if (pin) Object.assign(env, { GIT_DIR: pin.own, GIT_WORK_TREE: pin.dir });
+  // The line-ending settings as git read them before the tool ran, the system config included: Git for Windows keeps
+  // core.autocrlf=true there, and without it git compares a CRLF checkout with its LF blobs and calls a file whose
+  // stat it re-checks (one written in the same second as the index) changed, AGENTS.md among them.
+  const eol = pin?.eol || [];
+  if (eol.length) {
+    const base = Number(env.GIT_CONFIG_COUNT) || 0;
+    eol.forEach(([k, v], i) => Object.assign(env, { [`GIT_CONFIG_KEY_${base + i}`]: k, [`GIT_CONFIG_VALUE_${base + i}`]: v }));
+    env.GIT_CONFIG_COUNT = String(base + eol.length);
+  }
   return env;
+}
+
+/** core.autocrlf, core.eol and core.safecrlf as git reads them in this checkout now, every config file included. */
+function eolOf(dir) {
+  return ["core.autocrlf", "core.eol", "core.safecrlf"].flatMap((k) => {
+    const r = spawnSync("git", [...SAFE_GIT, "config", "--get", k], { cwd: dir, encoding: "utf8" });
+    const v = (r.stdout || "").trim();
+    return r.status === 0 && v ? [[k, v]] : [];
+  });
 }
 function git(cwd, args) {
   const r = spawnSync("git", [...SAFE_GIT, ...args], { env: gitEnv(cwd), cwd, encoding: "utf8", timeout: 120_000, maxBuffer: 16 * 1024 * 1024 });
@@ -277,11 +295,14 @@ function changes(dir) {
   return list;
 }
 
+/** Whether this tool does this kind of job read-only: OpenCode always, Antigravity and OpenCode for reviews. */
+export const readOnlyRun = (tool, kind) => READ_ONLY_TOOLS.includes(tool) || (REVIEW_READ_ONLY_TOOLS.includes(tool) && READ_KINDS.has(kind));
+
 /** The command for a tool from checks.commands, the registry's code mode, or Claude's own. */
-export function command(root, tool, paths, shell) {
+export function command(root, tool, paths, shell, kind) {
   const cfg = checksConfig(root);
-  // A read-only tool runs in the registry's review mode (agy: plan mode, its sandbox, file writes denied).
-  const mode = READ_ONLY_TOOLS.includes(tool) ? "review" : "code";
+  // Read-only runs use the registry's review mode (agy: plan mode, its sandbox, file writes denied).
+  const mode = readOnlyRun(tool, kind) ? "review" : "code";
   const def = cfg.commands[tool] || (tool === "claude" ? CLAUDE : loadConfig(root).tools[tool]?.[mode]);
   const template = def?.[shell];
   if (!template) throw new Error(`no ${shell} command for ${tool}: add checks.commands.${tool}.${shell} to .mflow/config.json, with {brief} {out} {worktree}`);
@@ -309,7 +330,7 @@ const shellOf = () => {
 function brief(got, tool) {
   const j = got.job;
   const skill = SKILL[j.kind];
-  const readOnly = READ_ONLY_TOOLS.includes(tool);
+  const readOnly = readOnlyRun(tool, j.kind);
   return [
     `# mflow checks job ${j.id} of batch ${got.batch}`,
     "",
@@ -431,12 +452,12 @@ async function doJob(root, got, tool, cfg, sh) {
   try {
     ignoredBefore = ignoredProtected(got.dir);
     guardBefore = guardState(got.dir);
-    PINNED.set(path.resolve(got.dir).toLowerCase(), { own: guardBefore.paths.own, dir: got.dir });
+    PINNED.set(path.resolve(got.dir).toLowerCase(), { own: guardBefore.paths.own, dir: got.dir, eol: eolOf(got.dir) });
   } catch (err) {
     release(root, j.id, { ...at, note: err.message });
     return { job: j.id, kind: j.kind, batch: got.batch, result: "not done", stop: err.message };
   }
-  const cmd = command(root, tool, paths, sh.shell);
+  const cmd = command(root, tool, paths, sh.shell, j.kind);
   const r = await runTool(sh.exe, sh.args(cmd), { cwd: got.dir, minutes: cfg.jobMinutes, heartbeat: () => touch(root, got.batch, j.id) });
   const said = `${fs.existsSync(paths.out) ? fs.readFileSync(paths.out, "utf8") : ""}\n${r.stdout}`;
   const base = { job: j.id, kind: j.kind, batch: got.batch, exit: r.status, out: paths.out };
@@ -480,7 +501,7 @@ async function doJob(root, got, tool, cfg, sh) {
   if (j.kind === "test" || j.kind === "test-since" || j.kind === "e2e") {
     const recs = pick(/^docs\/reviews\/tests\/[^/]+\.md$/);
     if (recs.length === 1) [opts, explained] = [{ record: recs[0] }, recs];
-  } else if ((j.kind === "review" || j.kind === "review-merge") && READ_ONLY_TOOLS.includes(tool)) {
+  } else if (readOnlyRun(tool, j.kind)) {
     // Read-only: the report is the tool's final message (the -o file or its output), saved by the runner.
     const text = (fs.existsSync(paths.out) ? fs.readFileSync(paths.out, "utf8") : "").trim() || r.stdout.trim();
     const from = text.search(/^\W*Change:/m);
@@ -532,7 +553,10 @@ export async function runner(root, { as, jobs, until, batch, dryRun } = {}) {
   const sh = shellOf();
   if (dryRun) {
     const paths = { brief: path.join(runsDir(root), "<batch>-<job>.brief.md"), out: path.join(runsDir(root), "<batch>-<job>.out.md"), worktree: "<the batch's worktree>" };
-    return { tool: as, shell: sh.exe, command: command(root, as, paths, sh.shell), jobs: jobs ?? cfg.jobsPerRun, until: deadlineOf(until)?.toString() || null };
+    // The command of a job that writes, and of a review where that runs read-only.
+    const write = READ_ONLY_TOOLS.includes(as) ? null : command(root, as, paths, sh.shell, "test");
+    const review = command(root, as, paths, sh.shell, "review");
+    return { tool: as, shell: sh.exe, command: write || review, ...(write && review !== write ? { reviewCommand: review } : {}), jobs: jobs ?? cfg.jobsPerRun, until: deadlineOf(until)?.toString() || null };
   }
   const max = jobs ?? cfg.jobsPerRun;
   const now = () => (process.env.MFLOW_NOW ? new Date(process.env.MFLOW_NOW) : new Date());

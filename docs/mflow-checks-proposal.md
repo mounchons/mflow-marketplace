@@ -288,3 +288,12 @@ E2E มีสองงานต่อจอ ทำทีละจอเหมื
 | c) รัน tool ใน container หรือ VM | กันได้ทั้งกลุ่ม แต่เป็นงานใหญ่ ยังไม่ได้ทำ |
 
 การตรวจหลังจบยังอยู่ครบสำหรับทุก tool (codex และ claude เขียนได้ จึงยังต้องมี)
+
+## 19. คำสั่ง -pr ที่ tool หยิบงานเอง และ agy เขียนไฟล์ได้ (0.58.0, ผู้ใช้ 2026-11-26)
+
+ผู้ใช้ขอว่าเมื่อรัน `/mflow:checks` แล้ว ให้เปิด codex หรือ agy ใน terminal แล้วสั่งได้เอง โดยมันรู้ว่ามี PR ของชุดตรวจให้ดึงงานมาทำ จากนั้นเสนอคำสั่งแยก `mflow:test-pr`, `mflow:review-pr`, `mflow:e2e-pr` ให้ชัด และให้ทำ test ก่อนเพื่อทดลอง
+
+- `/mflow:test-pr` (`$mflow-test-pr` ใน Codex และ Antigravity): `next --as <tool> --kind test` จากโฟลเดอร์ main, test ใน worktree ของชุด, record `By: <tool>`, `done --record`, `publish`; ไม่มีชุดเปิดหรืองานไม่พร้อม: บอกเหตุผลแล้วหยุด `/mflow:test` เดิมไม่เปลี่ยน
+- sandbox ของ Codex (ลองด้วย `codex sandbox` ใน repo ทดสอบ): เขียนใน `.claude/worktrees/` ได้ เขียน `.git` ไม่ได้ (EPERM) จึงรัน `checks.mjs` นอก sandbox เมื่อผู้ใช้อนุมัติ งานละสองถึงสามครั้ง (หยิบ, บันทึก, push) แบบเดียวกับ `results.mjs` ที่ commit ผล
+- agy: ผู้ใช้ตอบว่า "ต้องการให้ agy ทำได้ทั้ง test, review, e2e ทำได้เหมือน claude and codex" และ "b) ตัวรันกลางคืนด้วย" แทนคำตอบ b ของข้อ 18 agy รับ test และ fix ได้ ในตัวรันใช้โหมด code (`--dangerously-skip-permissions`) ซึ่งการตรวจหลังรันกันได้แค่สิ่งที่ทิ้งไว้ใน repo ผู้ใช้รับข้อนี้แล้ว review ของ agy ในตัวรันยังอ่านอย่างเดียว
+- ยังไม่ทำ: `review-pr`, `e2e-pr` (E2E ของ agy ต้องมีตัวกันจำนวน browser แทน hook ของ Codex), การลองกับ codex และ agy จริง และ Docker ใน sandbox

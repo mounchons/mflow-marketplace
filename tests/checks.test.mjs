@@ -160,9 +160,11 @@ test("assign moves a job to a tool, which alone takes it; E2E goes only to a too
   ok(checks(["release", "T2"]));
   assert.equal(ok(checks(["next", "--as", "claude"])).job.id, "T0");
   ok(checks(["release", "T0"]));
-  // Answer b: a tool without a sandbox for its writes takes reviews only.
-  assert.match(checks(["assign", "T2", "antigravity"]).stderr, /T2 is a test job: antigravity takes reviews only/);
+  // OpenCode takes reviews only; Antigravity, since 0.58.0, tests and fixes too.
+  assert.match(checks(["assign", "T2", "opencode"]).stderr, /T2 is a test job: opencode takes reviews only/);
   assert.equal(ok(checks(["next", "--as", "opencode"])).job, null, "OpenCode is never handed a test");
+  assert.equal(ok(checks(["assign", "T2", "antigravity"])).tool, "antigravity", "Antigravity takes a test");
+  ok(checks(["assign", "T2", "any"]));
   assert.equal(ok(checks(["assign", "R1", "antigravity"])).tool, "antigravity", "a review is fine");
   const e2e = checks(["assign", "EW1", "antigravity"]);
   assert.notEqual(e2e.status, 0);
@@ -526,4 +528,17 @@ test("a newer batch waits until the older one is merged or closed, then takes ma
   const t = ok(checks(["next", "--as", "claude"]));
   assert.equal(t.batch, second);
   assert.ok(fs.existsSync(path.join(t.dir, "docs/notes.md")), "main was merged in when the batch was pinned");
+});
+
+test("next --kind takes only that group of jobs, and says when no batch is open", needsGit, () => {
+  repo();
+  assert.equal(ok(checks(["next", "--as", "codex", "--kind", "test"])).reason, "no checks batch is open");
+  merge("add-a");
+  ok(checks(["sync"]));
+  const none = ok(checks(["next", "--as", "codex", "--kind", "review"]));
+  assert.equal(none.job, null, "the review waits for the tests");
+  assert.match(none.reason, /no open review job for codex is ready/);
+  const t = ok(checks(["next", "--as", "antigravity", "--kind", "test"]));
+  assert.equal(t.job.kind, "test", "Antigravity takes a test (0.58.0)");
+  assert.match(checks(["next", "--as", "codex", "--kind", "lint"]).stderr, /--kind must be one of test, review, e2e, fix/);
 });

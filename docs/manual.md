@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.58.0 |
+| เวอร์ชัน plugin | 0.58.1 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -105,7 +105,7 @@ docs/
 | ต้องมี | ใช้ทำอะไร | ติดตั้ง |
 |---|---|---|
 | Node 20 ขึ้นไป (แนะนำ 22 หรือ 24 เพราะ Node 20 หมดระยะซัพพอร์ตแล้ว), git | script ของ plugin | ติดตั้งตามปกติ ตรวจได้ด้วย `/mflow:help check setup` |
-| OpenSpec 1.10 ขึ้นไป (ทดสอบกับ 1.16.1 ซึ่งติดตั้งผ่าน npm ต้องใช้ Node 22.12 ขึ้นไป) | spec และ change | `npm i -g @fission-ai/openspec@latest` |
+| OpenSpec 1.10 ขึ้นไป (ทดสอบกับ 2.2.0 ซึ่งติดตั้งผ่าน npm ต้องใช้ Node 22.20 ขึ้นไป; `openspec version` บอกว่ามีรุ่นใหม่ไหม) | spec และ change | `npm i -g @fission-ai/openspec@latest` แล้ว `openspec update` ในแต่ละโปรเจกต์ (OpenSpec 2 ไม่มีคำสั่ง `/opsx:*` ให้พิมพ์ `/openspec-propose`, `/openspec-apply-change` หรือบอก Claude เป็นคำพูด) |
 | Backlog.md 1.51 ขึ้นไป | task และตั๋ว hotspot (ต้องใช้ `isReady` ใน JSON) | `npm i -g backlog.md` |
 | Python + pandas, openpyxl, python-docx, pypdf | อ่าน Excel/Word/PDF ของลูกค้า และแปลงเป็นข้อความก่อน `consult` | `pip install pandas openpyxl python-docx pypdf` |
 | SDK ของ stack ที่เลือก (.NET SDK สำหรับ a และ b, Node สำหรับหน้า React ของ b) | build/test โปรเจกต์ | ติดตั้งตามปกติ |
@@ -923,7 +923,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.58.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.58.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

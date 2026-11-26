@@ -114,6 +114,14 @@ test("the specs ask for every state of a setting another role or web shows, whom
   assert.match(rule, /either in a Scenario per setting or in one requirement with a table of when each setting applies and a Scenario for each kind of timing/);
   assert.ok(!/and one for when the change takes effect/.test(rule), "the 0.37.1 wording is gone");
   assert.ok(LINES["rules.specs"].some((l) => l.includes("a second party of that kind sees none of it")), "the 0.37.0 hand-off rule stays");
+  // OpenSpec 2.2.0 (2026-11-26): archive writes a TBD Purpose for a new capability, which strict validation fails,
+  // and copies a delta's own `## Purpose` instead.
+  const purpose = LINES["rules.specs"].find((l) => l.startsWith("A delta spec that creates a capability"));
+  assert.ok(purpose, "the Purpose rule");
+  assert.match(purpose, /starts with `## Purpose`, one or two sentences of at least 50 characters/);
+  assert.equal(yamlItem(purpose), purpose, "a plain YAML item, no quotes needed");
+  const init = fs.readFileSync(path.join(SCRIPTS, "..", "skills", "init", "SKILL.md"), "utf8");
+  assert.match(init, /`openspec init --tools claude,codex --scope project` on OpenSpec 2\.0 or newer/, "init keeps OpenSpec's skills in the repository");
 });
 
 // StemHub 2026-10-31: CR-009 planned four changes, each with its screens; the 0.34 size rule split two of them

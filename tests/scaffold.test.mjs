@@ -37,8 +37,9 @@ test("CLAUDE.md names /mflow:hotspot in one line for a costly rule typed in chat
   assert.match(line, /crosses screens or is costly if wrong/);
   assert.match(line, /more answers or worked examples than this conversation can settle/);
   assert.match(line, /say once, in one line before the work, that `\/mflow:hotspot <idea>` charts it first/);
-  assert.match(line, /mflow commands run only when the user types them/);
-  assert.match(line, /advice, not a question to wait on/);
+  // 0.59.0: Claude runs an mflow step on a yes, so the line says a yes starts the hotspot.
+  assert.match(line, /and that a yes starts it/);
+  assert.match(line, /advice, not a question to wait on, and a later yes runs the hotspot/);
   assert.match(line, /A rule this conversation can settle gets no line/);
 });
 

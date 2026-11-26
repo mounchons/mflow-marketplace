@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.58)
+## คำสั่ง (v0.59)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -38,7 +38,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | ตั้งต้น | `/mflow:init [ชื่อ]` | ตั้งค่า repo ครั้งแรก: ถามเลือก stack และชื่อโปรเจกต์ในโค้ด (เสนอให้สามชื่อ) ก่อน, ต่อ OpenSpec + Backlog.md, สร้าง `docs/decisions/discuss/AGENDA.md` (มี `tech-stack` และ `code-structure` นำหน้า), คัดแยกเอกสารเดิม, (เลือกได้, 0.38.1) เขียนสำเนา plugin ที่ `.claude/skills/mflow/` สำหรับ Claude Code on the web ซึ่งไม่ติดตั้ง plugin ให้ |
 | เอกสารลูกค้า | `/mflow:capture [@ไฟล์] [--replaces @เก่า]` | ลงทะเบียน/คัดแยกเอกสาร อ่านเฉพาะไฟล์ใหม่หรือเปลี่ยน, ฉบับเก่าเป็น superseded, เพิ่มหัวข้อที่ควร discuss ลง AGENDA.md |
 | ยืนยันความเข้าใจ | `/mflow:discuss <หัวข้อ> [@ไฟล์]` | เขียนความเข้าใจ/แบบที่เสนอ (สิทธิ์, เมนู, การมองเห็นข้อมูล, ตาราง/column/data dictionary …) เป็น `docs/decisions/discuss/NN-<slug>.md` ให้คุณอ่าน พร้อมแผนภาพ Mermaid, wireframe หรือภาพหน้าจอจริง |
-| | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน ได้ brief + คำสั่งที่คุณรันเอง |
+| | `/mflow:discuss <NN> consult [--to <tool>,…]` | ให้ AI ตัวอื่น (Codex, OpenCode, Gemini, chat) ช่วยวิเคราะห์เอกสารเดียวกัน Codex และ Antigravity Claude รันให้เอง (0.59) tool อื่นได้ brief + คำสั่งที่คุณรันเอง |
 | | `/mflow:discuss <NN> [สิ่งที่อยากแก้]` / `<NN> approve` | รวมความเห็นของทุก AI + ปรับตามที่คุณตอบจนตรงกัน → อนุมัติแล้วนำแต่ละข้อไปรวมกับ flow หลัก |
 | | `/mflow:discuss <หัวข้อ>` กับแพ็ก (0.37) | หัวข้อที่มีแพ็กที่โปรเจกต์เลือก (`sign-in`, `user-accounts`, `access-control`, `notifications`, `audit-history`, `system-settings`, `api-conventions`, `file-upload`, `web-shell`, `background-jobs`, `import-export-print`, `integration`, `tech-stack`, `code-structure`) ตอบข้อที่แพ็กตัดสินไว้แล้วเอง ถามเฉพาะข้อของโปรเจกต์ เลือกแพ็กด้วยการบอกในแชต เช่น "ใช้แพ็ก auth, users" (ดูหัวข้อแพ็กด้านล่าง) |
 | | `/mflow:discuss tech-stack` / `code-structure` | สองหัวข้อแรกของทุกโปรเจกต์ (ก่อน `/mflow:theme`): แยก web / API / mobile, framework, library ที่เป็น open source และตรวจ licence แล้ว, PostgreSQL + EF Core, Docker, ตัวเสริมที่ใส่ภายหลัง (Redis, queue) และโครง solution แยก layer ตามมาตรฐานของทีม (อ่านจาก knowledge base เช่น Graph Brain ถ้าเชื่อมไว้) |
@@ -212,6 +212,7 @@ mflow/
 │   ├─ lib.mjs             ← config + ทะเบียน tool ค่าเริ่มต้น
 │   ├─ scaffold.mjs        ← วาง template ลงโปรเจกต์ (ลง folder ตามค่าตั้งใน .mflow/config.json)
 │   ├─ session-start.mjs   ← briefing + เอกสาร/ผล AI ที่ยังไม่ได้ประมวลผล
+│   ├─ setup.mjs           ← แผนของส่วนที่เลือกได้ของ /mflow:init ในครั้งเดียว + เก็บคำตอบ yes/no ใน .mflow/config.json (0.59)
 │   ├─ status-trim.mjs     ← ย้าย block เก่าของ ## Now และ log เก่าจาก STATUS.md ไป docs/status-log.md คำต่อคำ
 │   ├─ status-guard.mjs    ← hook ก่อน git commit: ขอ entry ของ STATUS.md ใน commit เดียวกัน (0.39)
 │   ├─ source-index.mjs    ← ทะเบียนเอกสารลูกค้า (hash)
@@ -258,7 +259,7 @@ mflow/
 
 OpenSpec บอกว่า "สร้างอะไร" (change: proposal, specs, tasks) และ AI ทุกตัวอ่านได้ ส่วน mflow ดูแลว่า "ใครทำ, ส่งมอบยังไง, ตรวจยังไง":
 
-1. `/mflow:delegate <subject> --mode analyze|review|code [--to <tool>]` (ใน Claude Code) → brief ใน `.mflow/briefs/` + คำสั่งให้คุณรันเอง
+1. `/mflow:delegate <subject> --mode analyze|review|code [--to <tool>]` (ใน Claude Code) → brief ใน `.mflow/briefs/` แล้ว Claude รัน Codex และ Antigravity เองใน mode analyze และ review (0.59) ส่วน mode code และ tool อื่นได้คำสั่งให้คุณรันเอง
 2. ไม่ใส่ `--to` = brief กลาง ใช้กับ tool ไหนก็ได้ และได้คำสั่งของทุก tool ในทะเบียน
 3. ทุก tool ตอบรายงานเป็น "ข้อความสุดท้าย" ที่มี `Understanding` + `Files read` นำหน้า แล้วคำสั่งบันทึกลง `docs/ai/inbox/`
 4. `/mflow:assess` ตรวจความเข้าใจและไฟล์ที่อ่านก่อน แล้วค่อยตรวจ finding ทีละข้อ

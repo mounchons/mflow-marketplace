@@ -2,8 +2,8 @@
 // Consultations: optional rounds in which other AI tools analyze the system (/mflow:analyze), propose a
 // design (/mflow:design) or try to break one (/mflow:challenge), for the user to weigh. Only the user
 // starts one: no hook or other command does, none is a prerequisite of the main flow, and a consultation
-// waiting for reports never blocks the main work. The user runs the other tools; mflow writes the brief
-// and the commands (requirement §13).
+// waiting for reports never blocks the main work. mflow writes the brief; Claude runs Codex and the Antigravity CLI
+// itself, read-only (0.59.0, FR-286), and the user runs any other tool from the commands (requirement §13).
 //
 //   node consult.mjs new <analyze|design|challenge> --scope "<what>" [--to <tool,tool | any>]
 //        [--focus <a,b>] [--target <file>] [--from <file>] [--basis built] [--again]

@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "\"<topic>\" [--from @file] [--focus <a,b>] [--to <tool,tool | any>] | <DS-NNN>"
 ---
 
-How the system should be built or changed for a topic, proposed by more than one AI tool and checked against evidence. It is **optional**: no step of mflow needs it, it does not need `/mflow:analyze` first, and the main flow continues while reports are out. The user runs the other tools; this skill writes the brief, then assesses and merges what comes back.
+How the system should be built or changed for a topic, proposed by more than one AI tool and checked against evidence. It is **optional**: no step of mflow needs it, it does not need `/mflow:analyze` first, and the main flow continues while reports are out. This skill writes the brief, runs Codex and the Antigravity CLI itself (read-only, delegate step 4), gives the commands for any other tool, which the user runs, then assesses and merges what comes back.
 
 The steps shared with `/mflow:analyze` and `/mflow:challenge` are in `${CLAUDE_PLUGIN_ROOT}/skills/delegate/references/consultation.md`. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 

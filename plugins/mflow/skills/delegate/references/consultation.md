@@ -1,6 +1,6 @@
 # Consultation pipeline (analyze, design, challenge)
 
-Shared by `/mflow:analyze`, `/mflow:design` and `/mflow:challenge`. Each one is **optional**: only the user calls it, no hook or other command does, no step of the main flow waits for one, and a consultation with reports still out never blocks other work or marks anything blocked. mflow writes the brief and the commands; the user runs the other tools (mflow does not run them, requirement §13). What the tools return is advice, checked against evidence before anyone uses it, and the user decides what to use.
+Shared by `/mflow:analyze`, `/mflow:design` and `/mflow:challenge`. Each one is **optional**: only the user calls it (typed, or a yes to Claude's one-line offer), no hook or other command does, no step of the main flow waits for one, and a consultation with reports still out never blocks other work or marks anything blocked. mflow writes the brief, runs Codex and the Antigravity CLI itself (read-only, as delegate step 4 says; the user's word since 0.59.0) and gives the commands for any other tool, which the user runs. What the tools return is advice, checked against evidence before anyone uses it, and the user decides what to use.
 
 Files opened with Read are not substituted: where this file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 
@@ -17,10 +17,10 @@ Files opened with Read are not substituted: where this file writes the plugin-ro
 
 ## B. Brief and hand over
 
-1. **Brief.** Write it at the session's `brief` path, following steps 1, 2 and 4 of `${CLAUDE_PLUGIN_ROOT}/skills/delegate/SKILL.md`, with subject `<id>-r<round>`, mode `analyze` (read-only, whatever the intent), the output contract the skill names from `${CLAUDE_PLUGIN_ROOT}/skills/delegate/references/brief-template.md`, and `--out` set to the session's `out`. Record `base` and `dirty` as delegate step 2 says. One brief serves every tool.
+1. **Brief.** Write it at the session's `brief` path, following steps 1 and 2 of `${CLAUDE_PLUGIN_ROOT}/skills/delegate/SKILL.md` and the `delegate-cmd.mjs` call of its step 4 (the tools run in B4), with subject `<id>-r<round>`, mode `analyze` (read-only, whatever the intent), the output contract the skill names from `${CLAUDE_PLUGIN_ROOT}/skills/delegate/references/brief-template.md`, and `--out` set to the session's `out`. Record `base` and `dirty` as delegate step 2 says. One brief serves every tool.
 2. **Independence.** In round 1 every tool works alone: the brief says not to open `docs/ai/inbox/`. Roles are the user's choice, never fixed per tool brand: by default every tool takes the whole scope, which makes their answers comparable; for a large system the user may split it by viewpoint (business, data, security…), each tool taking one. Then the brief gives each role its own heading and questions, and the summary checks the joins between the parts, because parts that each look right can still fail to fit.
 3. **Sources.** Point to text versions of customer documents (`source-index.mjs cache`), never to a binary; a chat tool gets a context pack (delegate step 2). A session with `basis: built` points to none: its brief lists them under "Do not open" (`/mflow:analyze`, "The brief on the system as built").
-4. **Hand over.** Show each tool's commands (delegate step 4) and the pack for chat tools. Two tools and at most two rounds is the default; the user may change both. Write one line in STATUS.md `## Now`: `<id> รอรายงาน (ไม่บังคับ งานหลักทำต่อได้)`. Stop.
+4. **Run and hand over.** Run Codex and `agy` yourself as delegate step 4 says (they are the two default tools), and once their reports are checked go on with C in the same turn, as if the user had typed `/mflow:<intent> <id>`. For any other tool the user named, show its commands and the pack for chat tools; the user runs it. Two tools and at most two rounds is the default; the user may change both. While a report is still out, write one line in STATUS.md `## Now`: `<id> รอรายงาน (ไม่บังคับ งานหลักทำต่อได้)`.
 
 ## C. Reports back (`/mflow:<intent> <id>`)
 

@@ -123,7 +123,9 @@ test("the specs ask for every state of a setting another role or web shows, whom
   const init = fs.readFileSync(path.join(SCRIPTS, "..", "skills", "init", "SKILL.md"), "utf8");
   assert.match(init, /`openspec init --tools claude,codex --scope project` on OpenSpec 2\.0 or newer/, "init keeps OpenSpec's skills in the repository");
   // 0.58.2: one /mflow:init after a plugin update also brings the OpenSpec CLI up to date, asked in one line.
-  assert.match(init, /`openspec version --check --json`\. When `update\.status` is not `current`/);
+  // 0.59.0: the check runs in step 2, so its question joins the one message of the run.
+  assert.match(init, /`openspec version --check --json`, run in step 2\. When `update\.status` is not `current`/);
+  assert.match(init, /4\. Updating the OpenSpec CLI, when `openspec version --check --json` \(run it here\) finds a newer one/);
   assert.ok(init.indexOf("openspec version --check --json") < init.indexOf("- OpenSpec already initialised: `openspec update`"), "the CLI is updated before openspec update");
 });
 
@@ -166,11 +168,15 @@ test("apply archives the change in the same turn and commits once; archive commi
   assert.match(archive[0], /does not stop the archive\. Archive, and name it in one line of the reply instead of asking/);
   assert.match(archive[1], /^After the archive, commit it on the branch checked out without asking/);
   assert.match(archive[1], /when \/opsx:apply ran the archive in its turn, its one commit holds both/);
-  assert.match(archive[1], /On a `feat\/<change>` branch, push it after that commit as \/opsx:apply does; push anything else and merge only on the user's word, asked once in one line\.$/);
-  // The user's word 2026-11-26: the change's own branch is pushed once apply has committed, never main.
-  assert.match(apply, /On a `feat\/<change>` branch, push it right after that commit without asking \(`git push -u origin feat\/<change>`, the user's standing word\)/);
-  assert.match(apply, /push no other branch and never main, open no pull request/);
-  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line which way, a\) first `\/mflow:test` and `\/mflow:review feat\/<change>` on this branch, merged once the review approves, recommended for business rules, permissions or data scope, queries, migrations, integrations or startup wiring, or b\) merge it into main now, tested and reviewed later on main with the other waiting changes; never merge while a test, review or E2E run is going in the main checkout, and on a merge follow AGENTS\.md `## Branches and worktrees`; on any other branch merge only on the user's word\. Push main and any other branch only on the user's word, asked once in one line\.$/);
+  assert.match(archive[1], /Push it after that commit as \/opsx:apply does; merge only on the user's word, asked once in one line\.$/);
+  // The user's answer 1 a, 2026-11-26 (0.59.0): every commit is pushed without asking, main included; a deploy to
+  // decide holds the push for one line, push only or push and deploy.
+  assert.match(apply, /Push the branch right after that commit without asking \(`git push -u origin HEAD`, never `--force`\), as AGENTS\.md says for every commit/);
+  assert.match(apply, /open no pull request, and when there is no `origin` or the push is refused, say so in one line/);
+  assert.match(apply, /When the change has a deploy to decide \(a migration or seed for a shared or live database, a running stack to rebuild\), hold that push and ask in one line whether to a\) push only or b\) push and deploy, and a push to a branch that deploys by itself \(a workflow or hosting service that deploys on a push to it\) is asked before it\./);
+  assert.match(apply, /When this reply asks about a deploy and about the merge below, number the two questions so the answer reads `1 a, 2 b`/);
+  assert.ok(!/never main/.test(apply), "main is pushed like any branch");
+  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line which way, a\) first `\/mflow:test` and `\/mflow:review feat\/<change>` on this branch, merged once the review approves, recommended for business rules, permissions or data scope, queries, migrations, integrations or startup wiring, or b\) merge it into main now, tested and reviewed later on main with the other waiting changes; never merge while a test, review or E2E run is going in the main checkout, and on a merge follow AGENTS\.md `## Branches and worktrees`; on any other branch merge only on the user's word\. After a merge into main, push main the same way\.$/);
   assert.match(apply, /in a linked worktree STATUS\.md is left to the main checkout/);
   for (const line of [apply, ...archive]) assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
 });
@@ -333,11 +339,16 @@ test("apply never enters plan mode and no task asks for it", () => {
   assert.ok(!/Use plan mode/.test(claude), "the template no longer asks for plan mode");
   assert.match(claude, /^- Never enter plan mode, even when tasks\.md asks for it/m);
   assert.match(read("skills/init/SKILL.md"), /a line asking for plan mode[^\n]*replace it with the template's `Never enter plan mode…` line/);
+  // 0.59.0: a rerun merges the templates by hand, so init names the 0.58 lines that must not stay beside the new ones.
+  const init = read("skills/init/SKILL.md");
+  assert.match(init, /the push and mflow-step lines of templates before 0\.59\.0, so the old rule never stays beside the new one: `Push, merge and deploy only on the user's word…` \(CLAUDE\.md and AGENTS\.md\) becomes the template's push sentences/);
+  assert.match(init, /`\/mflow:\* commands still run only when the user types them` and `Other \/mflow:\* commands still run only when the user types them` go/);
+  assert.match(init, /`never main` leaves the AGENTS\.md line on pushing `feat\/<change>`/);
 });
 
 // BanchiDesk 2026-11-25: every reply ended "type /opsx:propose <change>" or "type /opsx:apply <change>", and the user
 // typed each one. The opsx commands are project skills Claude can run, so it asks in one line and runs them on a yes.
-test("Claude runs the next /opsx step itself, asking in one line, and /mflow commands stay the user's", () => {
+test("Claude runs the next /opsx step itself, asking in one line, and the next mflow step too, except test, review and e2e", () => {
   const read = (rel) => fs.readFileSync(path.join(SCRIPTS, "..", rel), "utf8");
   const line = read("templates/CLAUDE.md").split("\n").find((l) => l.includes("`openspec-propose`"));
   assert.ok(line, "the run-it-yourself line");
@@ -347,9 +358,22 @@ test("Claude runs the next /opsx step itself, asking in one line, and /mflow com
   // The user's word 2026-11-26: once the planning questions are answered, propose runs straight into apply, and
   // the change's branch is pushed when apply has committed.
   assert.match(line, /Once the user has answered the questions that plan a change[^\n]*go from its proposal straight into `\/opsx:apply` without asking/);
-  assert.match(line, /push that branch without asking \(`git push -u origin feat\/<change>`, never main, no pull request\)/);
+  assert.match(line, /push that branch like every commit \(`git push -u origin feat\/<change>`, no pull request\)/);
   assert.doesNotMatch(line, /such as applying a change whose planning is done/, "apply is no longer asked for");
   assert.match(line, /If the Skill call is refused, read `\.claude\/skills\/<name>\/SKILL\.md` and follow it/);
-  assert.match(line, /`\/mflow:\*` commands still run only when the user types them/);
-  assert.match(read("skills/change-request/SKILL.md"), /hand it on in this same turn: a change to behaviour in `openspec\/specs\/` → run `\/opsx:propose` yourself/);
+  // The user's answer 2 a, 2026-11-26 (0.59.0): the user typed the next mflow step Claude had named 17 times out of 17;
+  // an approved discussion or change request goes on into propose and apply, any other step runs on a one-line yes.
+  const claude = read("templates/CLAUDE.md");
+  assert.ok(!/`\/mflow:\*` commands still run only when the user types them/.test(claude), "mflow steps are no longer typed-only");
+  const steps = claude.split("\n").find((l) => l.startsWith("- An mflow step the work leads to"));
+  assert.ok(steps, "the mflow-steps line");
+  assert.match(steps, /Once `\/mflow:discuss <NN> approve` or an approved `\/mflow:change-request` settles something to build, go straight into `\/opsx:propose` for it and on into `\/opsx:apply`/);
+  assert.match(steps, /ask in one line and run it on any yes: follow that command's `SKILL\.md`, in the folder the briefing's `## mflow commands` names/);
+  assert.match(steps, /`\/mflow:test`, `\/mflow:test-pr`, `\/mflow:review`, `\/mflow:e2e`, `\/mflow:night`, `\/mflow:apply-all` and `\/mflow:checks` \(every form\) still wait for the user's command/);
+  const cr = read("skills/change-request/SKILL.md");
+  assert.match(cr, /hand it on in this same turn: a change to behaviour in `openspec\/specs\/` → run `\/opsx:propose` yourself/);
+  assert.match(cr, /go on from the proposal into `\/opsx:apply` without asking/);
+  const discuss = read("skills/discuss/SKILL.md");
+  assert.match(discuss, /go straight into `\/opsx:propose` for that change \(the `openspec-propose` skill\) and on into `\/opsx:apply`/);
+  assert.match(discuss, /ask in one line whether to start it: on any yes, follow that command yourself/);
 });

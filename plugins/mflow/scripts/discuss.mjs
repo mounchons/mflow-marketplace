@@ -8,6 +8,9 @@
 //                                                      -> create NN-<slug>.md from the template (never overwrites)
 //   node discuss.mjs cited <NN | file>                 -> JSON: every line outside the discussion folder and the AI inbox that
 //                                                         cites the doc's path: what an approve already wrote
+//   node discuss.mjs decisions                         -> JSON: every decision the project answered already (drafts and
+//                                                         approved docs, with each doc's status) and the filled pack files,
+//                                                         read before a question is drafted so nothing settled is asked again
 //
 // Reply markers (the template explains them to the user):
 //   decision answer   a line `**เลือก:** <answer>` under a `### D<n>: ...` heading; empty = open
@@ -154,7 +157,7 @@ function reports(root) {
     .filter(Boolean);
 }
 
-function inspect(root, full, allReports = reports(root)) {
+function inspect(root, full, allReports = reports(root), { withDecisions = false } = {}) {
   const text = readText(full) || "";
   const fm = frontmatter(text);
   const pendingNotes = [];
@@ -178,11 +181,14 @@ function inspect(root, full, allReports = reports(root)) {
     sectionAt[i] = section;
     const h = HEADING_RE.exec(line);
     if (h) {
-      decision = { id: /^D\d+/.exec(h[1])[0], name: h[1].trim(), answers: [], options: new Set(), cost: "" };
+      decision = { id: /^D\d+/.exec(h[1])[0], name: h[1].trim(), answers: [], options: new Set(), optionText: new Map(), cost: "" };
       decisions.push(decision);
     }
     const o = OPTION_RE.exec(line);
-    if (o && decision) decision.options.add(o[1]);
+    if (o && decision) {
+      decision.options.add(o[1]);
+      decision.optionText.set(o[1], line.slice(o[0].length).trim());
+    }
     const c = COST_RE.exec(line);
     if (c && decision) decision.cost = c[1].trim();
     const d = DECISION_RE.exec(line);
@@ -226,6 +232,36 @@ function inspect(root, full, allReports = reports(root)) {
   };
   const status = fm.status || "draft";
   const id = fm.id || FILE_RE.exec(path.basename(full))?.[1] || "";
+  if (withDecisions) {
+    return {
+      file: toPosix(path.relative(root, full)),
+      id,
+      slug: fm.slug || FILE_RE.exec(path.basename(full))?.[2] || "",
+      title: fm.title || "",
+      status,
+      revision: Number(fm.revision) || 1,
+      // An approved doc is a frozen record: the facts live where it merged them, and a later doc may have changed one.
+      ...(fm["merged-into"] ? { mergedInto: fm["merged-into"] } : {}),
+      decisions: decisions
+        .filter((x) => x.id && x.answers.some(Boolean))
+        .map((x) => {
+          const answer = x.answers.find(Boolean);
+          // A letter alone is fragile once a later revision reorders the options, so the chosen option travels with
+          // it; an answer naming several letters, or none, carries its own text.
+          const letters = [...new Set((/^[A-Za-z](?:\s*(?:,|และ|and|\+)\s*[A-Za-z])*(?=$|[\s),.])/.exec(answer)?.[0] || "").match(/[A-Za-z]/g) || [])].map((l) => l.toLowerCase());
+          const texts = letters.map((l) => x.optionText.get(l)).filter(Boolean);
+          const chosen = texts.join(" + ");
+          const short = chosen.length > 160 ? chosen.slice(0, 159) + "…" : chosen;
+          return {
+            id: x.id, name: x.name.replace(/^D\d+\s*[:.]?\s*/, ""), cost: x.cost, answer,
+            ...(short ? { chosen: short } : {}),
+            // Claude's own pick on a reversible decision; in a draft the user has not confirmed it yet.
+            ...(/\(Claude เลือก\)/.test(answer) ? { by: "claude" } : {}),
+          };
+        }),
+      open: openDecisions.length,
+    };
+  }
   const pendingReports = allReports
     .filter((r) => r.status === "new" && Number(r.id) === Number(id))
     .map(({ file, from, revision }) => ({ file, from, revision }));
@@ -260,6 +296,23 @@ function inspect(root, full, allReports = reports(root)) {
       pendingNotes.length === 0 && placeholders.length === 0 && pendingReports.length === 0 &&
       unclosedFenceLine === null,
   };
+}
+
+/**
+ * What this project already answered, before a new question is drafted (/mflow:discuss) or a proposal lists
+ * its open choices: every answered decision of the drafts and approved docs (dropped and superseded ones
+ * left out), with the doc's status so a draft answer is carried as a draft, and the filled pack files.
+ */
+export function decisionsOf(root) {
+  const docs = docFiles(root)
+    .map((f) => inspect(root, f, [], { withDecisions: true }))
+    .filter((d) => d.status === "draft" || d.status === "approved")
+    .filter((d) => d.decisions.length);
+  const packsDir = path.join(path.dirname(discussDir(root)), "packs");
+  const packs = fs.existsSync(packsDir)
+    ? fs.readdirSync(packsDir).filter((f) => f.endsWith(".md") && f !== "README.md").sort().map((f) => toPosix(path.relative(root, path.join(packsDir, f))))
+    : [];
+  return { approved: docs.filter((d) => d.status === "approved").length, drafts: docs.filter((d) => d.status === "draft").length, docs, packs };
 }
 
 function docFiles(root) {
@@ -546,11 +599,12 @@ if (isMain) {
     else if (cmd === "new") out = create(root, rest);
     else if (cmd === "cited") out = cited(root, rest[0]);
     else if (cmd === "checks") out = checks(root, rest);
+    else if (cmd === "decisions") out = decisionsOf(root);
     else if (cmd === "agenda" && rest[0] === "init") out = initAgenda(root);
     else if (cmd === "agenda") {
       out = agenda(root, { write: true }) ?? { exists: false, hint: "no AGENDA.md yet: run `discuss.mjs agenda init`" };
     }
-    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | cited <NN|file> | checks [<NN> ...] [--change <name>] | agenda [init]");
+    else throw new Error("usage: discuss.mjs list | check <NN|file> | new <slug> [--title ...] [--sources ...] | cited <NN|file> | checks [<NN> ...] [--change <name>] | decisions | agenda [init]");
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
   } catch (err) {
     process.stderr.write(String(err.message || err) + "\n");

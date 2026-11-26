@@ -325,7 +325,9 @@ test("the briefing's ritual writes STATUS.md with a commit, not after an answer,
   const context = start("t-ask");
   assert.match(context, /STATUS\.md is written as part of a commit/);
   assert.match(context, /Do not add a STATUS\.md update after an answer/);
-  assert.match(context, /Commit each finished piece of work without asking, its files added by name; push, merge or deploy only on the user's word, asked once in one line at the end, never as a numbered menu/);
+  // 0.59.0, the user's answer 1 a: push after every commit; a deploy to decide holds it for one a/b line.
+  assert.match(context, /Commit each finished piece of work without asking, its files added by name, then push the branch checked out without asking \(never --force\); when the work has a deploy to decide, hold the push and ask in one line: a\) push only, b\) push and deploy; a push that deploys by itself \(a workflow or hosting service on that branch\) is asked first\. Merge only on the user's word, asked once in one line, never as a numbered menu/);
+  assert.match(context, /## mflow commands\n- To run an mflow step yourself/);
   assert.ok(context.includes("label the options a), b), c), never ก ข ค, so the answer is one line such as `1 a, 2 b, 3 a`"));
 });
 
@@ -344,13 +346,20 @@ test("a long STATUS.md is shortened in the briefing, and what is waiting and the
 
 // ComparePrice 2026-10..11: one request per item, every finished item committed, no numbered menus, 13% of the
 // prompts were ceremony against 44% in StemHub since 0.35. The user chose (2026-11-08) to bring that loop over.
-test("the templates commit finished work, ask push or merge once, chain the change, and let a fix skip OpenSpec", () => {
+test("the templates commit and push finished work, ask a deploy or a merge once, chain the change, and let a fix skip OpenSpec", () => {
   const read = (f) => fs.readFileSync(new URL(`../plugins/mflow/templates/${f}`, import.meta.url), "utf8");
   const claude = read("CLAUDE.md");
   const agents = read("AGENTS.md");
   for (const text of [claude, agents]) {
     assert.match(text, /Commit each finished piece of work without asking, its files added by name \(never `git add -A`\)/);
-    assert.match(text, /Push, merge and deploy only on the user's word, asked once in one line at the end, never as a numbered menu/);
+    // The user's answer 1 a, 2026-11-26: they said yes to 26 pushes out of 26; a deploy question offers push only or both.
+    assert.match(text, /push the branch checked out without asking, main included \(`git push -u origin HEAD`; never `--force`\)/);
+    // A reviewer found that a push to main can itself deploy (a workflow or hosting service), so that push is asked.
+    assert.match(text, /When a push to that branch deploys by itself \(a workflow under `\.github\/workflows\/` or a hosting service that deploys on a push to it\), that push is a deploy: ask before it in one line\./);
+    assert.match(text, /An unattended run \(`\/mflow:night`, `\/mflow:apply-all`, the checks runner\) and a tool working from a brief push only as that skill or brief says\./);
+    assert.match(text, /When the work has a deploy to decide \(rebuilding a running stack, a migration or seed on a shared or live database\), hold that push and ask in one line: a\) push only, b\) push and deploy\./);
+    assert.match(text, /Merge only on the user's word, asked once in one line, never as a numbered menu; a question the user passes over is not asked again in later replies/);
+    assert.doesNotMatch(text, /Push, merge and deploy only on the user's word/);
   }
   assert.match(claude, /`\/opsx:apply` archives the change in the same turn and commits once/);
   assert.match(claude, /"Do X to the end" runs propose, apply and archive in one go/);

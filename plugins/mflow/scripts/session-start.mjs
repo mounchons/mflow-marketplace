@@ -173,6 +173,16 @@ try {
   }
 } catch { /* not a git repository, or git missing */ }
 
+// CLAUDE.md has Claude run the mflow step the work leads to (0.59.0); mflow's commands are typed-only skills, and the
+// project cannot know where the plugin is installed, so the briefing names the folder whose SKILL.md Claude follows.
+{
+  const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  parts.push(
+    "## mflow commands\n" +
+      `- To run an mflow step yourself, as CLAUDE.md says (never /mflow:test, /mflow:test-pr, /mflow:review, /mflow:e2e, /mflow:night, /mflow:apply-all or /mflow:checks), follow ${path.join(pluginRoot, "skills", "<command>", "SKILL.md")} as if the user had typed the command; \`\${CLAUDE_PLUGIN_ROOT}\` there is ${pluginRoot}.`,
+  );
+}
+
 // 2. Active OpenSpec changes (what WILL be true), and the apply subagent.
 // The apply guidance hands tasks to mflow:dev only when this briefing says it is on. Off is the
 // default and needs no line; a permission rule that blocks a switched-on agent is reported.
@@ -348,8 +358,10 @@ parts.push(
       : "STATUS.md is written as part of a commit: when a commit holds work its log " +
         "does not cover, the commit hook asks once for the entry ('## Now' rewritten, one log entry with Did / Decided / Next) " +
         "to go into that commit. Do not add a STATUS.md update after an answer. ") +
-    "Commit each finished piece of work without asking, its files added by name; push, merge or deploy only on the " +
-    "user's word, asked once in one line at the end, never as a numbered menu. " +
+    "Commit each finished piece of work without asking, its files added by name, then push the branch checked out " +
+    "without asking (never --force); when the work has a deploy to decide, hold the push and ask in one line: " +
+    "a) push only, b) push and deploy; a push that deploys by itself (a workflow or hosting service on that branch) is asked first. " +
+    "Merge only on the user's word, asked once in one line, never as a numbered menu. " +
     "When the user has to choose, number the questions and label the options a), b), c), never ก ข ค, " +
     "so the answer is one line such as `1 a, 2 b, 3 a`, typed without switching keyboard language.",
 );

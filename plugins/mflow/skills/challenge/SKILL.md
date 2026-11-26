@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "@<file> [--focus <a,b>] [--to <tool,tool | any>] | <CH-NNN>"
 ---
 
-What would go wrong if this design were built as written, or what it leaves unanswered, found by more than one AI tool and checked against evidence. It is **optional**: no step of mflow needs it, the target may come from `/mflow:design` or from anywhere else, and the main flow continues while reports are out. Unlike `/mflow:review`, which checks a code diff, it works on a design before there is code. The user runs the other tools; this skill writes the brief, then assesses and merges what comes back.
+What would go wrong if this design were built as written, or what it leaves unanswered, found by more than one AI tool and checked against evidence. It is **optional**: no step of mflow needs it, the target may come from `/mflow:design` or from anywhere else, and the main flow continues while reports are out. Unlike `/mflow:review`, which checks a code diff, it works on a design before there is code. This skill writes the brief, runs Codex and the Antigravity CLI itself (read-only, delegate step 4), gives the commands for any other tool, which the user runs, then assesses and merges what comes back.
 
 The steps shared with `/mflow:analyze` and `/mflow:design` are in `${CLAUDE_PLUGIN_ROOT}/skills/delegate/references/consultation.md`. Files opened with Read are not substituted: where that file writes the plugin-root variable (CLAUDE_PLUGIN_ROOT), use `${CLAUDE_PLUGIN_ROOT}`.
 

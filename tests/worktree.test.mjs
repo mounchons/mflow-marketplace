@@ -172,7 +172,8 @@ test("apply on main moves the change to feat/<change>, stays on any other branch
   const skill = read("skills/worktree/SKILL.md");
   assert.match(skill, /^disable-model-invocation: true$/m);
   assert.match(skill, /worktree\.mjs new <change>/);
-  assert.match(read("skills/init/SKILL.md"), /worktree\.mjs" setup --dry-run/);
+  // 0.59.0: setup.mjs plan reports the part; init runs the setup on a yes kept from before or given in step 2.
+  assert.match(read("skills/init/SKILL.md"), /when `setup\.mjs plan` gave `worktree` the state `write`, or the user said yes in step 2, run `node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/worktree\.mjs" setup`/);
   assert.match(read("skills/delegate/SKILL.md"), /git worktree add \.claude\/worktrees\/agent-/);
   assert.ok(!/\.\.\/<repo>-agent-<id>/.test(read("skills/delegate/SKILL.md")), "no worktree outside the main checkout by default");
 });
@@ -221,7 +222,7 @@ test("a change merged from its worktree is still found by pending.mjs range afte
 test("parallel work asked in words: CLAUDE.md lets Claude make the worktree, and the briefing names the steps and the plugin folder", needsGit, () => {
   const claude = read("templates/CLAUDE.md");
   assert.match(claude, /^- Parallel work asked for in words, without `\/mflow:worktree` \("แยก folder", "ทำพร้อมกัน"/m);
-  assert.match(claude, /following the steps the mflow briefing names under `## Parallel work`[^\n]*Other `\/mflow:\*` commands still run only when the user types them\./);
+  assert.match(claude, /following the steps the mflow briefing names under `## Parallel work`, then give the command that starts the tool there\./);
   repo();
   const text = run(p, "session-start.mjs", [], { input: { session_id: "t-pw", cwd: p.root, source: "startup" } }).json.hookSpecificOutput.additionalContext;
   const skill = path.join(SCRIPTS, "..", "skills", "worktree", "SKILL.md");

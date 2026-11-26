@@ -256,3 +256,36 @@ test("a CRLF doc reads the same as an LF one", () => {
   assert.equal(doc.openDecisions.length, 1);
   assert.equal(doc.status, "draft");
 });
+
+test("decisions lists what the project answered already, drafts with their status, and leaves dropped docs out (0.59.0)", () => {
+  p = project();
+  const D2 = `### D2: เก็บประวัติการแก้ไขไหม
+- **ถ้าผิด:** แก้ยาก — ต้องเพิ่มตาราง
+- a) เก็บ: ตรวจย้อนได้ / ตารางใหญ่
+- b) ไม่เก็บ: ง่าย / ตรวจย้อนไม่ได้
+- **Claude แนะนำ:** a
+- **เลือก:**
+`;
+  p.write("docs/decisions/discuss/01-access-control.md", FRONT.replace("status: draft", "status: approved") + body(D1(" b")));
+  p.write("docs/decisions/discuss/02-audit.md", FRONT.replace("id: 01", "id: 02").replace("slug: access-control", "slug: audit") + body(D1(" a (ตามคำแนะนำ)") + D2));
+  p.write("docs/decisions/discuss/03-old.md", FRONT.replace("id: 01", "id: 03").replace("status: draft", "status: dropped") + body(D1(" a")));
+  p.write("docs/decisions/packs/foundation.md", "# foundation\n");
+  const r = run(p, "discuss.mjs", ["decisions"]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = r.json;
+  assert.deepEqual([out.approved, out.drafts], [1, 1]);
+  assert.deepEqual(out.docs.map((d) => [d.id, d.status]), [["01", "approved"], ["02", "draft"]]);
+  assert.deepEqual(out.docs[0].decisions, [{ id: "D1", name: "ผู้จัดการเขตเห็นกี่สาขา", cost: "", answer: "b", chosen: "เฉพาะสาขาที่ดูแล: ตรงงาน / ต้องตั้งค่าเพิ่ม" }]);
+  assert.equal(out.docs[1].decisions[0].chosen, "ทุกสาขาในเขต: เห็นภาพรวม / ข้อมูลเยอะ", "the option text travels with the letter");
+  // Claude's own pick on a reversible decision is marked, several letters carry every option's text, and an
+  // approved doc says where its facts went.
+  p.write("docs/decisions/discuss/04-more.md", FRONT.replace("id: 01", "id: 04").replace("slug: access-control", "slug: more").replace("status: draft", "status: approved\nmerged-into: AGENTS.md, roles.json") + body(D1(" A, b (Claude เลือก)")));
+  const more = run(p, "discuss.mjs", ["decisions"]).json.docs.find((d) => d.id === "04");
+  assert.equal(more.mergedInto, "AGENTS.md, roles.json");
+  assert.equal(more.decisions[0].by, "claude");
+  assert.equal(more.decisions[0].chosen, "ทุกสาขาในเขต: เห็นภาพรวม / ข้อมูลเยอะ + เฉพาะสาขาที่ดูแล: ตรงงาน / ต้องตั้งค่าเพิ่ม");
+  assert.equal(out.docs[0].decisions[0].by, undefined, "the user's answer is not marked");
+  assert.equal(out.docs[1].decisions.length, 1, "only answered decisions are listed");
+  assert.equal(out.docs[1].open, 1);
+  assert.deepEqual(out.packs, ["docs/decisions/packs/foundation.md"]);
+});

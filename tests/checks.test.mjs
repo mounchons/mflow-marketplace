@@ -323,7 +323,7 @@ test("the briefing shows the open batch and names the checks skill once the proj
   assert.doesNotMatch(brief(), /## Checks/, "a project that has not opted in gets no section");
   const tpl = (f) => fs.readFileSync(path.join(SCRIPTS, "..", "templates", f), "utf8").replace(/\r\n/g, "\n");
   assert.match(tpl("CLAUDE.md"), /When `\.mflow\/config\.json` has `checks`: after each merge into main, put the change into the open checks batch/);
-  assert.match(tpl("CLAUDE.md"), /numbered menu\. A change's own branch `feat\/<change>`, pushed once its apply is committed, and the `checks\/\*` branches are the exceptions/);
+  assert.match(tpl("CLAUDE.md"), /`checks\/\*` branches and their draft pull requests are pushed on the user's standing word, and a pull request is never merged by Claude/);
   assert.match(tpl("AGENTS.md"), /One job at a time in a batch, and one test or E2E job at a time per machine\. The `checks\/\*` branches and their draft pull requests are pushed without asking; the user merges them\./);
 });
 

@@ -208,6 +208,10 @@ export function loadConfig(root) {
   if ("packs" in user && !(Array.isArray(user.packs) && user.packs.every((n) => typeof n === "string" && /^[a-z][a-z0-9-]*$/.test(n)))) {
     wrong("packs", "a list of pack names in kebab-case");
   }
+  // setup: the user's answers to /mflow:init's optional parts (setup.mjs record), so a rerun does not ask again.
+  if ("setup" in user && !(isObject(user.setup) && Object.values(user.setup).every((v) => typeof v === "boolean"))) {
+    wrong("setup", "an object of true/false answers, such as { \"webCopy\": false }");
+  }
   for (const key of ["applySubagent", "tools", "asBuilt"]) if (key in user && !isObject(user[key])) wrong(key, "an object");
   // asBuilt: what review-units.mjs facts reads besides its own patterns (an exported OpenAPI file, extra
   // regular expressions, each with one capture group for the test name or route).

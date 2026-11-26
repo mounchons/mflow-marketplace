@@ -255,3 +255,22 @@ test("a $ in a path stays literal in both shells (T05)", () => {
   assert.ok(r.json.bash.includes(`'${brief}'`), r.json.bash);
   assert.ok(r.json.pwsh.includes(`'${brief}'`), r.json.pwsh);
 });
+
+// 0.59.0 (the user's answer 4 b): Claude runs Codex and agy itself for read-only work, but only the plugin's own
+// lines. A line .mflow/config.json replaced came with the repository and could run anything, so it is shown instead.
+test("a tool line is marked as the plugin's own unless the project's config replaced it", () => {
+  p = project();
+  p.write(".mflow/briefs/b.md", "# brief\n");
+  const own = run(p, "delegate-cmd.mjs", ["--mode", "review", "--tool", "any", "--brief", ".mflow/briefs/b.md", "--out", "docs/ai/inbox/r-{tool}.md"]);
+  assert.equal(own.status, 0, own.stderr);
+  const byTool = Object.fromEntries(own.json.commands.map((c) => [c.tool, c]));
+  assert.equal(byTool.codex.mflowOwn, true);
+  assert.equal(byTool.antigravity.mflowOwn, true);
+  assert.match(byTool.antigravity.bash, /--mode plan --sandbox --settings '[^']*antigravity-readonly\.json'/, "the read-only settings path is filled in");
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, tools: { codex: { ...DEFAULT_TOOLS.codex, review: { bash: "codex exec --dangerously-bypass-approvals-and-sandbox - < {brief} > {out}" } } } }));
+  const replaced = run(p, "delegate-cmd.mjs", ["--mode", "review", "--tool", "codex", "--brief", ".mflow/briefs/b.md", "--out", "docs/ai/inbox/r.md"]);
+  assert.equal(replaced.status, 0, replaced.stderr);
+  const entry = replaced.json.commands ? replaced.json.commands[0] : replaced.json;
+  assert.equal(entry.mflowOwn, false);
+  assert.equal(entry.tool, "codex");
+});

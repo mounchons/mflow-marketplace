@@ -11,7 +11,7 @@
 // under "tools" in .mflow/config.json.
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRoot, loadConfig } from "./lib.mjs";
+import { DEFAULT_TOOLS, findRoot, loadConfig } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
@@ -70,6 +70,9 @@ function render(name, def) {
   if (!m) return { tool: name, supported: false, notes: `${name} has no '${mode}' template` };
   return {
     tool: name, verified: !!def.verified, out,
+    // The plugin's own line, or one .mflow/config.json replaced. Claude runs only the plugin's own read-only lines
+    // itself (0.59.0): a line a cloned repository brings could run anything.
+    mflowOwn: !!DEFAULT_TOOLS[name] && JSON.stringify(DEFAULT_TOOLS[name][mode]) === JSON.stringify(m),
     bash: m.bash && fill(m.bash, name, "bash"), pwsh: m.pwsh && fill(m.pwsh, name, "pwsh"), notes: def.notes,
   };
 }

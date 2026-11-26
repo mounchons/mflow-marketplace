@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "<system | \"topic\" | @file | units | unit:<name>> [--basis built] [--focus <a,b>] [--to <tool,tool | any>] | <AN-NNN> [answers]"
 ---
 
-What the system does now, what is missing, and what to improve, seen by more than one AI tool and checked against evidence. It is **optional**: nothing in mflow waits for it, the main flow continues while reports are out, and a project that never runs it loses nothing. The user runs the other tools; this skill writes the brief, then assesses and merges what comes back. The other tools never call mflow: `/mflow:*` runs only in Claude Code, and a tool gets everything it needs from the brief.
+What the system does now, what is missing, and what to improve, seen by more than one AI tool and checked against evidence. It is **optional**: nothing in mflow waits for it, the main flow continues while reports are out, and a project that never runs it loses nothing. This skill writes the brief, runs Codex and the Antigravity CLI itself (read-only, delegate step 4), gives the commands for any other tool, which the user runs, then assesses and merges what comes back. The other tools never call mflow: `/mflow:*` runs only in Claude Code, and a tool gets everything it needs from the brief.
 
 **As built** (`unit:<name>`, or `--basis built` on another scope): the tools learn the system from the code and what is lifted from it, not from the customer's sources or the decision docs, which changed while it was built. Then they check the code for wrong behaviour, missing logic and what to improve.
 

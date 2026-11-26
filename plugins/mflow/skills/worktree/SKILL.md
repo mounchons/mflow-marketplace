@@ -33,7 +33,7 @@ For a change applied in another worktree, when its session or tool is finished. 
 1. `worktree.mjs list` gives the folder of `feat/<change>`. It must have no uncommitted changes (`git -C <folder> status --porcelain`). When it has some, ask in one line whether its tool is done: on a yes, commit them on `feat/<change>`, added by name (a tool that could not commit, such as Codex in its sandbox), and go on; otherwise stop.
 2. In that folder: `git -C <folder> merge main`. Settle a conflict there; for `openspec/specs/`, keep the requirements of both sides. Then run the change's tests there (the build, the unit tests and the test classes it added, filtered as `/opsx:apply` does after a task), and commit the merge.
 3. Here, on `main`: `git merge --no-ff feat/<change> -m "Merge feat/<change>"`. When this checkout is not on `main`, or git would overwrite uncommitted files, stop and say why.
-4. Write the STATUS.md entry for the merge (the change, its merge commit, what is next) and commit it. Do not push; ask about the push once in one line.
+4. Write the STATUS.md entry for the merge (the change, its merge commit, what is next) and commit it. Push main after that commit, as AGENTS.md says for every commit.
 5. The worktree stays until the user says to remove it: name `/mflow:worktree remove <change>`.
 
 ## `remove <change>`

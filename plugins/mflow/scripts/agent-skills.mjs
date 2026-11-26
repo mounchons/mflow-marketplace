@@ -184,6 +184,9 @@ export function build(skill) {
     "- Run every command from the repository root: every path in this file is relative to it.",
     `- \`/mflow:test\` in this text is \`${test.codex}\` / \`${test.opencode}\`, \`/mflow:review\` is \`${review.codex}\` / \`${review.opencode}\`, and \`/mflow:e2e\` is \`${e2e.codex}\` / \`${e2e.opencode}\`. Every other \`/mflow:*\` command named here runs only in Claude Code, and \`/opsx:*\` is Claude Code's or this tool's OpenSpec skill: name it for the user rather than trying it. Where this text says \`/clear\`, start a fresh session of this tool instead.`,
     `- mflow's hooks run only in Claude Code, except its E2E guard, which Codex runs from \`${HOOKS_FILE}\` once the user trusts the project and approves the hook in \`/hooks\`. Write the STATUS.md entry yourself, as "Session ritual" in AGENTS.md says, except in a linked worktree (\`git rev-parse --git-dir\` differs from \`git rev-parse --git-common-dir\`): there leave STATUS.md alone, as AGENTS.md \`## Branches and worktrees\` says, because the main checkout writes it when the branch is merged. Ask the user in plain text wherever this text says to ask.`,
+    // 0.59.0: in Claude Code every commit is pushed; in these tools the commit already goes through results.mjs
+    // outside the sandbox, so a push here would only add an approval prompt or a failure.
+    "- Push nothing, whatever this text or AGENTS.md says about pushing: that is Claude Code's part, and the user or Claude Code pushes what you commit.",
     ...skill.notes.map((n) => `- ${n}`),
     "",
   ].join("\n");

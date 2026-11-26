@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "<TASK-ID | change-name | hotspot-slug | \"topic\"> --mode analyze|review|code [--to <tool>]"
 ---
 
-Another tool does not share this conversation. It gets a **brief**: one file that says what to do, what to read, what not to touch, and what its final answer must contain. The brief is the contract; the answer is checked by `/mflow:assess` (analyze, review) or `/mflow:review` (code). This skill writes the brief and shows the command; the user runs the other tool.
+Another tool does not share this conversation. It gets a **brief**: one file that says what to do, what to read, what not to touch, and what its final answer must contain. The brief is the contract; the answer is checked by `/mflow:assess` (analyze, review) or `/mflow:review` (code). This skill writes the brief, then runs Codex and the Antigravity CLI itself for read-only work (analyze and review, the user's standing word since 0.59.0) and shows the command for everything else, which the user runs.
 
 `--to` is optional. Without it (or `--to any`) the brief is tool-neutral and the command list covers every registered tool. Tools live in a registry (defaults in the plugin, overrides and new tools under `tools` in `.mflow/config.json`), so a tool added next year needs a config entry, not a new plugin version.
 
@@ -38,19 +38,27 @@ Done when: the brief alone is enough for a tool that has never seen this project
 - `--to antigravity` in code mode runs `agy` with `--dangerously-skip-permissions` in the worktree, the user's choice: headless `agy` refuses whatever it would have to ask about, and its sandboxed terminal cannot write, so a build or `git commit` would fail. Say so in one line when showing the command.
 - Backlog: assignee `@<tool>` (or `@agent`), status `In Progress`, note pointing at the brief.
 
-## 4. Show the command
+## 4. Run it, or show the command
 
-Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool <tool or any> --brief <brief> --out docs/ai/inbox/<date>-{tool}-<id>.md [--worktree <dir>]` and present its result. The script replaces `{tool}` with each tool's name, so with `--tool any` every tool writes its own report instead of overwriting one file:
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool <tool or any> --brief <brief> --out docs/ai/inbox/<date>-{tool}-<id>.md [--worktree <dir>]`. The script replaces `{tool}` with each tool's name, so with `--tool any` every tool writes its own report instead of overwriting one file.
+
+**Mode `analyze` or `review`, for `codex` and `antigravity`: run them yourself**, when the script marks the entry `mflowOwn: true`. With `--tool any`, or no tool named, that means both. A line `.mflow/config.json` replaced (`mflowOwn: false`) came with the repository and could run anything: show it as below and let the user run it. Before starting, take `git status --porcelain` and the hash of the tracked changes (`git diff HEAD | git hash-object --stdin`, which writes nothing). Take each tool's line for the shell this session runs (`bash` in the Bash tool, `pwsh` in PowerShell), run it from the repository root as a background command, and start every tool at once, so they answer side by side. Both plugin lines are read-only: Codex in its `read-only` sandbox, `agy` in plan mode with mflow's read-only settings, which is weaker. While they run, write nothing in the repository yourself, so any change is theirs. When each one ends:
+- **Check the report.** The output file must exist, hold more than whitespace, and be more than `no output produced`; `agy` can exit 0 without writing. A run that failed, ran out of time, hit a usage limit or left no report gets one line saying so, with its command for the user to run later. Go on with the reports that came back.
+- **Check what the run changed.** Take both again. A file new in `git status --porcelain` other than the reports, or a different hash of the tracked changes, is a tool going past its brief: say which files changed, leave them as they are, and do not commit them.
+- **Use it.** Go on with "When it comes back" below for each report, in the same turn.
+
+**Every other tool, mode `code`, or the user saying they will run it themselves:** present the script's result as below, and the user runs it.
 - Both `pwsh` and `bash` lines when available; the PowerShell line sets UTF-8 so Thai text in the brief survives the pipe.
 - Mark entries with `verified: false` as "check `--help` first".
 - For `antigravity`, add that an empty report file with "no output produced" in the terminal means `agy` refused a tool without asking; the run still exits 0.
 - `known: false`: ask the user for that tool's non-interactive command (prompt from file or stdin, read-only option, how output is saved), write it into `.mflow/config.json` under `tools.<name>.<mode>.bash` / `.pwsh` using `{brief}` `{out}` `{worktree}` unquoted (the script quotes each path for its shell; PowerShell cmdlets take them with `-LiteralPath`), then rerun the script.
 - Interactive alternative for any CLI tool: open it in the repo and say "read <brief path> and follow it; give the report as your final message and edit no files".
 
-Done when: the brief exists, the command is shown, and STATUS.md records what was delegated, to whom, and where the answer will land.
+Done when: the brief exists, Codex and agy ran for analyze or review and their reports were checked (or the failure was named), every other command is shown, and STATUS.md records what was delegated, to whom, and where the answer will land.
 
 ## When it comes back
 
+A report Claude ran the tool for is taken up at once, following the skill named here as if the user had typed it (CLAUDE.md, mflow steps); for a tool the user ran, the user types the command.
 - analyze/review → `/mflow:assess @docs/ai/inbox/<file>` (it normalizes the file first).
 - a `discuss-<NN>` brief → `/mflow:discuss <NN>`, which folds every tool's report into the doc.
 - code on `agent/<…>/<id>` → `/mflow:review agent/<…>/<id>`, plus `/mflow:assess` on the done report; merge only after that verdict and the user's yes.

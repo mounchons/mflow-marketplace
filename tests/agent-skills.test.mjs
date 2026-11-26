@@ -49,6 +49,8 @@ test("write creates the four skills with frontmatter Codex and OpenCode accept a
     assert.ok(!text.includes("${CLAUDE_PLUGIN_ROOT}"), `${name}: a plugin path is left`);
     assert.ok(!/disable-model-invocation/.test(text));
     assert.match(text, /## Running in Codex or OpenCode/);
+    // 0.59.0: Claude Code pushes every commit; these tools commit through results.mjs and push nothing.
+    assert.match(text, /- Push nothing, whatever this text or AGENTS\.md says about pushing: that is Claude Code's part/);
     assert.match(text, /`\/mflow:e2e` is `\$mflow-e2e` \/ `\/mflow-e2e`/, "e2e is named as a skill of this tool, not a Claude Code command");
     assert.ok(!/\]\(references\//.test(text), `${name}: a link relative to the skill is left`);
     assert.equal(p.read(`.agents/skills/${name}/agents/openai.yaml`), "policy:\n  allow_implicit_invocation: false\n");

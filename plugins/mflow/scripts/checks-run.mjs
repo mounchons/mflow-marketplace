@@ -556,7 +556,9 @@ export async function runner(root, { as, jobs, until, batch, dryRun } = {}) {
     // The command of a job that writes, and of a review where that runs read-only.
     const write = READ_ONLY_TOOLS.includes(as) ? null : command(root, as, paths, sh.shell, "test");
     const review = command(root, as, paths, sh.shell, "review");
-    return { tool: as, shell: sh.exe, command: write || review, ...(write && review !== write ? { reviewCommand: review } : {}), jobs: jobs ?? cfg.jobsPerRun, until: deadlineOf(until)?.toString() || null };
+    // Antigravity's code mode skips its permission prompts (the user's word, 0.58.0): say so before the night.
+    const warning = as === "antigravity" && write && /dangerously-skip-permissions/.test(write) ? "agy writes with --dangerously-skip-permissions: it runs any command without asking, and the runner's checks after it cover only what it leaves in the repository" : null;
+    return { tool: as, shell: sh.exe, command: write || review, ...(write && review !== write ? { reviewCommand: review } : {}), ...(warning ? { warning } : {}), jobs: jobs ?? cfg.jobsPerRun, until: deadlineOf(until)?.toString() || null };
   }
   const max = jobs ?? cfg.jobsPerRun;
   const now = () => (process.env.MFLOW_NOW ? new Date(process.env.MFLOW_NOW) : new Date());

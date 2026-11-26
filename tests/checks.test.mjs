@@ -3,6 +3,7 @@
 // and E2E take turns on the machine, reviews wait for the tests and E2E for them to pass, the test parts combine
 // into one whole-suite record that ticks pending.md, and a draft pull request carries it all to main.
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -541,4 +542,32 @@ test("next --kind takes only that group of jobs, and says when no batch is open"
   const t = ok(checks(["next", "--as", "antigravity", "--kind", "test"]));
   assert.equal(t.job.kind, "test", "Antigravity takes a test (0.58.0)");
   assert.match(checks(["next", "--as", "codex", "--kind", "lint"]).stderr, /--kind must be one of test, review, e2e, fix/);
+});
+
+test("the copy of checks.mjs in the generated $mflow-test-pr skill takes, records and ticks a test job from the main checkout", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  ok(run(p, "agent-skills.mjs", ["write"]));
+  git(p, "add", ".");
+  git(p, "commit", "-q", "-m", "mflow init: agent skills");
+  ok(checks(["sync"]));
+  // As Codex runs it: from the main checkout's root, the project's own copy, no Claude Code environment.
+  const env = { ...process.env, ...ID };
+  delete env.CLAUDE_PROJECT_DIR;
+  delete env.CLAUDE_PLUGIN_ROOT;
+  const copy = (...args) => {
+    const r = spawnSync(process.execPath, [p.file(".agents/skills/mflow-test-pr/scripts/checks.mjs"), ...args], { cwd: p.root, env, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  const t = copy("next", "--as", "codex", "--kind", "test");
+  assert.equal(t.job.id, "T1");
+  assert.equal(real(t.dir), real(path.join(p.root, ".claude/worktrees", `checks-${t.batch}`)), "the batch's worktree, not the main checkout");
+  const rel = record(t.dir, "codex-T1", { scope: "whole suite", by: "codex" });
+  const d = copy("done", "T1", "--batch", t.batch, "--record", rel);
+  assert.equal(d.job.state, "done");
+  assert.equal(jobsOf().R1.ready, true, "the review that waited for the tests is ready");
+  assert.match(readIn(t.dir, "docs/reviews/pending.md"), /\| add-a \|[^\n]*docs\/reviews\/tests\/codex-T1\.md/, "Test of the row points at the record");
+  assert.equal(gitIn(t.dir, "status", "--porcelain").trim(), "", "done committed the record on the batch's branch");
+  assert.equal(git(p, "status", "--porcelain").trim(), "", "the main checkout is untouched");
 });

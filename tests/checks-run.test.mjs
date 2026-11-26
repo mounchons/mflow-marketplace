@@ -271,6 +271,7 @@ test("agy writes in the registry's code mode and reviews read-only; OpenCode is 
   const d = ok(runner(["--as", "antigravity", "--dry-run"]));
   assert.match(d.command, /dangerously-skip-permissions/, "a test or a fix: agy's code mode (0.58.0, the user's word)");
   assert.match(d.reviewCommand, /--mode plan --sandbox/, "a review: agy's read-only review mode");
+  assert.match(d.warning, /runs any command without asking/, "the dry run warns of agy's code mode");
   assert.match(d.reviewCommand, /antigravity-readonly\.json'/, "its read-only settings file, expanded to the plugin's copy");
   assert.doesNotMatch(d.reviewCommand, /\{plugin:|dangerously/, "no placeholder left, no skipped permissions");
   const o = ok(runner(["--as", "opencode", "--dry-run"]));

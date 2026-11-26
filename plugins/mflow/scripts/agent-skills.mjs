@@ -113,6 +113,7 @@ export const SKILLS = [
     notes: [
       "`--as <you>` is `codex` in Codex and `antigravity` in Antigravity. In OpenCode stop at once: OpenCode takes reviews only; tell the user `$mflow-test-pr` in Codex or Antigravity, or `/mflow:test-pr` in Claude Code.",
       "Run the scripts from the root of the main checkout (the folder this tool was opened in), and the test commands of section 2 in the batch's worktree (`dir`).",
+      "Where section 2 says the way `/mflow:test` does it, read `.agents/skills/mflow-test/SKILL.md` and follow it (its plan, parts, `since`, record format) with the differences listed there; its record format is the one `checks.mjs done` reads.",
       "`checks.mjs next`, `done`, `release` and `publish` write under `.git` (the hold on the job, the commit), which the sandbox keeps read-only, and `publish` pushes: run each outside the sandbox (in Codex, ask the user to approve it). The test commands run in the sandbox; when one fails because the sandbox blocks Docker, Testcontainers, a port or the network, ask the user to approve that command outside it. When you cannot ask (`codex exec`, a headless run), stop and tell the user the runner does that: `checks-run.mjs --as <you>` in a terminal.",
       "Write `By: codex` or `By: antigravity` in the record, whichever tool you are.",
     ],

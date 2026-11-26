@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.60.0 |
+| เวอร์ชัน plugin | 0.61.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -688,6 +688,22 @@ Claude: apply บน feat/access-control (เขียนโค้ด + unit tes
 
 ถ้าไม่ได้ผ่าน discuss ก็สั่งเป็นคำพูดได้เลย เช่น `ทำหน้าพิมพ์ใบเสร็จ ตาม docs/source/tor.md ข้อ 4` แล้ว Claude ทำ propose → apply → push เหมือนกัน และถามเฉพาะเรื่องแก้ยาก
 
+#### ทำ feature อะไรต่อดี (0.61)
+
+หลัง merge feature เข้า main Claude เสนอเอง หรือถามได้ทุกเมื่อว่า `ทำอะไรต่อดี`:
+
+```text
+คุณ: merge เลย
+Claude: merge feat/add-staff-type-hours เข้า main → push main
+        ทำ feature อะไรต่อดี?
+        a) /reports/work รายงานรายเดือนตามแบบของโรงเรียน (แนะนำ: Later ของ add-staff-type-hours ที่เพิ่ง merge, 2026-11-26)
+        b) own-staff-status: HR ระงับพนักงานในระบบใหม่ (Later ของ match-staff-to-l4, 2026-11-25)
+        c) manage-departments: HR แก้แผนกในระบบใหม่ (Later ของ manage-public-holidays, 2026-11-25)
+        d) อย่างอื่น บอกมาได้
+คุณ: a
+Claude: /opsx:propose … (ถามเฉพาะข้อแก้ยาก) → apply → push → ถามเรื่อง merge
+```
+
 #### ให้ Codex เขียนโค้ด แล้ว Claude ตรวจ (0.60, ประหยัด usage ของ Claude)
 
 สั่งตอน approve หรือหลังมี proposal แล้ว:
@@ -974,10 +990,11 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.60.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.61.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
+| แนะนำ feature ถัดไปหลัง merge | (0.61) หลังทุก merge เข้า main Claude รัน `next.mjs` แล้วเสนอ 3 ตัวเลือกจาก change ที่เปิดอยู่, branch `feat/*` ที่ยังไม่ merge และ `## Later changes` ของ proposal ที่ยังไม่ได้สร้าง ถามเองได้ทุกเมื่อด้วย "ทำอะไรต่อดี" Later ที่สร้างไปแล้วแต่ไม่ได้ขึ้นต้นด้วยชื่อ change Claude ต้องดูเอง จึงอาจหลุดมาเป็นตัวเลือกได้ |
 | ให้ Codex เขียนโค้ดแล้ว Claude ตรวจ | (0.60) พูดตอน approve ว่า "ให้ codex เขียน" หรือตั้ง `"applyBy": "codex"` ใน `.mflow/config.json` ให้เป็นค่าเริ่มต้นของโปรเจกต์ Claude เขียน proposal สร้าง worktree ของ change สั่ง Codex เขียนโค้ดใน sandbox ที่เขียนได้เฉพาะ worktree นั้น แล้ว Claude รัน build กับ unit test และตรวจ diff เทียบกับ spec และ `docs/standards/coding.md` ข้อที่ต้องแก้ส่งกลับให้ Codex หนึ่งรอบ แล้วจึง commit และ push agy ยังไม่อยู่ในขั้นนี้ ยังไม่ได้ลองกับโปรเจกต์จริง |
 | มาตรฐานการโค้ดกลาง | (0.60) `docs/standards/coding.md` เขียนจากเอกสาร tech-stack และ code-structure ที่ approve แล้ว ทุก tool อ่านก่อนเขียนโค้ด และรีวิวอ้างกฎด้วยเลข `STD-<nn>` โปรเจกต์เดิมได้ไฟล์นี้เมื่อรัน `/mflow:init` ใหม่ และ Claude เติมกฎจากเอกสารที่ approve ไว้แล้วได้เมื่อคุณสั่ง |
 | push ทุก commit, ทำขั้นถัดไปเอง, Claude ตอบข้อแก้ทีหลังได้ และสั่ง Codex/agy เอง | (0.59) มาจากการวัด transcript ของ ThawSi และ BanchiDesk (`docs/analysis/04-consolidated-plan-2026-11-26.md`) ทดสอบแค่ script และข้อความ ยังไม่ได้ลองใน session จริง โปรเจกต์ต้อง `/mflow:init` ใหม่จึงได้ template ใหม่ งานที่มี deploy ให้ตัดสิน Claude จะรอ push แล้วถาม a) push อย่างเดียว b) push + deploy และ branch ที่ deploy เองเมื่อถูก push (CI หรือ hosting) Claude ถามก่อน push ส่วน `/mflow:night`, `/mflow:apply-all` และตัวรันของ checks ยัง push ตามกติกาของตัวเอง |

@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.60)
+## คำสั่ง (v0.61)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -230,6 +230,7 @@ mflow/
 │   ├─ night.mjs           ← สถานะของ /mflow:night (docs/reviews/night/): ขั้นถัดไป, รอบต่อเป้าหมาย, เวลาที่เหลือ
 │   ├─ apply-all.mjs       ← สถานะของ /mflow:apply-all (ระหว่างรันอยู่ใน .git จบแล้วที่ docs/reviews/apply-all/): แผนจากเอกสาร discuss ที่ approve แล้ว, ขั้นถัดไป, เพดานรอบ, ด่านตรวจก่อน merge
 │   ├─ monitor.mjs         ← หน้า /mflow:monitor (.git/mflow/monitor.html): feature จาก story map, discuss, branch เทียบ main, merge, change, ลำดับงานพร้อมคำสั่ง อ่านอย่างเดียว
+│   ├─ next.mjs            ← งานที่ทำต่อได้: change ที่เปิดอยู่, branch feat/* ที่ยังไม่ merge, Later changes ที่ยังไม่ได้สร้าง (0.61)
 │   ├─ agent-skills.mjs    ← สร้าง skill mflow-test, mflow-review, mflow-e2e ให้ Codex และ OpenCode ใน .agents/skills/ และ E2E guard ใน .codex/hooks.json
 │   ├─ vendor.mjs          ← สำเนา plugin ใน .claude/skills/mflow/ สำหรับ Claude Code on the web: plan, write, status (0.38.1)
 │   ├─ results.mjs         ← ผล test/review/e2e ของ Codex หรือ agy ที่ยัง commit ไม่ได้: uncommitted, command (claude -p บน Sonnet commit ให้) (0.54)

@@ -179,7 +179,8 @@ try {
   const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   parts.push(
     "## mflow commands\n" +
-      `- To run an mflow step yourself, as CLAUDE.md says (never /mflow:test, /mflow:test-pr, /mflow:review, /mflow:e2e, /mflow:night, /mflow:apply-all or /mflow:checks), follow ${path.join(pluginRoot, "skills", "<command>", "SKILL.md")} as if the user had typed the command; \`\${CLAUDE_PLUGIN_ROOT}\` there is ${pluginRoot}.`,
+      `- To run an mflow step yourself, as CLAUDE.md says (never /mflow:test, /mflow:test-pr, /mflow:review, /mflow:e2e, /mflow:night, /mflow:apply-all or /mflow:checks), follow ${path.join(pluginRoot, "skills", "<command>", "SKILL.md")} as if the user had typed the command; \`\${CLAUDE_PLUGIN_ROOT}\` there is ${pluginRoot}.` +
+      `\n- What to build next, after a merge into main or when the user asks: \`node "${path.join(pluginRoot, "scripts", "next.mjs")}"\`.`,
   );
 }
 

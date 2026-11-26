@@ -155,8 +155,11 @@ test("apply archives the change in the same turn and commits once; archive commi
   assert.match(archive[0], /does not stop the archive\. Archive, and name it in one line of the reply instead of asking/);
   assert.match(archive[1], /^After the archive, commit it on the branch checked out without asking/);
   assert.match(archive[1], /when \/opsx:apply ran the archive in its turn, its one commit holds both/);
-  assert.match(archive[1], /Push and merge only on the user's word, asked once in one line\.$/);
-  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line which way, a\) first `\/mflow:test` and `\/mflow:review feat\/<change>` on this branch, merged once the review approves, recommended for business rules, permissions or data scope, queries, migrations, integrations or startup wiring, or b\) merge it into main now, tested and reviewed later on main with the other waiting changes; never merge while a test, review or E2E run is going in the main checkout, and on a merge follow AGENTS\.md `## Branches and worktrees`; on any other branch merge only on the user's word\. Push only on the user's word, asked once in one line\.$/);
+  assert.match(archive[1], /On a `feat\/<change>` branch, push it after that commit as \/opsx:apply does; push anything else and merge only on the user's word, asked once in one line\.$/);
+  // The user's word 2026-11-26: the change's own branch is pushed once apply has committed, never main.
+  assert.match(apply, /On a `feat\/<change>` branch, push it right after that commit without asking \(`git push -u origin feat\/<change>`, the user's standing word\)/);
+  assert.match(apply, /push no other branch and never main, open no pull request/);
+  assert.match(apply, /On a `feat\/<change>` branch, then ask in one line which way, a\) first `\/mflow:test` and `\/mflow:review feat\/<change>` on this branch, merged once the review approves, recommended for business rules, permissions or data scope, queries, migrations, integrations or startup wiring, or b\) merge it into main now, tested and reviewed later on main with the other waiting changes; never merge while a test, review or E2E run is going in the main checkout, and on a merge follow AGENTS\.md `## Branches and worktrees`; on any other branch merge only on the user's word\. Push main and any other branch only on the user's word, asked once in one line\.$/);
   assert.match(apply, /in a linked worktree STATUS\.md is left to the main checkout/);
   for (const line of [apply, ...archive]) assert.equal(yamlItem(line), line, "a plain YAML item, no quotes needed");
 });
@@ -330,6 +333,11 @@ test("Claude runs the next /opsx step itself, asking in one line, and /mflow com
   assert.match(line, /run the next one yourself; never end a reply telling the user to type one/);
   assert.match(line, /Run it at once when the user's last message already asked for that step/);
   assert.match(line, /ask in one line whether to go on/);
+  // The user's word 2026-11-26: once the planning questions are answered, propose runs straight into apply, and
+  // the change's branch is pushed when apply has committed.
+  assert.match(line, /Once the user has answered the questions that plan a change[^\n]*go from its proposal straight into `\/opsx:apply` without asking/);
+  assert.match(line, /push that branch without asking \(`git push -u origin feat\/<change>`, never main, no pull request\)/);
+  assert.doesNotMatch(line, /such as applying a change whose planning is done/, "apply is no longer asked for");
   assert.match(line, /If the Skill call is refused, read `\.claude\/skills\/<name>\/SKILL\.md` and follow it/);
   assert.match(line, /`\/mflow:\*` commands still run only when the user types them/);
   assert.match(read("skills/change-request/SKILL.md"), /hand it on in this same turn: a change to behaviour in `openspec\/specs\/` → run `\/opsx:propose` yourself/);

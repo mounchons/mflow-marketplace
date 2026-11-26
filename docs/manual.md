@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.59.0 |
+| เวอร์ชัน plugin | 0.60.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -668,6 +668,56 @@ git diff --stat openspec/specs
 
 ### 6.2 ตัวอย่างตามสถานการณ์
 
+#### ให้ Claude ทำทั้งหมดรวมเขียนโค้ด (0.59)
+
+```text
+คุณ: /mflow:discuss access-control
+Claude: ได้ docs/decisions/discuss/03-access-control.md
+        ข้อแก้ทีหลังได้ Claude ตอบให้แล้ว 5 ข้อ (D2, D4, D5, D7, D8) "(Claude เลือก)"
+        ข้อแก้ยากที่ต้องตอบ: D1 a) หัวหน้าเห็นทุกสาขา b) เห็นเฉพาะสาขาตัวเอง (แนะนำ b)
+                           D3 a) role ต่อคนเดียว b) หลาย role (แนะนำ b)
+คุณ: D1 b, D3 b, D5 a, approve
+Claude: แก้ D5 ตามที่เปลี่ยน → approve → เขียนตามตาราง merge
+        → /opsx:propose access-control ต่อเลย
+        ถาม 1 ข้อที่แก้ยาก: ผู้ดูแลระบบเห็นข้อมูลทุกบริษัทไหม a) เห็น b) ไม่เห็น (แนะนำ b)
+คุณ: b
+Claude: apply บน feat/access-control (เขียนโค้ด + unit test) → archive → commit → push feat/access-control
+        ถามหนึ่งบรรทัด: a) test และ review บน branch นี้ก่อน merge (แนะนำ เพราะแตะสิทธิ์) b) merge เข้า main เลย
+คุณ: a
+```
+
+ถ้าไม่ได้ผ่าน discuss ก็สั่งเป็นคำพูดได้เลย เช่น `ทำหน้าพิมพ์ใบเสร็จ ตาม docs/source/tor.md ข้อ 4` แล้ว Claude ทำ propose → apply → push เหมือนกัน และถามเฉพาะเรื่องแก้ยาก
+
+#### ให้ Codex เขียนโค้ด แล้ว Claude ตรวจ (0.60, ประหยัด usage ของ Claude)
+
+สั่งตอน approve หรือหลังมี proposal แล้ว:
+
+```text
+คุณ: D1 b, D3 b, approve ให้ codex เขียน
+Claude: approve → /opsx:propose access-control (ถามข้อแก้ยากถ้ามี) → commit proposal บน main
+        → worktree .claude/worktrees/access-control (feat/access-control)
+        → สั่ง Codex เบื้องหลัง: codex exec -s workspace-write -C .claude/worktrees/access-control …
+          (Codex ทำตาม tasks.md และ docs/standards/coding.md, ห้าม commit ห้าม archive)
+        → Codex เสร็จ: Claude ดูว่าไฟล์ที่แก้อยู่ใน tasks เท่านั้น, รัน build + unit test เอง,
+          ตรวจ diff เทียบ spec และ STD-xx (เช่น "STD-05: query ไม่ผ่าน filter ของบริษัท")
+        → ข้อร้ายแรงส่งกลับ Codex แก้ 1 รอบ แล้วตรวจอีกครั้ง
+        → archive → commit → push feat/access-control → ถามเรื่อง merge เหมือนเดิม
+```
+
+change ที่มี proposal อยู่แล้ว: `ให้ codex apply access-control`
+
+ให้ทุก change ของโปรเจกต์นี้เป็น Codex เขียน: บอก Claude ว่า `ตั้ง applyBy เป็น codex` หรือเพิ่มเองใน `.mflow/config.json`:
+
+```json
+{ "applyBy": "codex" }
+```
+
+ถ้า Codex ติด usage limit หรือรันไม่ผ่าน Claude ถามหนึ่งบรรทัด: a) ให้ Claude เขียนเอง b) รอแล้วสั่ง Codex ใหม่ ส่วน agy ยังไม่ใช้ในขั้นเขียนโค้ด
+
+#### ตั้งหรือแก้มาตรฐานการโค้ด (0.60)
+
+`docs/standards/coding.md` มีกฎละบรรทัด `STD-<nn>` เติมให้อัตโนมัติเมื่อ approve เอกสาร tech-stack และ code-structure ถ้าจะเพิ่มหรือแก้ สั่งเป็นคำพูด เช่น `เพิ่มกฎ: ห้ามใช้ raw SQL ยกเว้นในรายงาน` Claude เขียนเป็น STD ข้อใหม่ ทุก tool อ่านก่อนเขียนโค้ด และรีวิวอ้างเลขกฎ โปรเจกต์ที่ approve เอกสารไปก่อน 0.60 ให้สั่ง `เติม docs/standards/coding.md จากเอกสาร discuss ที่ approve แล้ว`
+
 #### อัปเกรด mflow ในโปรเจกต์ที่ใช้อยู่
 
 เปิด session ใหม่หลังอัปเดต plugin แล้ว briefing มีบรรทัดนี้:
@@ -924,10 +974,12 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.59.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.60.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
+| ให้ Codex เขียนโค้ดแล้ว Claude ตรวจ | (0.60) พูดตอน approve ว่า "ให้ codex เขียน" หรือตั้ง `"applyBy": "codex"` ใน `.mflow/config.json` ให้เป็นค่าเริ่มต้นของโปรเจกต์ Claude เขียน proposal สร้าง worktree ของ change สั่ง Codex เขียนโค้ดใน sandbox ที่เขียนได้เฉพาะ worktree นั้น แล้ว Claude รัน build กับ unit test และตรวจ diff เทียบกับ spec และ `docs/standards/coding.md` ข้อที่ต้องแก้ส่งกลับให้ Codex หนึ่งรอบ แล้วจึง commit และ push agy ยังไม่อยู่ในขั้นนี้ ยังไม่ได้ลองกับโปรเจกต์จริง |
+| มาตรฐานการโค้ดกลาง | (0.60) `docs/standards/coding.md` เขียนจากเอกสาร tech-stack และ code-structure ที่ approve แล้ว ทุก tool อ่านก่อนเขียนโค้ด และรีวิวอ้างกฎด้วยเลข `STD-<nn>` โปรเจกต์เดิมได้ไฟล์นี้เมื่อรัน `/mflow:init` ใหม่ และ Claude เติมกฎจากเอกสารที่ approve ไว้แล้วได้เมื่อคุณสั่ง |
 | push ทุก commit, ทำขั้นถัดไปเอง, Claude ตอบข้อแก้ทีหลังได้ และสั่ง Codex/agy เอง | (0.59) มาจากการวัด transcript ของ ThawSi และ BanchiDesk (`docs/analysis/04-consolidated-plan-2026-11-26.md`) ทดสอบแค่ script และข้อความ ยังไม่ได้ลองใน session จริง โปรเจกต์ต้อง `/mflow:init` ใหม่จึงได้ template ใหม่ งานที่มี deploy ให้ตัดสิน Claude จะรอ push แล้วถาม a) push อย่างเดียว b) push + deploy และ branch ที่ deploy เองเมื่อถูก push (CI หรือ hosting) Claude ถามก่อน push ส่วน `/mflow:night`, `/mflow:apply-all` และตัวรันของ checks ยัง push ตามกติกาของตัวเอง |
 | Codex และ agy ที่ Claude สั่งเองแบบอ่านอย่างเดียว | (0.59) ลองจริงกับ Codex และ agy 1.5.16 บน Windows (Git Bash) อย่างละหนึ่งงานแล้ว agy ใช้ plan mode กับ settings อ่านอย่างเดียว ซึ่งอ่อนกว่า sandbox ของ Codex Claude เทียบ `git status` และ hash ของงานที่ยังไม่ commit ก่อนและหลังรัน ถ้ามีไฟล์เปลี่ยนจะบอกและไม่ commit ให้ บรรทัดคำสั่งที่ `.mflow/config.json` แทนไว้ Claude ไม่รันเอง |
 | Codex และ agy commit เองไม่ได้ | (0.54) sandbox ของทั้งคู่ห้ามเขียน `.git` เมื่อรัน `$mflow-test`, `$mflow-review` หรือ `$mflow-e2e` จบ มันจะขออนุมัติรัน `claude -p ... --model sonnet` นอก sandbox ให้ Claude Code บน Sonnet commit ไฟล์ของรอบนั้นให้ (Sonnet อ่านผลแล้วเขียนข้อความ commit ส่วน script เป็นคนเลือกไฟล์และ commit เอง Sonnet รันอะไรอื่นไม่ได้ และไม่ push) ถ้ารันไม่ได้ จะพิมพ์คำสั่งไว้ท้ายข้อความให้ copy ไปรันใน terminal ที่ folder นั้น และเมื่อเปิด Claude Code ครั้งถัดไป briefing จะเห็นไฟล์ที่ค้างและถามว่าจะ commit ไหม ต้องมี `claude` ติดตั้งและ login แล้วในเครื่อง; ยังไม่ได้ลองใน session จริงของ Codex และ agy |

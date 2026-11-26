@@ -125,6 +125,7 @@ Done when: `check` shows no pending notes or reports, every feedback item and to
    | An extra left for later, with its trigger | the Later line of AGENTS.md `## Stack` |
    | Folder layout, projects and the reference direction (code-structure doc) | AGENTS.md `## Architecture` (solution layout, the rule "references point inward"); creating the solution is a Backlog task or an `/opsx:propose` change |
    | Architecture, enforcement or storage choice (fixed vs configurable roles, where scope is enforced, key type, soft delete, enum vs lookup table, child table vs JSON; a library over its alternative, a paid licence) | `backlog decision create`, plus one line in AGENTS.md Conventions if every agent must follow it |
+   | How code is written: layout and reference rules, naming, the data-access pattern, validation and errors, test style, what is ruled out (tech-stack and code-structure docs, a pack's code rules) | a `STD-<nn>` line in `docs/standards/coding.md` under its heading, pointing to this doc and its D, replacing the template's TODO line for it; every tool writes code to that file |
    | Durable constraint | one line in AGENTS.md |
    | Scope or release line | `docs/vision.md` story map |
    | Out of scope | `docs/vision.md` Out of scope |

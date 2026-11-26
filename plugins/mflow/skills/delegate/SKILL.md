@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "<TASK-ID | change-name | hotspot-slug | \"topic\"> --mode analyze|review|code [--to <tool>]"
 ---
 
-Another tool does not share this conversation. It gets a **brief**: one file that says what to do, what to read, what not to touch, and what its final answer must contain. The brief is the contract; the answer is checked by `/mflow:assess` (analyze, review) or `/mflow:review` (code). This skill writes the brief, then runs Codex and the Antigravity CLI itself for read-only work (analyze and review, the user's standing word since 0.59.0) and shows the command for everything else, which the user runs.
+Another tool does not share this conversation. It gets a **brief**: one file that says what to do, what to read, what not to touch, and what its final answer must contain. The brief is the contract; the answer is checked by `/mflow:assess` (analyze, review) or `/mflow:review` (code). This skill writes the brief, then runs Codex and the Antigravity CLI itself for read-only work (analyze and review, the user's standing word since 0.59.0), runs Codex itself when it builds an OpenSpec change ("Apply by Codex" below, since 0.60.0), and shows the command for everything else, which the user runs.
 
 `--to` is optional. Without it (or `--to any`) the brief is tool-neutral and the command list covers every registered tool. Tools live in a registry (defaults in the plugin, overrides and new tools under `tools` in `.mflow/config.json`), so a tool added next year needs a config entry, not a new plugin version.
 
@@ -55,6 +55,15 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-cmd.mjs" --mode <mode> --tool 
 - Interactive alternative for any CLI tool: open it in the repo and say "read <brief path> and follow it; give the report as your final message and edit no files".
 
 Done when: the brief exists, Codex and agy ran for analyze or review and their reports were checked (or the failure was named), every other command is shown, and STATUS.md records what was delegated, to whom, and where the answer will land.
+
+## Apply by Codex (an OpenSpec change built by Codex, checked by Claude)
+
+When the user says Codex builds it ("ให้ codex เขียน", "codex apply", "approve, codex ทำ"), or `.mflow/config.json` has `"applyBy": "codex"`, Codex writes the code of a proposed change and Claude checks it, which spends Claude's usage on the checking, not the writing. Claude still writes the proposal, the user's questions about it included. Claude runs Codex itself, the user's standing word since 0.60.0. Codex has its own worktree, and its sandbox lets it write only there.
+1. **The proposal is committed on main** (push it, as AGENTS.md says), then `node "${CLAUDE_PLUGIN_ROOT}/scripts/worktree.mjs" new <change>` makes `.claude/worktrees/<change>` on `feat/<change>`.
+2. **Brief**, mode `code`, subject the change: implement `openspec/changes/<change>/tasks.md` with the `openspec-apply-change` skill (`$openspec-apply-change`), writing the code to `docs/standards/coding.md` and AGENTS.md; after each task the build and the unit tests as `## Commands` says, ticking the task when they pass; no archive, no commit (the sandbox cannot write `.git`), no E2E. The report lists the tasks done, the commands run with their results, and every departure from the standard with its rule id.
+3. **Run it.** `delegate-cmd.mjs --mode code --tool codex --worktree .claude/worktrees/<change>`; only an entry marked `mflowOwn: true` is run, in the background. Write nothing in that worktree while Codex runs. A run that fails, ends without a report or hits a usage limit: say so in one line and ask in one line, a) Claude applies it now, b) wait and run Codex again later.
+4. **Check.** In the worktree, `git status` and `git diff`: only files the tasks name, nothing under `.mflow/`, `.agents/`, `.claude/`, `.codex/` or the agent files. Run the build and the unit tests yourself in the foreground, as the apply guidance says. Review the diff as `/mflow:review` does at the change's level, including its coding-standard check. Blockers and majors go back to Codex once, as a second brief that lists them by id, and are checked again; what is left, fix yourself or name to the user.
+5. **Finish as apply does:** tick what is done in tasks.md, archive the change, commit in the worktree by name, push `feat/<change>`, add the `docs/reviews/pending.md` row (`By: codex` in its reason), then ask in one line about the merge.
 
 ## When it comes back
 

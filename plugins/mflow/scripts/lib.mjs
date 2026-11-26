@@ -208,6 +208,8 @@ export function loadConfig(root) {
   if ("packs" in user && !(Array.isArray(user.packs) && user.packs.every((n) => typeof n === "string" && /^[a-z][a-z0-9-]*$/.test(n)))) {
     wrong("packs", "a list of pack names in kebab-case");
   }
+  // applyBy: who writes the code of an applied change by default (0.60.0); "codex" has Codex write it and Claude check it.
+  if ("applyBy" in user && !["claude", "codex"].includes(user.applyBy)) wrong("applyBy", "\"claude\" or \"codex\"");
   // setup: the user's answers to /mflow:init's optional parts (setup.mjs record), so a rerun does not ask again.
   if ("setup" in user && !(isObject(user.setup) && Object.values(user.setup).every((v) => typeof v === "boolean"))) {
     wrong("setup", "an object of true/false answers, such as { \"webCopy\": false }");

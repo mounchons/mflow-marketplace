@@ -85,6 +85,7 @@ Later, when needed: TODO (each extra with the trigger that brings it in, e.g. a 
 | Change requests after approval | `docs/reviews/change-requests/` | `/mflow:change-request` |
 | Briefs for other AI tools / their results | `.mflow/briefs/`, `docs/ai/inbox/` | `/mflow:delegate`, `/mflow:assess` |
 | Analyses, designs and challenges from several AI tools (optional) | `docs/ai/analysis/`, `docs/ai/design/`, `docs/ai/challenge/` | `/mflow:analyze`, `/mflow:design`, `/mflow:challenge` |
+| How code is written here: the rules every tool follows and every review checks | `docs/standards/coding.md` (`STD-<nn>`) | Claude, from approved discussions and the user's word |
 | Where we are right now | `STATUS.md` | every session |
 | Proof that behaviour works | the tests folder of the approved code-structure doc (`src/tests/` by default, never inside an app or layer project); UI unit and E2E tests where `## Stack` says | test projects |
 
@@ -94,7 +95,7 @@ Commit each finished piece of work without asking, its files added by name (neve
 <!-- Claude Code does this automatically through mflow hooks; Codex follows this text. -->
 
 ## Working as a tool other than Claude Code
-If you were given a brief in `.mflow/briefs/`, it is your contract: stay in its scope and boundaries, work only on the branch it names, and give your report as your final message in exactly the format of its Output section, starting with `Understanding` and `Files read`. Edit no files unless the brief's mode is `code`. What the brief says not to open outranks the session ritual above (a review brief keeps `STATUS.md` closed). Claude verifies every report before anything is merged.
+If you were given a brief in `.mflow/briefs/`, it is your contract: stay in its scope and boundaries, work only on the branch it names, and give your report as your final message in exactly the format of its Output section, starting with `Understanding` and `Files read`. Edit no files unless the brief's mode is `code`; in `code` mode, write the code to `docs/standards/coding.md`. What the brief says not to open outranks the session ritual above (a review brief keeps `STATUS.md` closed). Claude verifies every report before anything is merged.
 
 ## Branches and worktrees
 - `/opsx:apply` started on `main` first puts the change on its own branch `feat/<change>`; on any other branch it stays there. A proposal is committed on main before its branch or worktree is made. Once apply has committed the change on `feat/<change>`, that branch is pushed like every commit (`git push -u origin feat/<change>`), so the work is kept off this machine: no pull request, and the merge still waits for the user's yes. Once the user has answered the questions that plan a change, its proposal goes straight into apply without asking, since apply works on that branch.
@@ -112,6 +113,7 @@ A task or change is done when its acceptance criteria are covered by tests that 
 - A task runs the build, the unit tests and the tests it added or changed. The Shared checks above run once at the end of a change that touched the data model, startup, permissions or seed data. The whole suite, with the Build, Format and test commands above except E2E, runs through `/mflow:test` when the user calls it, usually on main once for every change waiting in `docs/reviews/pending.md` (by hand with the commands above in other tools); `/mflow:review` reuses that run. When a change's tasks are done, add its row to that list instead of asking for the run or a review. Report the command output, not a claim.
 
 ## Conventions
+- Code follows `docs/standards/coding.md`: read it before writing code, in any tool. Its rules live there, not here.
 <!-- Only what differs from the stack's defaults or cannot be inferred from the code. -->
 - TODO
 

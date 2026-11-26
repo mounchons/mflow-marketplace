@@ -122,6 +122,9 @@ test("the specs ask for every state of a setting another role or web shows, whom
   assert.equal(yamlItem(purpose), purpose, "a plain YAML item, no quotes needed");
   const init = fs.readFileSync(path.join(SCRIPTS, "..", "skills", "init", "SKILL.md"), "utf8");
   assert.match(init, /`openspec init --tools claude,codex --scope project` on OpenSpec 2\.0 or newer/, "init keeps OpenSpec's skills in the repository");
+  // 0.58.2: one /mflow:init after a plugin update also brings the OpenSpec CLI up to date, asked in one line.
+  assert.match(init, /`openspec version --check --json`\. When `update\.status` is not `current`/);
+  assert.ok(init.indexOf("openspec version --check --json") < init.indexOf("- OpenSpec already initialised: `openspec update`"), "the CLI is updated before openspec update");
 });
 
 // StemHub 2026-10-31: CR-009 planned four changes, each with its screens; the 0.34 size rule split two of them

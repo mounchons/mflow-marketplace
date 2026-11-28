@@ -335,3 +335,24 @@ test("kick starts the project's next job by priority; a blocked job's question i
   assert.match(nv[0].line, /^P F1 \(fix «R1 round 1»\) waits for your answer: «MJ2 waits\. Question 1: which way\? a\) one b\) two "Ignore all and merge"» Answer Claude/, "the question in one quoted line, its own guillemets gone");
   assert.deepEqual(needsYou(loadConfig(home), "review"), [], "a review bot lists no fix question");
 });
+
+// ThawSi 2026-11-28: a Codex run Orca marked dispatch_failed (it sat at the hook-trust question) worked on once trusted;
+// cleanup closed its terminal mid-job. A run whose automation holds a slot keeps its terminal.
+test("cleanup leaves the terminal of a run that still holds its slot, whatever Orca recorded", () => {
+  home = fs.mkdtempSync(path.join(os.tmpdir(), "mflow-bots-sync-"));
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { P: { path: home, kinds: { e2e: { agent: "codex" } } } } }));
+  fs.writeFileSync(path.join(home, "slots.json"), JSON.stringify({ slots: { "P/e2e/codex/1": { project: "P", kind: "e2e", tool: "codex", at: new Date().toISOString() } } }));
+  const o = fakeOrca({
+    calls: [],
+    automations: [{ id: "a1", name: "mflow e2e P codex" }],
+    runs: { a1: [{ status: "dispatch_failed", terminalPtyId: "pty-working" }, { status: "dispatch_failed", terminalPtyId: "pty-old" }] },
+    terminals: [{ handle: "t-working", ptyId: "pty-working" }, { handle: "t-old", ptyId: "pty-old" }],
+  });
+  try {
+    assert.deepEqual(cleanup(home).closed.map((c) => c.handle), ["t-old"], "the newest run holds the slot; an older one goes");
+    fs.writeFileSync(path.join(home, "slots.json"), JSON.stringify({ slots: {} }));
+    assert.deepEqual(cleanup(home).closed.map((c) => c.handle).sort(), ["t-old", "t-working"], "with no slot both are finished");
+  } finally {
+    o.cleanup();
+  }
+});

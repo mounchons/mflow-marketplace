@@ -702,12 +702,25 @@ function botPlan(home, cfg) {
 }
 
 /** Close the terminals of the runs of mflow automations that finished; a run still going, or any other terminal, stays. */
-export function cleanup() {
+export function cleanup(home = null) {
+  // A slot held now means its agent works, whatever Orca recorded for the run: a Codex that sat at the hook-trust
+  // question is marked dispatch_failed, then works on once someone trusts (ThawSi 2026-11-28: EW4 was closed mid-job).
+  let busy = [];
+  if (home) {
+    try {
+      busy = Object.values(liveSlots(home, loadConfig(home)));
+    } catch {}
+  }
   const finished = new Set();
   for (const a of mflowAutomations()) {
     const res = orca(["automations", "runs", "--id", a.id]);
-    // dispatch_failed: the agent opened but never took the prompt (it sat at Codex's hook-trust question), and stays open
-    for (const r of res.runs || res) if (["completed", "failed", "skipped_precheck", "error", "cancelled", "dispatch_failed"].includes(r.status) && r.terminalPtyId) finished.add(r.terminalPtyId);
+    const runs = res.runs || res;
+    const working = busy.some((s) => s.project === a.project && s.kind === a.kind && s.tool === a.agent);
+    runs.forEach((r, i) => {
+      if (i === 0 && working) return; // the automation's newest run holds the slot: leave its terminal alone
+      // dispatch_failed: the agent opened but never took the prompt (it sat at Codex's hook-trust question)
+      if (["completed", "failed", "skipped_precheck", "error", "cancelled", "dispatch_failed"].includes(r.status) && r.terminalPtyId) finished.add(r.terminalPtyId);
+    });
   }
   const closed = [];
   for (const t of orca(["terminal", "list"]).terminals || []) {
@@ -1082,7 +1095,7 @@ if (isMain) {
       }
     } else if (cmd === "finished") out = finished(home, { kind: opt("--kind") });
     else if (cmd === "dispatch") out = dispatch(home, { kind: opt("--kind") });
-    else if (cmd === "cleanup") out = cleanup();
+    else if (cmd === "cleanup") out = cleanup(home);
     else if (cmd === "apply") out = apply(home);
     else if (cmd === "end") {
       out = end(home, { slot: opt("--slot"), result: opt("--result"), job: opt("--job"), note: opt("--note") });
@@ -1096,7 +1109,7 @@ if (isMain) {
         // finished runs' terminals stayed open (ThawSi 2026-11-28). This run is still "dispatched" here: its own terminal
         // stays, and goes at the next end or round.
         try {
-          out.closed = cleanup().closed.length;
+          out.closed = cleanup(home).closed.length;
         } catch (e) {
           out.closed = `cleanup failed: ${String(e.message || e).split("\n")[0]}`;
         }

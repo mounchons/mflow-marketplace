@@ -167,5 +167,5 @@ sync bot merge เองเมื่อ**ทุกงานผ่าน** (recor
 | Bot ไม่มีข้อความใน chat | ยังไม่ถึงรอบ หรือทุกรอบ `skipped_precheck` (ไม่มีงาน / โปรเจกต์ไม่ว่าง) |
 | งานค้างไม่มีใครหยิบ | agent ใน `bots.json` ไม่ตรงกับ `checks.route` ดู `warnings` ของ `apply` |
 | แก้ `bots.json` แล้วไม่มีผล | ยังไม่ได้รัน `apply` |
-| Claude หยุดรับงาน | ครบ 12 งานใน 5 ชั่วโมง หรือโควตาเกิน 85% ดู `bots.mjs usage --home D:/orca` |
+| Claude หยุดรับงาน / Bot ไม่ทำงานทั้งที่มีงาน | ครบ 12 งานใน 5 ชั่วโมง (เมื่ออ่านโควตาจริงไม่ได้) หรือโควตาเกิน 85% ดูเหตุผลด้วย `bots.mjs due --home D:/orca --kind fix` และ `bots.mjs usage --home D:/orca`; แก้: เพิ่ม `usage.maxJobsPer5h.claude` ใน `bots.json` หรือเติม `claude-snapshot` ใน statusline ให้คุมด้วยโควตาจริง |
 | review ของโปรเจกต์ยังใช้ช่วงของ change ผิด | ปลั๊กอิน mflow ในโปรเจกต์ยังเก่า อัปเดตด้วย `/plugin` |

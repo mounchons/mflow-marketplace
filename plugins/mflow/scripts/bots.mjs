@@ -434,10 +434,18 @@ export function dispatch(home, { kind }, opts = {}) {
 export function due(home, { kind }, opts = {}) {
   const cfg = loadConfig(home);
   const ready_ = [];
-  for (const [project, p] of Object.entries(cfg.projects)) for (const s of p.kinds[kind] || []) if (ready(home, { project, kind, as: s.agent }, opts).ok) ready_.push(`${project}/${s.agent}`);
+  const why = [];
+  for (const [project, p] of Object.entries(cfg.projects)) {
+    for (const s of p.kinds[kind] || []) {
+      const r = ready(home, { project, kind, as: s.agent }, opts);
+      if (r.ok) ready_.push(`${project}/${s.agent}`);
+      else why.push(`${project}/${s.agent}: ${r.reason}`);
+    }
+  }
   const done = finished(home, { kind }, opts).jobs.length;
   if (ready_.length || done) return { ok: true, ready: ready_, finished: done };
-  return { ok: false, reason: `no project has a ${kind} job ready, and none finished since the last round` };
+  // Say why, not only that nothing is ready (ThawSi 2026-11-28: "no fix job ready" hid that Claude had hit its job cap).
+  return { ok: false, reason: `no ${kind} job can start (${why.join("; ") || "no project has a bot for it"}), and none finished since the last round` };
 }
 
 // ---------- what a round reports: the jobs of its kind that finished since the round before ----------

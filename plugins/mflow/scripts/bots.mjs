@@ -517,6 +517,53 @@ export function actualRun(tool, projectPath, from, to, { userHome = os.homedir()
   return null; // antigravity keeps no log a script can read
 }
 
+/**
+ * What a job's own report or record says, for the chat: a review's verdict, its findings by severity and the blockers
+ * and majors by title; a test's or an E2E run's result and first failures; and the jobs it started (a fix). Read from
+ * the batch's branch, so it works after the worktree is gone. null when the job is not in an open batch.
+ */
+/** The body of a "## <name>" section of a markdown file, up to the next "## " heading. */
+const section = (text, name) => (String(text).replace(/\r\n/g, "\n").split(/^## /m).find((s) => s.startsWith(name)) || "").split("\n").slice(1).join("\n");
+
+export function jobOutcome(projectPath, jobId) {
+  let st;
+  try {
+    st = status(projectPath);
+  } catch {
+    return null;
+  }
+  for (const b of [...st.batches].reverse()) {
+    const j = b.jobs.find((x) => x.id === jobId);
+    if (!j) continue;
+    const rel = /^(docs\/reviews\/\S+\.md)\b/.exec(String(j.result || ""))?.[1];
+    const text = rel ? gitIn(projectPath, ["show", `${b.branch}:${rel}`]).out : "";
+    const details = [];
+    let outcome = String(j.result || j.state).replace(/^docs\/reviews\/\S+\.md\s*/, "").slice(0, 160) || j.state;
+    if (/^Verdict:/m.test(text)) {
+      outcome = /^Verdict:\s*(\S+)/m.exec(text)[1];
+      const findings = section(text, "Findings");
+      const counts = [];
+      for (const sec of findings.split(/^### /m).slice(1)) {
+        const name = sec.split("\n")[0].trim();
+        const items = sec.split("\n").filter((l) => /^- /.test(l));
+        if (!items.length) continue;
+        counts.push(`${name.toLowerCase()} ${items.length}`);
+        if (/^(blocker|major)$/i.test(name)) for (const it of items.slice(0, 3)) details.push(`${name}: ${it.replace(/^- /, "").replace(/\*\*/g, "").replace(/`/g, "").slice(0, 150)}`);
+      }
+      if (counts.length) outcome += ` (${counts.join(", ")})`;
+    } else if (/^Result:/m.test(text)) {
+      outcome = /^Result:\s*(\S+)/m.exec(text)[1];
+      const fails = section(text, "Failures").split("\n").map((l) => l.trim()).filter((l) => l && !/^none\b/i.test(l));
+      for (const f of fails.slice(0, 3)) details.push(`failed: ${f.slice(0, 150)}`);
+    }
+    if (rel) details.push(`report: ${rel}${b.pr ? ` (${b.pr})` : ""}`);
+    const next = b.jobs.filter((x) => x.waits.includes(jobId) && x.state !== "done").map((x) => `${x.id} ${x.kind}`);
+    if (next.length) details.push(`next: ${next.slice(0, 5).join(", ")}${next.length > 5 ? ` and ${next.length - 5} more` : ""}`);
+    return { target: j.target, outcome, details };
+  }
+  return null;
+}
+
 /** The jobs of a kind that ended in this round's window, each with what ran it: from the agent's log, else as asked. */
 export function finished(home, { kind }, opts = {}) {
   const cfg = loadConfig(home);
@@ -541,7 +588,16 @@ export function finished(home, { kind }, opts = {}) {
     const real = projectPath && !opts.skipLogs ? actualRun(r.tool, projectPath, began, at, opts) : null;
     const model = real?.model || (r.model === "default" ? "default (not in the agent's log)" : `${r.model} (as asked)`);
     const effort = real?.effort || `${r.effort} (as asked)`;
-    jobs.push({ project: r.project, job: r.job || "—", result: r.result, minutes: r.minutes, agent: r.tool, model, effort, line: `${r.project} ${r.job || "—"} (${kind}): ${r.result} · ${r.tool} · model ${model} · effort ${effort} · ${r.minutes} min` });
+    // The job's own outcome (a review's verdict, a record's result) over what the agent said when it ended: an agent
+    // that finished a review says "pass" for "done" even when the review asked for changes.
+    const o = projectPath && r.job && r.job !== "none" && !opts.skipOutcome ? jobOutcome(projectPath, r.job) : null;
+    const outcome = o?.outcome || r.result;
+    const what = o?.target ? ` ${o.target}` : "";
+    jobs.push({
+      project: r.project, job: r.job || "—", result: outcome, minutes: r.minutes, agent: r.tool, model, effort,
+      line: `${r.project} ${r.job || "—"} (${kind}${what}): ${outcome} · ${r.tool} · model ${model} · effort ${effort} · ${r.minutes} min`,
+      details: o?.details || [],
+    });
   }
   return { kind, from: new Date(w.from).toISOString(), to: new Date(w.to).toISOString(), jobs };
 }
@@ -568,7 +624,7 @@ function botPlan(home, cfg) {
       "--trigger", `${staggered(i, cfg.pollMinutes)} * * * *`,
       "--precheck", `${self} due --home ${h} --kind ${kind}`,
       ...(cfg.bots ? ["--runs-in", "new", "--agent", cfg.bots.agent, ...(cfg.bots.model ? ["--model", cfg.bots.model] : []), ...(cfg.bots.effort ? ["--effort", cfg.bots.effort] : [])] : []),
-      "--prompt", `First run: ${self} finished --home ${h} --kind ${kind} . If its jobs list is not empty, begin your reply with a section headed Finished and copy each job's line as it is, one per line (it says the result, the agent, the model and the effort that ran it, and the minutes). Then run: ${self} dispatch --home ${h} --kind ${kind} . Then run: ${self} cleanup --home ${h} . End with a section headed Started saying which project's automation you started for which job, or why none started. Do no job yourself and change no file.`,
+      "--prompt", `First run: ${self} finished --home ${h} --kind ${kind} . If its jobs list is not empty, begin your reply with a section headed Finished: for each job, its line as it is (the job, its result: a review's verdict and its findings by severity, the agent, the model and the effort that ran it, the minutes), then each of its details as an indented bullet as it is (the blockers and majors, failures, the report and pull request, the next job such as a fix). Add nothing of your own. Then run: ${self} dispatch --home ${h} --kind ${kind} . Then run: ${self} cleanup --home ${h} . End with a section headed Started saying which project's automation you started for which job, or why none started. Do no job yourself and change no file.`,
     ];
     return { bot, purpose: BOT_PURPOSE[kind], create: "In Orca: Bots, + New bot, Start from scratch; name and purpose as given here; runs on this computer with Claude Code.", argv, command: renderArgv(argv) };
   });
@@ -692,8 +748,21 @@ export function ready(home, { project, kind, as: tool }, opts = {}) {
   if (!a.ok) return a;
   const room = slotRoom(cfg, liveSlots(home, cfg), project, kind);
   if (!room.ok) return room;
-  return jobReady(p.path, kind, tool);
+  const mine = jobReady(p.path, kind, tool);
+  if (!mine.ok) return mine;
+  // A project runs one job at a time, so the order matters: a fix changes the code the reviews still to come would
+  // read, and its test since and E2E follow it. A kind yields while one before it has a job ready and a bot to take it.
+  for (const first of PRIORITY.slice(0, PRIORITY.indexOf(kind))) {
+    for (const s of p.kinds[first] || []) {
+      const j = jobReady(p.path, first, s.agent);
+      if (j.ok) return { ok: false, reason: `${project}: ${first} ${j.job || ""} goes first (${first} before ${kind})` };
+    }
+  }
+  return mine;
 }
+/** The order the kinds of one project go in when several have a job ready (ThawSi 2026-11-28: F1–F3 waited behind
+ *  the reviews, whose bot woke first each round). */
+export const PRIORITY = ["fix", "test", "e2e", "review", "sync"];
 
 /** What the automation was configured to call: the model and effort in bots.json, or "default" when it names none. This is
  *  the request, not a reading of what the agent used (the tools report that nowhere a script can read it). */

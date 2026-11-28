@@ -1,6 +1,6 @@
 # คู่มือ Bot ของ Orca สำหรับ mflow: ใครทำงานอะไร และเปลี่ยนเองอย่างไร
 
-ใช้กับ mflow 0.62.5 ขึ้นไป เขียนเมื่อ 2026-11-28 ค่าในตัวอย่างเป็นค่าจริงของเครื่องนี้ (`D:\orca`, โปรเจกต์ ThawSi)
+ใช้กับ mflow 0.62.6 ขึ้นไป เขียนเมื่อ 2026-11-28 ค่าในตัวอย่างเป็นค่าจริงของเครื่องนี้ (`D:\orca`, โปรเจกต์ ThawSi)
 
 ## 1. ภาพรวม: 3 ชั้น
 
@@ -17,7 +17,7 @@ mflow-fix    ตื่น :08 :18 …  ──►  mflow fix    ThawSi claude   �
 - **automation ของโปรเจกต์** (หน้า Automations ชื่อ `mflow <งาน> <โปรเจกต์> <agent>`) **ปิดไว้เสมอ** Bot เป็นคนสั่งรัน ทำงานใน checkout ของโปรเจกต์ด้วย agent, model, effort ที่ตั้งไว้
 - **ไฟล์ตั้งค่าเดียว** `D:\orca\bots.json` แก้แล้วรัน `apply` Orca จะตรงกับไฟล์
 
-กติกา: ในโปรเจกต์เดียวทำทีละงาน ข้ามโปรเจกต์ทำพร้อมกันได้ (งานหนัก test/e2e/fix ไม่เกิน `maxHeavy` = 3, งานเบา review/sync ไม่เกิน `maxLight` = 6) agent ที่ใช้โควตาเกิน 85% หยุดรับงาน ถ้าอ่านโควตาไม่ได้ จำกัด 12 งานต่อ 5 ชั่วโมงต่อ agent
+กติกา: ในโปรเจกต์เดียวทำทีละงาน ถ้ามีหลายชนิดพร้อมพร้อมกัน ลำดับคือ **fix → test → e2e → review → sync** (fix ก่อนเพราะเปลี่ยนโค้ดที่ review ถัดไปจะอ่าน) ข้ามโปรเจกต์ทำพร้อมกันได้ (งานหนัก test/e2e/fix ไม่เกิน `maxHeavy` = 3, งานเบา review/sync ไม่เกิน `maxLight` = 6) agent ที่ใช้โควตาเกิน 85% หยุดรับงาน ถ้าอ่านโควตาไม่ได้ จำกัด 12 งานต่อ 5 ชั่วโมงต่อ agent
 
 ## 2. ตอนนี้ใครทำงานอะไร
 
@@ -136,7 +136,7 @@ Orca → **Automations** → ปิดหรือเปิด `mflow-sync round
 
 | ที่ | เห็นอะไร |
 |---|---|
-| Bots → กด `>` ข้างชื่อ Bot | chat ของแต่ละรอบ ("mflow-review round run 3"): หัวข้อ **Finished** = งานที่จบตั้งแต่รอบก่อน พร้อมผล agent model effort และกี่นาที (model และ effort อ่านจาก log ของ agent เอง: Claude จาก transcript, Codex จาก session log; agy ไม่มี log จึงบอกค่าที่ขอพร้อม "(as asked)") หัวข้อ **Started** = งานที่เพิ่งสั่ง รอบที่ไม่มีงานใหม่และไม่มีงานจบจะไม่ตื่นและไม่มี chat |
+| Bots → กด `>` ข้างชื่อ Bot | chat ของแต่ละรอบ ("mflow-review round run 3"): หัวข้อ **Finished** = งานที่จบตั้งแต่รอบก่อน: ผลจริงของงาน (review: verdict เช่น `changes-requested (major 3, minor 4, nit 4)` พร้อมหัวข้อของ blocker/major; test/E2E: `Result` และ test ที่ล้ม), agent, model, effort, กี่นาที, ไฟล์รายงานกับลิงก์ PR และงานที่ตามมา เช่น `next: F1 fix` (model และ effort อ่านจาก log ของ agent เอง: Claude จาก transcript, Codex จาก session log; agy ไม่มี log จึงบอกค่าที่ขอพร้อม "(as asked)") หัวข้อ **Started** = งานที่เพิ่งสั่ง รอบที่ไม่มีงานใหม่และไม่มีงานจบจะไม่ตื่นและไม่มี chat |
 | Automations → `mflow-<งาน> round` | `completed` = ตื่นแล้วสั่งงาน, `skipped_precheck` = ไม่มีงานหรือโปรเจกต์ไม่ว่าง |
 | Automations → `mflow <งาน> ThawSi <agent>` | งานจริงที่ agent ทำ ระหว่างรันดูสดได้ใน terminal ของโปรเจกต์ |
 | GitHub: PR ของ batch | checklist `docs/reviews/checks/<batch>.md` ทุกงาน ผล และ commit |

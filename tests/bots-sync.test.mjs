@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { apply, cleanup, dispatch, due, editArgs, jobReady, mergeDecision, mergeReady, plan, loadConfig, ready, syncProject } from "../plugins/mflow/scripts/bots.mjs";
+import { apply, cleanup, dispatch, due, editArgs, finished, jobOutcome, jobReady, mergeDecision, mergeReady, plan, loadConfig, ready, roundWindow, syncProject } from "../plugins/mflow/scripts/bots.mjs";
 import { git, hasGit, project, run } from "./helpers.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
@@ -264,4 +264,37 @@ test("the bots' rounds run on the agent and model bots.json names; without it, a
   assert.deepEqual(editArgs(plain.argv, "id").slice(-2), ["--agent", "bot"]);
   fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ bots: { agent: "gpt" }, projects: {} }));
   assert.throws(() => loadConfig(home), /bots\.agent must be/);
+});
+
+// ThawSi 2026-11-28: a review that asked for changes was reported "pass" (the agent's word for done), and F1–F3 waited
+// behind the reviews because the review bot woke first every round.
+test("the chat gets a review's verdict and findings, and a fix goes before the next review", needsGit, () => {
+  repo();
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { P: { path: p.root, kinds: { review: { agent: "claude" }, fix: { agent: "claude" } } } } }));
+  merge("add-a");
+  const s = syncProject(home, { project: "P" });
+  const dir = path.join(p.root, ".claude", "worktrees", `checks-${s.batch}`);
+  const file = path.join(dir, "docs", "reviews", "checks", `${s.batch}.md`);
+  const rel = "docs/reviews/code/2026-11-28-add-a.md";
+  fs.mkdirSync(path.join(dir, "docs", "reviews", "code"), { recursive: true });
+  fs.writeFileSync(path.join(dir, rel), "# Review\n\nVerdict: changes-requested\n\n## Findings\n\n### Blocker\n\nNone.\n\n### Major\n\n- **MJ1** `a.cs:3`: the save loses a row.\n  - detail\n\n### Nit\n\n- **n1** a name.\n- **n2** another.\n\n## Next\n\n- fix\n");
+  let doc = fs.readFileSync(file, "utf8");
+  doc = doc.replace(/^\| T1 \|(.*)\| open \| — \|$/m, "| T1 |$1| done | docs/reviews/x.md pass |").replace(/^\| R1 \|(.*)\| open \| — \|$/m, `| R1 |$1| done | ${rel} changes-requested |`);
+  doc = doc.replace(/(\n\| R1 \|[^\n]*)/, "$1\n| F1 | fix | R1 round 1 | — | claude | R1 | open | — |\n| R2 | review | add-b | 5 lines | claude | T1 | open | — |");
+  fs.writeFileSync(file, doc);
+  git({ ...p, root: dir }, "add", "-A");
+  git({ ...p, root: dir }, "commit", "-qm", "checks: R1 done");
+  const o = jobOutcome(p.root, "R1");
+  assert.equal(o.outcome, "changes-requested (major 1, nit 2)");
+  assert.deepEqual(o.details, [`Major: MJ1 a.cs:3: the save loses a row.`, `report: ${rel}`, "next: F1 fix"]);
+  const r = ready(home, { project: "P", kind: "review", as: "claude" }, { codexHome: path.join(home, "none") });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /fix F1 goes first/);
+  assert.equal(ready(home, { project: "P", kind: "fix", as: "claude" }, { codexHome: path.join(home, "none") }).ok, true);
+  // what the chat says for a review that ended: the verdict, not the agent's "pass"
+  const at = Date.now() - 30_000;
+  fs.writeFileSync(path.join(home, "runs.jsonl"), JSON.stringify({ event: "end", at: new Date(at).toISOString(), tool: "claude", model: "opus", effort: "high", project: "P", kind: "review", minutes: 2, result: "pass", job: "R1" }) + "\n");
+  const f = finished(home, { kind: "review" }, { now: roundWindow(loadConfig(home), "review", at).to + 10 * 60_000 + 30_000, skipLogs: true }); // the round after the job ended
+  assert.match(f.jobs[0].line, /^P R1 \(review add-a\): changes-requested \(major 1, nit 2\) · claude/);
+  assert.deepEqual(f.jobs[0].details.at(-1), "next: F1 fix");
 });

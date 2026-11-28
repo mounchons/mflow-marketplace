@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { afterEach, test } from "node:test";
-import { TEMPLATE, parse, render } from "../plugins/mflow/scripts/pending.mjs";
+import { TEMPLATE, parse, render, splitScreens, undoMsysPath } from "../plugins/mflow/scripts/pending.mjs";
 import { git, hasGit, project, run } from "./helpers.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
@@ -220,4 +220,48 @@ test("bad input is refused with a message", needsGit, () => {
   assert.match(pending("tick-test", "../x.md").stderr, /outside the project/);
   assert.match(pending("tick-review", "foo", "--report", "docs/x.md", "--verdict", "ok").stderr, /--verdict is one of/);
   assert.match(pending("range", "nope").stderr, /no commit touches openspec\/changes\/nope\//);
+});
+
+// ThawSi 2026-11-28: a change built on main had its branch cell set to main, so its range ran to main's tip and took in
+// every later change (183 commits for a 5-commit change); its review job came out at 98,509 lines.
+test("a change whose branch is main ends at its archive, not at main's tip", needsGit, () => {
+  const { end } = repoWithChange();
+  ok("add", "foo", "--level", "full", "--branch", "main");
+  commit("later work", { "src/bar.cs": "bar\n" });
+  commit("more later work", { "src/baz.cs": "baz\n" });
+  const r = ok("range", "foo");
+  assert.equal(r.end, end, "the archive of foo, not the later commits");
+  assert.deepEqual(r.codeFiles, ["src/foo.cs"]);
+  assert.equal(r.commits.length, 3);
+});
+
+test("the screens of an E2E cell: brackets keep their commas, prose stays whole, a Git Bash path gets its slash back", () => {
+  assert.deepEqual(splitScreens("`/holidays` (kind, academic year; `e2e/x.spec.ts` lacks `kind`), `/staff/:id` (work tab), `/menus`"), ["/holidays (kind, academic year; e2e/x.spec.ts lacks kind)", "/staff/:id (work tab)", "/menus"]);
+  assert.deepEqual(splitScreens("`/attendance/today`, the sidebar of HR, department heads and executives, `/menus`"), ["/attendance/today", "the sidebar of HR, department heads and executives", "/menus"]);
+  assert.deepEqual(splitScreens("C:/Program Files/Git/reports/work,/_styleguide"), ["/reports/work", "/_styleguide"]);
+  assert.deepEqual(splitScreens("—"), []);
+  assert.equal(undoMsysPath("D:/Tools/Git/usr/reports"), "/reports");
+  assert.equal(undoMsysPath("/reports/work"), "/reports/work");
+  assert.equal(undoMsysPath("the Git screen"), "the Git screen", "prose that names Git is left alone");
+});
+
+test("add stores a screen Git Bash rewrote with its slash back", needsGit, () => {
+  repoWithChange();
+  ok("add", "foo", "--level", "full", "--screens", "C:/Program Files/Git/reports/work,/_styleguide");
+  assert.match(p.read("docs/reviews/pending.md"), /\| \/reports\/work,\/_styleguide \|/);
+});
+
+// ThawSi 2026-11-28: another change's review fixed one line of an archived tasks.md two days later, and the range of the
+// archived change ran to that commit (137 commits).
+test("an archived change ends at its archive; a later touch counts only when its message names the change", needsGit, () => {
+  const { end } = repoWithChange();
+  commit("work on bar", { "src/bar.cs": "bar\n" });
+  commit("review: bar by codex", { "openspec/changes/archive/2026-10-31-foo/tasks.md": "- [x] 1.1 (ticked again)\n", "docs/r.md": "x\n" });
+  let r = ok("range", "foo");
+  assert.equal(r.end, end, "someone else's touch of the archive does not extend foo");
+  assert.deepEqual(r.codeFiles, ["src/foo.cs"]);
+  const fix = commit("fix(foo): the last finding", { "src/foo.cs": "foo fixed\n", "openspec/changes/archive/2026-10-31-foo/tasks.md": "- [x] 1.1\n- [x] 1.2\n" });
+  r = ok("range", "foo");
+  assert.equal(r.end, fix, "a fix that names foo after the archive is foo's");
+  assert.ok(!r.codeFiles.includes("src/foobar.cs"));
 });

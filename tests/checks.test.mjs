@@ -91,7 +91,7 @@ test("sync opens a batch on its own branch and worktree with the test parts, a r
   assert.match(doc, /^\| T1 \| test \| part unit \|/m);
   assert.match(doc, /^\| T2 \| test \| part integration \|/m);
   assert.doesNotMatch(doc, /part e2e/, "an E2E part stays out of the test jobs");
-  assert.match(doc, /^\| R1 \| review \| add-a \| \d+ lines \| claude \| T0 T1 T2 \| open \|/m);
+  assert.match(doc, /^\| R1 \| review \| add-a \| \d+ lines \(\d+ with docs and generated\) \| claude \| T0 T1 T2 \| open \|/m, "the size a reviewer reads, docs left out");
   assert.match(doc, /^\| EW1 \| e2e-write \| Approvals \| 1 screen \| claude \| T0 T1 T2 \| open \|/m);
   assert.match(doc, /^\| E1 \| e2e \| Approvals \| 1 screen \| claude \| EW1 \| open \|/m);
   assert.equal(gitIn(first.dir, "status", "--porcelain").trim(), "", "the checklist is committed on the batch branch");
@@ -374,7 +374,8 @@ test("a batch given up is closed: its rows still waiting join the next batch", n
   assert.notEqual(checks(["close", first]).status, 0, "close needs a reason");
   const c = ok(checks(["close", first, "--note", "suite failed; fixed on main"]));
   assert.match(c.closed, /suite failed; fixed on main$/);
-  assert.match(readIn(t1.dir, `docs/reviews/checks/${first}.md`), /^Closed: .+suite failed/m);
+  assert.match(git(p, "show", `checks/${first}:docs/reviews/checks/${first}.md`), /^Closed: .+suite failed/m, "the close is on the batch's branch; its worktree is gone");
+  assert.ok(!fs.existsSync(t1.dir));
   assert.deepEqual(ok(checks(["status"])).batches, []);
   const next = ok(checks(["sync"]));
   assert.notEqual(next.batch, first);
@@ -570,4 +571,27 @@ test("the copy of checks.mjs in the generated $mflow-test-pr skill takes, record
   assert.match(readIn(t.dir, "docs/reviews/pending.md"), /\| add-a \|[^\n]*docs\/reviews\/tests\/codex-T1\.md/, "Test of the row points at the record");
   assert.equal(gitIn(t.dir, "status", "--porcelain").trim(), "", "done committed the record on the batch's branch");
   assert.equal(git(p, "status", "--porcelain").trim(), "", "the main checkout is untouched");
+});
+
+// ThawSi 2026-11-28: the worktrees of two closed batches stayed under .claude/worktrees.
+test("a closed batch's worktree is removed; a merged one's goes at the next sync; one with uncommitted work stays", needsGit, () => {
+  repo({ parts: false });
+  merge("add-a");
+  const s1 = ok(checks(["sync"]));
+  const c = ok(checks(["close", s1.batch, "--note", "rebuilt"]));
+  assert.deepEqual(c.retired.map((r) => r.removed && r.batch), [s1.batch]);
+  assert.ok(!fs.existsSync(s1.dir), "the closed batch's worktree is gone");
+  assert.match(git(p, "branch", "--list", `checks/${s1.batch}`), /checks\//, "its branch stays, the PR's history");
+
+  const s2 = ok(checks(["sync"]));
+  git(p, "merge", "-q", "--no-ff", "-m", "merge the batch", s2.branch);
+  merge("add-b");
+  const s3 = ok(checks(["sync"]));
+  assert.ok(s3.retired.some((r) => r.batch === s2.batch && r.removed), "the merged batch's worktree goes at the next sync");
+  assert.ok(!fs.existsSync(s2.dir));
+
+  fs.writeFileSync(path.join(s3.dir, "left.txt"), "work\n");
+  const c3 = ok(checks(["close", s3.batch, "--note", "dirty"]));
+  assert.ok(c3.retired.some((r) => r.batch === s3.batch && /uncommitted/.test(r.kept)), "uncommitted work is never removed");
+  assert.ok(fs.existsSync(s3.dir));
 });

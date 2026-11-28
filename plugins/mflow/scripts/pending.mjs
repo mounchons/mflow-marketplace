@@ -74,6 +74,48 @@ const lines = (out) => (out || "").split("\n").map((l) => l.trim()).filter(Boole
 const isAncestor = (root, a, b) => a === b || gitOk(root, ["merge-base", "--is-ancestor", a, b]);
 const commitOf = (root, ref) => (ref && gitOk(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]) ? lines(git(root, ["rev-parse", `${ref}^{commit}`]))[0] : null);
 
+/** main, master or the remote's default branch: where changes land, not one change's own branch. (Not the branch this
+ *  checkout is on: a feat/<change> worktree asking for its own range must still reach its tip.) */
+function isTrunk(root, branch) {
+  const b = branch.replace(/^refs\/heads\//, "").replace(/^origin\//, "");
+  if (["main", "master", "trunk"].includes(b)) return true;
+  const remoteHead = lines(git(root, ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"]))[0];
+  return Boolean(remoteHead) && remoteHead.replace(/^origin\//, "") === b;
+}
+
+/**
+ * A path that Git Bash rewrote on its way to a Windows program: an argument that starts with "/" reaches it with the
+ * Git install folder in front ("/reports/work" -> "C:/Program Files/Git/reports/work"). Give the screen its "/" back.
+ */
+export const undoMsysPath = (s) => String(s).replace(/^[A-Za-z]:[\\/](?:[^,;`]*?[\\/])?Git[\\/](?:usr[\\/])?(?=[^\\/])/, "/");
+
+/**
+ * The screens of an E2E cell, one per job. The cell is prose: split at "," and ";" outside brackets only, and keep a
+ * piece with no backtick and no leading "/" with the plain piece before it ("the sidebar of HR, department heads").
+ */
+export function splitScreens(cell) {
+  if (open(cell)) return [];
+  const pieces = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of String(cell)) {
+    if ("([{".includes(ch)) depth++;
+    else if (")]}".includes(ch)) depth = Math.max(0, depth - 1);
+    if (depth === 0 && (ch === "," || ch === ";")) {
+      pieces.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  pieces.push(cur);
+  const out = [];
+  const anchored = (p) => /`/.test(p) || /^\s*\//.test(p);
+  for (const raw of pieces.map((p) => undoMsysPath(p.trim())).filter(Boolean)) {
+    if (!anchored(raw) && out.length && !anchored(out[out.length - 1].raw)) out[out.length - 1].raw += `, ${raw}`;
+    else out.push({ raw });
+  }
+  return out.map((p) => p.raw.replace(/`/g, "").trim()).filter(Boolean);
+}
+
 const archiveGlob = (name) => `:(glob)openspec/changes/archive/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-${name}/**`;
 const changePaths = (name) => [`openspec/changes/${name}`, archiveGlob(name)];
 
@@ -95,9 +137,23 @@ export function locate(root, name, branch) {
   const paths = changePaths(name);
   let from = "HEAD";
   let end = lines(git(root, ["log", "-1", "--format=%H", "HEAD", "--", ...paths]))[0] || null;
+  // An archived change ends at its archive. A later commit that touches its folder is someone else's (ThawSi
+  // 2026-11-28: another change's review fixed one line of this archive's tasks.md two days on, and the range ran
+  // 137 commits) unless its message names this change, as a fix(<change>) after the archive does.
+  const archived = archiveFolders(root, name).pop();
+  if (end && archived) {
+    const added = lines(git(root, ["log", "--diff-filter=A", "--reverse", "--format=%H", "HEAD", "--", `openspec/changes/archive/${archived}`]))[0];
+    if (added && added !== end && isAncestor(root, added, end)) {
+      const own = lines(git(root, ["log", "--format=%H %s", `${added}..${end}`, "--", ...paths])).find((l) => new RegExp(`(^|[^a-z0-9-])${name}($|[^a-z0-9-])`).test(l.slice(41)));
+      end = own ? own.slice(0, 40) : added;
+    }
+  }
   // The branch's tip, when the work went on there after the last commit that touched the folder (code
-  // committed after the last tick, or the whole change while it is not merged yet).
-  const tip = branch && !open(branch) ? commitOf(root, branch.replace(/`/g, "")) : null;
+  // committed after the last tick, or the whole change while it is not merged yet). Never the trunk: a change
+  // built on main would otherwise end at main's tip and take in every later change (ThawSi 2026-11-28: a
+  // 183-commit, 1008-file "change" for a 3-commit one).
+  const name_ = branch && !open(branch) ? branch.replace(/`/g, "").trim() : "";
+  const tip = name_ && !isTrunk(root, name_) ? commitOf(root, name_) : null;
   if (tip) {
     if (!end) {
       from = tip;
@@ -276,7 +332,7 @@ export function add(root, name, { level, why, branch, screens, applied } = {}) {
   if (applied !== undefined && !DATE.test(applied)) throw new Error("add: --applied is a date, YYYY-MM-DD");
   const list = load(root);
   if ([...list.rows, ...list.doneRows].some((r) => r.change === name)) return { file: FILE, added: false, reason: `${name} is already in the list` };
-  const rows = [...list.rows, { change: name, branch: branch || "—", applied: applied || today(), level: why ? `${kind}: ${why}` : kind, test: "—", review: "—", screens: screens || "—" }];
+  const rows = [...list.rows, { change: name, branch: branch || "—", applied: applied || today(), level: why ? `${kind}: ${why}` : kind, test: "—", review: "—", screens: screens ? String(screens).split(",").map((s) => undoMsysPath(s.trim())).join(",") : "—" }];
   save(root, list, rows, list.doneRows);
   return { file: FILE, added: true, created: !list.exists };
 }

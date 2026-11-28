@@ -36,7 +36,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findRoot, loadConfig, readText, readJsonFile, withFileLock, writeFileAtomic, worktreeInfo, MARKER } from "./lib.mjs";
-import { status as pendingStatus, range as pendingRange, readRecord, tickTest, tickReview, parse as parsePending, render as renderPending } from "./pending.mjs";
+import { status as pendingStatus, range as pendingRange, splitScreens, readRecord, tickTest, tickReview, parse as parsePending, render as renderPending } from "./pending.mjs";
 import { WORKTREES, includedFiles, ignoreWorktrees, list as listWorktrees } from "./worktree.mjs";
 
 export const DIR = "docs/reviews/checks";
@@ -201,12 +201,24 @@ function testJobs(main, route) {
   ];
 }
 
-function changeLines(main, change) {
+// Files a tool writes, which a reviewer skims: EF migration designers and snapshots, lock files, generated API schemas.
+const GENERATED = /(\.Designer\.cs|ModelSnapshot\.cs|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|packages\.lock\.json)|\.lock|(^|\/)openapi\/[^/]+\.json|\.d\.ts|\.g\.cs|\.snap)$/i;
+const DOC = /\.md$|^(openspec|backlog|docs)\//i;
+
+/** A review's size: the lines a reviewer reads, so neither docs nor generated files; the total in brackets when it differs. */
+export function changeLines(main, change) {
   try {
     const r = pendingRange(main, change);
-    const stat = git(main, ["diff", "--shortstat", r.base, r.end]).out;
-    const n = [...stat.matchAll(/(\d+) (?:insertion|deletion)/g)].reduce((s, m) => s + Number(m[1]), 0);
-    return `${n} lines`;
+    let all = 0;
+    let read = 0;
+    for (const row of git(main, ["diff", "--numstat", r.base, r.end]).out.split("\n")) {
+      const [add, del, file] = row.split("\t");
+      if (!file || add === "-") continue; // a binary file
+      const n = Number(add) + Number(del);
+      all += n;
+      if (!GENERATED.test(file) && !DOC.test(file)) read += n;
+    }
+    return read === all ? `${all} lines` : `${read} lines (${all} with docs and generated)`;
   } catch {
     return null;
   }
@@ -227,7 +239,7 @@ function addChangeJobs(doc, main, rows, route) {
     if (doc.changes.includes(row.change)) continue;
     doc.changes.push(row.change);
     doc.jobs.push(...reviewJobs(nextId(doc.jobs, "R"), row.change, changeLines(main, row.change), route.review, tests, route.reviewMerge));
-    const screens = empty(row.screens) ? [] : row.screens.split(/[,;]/).map((s) => s.replace(/`/g, "").trim()).filter(Boolean);
+    const screens = empty(row.screens) ? [] : splitScreens(row.screens);
     for (const screen of screens) {
       if (doc.jobs.some((j) => j.kind === "e2e-write" && j.target.toLowerCase() === screen.toLowerCase())) continue;
       const n = nextId(doc.jobs, "EW").slice(2);
@@ -340,13 +352,14 @@ export function sync(root, { dryRun = false } = {}) {
   const cfg = checksConfig(main);
   if (git(main, ["branch", "--show-current"]).out !== "main") throw new Error(`the main checkout (${main}) is not on main; switch it back to main first`);
   const st = pendingStatus(main);
+  const retired = dryRun ? [] : retireWorktrees(root);
   const all = batches(root);
   // A change of a merged or closed batch whose row still waits (a failed suite, changes requested) joins the next one.
   const listed = new Set(all.filter((b) => b.open).flatMap((b) => b.changes));
   const fresh = st.rows.filter((r) => r.landed && (r.testOpen || r.reviewOpen) && !listed.has(r.change));
   let b = all.find((x) => x.open && !x.pinned) || null;
   const pinnedOpen = all.filter((x) => x.open && x.pinned).map((x) => x.name);
-  if (!fresh.length || dryRun) return { added: dryRun ? fresh.map((r) => r.change) : [], batch: b?.name || null, dryRun, waitingInPinned: pinnedOpen };
+  if (!fresh.length || dryRun) return { added: dryRun ? fresh.map((r) => r.change) : [], batch: b?.name || null, dryRun, waitingInPinned: pinnedOpen, retired };
   const warnings = [];
   let created = false;
   if (!b) {
@@ -371,7 +384,7 @@ export function sync(root, { dryRun = false } = {}) {
   addChangeJobs(b, main, fresh, cfg.route);
   writeFileAtomic(path.join(b.dir, b.file), renderDoc(b.name, b));
   const commit = commitIn(b.dir, [b.file], `checks: add ${fresh.map((r) => r.change).join(", ")} to ${b.name}`);
-  return { added: fresh.map((r) => r.change), batch: b.name, branch: b.branch, dir: b.dir, created, commit, warnings, waitingInPinned: pinnedOpen };
+  return { added: fresh.map((r) => r.change), batch: b.name, branch: b.branch, dir: b.dir, created, commit, warnings, waitingInPinned: pinnedOpen, retired };
 }
 
 // ---------- jobs ----------
@@ -891,7 +904,31 @@ export function close(root, name, { note } = {}) {
     const r = gh(["pr", "close", b.pr, "--comment", `Closed: ${note}`], b.dir);
     pr = r.ok ? "closed" : `not closed: ${r.err}`;
   }
-  return { batch: b.name, closed: b.closed, commit, pr, next: "its rows still waiting in pending.md join the next batch at the next sync" };
+  return { batch: b.name, closed: b.closed, commit, pr, retired: retireWorktrees(root), next: "its rows still waiting in pending.md join the next batch at the next sync" };
+}
+
+/**
+ * The worktrees of batches that are merged or closed, removed when nothing is left uncommitted in them, so they do not
+ * pile up under .claude/worktrees (ThawSi 2026-11-28: two closed batches kept theirs). The branch stays: it is the
+ * pull request's history. Runs at every close and sync.
+ */
+export function retireWorktrees(root) {
+  const main = mainInfo(root).main;
+  const out = [];
+  for (const b of batches(root)) {
+    if (b.open || !b.dir || !fs.existsSync(b.dir)) continue;
+    if (path.resolve(process.cwd()).toLowerCase().startsWith(path.resolve(b.dir).toLowerCase())) {
+      out.push({ batch: b.name, dir: b.dir, kept: "this command runs inside it" });
+      continue;
+    }
+    if (git(b.dir, ["status", "--porcelain"]).out) {
+      out.push({ batch: b.name, dir: b.dir, kept: "uncommitted changes" });
+      continue;
+    }
+    const r = git(main, ["worktree", "remove", b.dir]);
+    out.push(r.ok ? { batch: b.name, removed: b.dir } : { batch: b.name, dir: b.dir, kept: r.err });
+  }
+  return out;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

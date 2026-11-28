@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.61.0 |
+| เวอร์ชัน plugin | 0.62.0 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -704,6 +704,34 @@ Claude: merge feat/add-staff-type-hours เข้า main → push main
 Claude: /opsx:propose … (ถามเฉพาะข้อแก้ยาก) → apply → push → ถามเรื่อง merge
 ```
 
+#### ให้ Bot ใน Orca ทำ test, review, E2E เอง หลายโปรเจกต์พร้อมกัน (0.62)
+
+ใช้กับโปรเจกต์ที่เปิดชุดตรวจแล้ว (`/mflow:checks`) และเปิด Orca ไว้
+
+1. **เลือกโฟลเดอร์สถานะของเครื่อง** (นอกทุกโปรเจกต์ เช่น `D:\orca`) แล้วเขียน `bots.json`:
+
+   ```json
+   {
+     "maxHeavy": 3, "maxLight": 6,
+     "projects": {
+       "ThawSi": { "path": "D:/GitHub/ThawSi", "kinds": {
+         "sync":   { "agent": "claude", "effort": "low" },
+         "test":   { "agent": "codex",  "effort": "high" },
+         "review": { "agent": "claude", "effort": "high" },
+         "e2e":    { "agent": "claude", "effort": "medium" },
+         "fix":    { "agent": "claude", "effort": "high" } } }
+     }
+   }
+   ```
+
+   agent ของแต่ละชนิดต้องตรงกับ `checks.route` ของโปรเจกต์ (`plan` เตือนเมื่อไม่ตรง) ใส่ `"model": "opus"` ได้
+2. `node <plugin>/scripts/bots.mjs plan --home D:\orca` ดูคำเตือน, Bot ที่ต้องสร้าง และ automation ต่อโปรเจกต์
+3. `bots.mjs apply --home D:\orca` สร้าง automation ของโปรเจกต์ที่ยังขาด (ปิดไว้ ไม่รันเอง)
+4. ใน Orca: **Bots → + New bot → Start from scratch** สร้าง `mflow-sync`, `mflow-test`, `mflow-review`, `mflow-e2e`, `mflow-fix` ตามชื่อและ purpose ใน `plan` แล้วให้ Claude ผูก automation ของ Bot (คำสั่งใน `plan` ช่อง `bots`)
+5. ทุก 10 นาที Bot ที่มีงานจะตื่น (`due`) สั่ง automation ของโปรเจกต์ที่พร้อม (`dispatch`) และปิด terminal ของ run ที่จบแล้ว (`cleanup`) งานจริงรันใน checkout ของโปรเจกต์ด้วย agent และ effort ที่ตั้งไว้
+
+ลำดับงาน: merge เข้า main → **sync** ใส่ลง batch + draft PR → **test** → ผ่านแล้วเกิดงาน **review** และ **E2E** → ไม่ผ่านเกิดงาน **fix** → test since → review รอบสั้น สูงสุด 3 รอบ ในโปรเจกต์เดียวทำทีละงาน ข้ามโปรเจกต์ทำพร้อมกัน `bots.mjs report --home D:\orca` บอกว่าแต่ละ agent/model/effort ทำกี่งาน ผ่านเท่าไร ใช้เวลาเท่าไร PR ของชุดตรวจคุณยัง merge เอง
+
 #### ให้ Codex เขียนโค้ด แล้ว Claude ตรวจ (0.60, ประหยัด usage ของ Claude)
 
 สั่งตอน approve หรือหลังมี proposal แล้ว:
@@ -990,10 +1018,11 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.61.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.62.0)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|
+| Bot ของ Orca (0.62) | Bot ใน Orca สร้างจาก CLI ไม่ได้ ต้องกด + New bot เอง; automation ของ Bot รันในโฟลเดอร์ของ Bot ซึ่งไม่มี mflow จึงแค่สั่ง automation ของโปรเจกต์ (`dispatch`); fix และ E2E ผ่าน bot ยังไม่ได้ลองจริง; usage ของ Claude อ่านได้เมื่อเติม `claude-snapshot` ใน statusline ส่วน antigravity นับจำนวนงานแทน; ถ้าเปลี่ยนชื่อคำสั่งใน `bots.mjs` ต้องรัน `plan`/`apply` ใหม่ ไม่อย่างนั้น automation ที่มีอยู่พังเงียบ |
 | แนะนำ feature ถัดไปหลัง merge | (0.61) หลังทุก merge เข้า main Claude รัน `next.mjs` แล้วเสนอ 3 ตัวเลือกจาก change ที่เปิดอยู่, branch `feat/*` ที่ยังไม่ merge และ `## Later changes` ของ proposal ที่ยังไม่ได้สร้าง ถามเองได้ทุกเมื่อด้วย "ทำอะไรต่อดี" Later ที่สร้างไปแล้วแต่ไม่ได้ขึ้นต้นด้วยชื่อ change Claude ต้องดูเอง จึงอาจหลุดมาเป็นตัวเลือกได้ |
 | ให้ Codex เขียนโค้ดแล้ว Claude ตรวจ | (0.60) พูดตอน approve ว่า "ให้ codex เขียน" หรือตั้ง `"applyBy": "codex"` ใน `.mflow/config.json` ให้เป็นค่าเริ่มต้นของโปรเจกต์ Claude เขียน proposal สร้าง worktree ของ change สั่ง Codex เขียนโค้ดใน sandbox ที่เขียนได้เฉพาะ worktree นั้น แล้ว Claude รัน build กับ unit test และตรวจ diff เทียบกับ spec และ `docs/standards/coding.md` ข้อที่ต้องแก้ส่งกลับให้ Codex หนึ่งรอบ แล้วจึง commit และ push agy ยังไม่อยู่ในขั้นนี้ ยังไม่ได้ลองกับโปรเจกต์จริง |
 | มาตรฐานการโค้ดกลาง | (0.60) `docs/standards/coding.md` เขียนจากเอกสาร tech-stack และ code-structure ที่ approve แล้ว ทุก tool อ่านก่อนเขียนโค้ด และรีวิวอ้างกฎด้วยเลข `STD-<nn>` โปรเจกต์เดิมได้ไฟล์นี้เมื่อรัน `/mflow:init` ใหม่ และ Claude เติมกฎจากเอกสารที่ approve ไว้แล้วได้เมื่อคุณสั่ง |

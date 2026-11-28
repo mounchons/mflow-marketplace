@@ -168,4 +168,5 @@ sync bot merge เองเมื่อ**ทุกงานผ่าน** (recor
 | งานค้างไม่มีใครหยิบ | agent ใน `bots.json` ไม่ตรงกับ `checks.route` ดู `warnings` ของ `apply` |
 | แก้ `bots.json` แล้วไม่มีผล | ยังไม่ได้รัน `apply` |
 | Claude หยุดรับงาน / Bot ไม่ทำงานทั้งที่มีงาน | ครบ 12 งานใน 5 ชั่วโมง (เมื่ออ่านโควตาจริงไม่ได้) หรือโควตาเกิน 85% ดูเหตุผลด้วย `bots.mjs due --home D:/orca --kind fix` และ `bots.mjs usage --home D:/orca`; แก้: เพิ่ม `usage.maxJobsPer5h.claude` ใน `bots.json` หรือเติม `claude-snapshot` ใน statusline ให้คุมด้วยโควตาจริง |
+| Codex ค้างที่ "Hooks need review: N hooks are new or changed" (run ขึ้น `dispatch_failed`) | Codex ถือว่า hook ของปลั๊กอินเปลี่ยนเมื่อไฟล์ใดในปลั๊กอินเปลี่ยน (hash ของทั้งปลั๊กอิน) บนเครื่องนี้ Codex จึงอ่าน mflow จาก branch `codex-stable` (`codex plugin marketplace add https://github.com/mounchons/mflow-marketplace.git --ref codex-stable`) การ push ขึ้น main ไม่ทำให้ถามอีก เลื่อน `codex-stable` (`git push origin <commit>:codex-stable`) เฉพาะเมื่อ hook หรือสคริปต์ของ hook เปลี่ยน แล้วกด 2 (Trust all) ครั้งเดียว |
 | review ของโปรเจกต์ยังใช้ช่วงของ change ผิด | ปลั๊กอิน mflow ในโปรเจกต์ยังเก่า อัปเดตด้วย `/plugin` |

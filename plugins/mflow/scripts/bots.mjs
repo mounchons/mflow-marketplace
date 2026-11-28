@@ -706,7 +706,8 @@ export function cleanup() {
   const finished = new Set();
   for (const a of mflowAutomations()) {
     const res = orca(["automations", "runs", "--id", a.id]);
-    for (const r of res.runs || res) if (["completed", "failed", "skipped_precheck", "error", "cancelled"].includes(r.status) && r.terminalPtyId) finished.add(r.terminalPtyId);
+    // dispatch_failed: the agent opened but never took the prompt (it sat at Codex's hook-trust question), and stays open
+    for (const r of res.runs || res) if (["completed", "failed", "skipped_precheck", "error", "cancelled", "dispatch_failed"].includes(r.status) && r.terminalPtyId) finished.add(r.terminalPtyId);
   }
   const closed = [];
   for (const t of orca(["terminal", "list"]).terminals || []) {
@@ -1090,6 +1091,14 @@ if (isMain) {
           out.next = kick(home, { project: out.project });
         } catch (e) {
           out.next = { started: false, reason: String(e.message || e).split("\n")[0] };
+        }
+        // Jobs that follow each other by kick leave the bots' rounds nothing to do, so their cleanup never ran and the
+        // finished runs' terminals stayed open (ThawSi 2026-11-28). This run is still "dispatched" here: its own terminal
+        // stays, and goes at the next end or round.
+        try {
+          out.closed = cleanup().closed.length;
+        } catch (e) {
+          out.closed = `cleanup failed: ${String(e.message || e).split("\n")[0]}`;
         }
       }
     }

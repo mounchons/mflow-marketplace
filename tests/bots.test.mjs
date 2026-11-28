@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, test } from "node:test";
-import { agentAllowed, begin, claudeSnapshot, end, extraArgs, finished, jobReady, loadConfig, plan, ready, report, roundWindow, routeWarnings, staggered, usage } from "../plugins/mflow/scripts/bots.mjs";
+import { agentAllowed, begin, claudeSnapshot, end, extraArgs, finished, jobReady, loadConfig, plan, ready, report, resolveModel, roundWindow, routeWarnings, staggered, usage } from "../plugins/mflow/scripts/bots.mjs";
 import { SCRIPTS } from "./helpers.mjs";
 
 let base, home, codexHome;
@@ -238,4 +238,23 @@ test("finished: the jobs that ended in this round's window, with the model and e
   const blind = finished(home, { kind: "test" }, { ...opts, now: local(12, 10, 20), skipLogs: true });
   assert.equal(blind.jobs[0].model, "default (not in the agent's log)");
   assert.equal(blind.jobs[0].effort, "high (as asked)", "with no log, what was asked, said so");
+});
+
+// The user 2026-11-28: "กำหนด model ได้ เช่น claude - model opus, codex - model sol".
+test("a model per kind: codex's short name becomes its newest full id, claude's alias stays, an unknown one is warned", () => {
+  const codexHome = path.join(base, "cx");
+  fs.mkdirSync(codexHome, { recursive: true });
+  fs.writeFileSync(path.join(codexHome, "models_cache.json"), JSON.stringify({ models: [{ slug: "gpt-6.2-sol" }, { slug: "gpt-6.2-astra" }, { slug: "gpt-6.1-sol" }] }));
+  assert.deepEqual(resolveModel("codex", "sol", { codexHome }), { model: "gpt-6.2-sol", from: "sol" });
+  assert.deepEqual(resolveModel("codex", "gpt-6.1-sol", { codexHome }), { model: "gpt-6.1-sol" });
+  assert.match(resolveModel("codex", "nova", { codexHome }).warning, /no model "nova"/);
+  assert.deepEqual(resolveModel("claude", "opus", { codexHome }), { model: "opus" });
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { A: { path: path.join(base, "a"), kinds: { test: { agent: "codex", model: "sol", effort: "high" }, review: { agent: "claude", model: "opus", effort: "high" }, fix: { agent: "codex", model: "nova" } } } } }));
+  const cfg = loadConfig(home, { codexHome });
+  const p = plan(home, cfg);
+  const t = p.automations.find((a) => a.kind === "test");
+  assert.ok(t.argv.includes("--extra-agent-args=--model gpt-6.2-sol -c model_reasoning_effort=high"));
+  const r = p.automations.find((a) => a.kind === "review");
+  assert.ok(r.argv.includes("--extra-agent-args=--model opus --effort high"));
+  assert.ok(p.warnings.some((w) => /A\.fix: codex has no model "nova"/.test(w)));
 });

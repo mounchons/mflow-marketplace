@@ -66,10 +66,25 @@ const intIn = (v, d, lo, hi, name) => {
   return n;
 };
 
+/**
+ * A model as bots.json names it, made one the agent takes. Codex takes only full ids ("gpt-6.2-sol"); a short name
+ * ("sol") becomes the first id in Codex's own list (~/.codex/models_cache.json, newest first) that ends in "-sol".
+ * Claude takes its aliases (opus, sonnet, haiku) and full ids as they are; Antigravity's ids come from `agy models`.
+ */
+export function resolveModel(agent, model, { codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex") } = {}) {
+  if (!model || agent !== "codex") return { model };
+  const cache = readJson(path.join(codexHome, "models_cache.json"));
+  const ids = (cache?.models || cache?.data || (Array.isArray(cache) ? cache : [])).map((m) => m?.slug || m?.id || m?.model).filter(Boolean);
+  if (!ids.length || ids.includes(model)) return { model };
+  const hit = ids.find((id) => id.endsWith(`-${model}`));
+  return hit ? { model: hit, from: model } : { model, warning: `codex has no model "${model}" in ${path.join(codexHome, "models_cache.json")} (e.g. ${ids.slice(0, 3).join(", ")})` };
+}
+
 /** bots.json, checked: projects → kinds → one agent spec or a list of them ({agent, model?, effort?}). */
-export function loadConfig(home) {
+export function loadConfig(home, opts = {}) {
   const raw = readJson(path.join(home, "bots.json"));
   if (!raw || typeof raw !== "object") throw new Error(`bots: ${path.join(home, "bots.json")} is missing or not JSON`);
+  const modelWarnings = [];
   const projects = {};
   for (const [name, p] of Object.entries(raw.projects || {})) {
     if (!p?.path || !path.isAbsolute(p.path)) throw new Error(`bots.json: project ${name} needs an absolute "path"`);
@@ -79,7 +94,9 @@ export function loadConfig(home) {
       kinds[kind] = (Array.isArray(spec) ? spec : [spec]).map((s) => {
         if (!AGENTS.includes(s?.agent)) throw new Error(`bots.json: ${name}.${kind}: agent must be ${AGENTS.join(", ")}`);
         if (kind === "e2e" && !E2E_AGENTS.includes(s.agent)) throw new Error(`bots.json: ${name}.e2e: ${s.agent} has no browser guard; use ${E2E_AGENTS.join(" or ")}`);
-        return { agent: s.agent, ...(s.model ? { model: String(s.model) } : {}), ...(s.effort ? { effort: String(s.effort) } : {}) };
+        const m = s.model ? resolveModel(s.agent, String(s.model), opts) : {};
+        if (m.warning) modelWarnings.push(`${name}.${kind}: ${m.warning}`);
+        return { agent: s.agent, ...(m.model ? { model: m.model } : {}), ...(s.effort ? { effort: String(s.effort) } : {}) };
       });
     }
     projects[name] = { path: path.resolve(p.path), kinds };
@@ -95,6 +112,7 @@ export function loadConfig(home) {
     usage: { stopAtPercent: intIn(u.stopAtPercent, DEFAULTS.usage.stopAtPercent, 1, 100, "usage.stopAtPercent"), maxJobsPer5h: jobs },
     projects,
     bots: loadBots(raw.bots),
+    modelWarnings,
   };
 }
 
@@ -848,7 +866,7 @@ function renderArgv(argv) {
 
 export function plan(home, cfg) {
   const cmds = [];
-  const warnings = Object.entries(cfg.projects).flatMap(([name, p]) => routeWarnings(name, p));
+  const warnings = [...(cfg.modelWarnings || []), ...Object.entries(cfg.projects).flatMap(([name, p]) => routeWarnings(name, p))];
   for (const [name, p] of Object.entries(cfg.projects)) {
     let n = 0;
     for (const [kind, specs] of Object.entries(p.kinds)) {

@@ -1,6 +1,6 @@
 # คู่มือ Bot ของ Orca สำหรับ mflow: ใครทำงานอะไร และเปลี่ยนเองอย่างไร
 
-ใช้กับ mflow 0.62.4 ขึ้นไป เขียนเมื่อ 2026-11-28 ค่าในตัวอย่างเป็นค่าจริงของเครื่องนี้ (`D:\orca`, โปรเจกต์ ThawSi)
+ใช้กับ mflow 0.62.5 ขึ้นไป เขียนเมื่อ 2026-11-28 ค่าในตัวอย่างเป็นค่าจริงของเครื่องนี้ (`D:\orca`, โปรเจกต์ ThawSi)
 
 ## 1. ภาพรวม: 3 ชั้น
 
@@ -25,13 +25,13 @@ mflow-fix    ตื่น :08 :18 …  ──►  mflow fix    ThawSi claude   �
 
 | งาน | ทำอะไร | Agent | Model ที่ใช้จริง | Effort |
 |---|---|---|---|---|
-| sync | ใส่ change ที่ merge เข้า main ลง batch, เปิด draft PR, merge PR ที่ผ่านตามกติกา (ข้อ 6) | claude | ค่าเริ่มต้นของ Claude Code (Opus 5.5) | low |
-| test | test ทั้งชุด (T1) และ test since หลัง fix (S) | **codex** | `gpt-6.2-sol` (ค่าเริ่มต้นใน `~/.codex/config.toml`) | **high** |
-| review | review ทีละ change และงานรวมผล review | claude | Opus 5.5 | high |
-| e2e | เขียน E2E test ของจอ (EW) แล้วรัน (E) | claude | Opus 5.5 | medium |
-| fix | แก้ตาม review ที่ไม่ผ่าน หรือ test/E2E ที่ล้ม | claude | Opus 5.5 | high |
+| sync | ใส่ change ที่ merge เข้า main ลง batch, เปิด draft PR, merge PR ที่ผ่านตามกติกา (ข้อ 6) | claude | `opus` (Opus 5.5) | low |
+| test | test ทั้งชุด (T1) และ test since หลัง fix (S) | **codex** | `sol` → `gpt-6.2-sol` | **high** |
+| review | review ทีละ change และงานรวมผล review | claude | `opus` (Opus 5.5) | high |
+| e2e | เขียน E2E test ของจอ (EW) แล้วรัน (E) | claude | `opus` (Opus 5.5) | medium |
+| fix | แก้ตาม review ที่ไม่ผ่าน หรือ test/E2E ที่ล้ม | claude | `opus` (Opus 5.5) | high |
 
-ช่อง Model: เมื่อ `bots.json` ไม่ได้ใส่ `model` agent ใช้ model เริ่มต้นของตัวเอง
+ช่อง Model: ค่าที่ตั้งใน `bots.json` (ลบ `model` ออก = ใช้ model เริ่มต้นของ agent) และรายงานใน chat ของ Bot บอก model ที่ใช้จริงจาก log ของ agent
 
 ### Bot (ตัวสั่งงาน)
 
@@ -61,14 +61,17 @@ mflow-fix    ตื่น :08 :18 …  ──►  mflow fix    ThawSi claude   �
    "ThawSi": {
      "path": "D:\\GitHub\\ThawSi",
      "kinds": {
-       "test":   { "agent": "codex",  "effort": "high" },
-       "review": { "agent": "claude", "model": "sonnet", "effort": "medium" }
+       "test":   { "agent": "codex",  "model": "sol",  "effort": "high" },
+       "review": { "agent": "claude", "model": "opus", "effort": "high" }
      }
    }
    ```
 
    - `agent`: `claude`, `codex` หรือ `antigravity`
-   - `model`: ไม่ใส่ = ค่าเริ่มต้นของ agent; claude เช่น `opus`, `sonnet`; codex เช่น `gpt-6.2-sol`; antigravity ใช้ชื่อเต็มจาก `agy models` เช่น `gemini-4-hydrogen-medium`
+   - `model`: ไม่ใส่ = ค่าเริ่มต้นของ agent
+     - claude: ชื่อย่อ `opus`, `sonnet`, `haiku` หรือชื่อเต็ม เช่น `claude-opus-5-5`
+     - codex: ชื่อเต็ม เช่น `gpt-6.2-sol` หรือ**ชื่อย่อ** เช่น `sol`, `astra`, `terra` ซึ่ง `apply` แปลงเป็นรุ่นใหม่สุดในรายการ model ของ Codex บนเครื่อง (`sol` → `gpt-6.2-sol`) ชื่อที่ไม่มีจะขึ้นใน `warnings`
+     - antigravity: ชื่อเต็มจาก `agy models` เช่น `gemini-4-hydrogen-medium`
    - `effort`: `low`, `medium`, `high`, `xhigh` (agy มีระดับอยู่ในชื่อ model แล้ว ไม่ต้องใส่)
    - review หลายคน: `"review": [{ "agent": "claude" }, { "agent": "codex" }]`
 2. รัน (พิมพ์ใน Claude Code โดยมี `!` นำหน้า หรือใน terminal):

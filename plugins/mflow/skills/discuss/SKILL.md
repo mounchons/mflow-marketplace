@@ -34,6 +34,8 @@ Only the user writes these markers.
 
 The doc is written in Thai for the user and addresses them as คุณ. Status lives only in its frontmatter: `draft`, `approved`, `superseded` or `dropped`.
 
+The user's design style: when `docs/style/` exists (`/mflow:style use`), a decision it answers gets that answer with `(ตามแนวทาง DST-<n> G<k>)` as the user's own, not a question; a decision it does not cover is asked as usual.
+
 ## Mode: no arguments → overview
 
 Run `list` and show one table: number, title, status, revision, open decisions, pending notes, tool reports waiting. Then show the agenda from the same output: the topics not started, in the agenda's order, each with its reason in one line and its `/mflow:discuss <slug>` command, then any approved topic with a **ทบทวน:** note. Say plainly that it is a recommendation. With no agenda, say that `/mflow:discuss agenda` builds one. Stop.

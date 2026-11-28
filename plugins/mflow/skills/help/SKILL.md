@@ -43,6 +43,7 @@ If `$ARGUMENTS` describes a situation, recommend the one command that fits and t
 | Build or change a prototype screen | `/mflow:screen <name> <what>` |
 | Let people see a row's details without leaving the list (icons that open a dialog, a side panel for the record) | `/mflow:screen <name> <what to show in place>` |
 | Just met the customer about the prototype | `/mflow:review-notes @notes` |
+| Tell or teach Claude how you like systems built (pages, linking, lists, forms, master data, permissions), for every project | `/mflow:style <your words>`, `/mflow:style learn <old project path>`, `/mflow:style explain`; a new project copies it with `/mflow:style use` |
 | A rule crosses screens or is costly if wrong | `/mflow:hotspot <idea> [@files]` |
 | Continue working out a rule | `/mflow:hotspot <slug>` |
 | Customer's spreadsheet should prove a rule | `/mflow:golden @file.xlsx <slug>` |

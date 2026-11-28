@@ -29,7 +29,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 
 ตรวจความถูกต้องหลังแก้ไฟล์: `claude plugin validate ./plugins/mflow`
 
-## คำสั่ง (v0.63)
+## คำสั่ง (v0.64)
 
 ไม่แน่ใจว่าใช้คำสั่งไหน: `/mflow:help <สถานการณ์>` ทุกคำสั่งจบด้วยสรุปว่าอะไรเปลี่ยน กับคำสั่งถัดไปหนึ่งคำสั่ง (เขียนลงส่วน Now ของ STATUS.md ด้วย)
 
@@ -48,6 +48,7 @@ claude --plugin-dir ./mflow-marketplace/plugins/mflow
 | | `/mflow:screen inventory` | รายการหน้าจอจาก story map → `docs/ui/screens.md` |
 | | `/mflow:screen <ชื่อ> <สิ่งที่ต้องการ>` | สร้าง/ปรับหน้าจอจาก kit + ข้อมูล JSON กลาง รายการเปิดรายละเอียดของแถวใน `QuickView` (Dialog หรือ SidePanel) โดยไม่เปลี่ยนหน้า |
 | | `/mflow:review-notes @โน้ต` | คัดแยกผลทดสอบหรือรีวิว + สรุปสิ่งที่ตกลง (+ ร่างอีเมลแจ้งผู้เกี่ยวข้องถ้าต้องการ) |
+| | `/mflow:style [<คำของคุณ> | learn <path> | explain [<หัวข้อ>] | use]` | (0.64) แนวทางออกแบบของคุณที่ใช้ทุก project (วางหน้า, เชื่อมหน้า, list, form, master data, สิทธิ์, ตั้งชื่อ) เก็บใน Tamra space `design-style`: บอกเอง, เรียนรู้จาก project เก่า, ให้ Claude อธิบายความเข้าใจกลับ, `use` คัดลอกลง `docs/style/` ให้ theme, screen, discuss ทำตามโดยไม่ถาม |
 | โลจิก | `/mflow:hotspot [<ไอเดีย> \| <slug> [TASK-ID [คำตอบ]]]` | chart และแก้กฎใหญ่ทีละตั๋ว → graduate เป็น OpenSpec change จบแต่ละตั๋วบอก readiness bar ตั๋วถัดไป และคำสั่งถัดไป ตั๋ว `ask` ตอบในคำสั่งได้ |
 | | `/mflow:golden @xlsx <slug>` | Excel จริงของลูกค้า → golden data + unit test ตาม stack (xUnit สำหรับ .NET) |
 | ขอบเขต | `/mflow:change-request <คำขอ>` | จัดประเภท defect / clarification / new scope, ประเมินและบันทึกผลกระทบ แล้วทำต่อเมื่อคุณสั่ง (ร่างตอบลูกค้าเมื่อขอ) |

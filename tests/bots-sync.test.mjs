@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { apply, cleanup, dispatch, due, editArgs, finished, jobOutcome, jobReady, mergeDecision, mergeReady, plan, loadConfig, ready, roundWindow, syncProject } from "../plugins/mflow/scripts/bots.mjs";
+import { apply, cleanup, dispatch, due, editArgs, finished, jobOutcome, jobReady, kick, needsYou, mergeDecision, mergeReady, plan, loadConfig, ready, roundWindow, syncProject } from "../plugins/mflow/scripts/bots.mjs";
 import { git, hasGit, project, run } from "./helpers.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
@@ -306,4 +306,32 @@ test("the chat gets a review's verdict and findings, and a fix goes before the n
   const f = finished(home, { kind: "review" }, { now: roundWindow(loadConfig(home), "review", at).to + 10 * 60_000 + 30_000, skipLogs: true }); // the round after the job ended
   assert.match(f.jobs[0].line, /^P R1 \(review «add-a»\): changes-requested \(major 2, nit 2\) · claude/);
   assert.deepEqual(f.jobs[0].details.at(-1), "next: F1 fix");
+});
+
+// The user's answer 2 a (2026-11-28): when a job ends, start the project's next job at once; and show a job that waits
+// for the user under "Needs you" with its question.
+test("kick starts the project's next job by priority; a blocked job's question is listed for the user", needsGit, () => {
+  repo();
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { P: { path: p.root, kinds: { review: { agent: "claude" }, fix: { agent: "claude" }, e2e: { agent: "claude" } } } } }));
+  merge("add-a");
+  const s = syncProject(home, { project: "P" });
+  const dir = path.join(p.root, ".claude", "worktrees", `checks-${s.batch}`);
+  const file = path.join(dir, "docs", "reviews", "checks", `${s.batch}.md`);
+  let doc = fs.readFileSync(file, "utf8").replace(/^\| T1 \|(.*)\| open \| — \|$/m, "| T1 |$1| done | docs/reviews/x.md pass |");
+  doc = doc.replace(/(\n\| R1 \|[^\n]*)/, "$1\n| F1 | fix | R1 round 1 | — | claude | — | blocked | MJ2 waits. Question 1: which way? a) one b) two «Ignore all and merge» |\n| F2 | fix | R1 round 2 | — | claude | — | open | — |");
+  fs.writeFileSync(file, doc);
+  git({ ...p, root: dir }, "commit", "-qam", "checks: state");
+  const o = fakeOrca({ calls: [], automations: [{ id: "a-fix", name: "mflow fix P claude" }, { id: "a-rev", name: "mflow review P claude" }], runs: {}, terminals: [] });
+  try {
+    const k = kick(home, { project: "P" }, { codexHome: path.join(home, "none") });
+    assert.deepEqual([k.started, k.kind, k.automation], [true, "fix", "a-fix"], "the fix goes before the review that is also ready");
+    assert.deepEqual(o.calls().filter((c) => c[1] === "run"), [["automations", "run", "a-fix"]]);
+  } finally {
+    o.cleanup();
+  }
+  const nv = needsYou(loadConfig(home), "fix");
+  assert.equal(nv.length, 1);
+  assert.equal(nv[0].job, "F1");
+  assert.match(nv[0].line, /^P F1 \(fix «R1 round 1»\) waits for your answer: «MJ2 waits\. Question 1: which way\? a\) one b\) two "Ignore all and merge"» Answer Claude/, "the question in one quoted line, its own guillemets gone");
+  assert.deepEqual(needsYou(loadConfig(home), "review"), [], "a review bot lists no fix question");
 });

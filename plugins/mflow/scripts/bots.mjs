@@ -9,6 +9,7 @@
 //   node bots.mjs ready  --project <p> --kind sync|test|review|e2e|fix --as <agent> [--home <dir>]   exit 0 when a job can start now
 //   node bots.mjs sync   --project <p> [--home <dir>]                 the sync job: merged changes into a batch, push, draft PR
 //   node bots.mjs due    --kind <k> [--home <dir>]                   a bot's precheck: exit 0 when some project has a <k> job ready
+//   node bots.mjs finished --kind <k> [--home <dir>]                 the <k> jobs that ended since the round before, with the model and effort that ran them
 //   node bots.mjs dispatch --kind <k> [--home <dir>]                 a bot's round: start the automation of each project with a job ready
 //   node bots.mjs cleanup                                            close the terminals of finished runs of mflow automations
 //   node bots.mjs apply  [--home <dir>]                              create the automations bots.json asks for and Orca lacks (disabled)
@@ -416,7 +417,115 @@ export function due(home, { kind }, opts = {}) {
   const cfg = loadConfig(home);
   const ready_ = [];
   for (const [project, p] of Object.entries(cfg.projects)) for (const s of p.kinds[kind] || []) if (ready(home, { project, kind, as: s.agent }, opts).ok) ready_.push(`${project}/${s.agent}`);
-  return ready_.length ? { ok: true, ready: ready_ } : { ok: false, reason: `no project has a ${kind} job ready` };
+  const done = finished(home, { kind }, opts).jobs.length;
+  if (ready_.length || done) return { ok: true, ready: ready_, finished: done };
+  return { ok: false, reason: `no project has a ${kind} job ready, and none finished since the last round` };
+}
+
+// ---------- what a round reports: the jobs of its kind that finished since the round before ----------
+// No state is kept: a round covers the time from its previous scheduled minute to its own, so every job that ends
+// falls in exactly one round's report. A round the machine slept through reports nothing for that stretch.
+
+/** The scheduled minute of this kind's round at or before `now`, and the one before it, as times. */
+export function roundWindow(cfg, kind, now = Date.now()) {
+  const kinds = BOT_KINDS.filter((k) => Object.values(cfg.projects).some((p) => p.kinds[k]?.length));
+  const minutes = staggered(Math.max(0, kinds.indexOf(kind)), cfg.pollMinutes).split(",").map(Number);
+  const slot = (t) => {
+    const d = new Date(t);
+    d.setSeconds(0, 0);
+    for (let k = 0; k < 24 * 60; k++, d.setMinutes(d.getMinutes() - 1)) if (minutes.includes(d.getMinutes())) return d.getTime();
+    return d.getTime();
+  };
+  const to = slot(now);
+  return { from: slot(to - 60_000), to };
+}
+
+const near = (t, from, to) => t >= from - 60_000 && t <= to + 60_000;
+const top = (values) => [...values.reduce((m, v) => m.set(v, (m.get(v) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+const filesSince = (dir, since) => {
+  const out = [];
+  const walk = (d) => {
+    let ents = [];
+    try {
+      ents = fs.readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (e.name.endsWith(".jsonl") && fs.statSync(f).mtimeMs >= since) out.push(f);
+    }
+  };
+  walk(dir);
+  return out;
+};
+
+/** The model and effort an agent really ran a job on, read from its own log; null when its log does not say. */
+export function actualRun(tool, projectPath, from, to, { userHome = os.homedir(), codexHome = process.env.CODEX_HOME || path.join(userHome, ".codex") } = {}) {
+  const under = (cwd) => String(cwd || "").replace(/\\/g, "/").toLowerCase().startsWith(fwd(projectPath).toLowerCase());
+  if (tool === "codex") {
+    const models = [];
+    const efforts = [];
+    for (const f of filesSince(path.join(codexHome, "sessions"), from - 60_000)) {
+      for (const line of fs.readFileSync(f, "utf8").split("\n")) {
+        if (!line.includes('"turn_context"')) continue;
+        try {
+          const o = JSON.parse(line);
+          if (!near(Date.parse(o.timestamp), from, to) || !under(o.payload?.cwd)) continue;
+          models.push(o.payload.model);
+          efforts.push(o.payload.collaboration_mode?.settings?.reasoning_effort ?? o.payload.effort);
+        } catch {}
+      }
+    }
+    return models.length ? { model: top(models), effort: top(efforts.filter(Boolean)) } : null;
+  }
+  if (tool === "claude") {
+    const dir = path.join(userHome, ".claude", "projects", path.resolve(projectPath).replace(/[^A-Za-z0-9]/g, "-"));
+    const models = [];
+    const efforts = [];
+    for (const f of filesSince(dir, from - 60_000)) {
+      for (const line of fs.readFileSync(f, "utf8").split("\n")) {
+        const ts = /"timestamp":"([^"]+)"/.exec(line)?.[1];
+        if (!ts || !near(Date.parse(ts), from, to)) continue;
+        const m = /"model":"(claude-[a-z0-9-]+)"/.exec(line)?.[1];
+        if (m) models.push(m);
+        const e = /"effort":"([a-z]+)"/.exec(line)?.[1];
+        if (e) efforts.push(e);
+      }
+    }
+    return models.length ? { model: top(models), effort: top(efforts) } : null;
+  }
+  return null; // antigravity keeps no log a script can read
+}
+
+/** The jobs of a kind that ended in this round's window, each with what ran it: from the agent's log, else as asked. */
+export function finished(home, { kind }, opts = {}) {
+  const cfg = loadConfig(home);
+  const w = roundWindow(cfg, kind, opts.now);
+  const jobs = [];
+  let text = "";
+  try {
+    text = fs.readFileSync(path.join(home, "runs.jsonl"), "utf8");
+  } catch {}
+  for (const line of text.split("\n")) {
+    let r;
+    try {
+      r = line ? JSON.parse(line) : null;
+    } catch {
+      continue;
+    }
+    if (r?.event !== "end" || r.kind !== kind) continue;
+    const at = Date.parse(r.at);
+    if (!(at >= w.from && at < w.to)) continue;
+    const began = at - (r.minutes || 0) * 60_000;
+    const projectPath = cfg.projects[r.project]?.path;
+    const real = projectPath && !opts.skipLogs ? actualRun(r.tool, projectPath, began, at, opts) : null;
+    const model = real?.model || (r.model === "default" ? "default (not in the agent's log)" : `${r.model} (as asked)`);
+    const effort = real?.effort || `${r.effort} (as asked)`;
+    jobs.push({ project: r.project, job: r.job || "—", result: r.result, minutes: r.minutes, agent: r.tool, model, effort, line: `${r.project} ${r.job || "—"} (${kind}): ${r.result} · ${r.tool} · model ${model} · effort ${effort} · ${r.minutes} min` });
+  }
+  return { kind, from: new Date(w.from).toISOString(), to: new Date(w.to).toISOString(), jobs };
 }
 
 export const BOT_PURPOSE = {
@@ -441,7 +550,7 @@ function botPlan(home, cfg) {
       "--trigger", `${staggered(i, cfg.pollMinutes)} * * * *`,
       "--precheck", `${self} due --home ${h} --kind ${kind}`,
       ...(cfg.bots ? ["--runs-in", "new", "--agent", cfg.bots.agent, ...(cfg.bots.model ? ["--model", cfg.bots.model] : []), ...(cfg.bots.effort ? ["--effort", cfg.bots.effort] : [])] : []),
-      "--prompt", `Run: ${self} dispatch --home ${h} --kind ${kind} . Then run: ${self} cleanup --home ${h} . Say in two lines which project's automation you started for which job, or why none started. Do no job yourself and change no file.`,
+      "--prompt", `First run: ${self} finished --home ${h} --kind ${kind} . If its jobs list is not empty, begin your reply with a section headed Finished and copy each job's line as it is, one per line (it says the result, the agent, the model and the effort that ran it, and the minutes). Then run: ${self} dispatch --home ${h} --kind ${kind} . Then run: ${self} cleanup --home ${h} . End with a section headed Started saying which project's automation you started for which job, or why none started. Do no job yourself and change no file.`,
     ];
     return { bot, purpose: BOT_PURPOSE[kind], create: "In Orca: Bots, + New bot, Start from scratch; name and purpose as given here; runs on this computer with Claude Code.", argv, command: renderArgv(argv) };
   });
@@ -812,7 +921,8 @@ if (isMain) {
         process.stderr.write(`${out.reason}\n`);
         process.exit(1);
       }
-    } else if (cmd === "dispatch") out = dispatch(home, { kind: opt("--kind") });
+    } else if (cmd === "finished") out = finished(home, { kind: opt("--kind") });
+    else if (cmd === "dispatch") out = dispatch(home, { kind: opt("--kind") });
     else if (cmd === "cleanup") out = cleanup();
     else if (cmd === "apply") out = apply(home);
     else if (cmd === "end") out = end(home, { slot: opt("--slot"), result: opt("--result"), job: opt("--job"), note: opt("--note") });

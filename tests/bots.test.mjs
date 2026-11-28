@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, test } from "node:test";
-import { agentAllowed, begin, claudeSnapshot, end, extraArgs, jobReady, loadConfig, plan, ready, report, routeWarnings, staggered, usage } from "../plugins/mflow/scripts/bots.mjs";
+import { agentAllowed, begin, claudeSnapshot, end, extraArgs, finished, jobReady, loadConfig, plan, ready, report, roundWindow, routeWarnings, staggered, usage } from "../plugins/mflow/scripts/bots.mjs";
 import { SCRIPTS } from "./helpers.mjs";
 
 let base, home, codexHome;
@@ -205,4 +205,37 @@ test("runs.jsonl keeps the fields its readers use: a separate Tamra digest bot r
   assert.ok(["pass", "fail", "released", "blocked", "unreported"].includes(last.result));
   assert.equal(typeof last.minutes, "number");
   assert.ok(!Number.isNaN(Date.parse(last.at)));
+});
+
+// The user 2026-11-28: "when a bot's job is done, report in the chat what it did and on what model and effort".
+test("finished: the jobs that ended in this round's window, with the model and effort read from the agent's own log", () => {
+  const proj = path.join(base, "proj");
+  fs.mkdirSync(proj, { recursive: true });
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ pollMinutes: 10, projects: { P: { path: proj, kinds: { test: { agent: "codex", effort: "high" }, review: { agent: "claude" } } } } }));
+  const cfg = loadConfig(home);
+  const local = (h, m, s = 0) => new Date(2026, 10, 28, h, m, s).getTime();
+  // test is the first kind in use (minutes 0,10,…), review the second (2,12,…)
+  assert.deepEqual(roundWindow(cfg, "review", local(12, 15, 30)), { from: local(12, 2), to: local(12, 12) });
+  assert.deepEqual(roundWindow(cfg, "test", local(12, 0, 0)), { from: local(11, 50), to: local(12, 0) });
+  const end = (kind, at, x) => JSON.stringify({ event: "end", at: new Date(at).toISOString(), tool: kind === "test" ? "codex" : "claude", model: "default", effort: kind === "test" ? "high" : "default", project: "P", kind, minutes: 5, result: "pass", ...x });
+  fs.writeFileSync(path.join(home, "runs.jsonl"), [end("review", local(12, 5), { job: "R1" }), end("review", local(12, 13), { job: "R2" }), end("test", local(12, 5), { job: "T1" })].join("\n") + "\n");
+  // the agents' logs: a Codex session in the project, a Claude transcript in its projects folder
+  const user = path.join(base, "user");
+  const sess = path.join(user, ".codex", "sessions", "2026", "11", "28");
+  fs.mkdirSync(sess, { recursive: true });
+  fs.writeFileSync(path.join(sess, "rollout-x.jsonl"), JSON.stringify({ timestamp: new Date(local(12, 2)).toISOString(), type: "turn_context", payload: { cwd: proj.replace(/\//g, "\\"), model: "gpt-6.2-sol", collaboration_mode: { settings: { reasoning_effort: "high" } } } }) + "\n");
+  const cdir = path.join(user, ".claude", "projects", path.resolve(proj).replace(/[^A-Za-z0-9]/g, "-"));
+  fs.mkdirSync(cdir, { recursive: true });
+  fs.writeFileSync(path.join(cdir, "s.jsonl"), [1, 2, 3].map((i) => JSON.stringify({ timestamp: new Date(local(12, 1 + i)).toISOString(), message: { model: "claude-opus-5-5" }, effort: "high" })).join("\n") + "\n");
+  const opts = { now: local(12, 15, 30), userHome: user, codexHome: path.join(user, ".codex") };
+  const r = finished(home, { kind: "review" }, opts);
+  assert.deepEqual(r.jobs.map((j) => j.job), ["R1"], "R2 ended after 12:12: the next round reports it");
+  assert.equal(r.jobs[0].model, "claude-opus-5-5");
+  assert.equal(r.jobs[0].effort, "high", "the effort the transcript shows, not bots.json's default");
+  assert.match(r.jobs[0].line, /^P R1 \(review\): pass · claude · model claude-opus-5-5 · effort high · 5 min$/);
+  const t = finished(home, { kind: "test" }, { ...opts, now: local(12, 10, 20) });
+  assert.equal(t.jobs[0].model, "gpt-6.2-sol");
+  const blind = finished(home, { kind: "test" }, { ...opts, now: local(12, 10, 20), skipLogs: true });
+  assert.equal(blind.jobs[0].model, "default (not in the agent's log)");
+  assert.equal(blind.jobs[0].effort, "high (as asked)", "with no log, what was asked, said so");
 });

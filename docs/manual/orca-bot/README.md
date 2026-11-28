@@ -1,6 +1,6 @@
 # คู่มือ Bot ของ Orca สำหรับ mflow: ใครทำงานอะไร และเปลี่ยนเองอย่างไร
 
-ใช้กับ mflow 0.62.3 ขึ้นไป เขียนเมื่อ 2026-11-28 ค่าในตัวอย่างเป็นค่าจริงของเครื่องนี้ (`D:\orca`, โปรเจกต์ ThawSi)
+ใช้กับ mflow 0.62.4 ขึ้นไป เขียนเมื่อ 2026-11-28 ค่าในตัวอย่างเป็นค่าจริงของเครื่องนี้ (`D:\orca`, โปรเจกต์ ThawSi)
 
 ## 1. ภาพรวม: 3 ชั้น
 
@@ -133,7 +133,7 @@ Orca → **Automations** → ปิดหรือเปิด `mflow-sync round
 
 | ที่ | เห็นอะไร |
 |---|---|
-| Bots → กด `>` ข้างชื่อ Bot | chat ของแต่ละรอบ ("mflow-review round run 3") บอกว่าสั่งงานอะไรให้โปรเจกต์ไหน รอบที่ไม่มีงานไม่มี chat |
+| Bots → กด `>` ข้างชื่อ Bot | chat ของแต่ละรอบ ("mflow-review round run 3"): หัวข้อ **Finished** = งานที่จบตั้งแต่รอบก่อน พร้อมผล agent model effort และกี่นาที (model และ effort อ่านจาก log ของ agent เอง: Claude จาก transcript, Codex จาก session log; agy ไม่มี log จึงบอกค่าที่ขอพร้อม "(as asked)") หัวข้อ **Started** = งานที่เพิ่งสั่ง รอบที่ไม่มีงานใหม่และไม่มีงานจบจะไม่ตื่นและไม่มี chat |
 | Automations → `mflow-<งาน> round` | `completed` = ตื่นแล้วสั่งงาน, `skipped_precheck` = ไม่มีงานหรือโปรเจกต์ไม่ว่าง |
 | Automations → `mflow <งาน> ThawSi <agent>` | งานจริงที่ agent ทำ ระหว่างรันดูสดได้ใน terminal ของโปรเจกต์ |
 | GitHub: PR ของ batch | checklist `docs/reviews/checks/<batch>.md` ทุกงาน ผล และ commit |

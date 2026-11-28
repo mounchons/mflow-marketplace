@@ -31,7 +31,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checksConfig, HEAVY, KIND_GROUPS, parseDoc, publish, retireWorktrees, status, sync } from "./checks.mjs";
+import { checksConfig, HEAVY, KIND_GROUPS, KINDS, parseDoc, publish, retireWorktrees, status, sync } from "./checks.mjs";
 
 export const AGENTS = ["claude", "codex", "antigravity"];
 // sync puts the changes merged into main that wait in pending.md into a checks batch and publishes it (branch checks/*
@@ -530,6 +530,11 @@ export function actualRun(tool, projectPath, from, to, { userHome = os.homedir()
 const UNSAFE = new RegExp("[\u0000-\u001f\u007f-\u009f\u2028\u2029]+", "g");
 export const quoted = (s, max = 150) => `«${String(s).replace(UNSAFE, " ").replace(/[«»]/g, "\"").replace(/\s+/g, " ").trim().slice(0, max)}»`;
 
+// The only words of report text that go out bare (security review of 0.62.7); any other value is quoted or dropped.
+const VERDICTS = ["approve", "changes-requested", "none", "comment"];
+const RESULTS_SAID = ["pass", "fail", "partial", "skipped"];
+const SEVERITIES = ["blocker", "major", "minor", "nit", "superseded"];
+
 /** The body of a "## <name>" section of a markdown file, up to the next "## " heading. */
 const section = (text, name) => (String(text).replace(/\r\n/g, "\n").split(/^## /m).find((s) => s.startsWith(name)) || "").split("\n").slice(1).join("\n");
 
@@ -546,16 +551,16 @@ export function jobOutcome(projectPath, jobId) {
     const rel = /^(docs\/reviews\/\S+\.md)\b/.exec(String(j.result || ""))?.[1];
     const text = rel ? gitIn(projectPath, ["show", `${b.branch}:${rel}`]).out : "";
     const details = [];
-    // Only words of a fixed shape leave this function bare (a verdict, a result, severities, counts, ids, a path, a
-    // GitHub URL); every other piece of report or checklist text goes out quoted (see `quoted`).
-    const word = (s) => (/^[a-z][a-z-]{0,30}$/i.test(s || "") ? s.toLowerCase() : null);
+    // Only words from fixed lists leave this function bare (a verdict, a result, a severity, a kind; plus counts, ids,
+    // a path, a GitHub URL); every other piece of report or checklist text goes out quoted (see `quoted`) or not at all.
+    const word = (s, list) => (list.includes(String(s || "").toLowerCase()) ? String(s).toLowerCase() : null);
     let outcome = quoted(String(j.result || j.state).replace(/^docs\/reviews\/\S+\.md\s*/, "") || j.state, 120);
     if (/^Verdict:/m.test(text)) {
-      outcome = word(/^Verdict:\s*(\S+)/m.exec(text)[1]) || quoted(/^Verdict:\s*(.*)$/m.exec(text)[1], 40);
+      outcome = word(/^Verdict:\s*(\S+)/m.exec(text)[1], VERDICTS) || quoted(/^Verdict:\s*(.*)$/m.exec(text)[1], 40);
       const findings = section(text, "Findings");
       const counts = [];
       for (const sec of findings.split(/^### /m).slice(1)) {
-        const name = word(sec.split("\n")[0].trim());
+        const name = word(sec.split("\n")[0].trim(), SEVERITIES);
         const items = sec.split("\n").filter((l) => /^- /.test(l));
         if (!name || !items.length) continue;
         counts.push(`${name} ${items.length}`);
@@ -563,13 +568,13 @@ export function jobOutcome(projectPath, jobId) {
       }
       if (counts.length) outcome += ` (${counts.join(", ")})`;
     } else if (/^Result:/m.test(text)) {
-      outcome = word(/^Result:\s*(\S+)/m.exec(text)[1]) || quoted(/^Result:\s*(.*)$/m.exec(text)[1], 40);
+      outcome = word(/^Result:\s*(\S+)/m.exec(text)[1], RESULTS_SAID) || quoted(/^Result:\s*(.*)$/m.exec(text)[1], 40);
       const fails = section(text, "Failures").split("\n").map((l) => l.trim()).filter((l) => l && !/^none\b/i.test(l));
       for (const f of fails.slice(0, 3)) details.push(`failed: ${quoted(f)}`);
     }
     const pr = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+$/.test(b.pr || "") ? b.pr : null;
     if (rel && /^[\w./-]+$/.test(rel)) details.push(`report: ${rel}${pr ? ` (${pr})` : ""}`);
-    const next = b.jobs.filter((x) => x.waits.includes(jobId) && x.state !== "done" && /^[A-Z]+\d+[a-z.\d]*$/.test(x.id)).map((x) => `${x.id} ${word(x.kind) || "job"}`);
+    const next = b.jobs.filter((x) => x.waits.includes(jobId) && x.state !== "done" && /^[A-Z]+\d+[a-z.\d]*$/.test(x.id)).map((x) => `${x.id} ${word(x.kind, KINDS) || "job"}`);
     if (next.length) details.push(`next: ${next.slice(0, 5).join(", ")}${next.length > 5 ? ` and ${next.length - 5} more` : ""}`);
     return { target: quoted(j.target, 80), outcome, details };
   }

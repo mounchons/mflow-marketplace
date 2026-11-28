@@ -659,7 +659,10 @@ function applyRules(b, j, cfg, { combined, fix, dir } = {}) {
     const range = [...b.jobs].reverse().find((x) => x.kind === "fix" && originOf(x) === origin && rangeOf(x));
     const r = range && rangeOf(range);
     const n = b.jobs.filter((x) => isVerdictJob(x) && x.id.split(".")[0] === origin).length + 1;
-    add({ id: `${origin}.${n}`, kind: "review", target: first.target, size: full ? "full" : r ? `fix ${r[1].slice(0, 7)}..${r[2].slice(0, 7)}` : null, agent: first.agent, waits });
+    // checks.route.reviewAfterFix: who reviews a fix, when the fix's writer would otherwise review its own code (a review
+    // whose reviewer is the author does not count toward a merge). Unset: the reviewer of the review it follows.
+    const agent = cfg.route.reviewAfterFix || first.agent;
+    add({ id: `${origin}.${n}`, kind: "review", target: first.target, size: full ? "full" : r ? `fix ${r[1].slice(0, 7)}..${r[2].slice(0, 7)}` : null, agent, waits });
   };
   // The batch's tests passed: what waited on a failed run waits on this one; a review that said none goes again.
   const suitePassed = (by) => {

@@ -39,7 +39,7 @@ export const AGENTS = ["claude", "codex", "antigravity"];
 export const BOT_KINDS = ["sync", "test", "review", "e2e", "fix"];
 // The checks.route keys each bot kind takes jobs of (checks.mjs): a review bot also takes the review-merge job. sync has
 // no route: it makes the jobs.
-const ROUTE_KEYS = { sync: [], test: ["test"], review: ["review", "reviewMerge"], e2e: ["e2e"], fix: ["fix"] };
+const ROUTE_KEYS = { sync: [], test: ["test"], review: ["review", "reviewMerge", "reviewAfterFix"], e2e: ["e2e"], fix: ["fix"] };
 const E2E_AGENTS = ["claude", "codex"]; // the ones with an E2E browser guard (checks.mjs)
 const WINDOW_MIN = 300; // the short usage window of Claude and Codex
 const SNAPSHOT_FRESH_MIN = 30;
@@ -1084,6 +1084,11 @@ if (isMain) {
         process.stdout.write(JSON.stringify(out, null, 2) + "\n");
         process.exit(1);
       }
+      // The job before this one has ended by now: close its terminal here, so a project shows one working terminal,
+      // not that one beside the last one's idle prompt (ThawSi 2026-11-28). This run holds the slot, so it stays.
+      try {
+        out.closed = cleanup(home).closed.length;
+      } catch {}
     } else if (cmd === "sync") {
       if (!sel.project) throw new Error("sync: --project <p> is required");
       out = syncProject(home, { project: sel.project });

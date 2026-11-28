@@ -100,6 +100,8 @@ mflow-fix    ตื่น :08 :18 …  ──►  mflow fix    ThawSi claude   �
 
 ข้อจำกัด: E2E ให้ได้แค่ claude หรือ codex (มีตัวกัน browser) และ antigravity รับ review แบบอ่านอย่างเดียว
 
+**review หลัง fix (`reviewAfterFix`):** review ที่ reviewer เป็นคนเขียนโค้ดเอง (Reviewer = Author) ไม่นับเป็นเงื่อนไข merge ถ้า fix กับ review เป็น agent เดียวกัน ให้ตั้ง `"reviewAfterFix": "claude"` ใน route (review รอบสั้นหลัง fix ไปที่ claude) และเพิ่ม review bot ของ claude ใน `bots.json` (`"review": [{ "agent": "codex", … }, { "agent": "claude", … }]`) แล้ว `apply` ThawSi ตั้งไว้แบบนี้แล้ว
+
 ### 4.3 ย้ายงานเดียว
 
 ใน checkout ของโปรเจกต์: `node <plugin>/scripts/checks.mjs assign R5 codex` (ต้องมี bot ของงานนั้นสำหรับ codex ใน `bots.json` ด้วย)

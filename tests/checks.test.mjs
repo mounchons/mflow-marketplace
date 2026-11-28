@@ -595,3 +595,23 @@ test("a closed batch's worktree is removed; a merged one's goes at the next sync
   assert.ok(c3.retired.some((r) => r.batch === s3.batch && /uncommitted/.test(r.kept)), "uncommitted work is never removed");
   assert.ok(fs.existsSync(s3.dir));
 });
+
+// The user's answer 2 a (2026-11-28): with fixes and reviews both on codex, a codex review of a codex fix is
+// Reviewer = Author and does not count; checks.route.reviewAfterFix sends the short review of a fix to another tool.
+test("checks.route.reviewAfterFix: the short review after a fix goes to that tool, not to the fix's writer", needsGit, () => {
+  repo({ parts: false, config: { route: { test: "any", review: "codex", fix: "codex", reviewAfterFix: "claude" } } });
+  merge("add-a");
+  ok(checks(["sync"]));
+  passTest();
+  const r = ok(checks(["next", "--as", "codex"]));
+  assert.equal(r.job.id, "R1");
+  assert.deepEqual(ok(checks(["done", "R1", "--report", reviewReport(r.dir, "add-a", "changes-requested", { tool: "codex" })])).added, ["F1"]);
+  const f = ok(checks(["next", "--as", "codex"]));
+  assert.equal(f.job.kind, "fix");
+  fixCommit(f.dir, "src/add-a.cs");
+  ok(checks(["done", "F1"]));
+  const s = passTest("codex", { scope: "since abc1234", name: "since" });
+  assert.deepEqual(s.d.added, ["R1.2"]);
+  assert.equal(jobsOf()["R1.2"].agent, "claude", "the fix's short review goes to reviewAfterFix");
+  assert.equal(ok(checks(["next", "--as", "codex", "--kind", "review"])).job, null, "codex does not review its own fix");
+});

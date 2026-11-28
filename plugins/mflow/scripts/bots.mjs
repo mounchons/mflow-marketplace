@@ -30,7 +30,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checksConfig, HEAVY, KIND_GROUPS, publish, retireWorktrees, status, sync } from "./checks.mjs";
+import { checksConfig, HEAVY, KIND_GROUPS, parseDoc, publish, retireWorktrees, status, sync } from "./checks.mjs";
 
 export const AGENTS = ["claude", "codex", "antigravity"];
 // sync puts the changes merged into main that wait in pending.md into a checks batch and publishes it (branch checks/*
@@ -267,6 +267,18 @@ const gitIn = (cwd, args) => {
   return { ok: r.status === 0, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
 };
 
+/** Each job's result names a record or report that must be in the same commit and say pass (Result:) or approve (Verdict:). */
+export function recordsHold(root, sha, jobs) {
+  for (const j of jobs) {
+    const rel = /^(docs\/reviews\/\S+\.md)\b/.exec(String(j.result || ""))?.[1];
+    if (!rel) return { ok: false, reason: `${j.id} names no record or report in docs/reviews/` };
+    const f = gitIn(root, ["show", `${sha}:${rel}`]);
+    if (!f.ok) return { ok: false, reason: `${j.id}: ${rel} is not in the commit` };
+    if (!/^Result:\s*pass\b/im.test(f.out) && !/^Verdict:\s*approve\b/im.test(f.out)) return { ok: false, reason: `${j.id}: ${rel} says neither Result: pass nor Verdict: approve` };
+  }
+  return { ok: true };
+}
+
 /** Merge every batch of a project the rule allows; bring the local main up when its checkout is clean and on main. */
 export function mergeReady(root, { dryRun = false } = {}) {
   let st;
@@ -276,16 +288,26 @@ export function mergeReady(root, { dryRun = false } = {}) {
     return [{ merged: false, reason: String(e.message || e).split("\n")[0] }];
   }
   const out = [];
-  for (const b of st.batches) {
-    const files = gitIn(root, ["diff", "--name-only", `main...${b.branch}`]).out.split("\n").filter(Boolean);
-    const d = mergeDecision(b, files);
+  for (const live of st.batches) {
+    // Everything below is read from one commit, the one that would be merged: never from the worktree, where a file can
+    // say anything until it is committed. Any git step that fails means no merge (fail closed).
+    const sha = gitIn(root, ["rev-parse", "--verify", `${live.branch}^{commit}`]).out;
+    const committed = /^[0-9a-f]{40}$/.test(sha) ? gitIn(root, ["show", `${sha}:${live.file}`]) : { ok: false };
+    const diff = committed.ok ? gitIn(root, ["diff", "--name-only", `main...${sha}`]) : { ok: false };
+    let d;
+    if (!committed.ok || !diff.ok) d = { ok: false, reason: `cannot read ${live.branch} at a commit (git failed): no merge` };
+    else {
+      const b = { ...parseDoc(committed.out), name: live.name, heldBy: live.heldBy };
+      d = mergeDecision(b, diff.out.split("\n").filter(Boolean));
+      if (d.ok) d = recordsHold(root, sha, b.jobs);
+    }
     if (!d.ok || dryRun) {
-      out.push({ batch: b.name, merged: false, ready: d.ok, reason: d.reason || null });
+      out.push({ batch: live.name, merged: false, ready: d.ok, reason: d.reason || null });
       continue;
     }
+    const b = live;
     // Merge what was checked, not what the checklist's PR line names (an agent on the branch can edit that line): find
     // the pull request from the branch, and merge it by number only while its head is still the commit just checked.
-    const sha = gitIn(root, ["rev-parse", b.branch]).out;
     const view = gh(["pr", "view", b.branch, "--json", "number,headRefName,baseRefName,headRefOid,state"], root);
     let pr = null;
     try {
@@ -432,32 +454,67 @@ export function cleanup() {
   return { closed };
 }
 
-/** Create the automations bots.json asks for and Orca lacks, disabled: the bots start them. Never changes or removes one. */
+/** The same settings as an edit of an automation that exists: no name, no bot, no session flag; no extra args clears them. */
+export function editArgs(argv, id) {
+  const out = ["automations", "edit", id];
+  for (let i = 2; i < argv.length; i++) {
+    if (["--name", "--bot"].includes(argv[i])) {
+      i++;
+      continue;
+    }
+    if (argv[i] === "--fresh-session") continue;
+    out.push(argv[i]);
+  }
+  if (argv.includes("--provider") && !argv.some((t) => t.startsWith("--extra-agent-args="))) out.push("--extra-agent-args=");
+  return out;
+}
+
+/**
+ * Make Orca match bots.json: create what is missing, bring what exists up to date (agent's model and effort, prompt,
+ * precheck, schedule), and remove the project automations bots.json no longer names (an agent changed, a project or a
+ * kind dropped) when they are off. A bot's round is made once the user made the bot in Orca; it runs on its schedule.
+ * Only automations named "mflow <kind> <project> <agent>" and "<bot> round" are touched.
+ */
 export function apply(home) {
   const cfg = loadConfig(home);
-  const have = new Set(mflowAutomations().map((a) => a.name));
+  const autos = mflowAutomations();
   const p = plan(home, cfg);
   const created = [];
+  const updated = [];
+  const removed = [];
+  const kept = [];
+  const wanted = new Set(p.automations.map((a) => automationName(a.kind, a.project, a.agent)));
   for (const a of p.automations) {
     const name = automationName(a.kind, a.project, a.agent);
-    if (have.has(name)) continue;
-    const res = orca(a.argv);
-    created.push({ name, id: res.automation?.id || null });
+    const have = autos.find((x) => x.name === name);
+    if (have) {
+      orca(editArgs(a.argv, have.id));
+      updated.push(name);
+    } else created.push({ name, id: orca(a.argv).automation?.id || null });
   }
-  // A bot's own round, once the user made the bot in Orca (a bot cannot be made from here). It runs on its schedule.
+  for (const x of autos) {
+    if (wanted.has(x.name)) continue;
+    if (x.enabled) kept.push({ name: x.name, why: "on: turn it off in Orca to let apply remove it" });
+    else {
+      orca(["automations", "remove", x.id]);
+      removed.push(x.name);
+    }
+  }
   const bots = new Set((orca(["bot", "list"]).bots || []).map((b) => b.name));
-  const all = new Set(orca(["automations", "list"]).automations.map((a) => a.name));
+  const all = orca(["automations", "list"]).automations;
   const missingBots = [];
   for (const b of p.bots) {
     if (!bots.has(b.bot)) {
       missingBots.push(b.bot);
       continue;
     }
-    if (all.has(`${b.bot} round`)) continue;
-    const res = orca(b.argv);
-    created.push({ name: `${b.bot} round`, id: res.automation?.id || null });
+    const round = all.find((x) => x.name === `${b.bot} round`);
+    if (round) {
+      orca(editArgs(b.argv, round.id));
+      updated.push(`${b.bot} round`);
+    } else created.push({ name: `${b.bot} round`, id: orca(b.argv).automation?.id || null });
   }
-  return { created, kept: [...have], missingBots, warnings: p.warnings };
+  return { created, updated, removed, kept, missingBots, warnings: p.warnings };
 }
 
 // ---------- is there a job? ----------

@@ -93,6 +93,8 @@ else if (a[0] === "automations" && a[1] === "runs") out({ runs: s.runs[opt("--id
 else if (a[0] === "automations" && a[1] === "create") { const id = "new-" + s.automations.length; s.automations.push({ id, name: opt("--name"), enabled: false }); out({ automation: { id } }); }
 else if (a[0] === "terminal" && a[1] === "list") out({ terminals: s.terminals });
 else if (a[0] === "bot" && a[1] === "list") out({ bots: s.bots || [] });
+else if (a[0] === "automations" && a[1] === "edit") out({ automation: { id: a[2] } });
+else if (a[0] === "automations" && a[1] === "remove") { s.automations = s.automations.filter((x) => x.id !== a[2]); out({}); }
 else if (a[0] === "terminal" && a[1] === "close") out({ closed: opt("--terminal") });
 else { process.stdout.write(JSON.stringify({ ok: false, error: { message: "unknown " + a.join(" ") } })); process.exit(1); }
 `);
@@ -148,7 +150,19 @@ test("apply creates only the automations Orca lacks, disabled, with no shell in 
     assert.equal(create[create.indexOf("--name") + 1], "mflow test P codex");
     assert.ok(create.includes("--disabled"));
     assert.match(create[create.indexOf("--prompt") + 1], /begin --home /, "the prompt goes over whole, as one argument");
-    assert.equal(apply(home).created.length, 0, "a second apply creates nothing");
+    const again = apply(home);
+    assert.equal(again.created.length, 0, "a second apply creates nothing");
+    assert.deepEqual(again.updated.sort(), ["mflow sync P claude", "mflow test P codex", "mflow-sync round"], "it brings what exists up to date");
+    const edit = o.calls().filter((c) => c[1] === "edit").find((c) => c.includes("--provider") && c.includes("codex"));
+    assert.ok(!edit.includes("--name") && !edit.includes("--fresh-session"));
+    assert.ok(edit.includes("--extra-agent-args="), "no effort in bots.json clears an old one");
+    // the test kind moves from codex to claude: the codex automation goes (it is off), a claude one comes
+    fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { P: { path: p.root, kinds: { sync: { agent: "claude", effort: "low" }, test: { agent: "claude", effort: "high" } } } } }));
+    const moved = apply(home);
+    assert.deepEqual(moved.removed, ["mflow test P codex"]);
+    assert.deepEqual(moved.created.map((c) => c.name), ["mflow test P claude"]);
+    const created = o.calls().filter((c) => c[1] === "create").pop();
+    assert.ok(created.includes("--extra-agent-args=--effort high"));
   } finally {
     o.cleanup();
   }
@@ -193,8 +207,21 @@ test("the sync bot merges a finished batch through gh, and leaves one with a cod
   const file = path.join(dir, "docs", "reviews", "checks", `${s.batch}.md`);
   let doc = fs.readFileSync(file, "utf8").replace(/\| open \| — \|/g, "| done | docs/reviews/x.md pass |").replace(/^PR: .*$/m, "PR: https://example.invalid/pr/9");
   fs.writeFileSync(file, doc);
+  // a checklist that says done without the record in the commit is not enough
+  git({ ...p, root: dir }, "add", "-A");
+  git({ ...p, root: dir }, "commit", "-qm", "checks: done, no record");
+  assert.match(mergeReady(p.root, { dryRun: true })[0].reason, /docs\/reviews\/x\.md is not in the commit/);
+  fs.writeFileSync(path.join(dir, "docs", "reviews", "x.md"), "Tested: x\nResult: fail\n");
+  git({ ...p, root: dir }, "add", "-A");
+  git({ ...p, root: dir }, "commit", "-qm", "checks: a record that failed");
+  assert.match(mergeReady(p.root, { dryRun: true })[0].reason, /says neither Result: pass/);
+  fs.writeFileSync(path.join(dir, "docs", "reviews", "x.md"), "Tested: x\nResult: pass\n");
   git({ ...p, root: dir }, "add", "-A");
   git({ ...p, root: dir }, "commit", "-qm", "checks: done");
+  // what the worktree says and was never committed does not count
+  fs.writeFileSync(file, doc.replace(/\| done \| docs\/reviews\/x\.md pass \|/, "| open | — |"));
+  assert.equal(mergeReady(p.root, { dryRun: true })[0].ready, true, "read from the commit, not the worktree");
+  git({ ...p, root: dir }, "checkout", "--", ".");
   const sha = git({ ...p, root: dir }, "rev-parse", "HEAD").trim();
   const ghLog = path.join(home, "gh.log");
   const ghScript = path.join(home, "gh.mjs");

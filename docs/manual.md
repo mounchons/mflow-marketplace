@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.62.1 |
+| เวอร์ชัน plugin | 0.62.2 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -726,7 +726,7 @@ Claude: /opsx:propose … (ถามเฉพาะข้อแก้ยาก) 
 
    agent ของแต่ละชนิดต้องตรงกับ `checks.route` ของโปรเจกต์ (`plan` เตือนเมื่อไม่ตรง) ใส่ `"model": "opus"` ได้
 2. `node <plugin>/scripts/bots.mjs plan --home D:\orca` ดูคำเตือน, Bot ที่ต้องสร้าง และ automation ต่อโปรเจกต์
-3. `bots.mjs apply --home D:\orca` สร้าง automation ของโปรเจกต์ที่ยังขาด (ปิดไว้ ไม่รันเอง)
+3. `bots.mjs apply --home D:\orca` ทำให้ Orca ตรงกับ `bots.json`: สร้างตัวที่ขาด อัปเดต agent, model, effort ของตัวที่มี และลบตัวที่ไม่อยู่ใน `bots.json` แล้ว (automation ของโปรเจกต์ปิดไว้ ไม่รันเอง) ทุกครั้งที่แก้ `bots.json` ให้รัน `apply` อีกครั้ง
 4. ใน Orca: **Bots → + New bot → Start from scratch** สร้าง `mflow-sync`, `mflow-test`, `mflow-review`, `mflow-e2e`, `mflow-fix` ตามชื่อและ purpose ใน `plan` แล้วให้ Claude ผูก automation ของ Bot (คำสั่งใน `plan` ช่อง `bots`)
 5. ทุก 10 นาที Bot ที่มีงานจะตื่น (`due`) สั่ง automation ของโปรเจกต์ที่พร้อม (`dispatch`) และปิด terminal ของ run ที่จบแล้ว (`cleanup`) งานจริงรันใน checkout ของโปรเจกต์ด้วย agent และ effort ที่ตั้งไว้
 
@@ -1022,7 +1022,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.62.1)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.62.2)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

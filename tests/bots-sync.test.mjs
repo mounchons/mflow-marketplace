@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { apply, cleanup, dispatch, due, jobReady, mergeDecision, mergeReady, plan, loadConfig, ready, syncProject } from "../plugins/mflow/scripts/bots.mjs";
+import { apply, cleanup, dispatch, due, editArgs, jobReady, mergeDecision, mergeReady, plan, loadConfig, ready, syncProject } from "../plugins/mflow/scripts/bots.mjs";
 import { git, hasGit, project, run } from "./helpers.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
@@ -246,4 +246,22 @@ test("the sync bot merges a finished batch through gh, and leaves one with a cod
   git({ ...p, root: dir }, "add", "-A");
   git({ ...p, root: dir }, "commit", "-qm", "fix(checks): x");
   assert.match(mergeReady(p.root, { dryRun: true })[0].reason, /changes more than results/);
+});
+
+test("the bots' rounds run on the agent and model bots.json names; without it, an edit gives them back the bot's own", needsGit, () => {
+  repo();
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ bots: { agent: "antigravity", model: "gemini-4-hydrogen-low" }, projects: { P: { path: p.root, kinds: { sync: { agent: "claude" } } } } }));
+  const r = plan(home, loadConfig(home)).bots[0];
+  const at = (f) => r.argv[r.argv.indexOf(f) + 1];
+  assert.equal(at("--agent"), "antigravity");
+  assert.equal(at("--model"), "gemini-4-hydrogen-low");
+  assert.equal(at("--runs-in"), "new", "an agent other than the bot's needs a new conversation each run");
+  assert.ok(!r.argv.includes("--effort"), "no effort named, none passed");
+  assert.deepEqual(editArgs(r.argv, "id").slice(0, 3), ["automations", "edit", "id"]);
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { P: { path: p.root, kinds: { sync: { agent: "claude" } } } } }));
+  const plain = plan(home, loadConfig(home)).bots[0];
+  assert.ok(!plain.argv.includes("--agent"));
+  assert.deepEqual(editArgs(plain.argv, "id").slice(-2), ["--agent", "bot"]);
+  fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ bots: { agent: "gpt" }, projects: {} }));
+  assert.throws(() => loadConfig(home), /bots\.agent must be/);
 });

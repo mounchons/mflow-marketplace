@@ -93,7 +93,15 @@ export function loadConfig(home) {
     pollMinutes: intIn(raw.pollMinutes, DEFAULTS.pollMinutes, 1, 120, "pollMinutes"),
     usage: { stopAtPercent: intIn(u.stopAtPercent, DEFAULTS.usage.stopAtPercent, 1, 100, "usage.stopAtPercent"), maxJobsPer5h: jobs },
     projects,
+    bots: loadBots(raw.bots),
   };
+}
+
+/** The agent the bots' own rounds run on: they only run two commands, so a small model does. Absent: the bot's own agent. */
+function loadBots(b) {
+  if (!b) return null;
+  if (!AGENTS.includes(b.agent)) throw new Error(`bots.json: bots.agent must be ${AGENTS.join(", ")}`);
+  return { agent: b.agent, ...(b.model ? { model: String(b.model) } : {}), ...(b.effort ? { effort: String(b.effort) } : {}) };
 }
 
 // ---------- usage ----------
@@ -432,6 +440,7 @@ function botPlan(home, cfg) {
       "--bot", bot,
       "--trigger", `${staggered(i, cfg.pollMinutes)} * * * *`,
       "--precheck", `${self} due --home ${h} --kind ${kind}`,
+      ...(cfg.bots ? ["--runs-in", "new", "--agent", cfg.bots.agent, ...(cfg.bots.model ? ["--model", cfg.bots.model] : []), ...(cfg.bots.effort ? ["--effort", cfg.bots.effort] : [])] : []),
       "--prompt", `Run: ${self} dispatch --home ${h} --kind ${kind} . Then run: ${self} cleanup --home ${h} . Say in two lines which project's automation you started for which job, or why none started. Do no job yourself and change no file.`,
     ];
     return { bot, purpose: BOT_PURPOSE[kind], create: "In Orca: Bots, + New bot, Start from scratch; name and purpose as given here; runs on this computer with Claude Code.", argv, command: renderArgv(argv) };
@@ -466,6 +475,7 @@ export function editArgs(argv, id) {
     out.push(argv[i]);
   }
   if (argv.includes("--provider") && !argv.some((t) => t.startsWith("--extra-agent-args="))) out.push("--extra-agent-args=");
+  if (argv.includes("--bot") && !argv.includes("--agent")) out.push("--agent", "bot"); // back to the bot's own agent
   return out;
 }
 

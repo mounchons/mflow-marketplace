@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เอกสาร | คู่มือการใช้งานและลำดับการใช้คำสั่ง |
-| เวอร์ชัน plugin | 0.62.0 |
+| เวอร์ชัน plugin | 0.62.1 |
 | วันที่ | 2026-10-19 |
 | อ่านคู่กับ | `docs/requirement.md` (ทำไมถึงออกแบบแบบนี้), `plugins/mflow/README.md` (ติดตั้งและโครงสร้าง) |
 
@@ -730,7 +730,11 @@ Claude: /opsx:propose … (ถามเฉพาะข้อแก้ยาก) 
 4. ใน Orca: **Bots → + New bot → Start from scratch** สร้าง `mflow-sync`, `mflow-test`, `mflow-review`, `mflow-e2e`, `mflow-fix` ตามชื่อและ purpose ใน `plan` แล้วให้ Claude ผูก automation ของ Bot (คำสั่งใน `plan` ช่อง `bots`)
 5. ทุก 10 นาที Bot ที่มีงานจะตื่น (`due`) สั่ง automation ของโปรเจกต์ที่พร้อม (`dispatch`) และปิด terminal ของ run ที่จบแล้ว (`cleanup`) งานจริงรันใน checkout ของโปรเจกต์ด้วย agent และ effort ที่ตั้งไว้
 
-ลำดับงาน: merge เข้า main → **sync** ใส่ลง batch + draft PR → **test** → ผ่านแล้วเกิดงาน **review** และ **E2E** → ไม่ผ่านเกิดงาน **fix** → test since → review รอบสั้น สูงสุด 3 รอบ ในโปรเจกต์เดียวทำทีละงาน ข้ามโปรเจกต์ทำพร้อมกัน `bots.mjs report --home D:\orca` บอกว่าแต่ละ agent/model/effort ทำกี่งาน ผ่านเท่าไร ใช้เวลาเท่าไร PR ของชุดตรวจคุณยัง merge เอง
+ลำดับงาน: merge เข้า main → **sync** ใส่ลง batch + draft PR → **test** → ผ่านแล้วเกิดงาน **review** และ **E2E** → ไม่ผ่านเกิดงาน **fix** → test since → review รอบสั้น สูงสุด 3 รอบ ในโปรเจกต์เดียวทำทีละงาน ข้ามโปรเจกต์ทำพร้อมกัน `bots.mjs report --home D:\orca` บอกว่าแต่ละ agent/model/effort ทำกี่งาน ผ่านเท่าไร ใช้เวลาเท่าไร
+
+**ใครเป็นคน merge PR ของชุดตรวจ (0.62.1):** sync bot merge เองเมื่อทุกงานผ่าน (pass หรือ approve) และ branch ของชุดแก้แค่ผลตรวจใน `docs/reviews/` ถ้า agent แก้โค้ด (fix) หรือเขียน E2E test เพิ่ม PR จะรอคุณ merge เอง หลัง bot merge แล้ว main ในเครื่องจะ fast-forward ให้เมื่อ checkout สะอาดและอยู่บน main
+
+**ดูว่า Bot ทำอะไร:** chat ของ Bot แต่ละตัว (ตอบ 2 บรรทัดทุกรอบที่ตื่นจริง), หน้า Automations (`mflow-<ชนิด> round`: `completed` หรือ `skipped_precheck` เมื่อไม่มีงาน), PR ของชุดตรวจบน GitHub, `D:\orca\runs.jsonl` และ `bots.mjs report`
 
 #### ให้ Codex เขียนโค้ด แล้ว Claude ตรวจ (0.60, ประหยัด usage ของ Claude)
 
@@ -1018,7 +1022,7 @@ briefing ของ session ถัดไป (เป็นส่วนแยก �
 
 > **stack ตรงกับ template:** ถ้าเลือก profile `mvc-htmx` หรือ `react-vite` `/mflow:discuss tech-stack` จะแสดงทุกข้อของแพ็ก `foundation` เป็นตารางแยกตามหมวดในแชตก่อนเขียนไฟล์ แล้วถาม a) ใช้ทั้งหมด b) ใช้ยกเว้นข้อที่บอก c) ไม่ใช้ template
 
-## 8. ข้อควรระวังที่ทราบแล้ว (0.62.0)
+## 8. ข้อควรระวังที่ทราบแล้ว (0.62.1)
 
 | เรื่อง | ทำอย่างไรตอนนี้ |
 |---|---|

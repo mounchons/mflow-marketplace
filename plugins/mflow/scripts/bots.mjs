@@ -30,7 +30,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checksConfig, HEAVY, KIND_GROUPS, publish, status, sync } from "./checks.mjs";
+import { checksConfig, HEAVY, KIND_GROUPS, publish, retireWorktrees, status, sync } from "./checks.mjs";
 
 export const AGENTS = ["claude", "codex", "antigravity"];
 // sync puts the changes merged into main that wait in pending.md into a checks batch and publishes it (branch checks/*
@@ -229,20 +229,103 @@ function syncReady(root) {
   try {
     if (!checksConfig(root).enabled) return { ok: false, reason: "checks is not enabled in this project (checks.mjs enable)" };
     const d = sync(root, { dryRun: true });
-    return d.added.length ? { ok: true, changes: d.added, batch: d.batch } : { ok: false, reason: "no merged change waits for a checks batch" };
+    const toMerge = mergeReady(root, { dryRun: true }).filter((m) => m.ready).map((m) => m.batch);
+    if (d.added.length || toMerge.length) return { ok: true, changes: d.added, batch: d.batch, merge: toMerge };
+    return { ok: false, reason: "no merged change waits for a checks batch, and no batch is ready to merge" };
   } catch (e) {
     return { ok: false, reason: `checks sync failed: ${String(e.message || e).split("\n")[0]}` };
   }
 }
 
-/** The sync bot's job: add the waiting changes to the open batch (or a new one), then push it and open or update its draft PR. */
+// ---------- the merge a bot may do (the user's answer 4 a, 2026-11-28) ----------
+// A batch is merged by the sync bot only when every job is done and passed and its branch changed nothing but
+// docs/reviews/** (records, reports, the checklist, pending.md). A fix an agent wrote, an E2E test an agent wrote, a
+// blocked or failed job: the pull request waits for the user, as before.
+const RESULT_OK = /\b(pass|approve)\s*$/i;
+
+/** Whether one batch may be merged by a bot, and why not. `files` are the paths its branch changed since main. */
+export function mergeDecision(batch, files) {
+  if (batch.heldBy) return { ok: false, reason: `waits for ${batch.heldBy}` };
+  if (!batch.jobs.length) return { ok: false, reason: "no jobs" };
+  const notDone = batch.jobs.filter((j) => j.state !== "done");
+  if (notDone.length) return { ok: false, reason: `${notDone.length} job(s) not done: ${notDone.slice(0, 5).map((j) => `${j.id} ${j.state}`).join(", ")}` };
+  const bad = batch.jobs.filter((j) => !RESULT_OK.test(String(j.result || "")));
+  if (bad.length) return { ok: false, reason: `not all passed: ${bad.slice(0, 5).map((j) => `${j.id} ${j.result || "no result"}`).join(", ")}` };
+  const code = files.filter((f) => !/^docs\/reviews\//.test(f));
+  if (code.length) return { ok: false, reason: `the branch changes more than results (${code.slice(0, 3).join(", ")}${code.length > 3 ? ", …" : ""}): the user merges it` };
+  if (!batch.pr) return { ok: false, reason: "no pull request to merge" };
+  return { ok: true };
+}
+
+const gh = (args, cwd) => {
+  const script = process.env.MFLOW_GH_SCRIPT; // a stand-in for tests
+  const r = script ? spawnSync(process.execPath, [script, ...args], { cwd, encoding: "utf8" }) : spawnSync("gh", args, { cwd, encoding: "utf8", timeout: 120_000 });
+  return { ok: r.status === 0, out: (r.stdout || "").trim(), err: (r.stderr || String(r.error || "")).trim() };
+};
+const gitIn = (cwd, args) => {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", timeout: 60_000 });
+  return { ok: r.status === 0, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
+};
+
+/** Merge every batch of a project the rule allows; bring the local main up when its checkout is clean and on main. */
+export function mergeReady(root, { dryRun = false } = {}) {
+  let st;
+  try {
+    st = status(root);
+  } catch (e) {
+    return [{ merged: false, reason: String(e.message || e).split("\n")[0] }];
+  }
+  const out = [];
+  for (const b of st.batches) {
+    const files = gitIn(root, ["diff", "--name-only", `main...${b.branch}`]).out.split("\n").filter(Boolean);
+    const d = mergeDecision(b, files);
+    if (!d.ok || dryRun) {
+      out.push({ batch: b.name, merged: false, ready: d.ok, reason: d.reason || null });
+      continue;
+    }
+    // Merge what was checked, not what the checklist's PR line names (an agent on the branch can edit that line): find
+    // the pull request from the branch, and merge it by number only while its head is still the commit just checked.
+    const sha = gitIn(root, ["rev-parse", b.branch]).out;
+    const view = gh(["pr", "view", b.branch, "--json", "number,headRefName,baseRefName,headRefOid,state"], root);
+    let pr = null;
+    try {
+      pr = JSON.parse(view.out);
+    } catch {}
+    const why = !view.ok || !pr ? `no pull request found for ${b.branch}: ${view.err}`
+      : pr.headRefName !== b.branch ? `the pull request's head is ${pr.headRefName}, not ${b.branch}`
+      : pr.baseRefName !== "main" ? `the pull request goes into ${pr.baseRefName}, not main`
+      : pr.state !== "OPEN" ? `the pull request is ${pr.state}`
+      : !/^[0-9a-f]{40}$/.test(sha) || pr.headRefOid !== sha ? `the pull request's head ${String(pr.headRefOid).slice(0, 7)} is not the checked commit ${sha.slice(0, 7)} (push it first)`
+      : !Number.isInteger(pr.number) ? "the pull request has no number" : null;
+    if (why) {
+      out.push({ batch: b.name, merged: false, reason: why });
+      continue;
+    }
+    const ready_ = gh(["pr", "ready", "--", String(pr.number)], root);
+    const m = gh(["pr", "merge", "--merge", "--match-head-commit", sha, "--subject", `Merge checks ${b.name}: every job passed (merged by the mflow-sync bot)`, "--", String(pr.number)], root);
+    if (!m.ok) {
+      out.push({ batch: b.name, merged: false, reason: `gh pr merge failed: ${m.err || ready_.err}` });
+      continue;
+    }
+    let local = "left as it is";
+    const clean = !gitIn(root, ["status", "--porcelain"]).out && gitIn(root, ["branch", "--show-current"]).out === "main";
+    if (clean && gitIn(root, ["fetch", "origin", "main"]).ok && gitIn(root, ["merge", "--ff-only", "origin/main"]).ok) local = "fast-forwarded to origin/main";
+    else if (!clean) local = "left as it is: the checkout has changes or is not on main; pull when you are ready";
+    out.push({ batch: b.name, merged: true, pr: pr.number, localMain: local, retired: local.startsWith("fast") ? retireWorktrees(root) : [] });
+  }
+  return out;
+}
+
+/** The sync bot's job: merge the batches the rule allows, then add the waiting changes to the open batch (or a new
+ *  one), push it and open or update its draft PR. */
 export function syncProject(home, { project }) {
   const p = loadConfig(home).projects[project];
   if (!p) throw new Error(`bots: project ${project} is not in bots.json`);
+  const merged = mergeReady(p.path).filter((m) => m.merged);
   const s = sync(p.path);
-  if (!s.added.length) return { added: [], batch: s.batch, published: null, reason: "nothing waited" };
+  if (!s.added.length) return { merged, added: [], batch: s.batch, published: null, reason: merged.length ? null : "nothing waited" };
   const pub = publish(p.path, { batch: s.batch });
-  return { added: s.added, batch: s.batch, branch: s.branch, created: s.created, commit: s.commit, warnings: s.warnings, published: pub };
+  return { merged, added: s.added, batch: s.batch, branch: s.branch, created: s.created, commit: s.commit, warnings: s.warnings, published: pub };
 }
 
 // ---------- Orca: the bots dispatch, the automations run ----------
@@ -307,7 +390,7 @@ export function due(home, { kind }, opts = {}) {
 }
 
 export const BOT_PURPOSE = {
-  sync: "Puts the changes merged into main of each mflow project into a checks batch and opens its draft pull request.",
+  sync: "Puts the changes merged into main of each mflow project into a checks batch and opens its draft pull request; merges a batch whose every job passed and that changed only results.",
   test: "Starts the test jobs waiting in each mflow project's checks batch, on the agent and effort the project sets.",
   review: "Starts the review jobs waiting in each mflow project's checks batch, on the agent and effort the project sets.",
   e2e: "Starts the E2E jobs waiting in each mflow project's checks batch, on the agent and effort the project sets.",
@@ -361,7 +444,20 @@ export function apply(home) {
     const res = orca(a.argv);
     created.push({ name, id: res.automation?.id || null });
   }
-  return { created, kept: [...have], warnings: p.warnings };
+  // A bot's own round, once the user made the bot in Orca (a bot cannot be made from here). It runs on its schedule.
+  const bots = new Set((orca(["bot", "list"]).bots || []).map((b) => b.name));
+  const all = new Set(orca(["automations", "list"]).automations.map((a) => a.name));
+  const missingBots = [];
+  for (const b of p.bots) {
+    if (!bots.has(b.bot)) {
+      missingBots.push(b.bot);
+      continue;
+    }
+    if (all.has(`${b.bot} round`)) continue;
+    const res = orca(b.argv);
+    created.push({ name: `${b.bot} round`, id: res.automation?.id || null });
+  }
+  return { created, kept: [...have], missingBots, warnings: p.warnings };
 }
 
 // ---------- is there a job? ----------
@@ -515,7 +611,7 @@ function promptFor(home, project, kind, s) {
   const scope = `--home ${pq(fwd(home))} --project ${pq(project)} --kind ${kind} --as ${s.agent}`;
   const job =
     kind === "sync"
-      ? `run ${self} sync --home ${pq(fwd(home))} --project ${pq(project)} and say which changes it added to which batch and the pull request it published. Change no file yourself; result pass when it added and published, fail when it failed.`
+      ? `run ${self} sync --home ${pq(fwd(home))} --project ${pq(project)} and say which batch it merged (every job passed and only results changed), which changes it added to which batch, and the pull request it published. Change no file and merge nothing yourself; result pass when it did its work, fail when it failed.`
       : kind === "test"
       ? s.agent === "claude" ? "run /mflow:test-pr." : "use the mflow-test-pr skill."
       : `take the next ${kind} job of the open checks batch: run ${checks} next --as ${s.agent} --kind ${kind} here, work only in the dir it prints and as its how says, then run ${checks} done <the job> --batch <the batch> with the record or report the job wrote, then ${checks} publish --batch <the batch>. With no job, stop. Never merge a pull request and never work in this main checkout.`;

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { apply, cleanup, dispatch, due, jobReady, plan, loadConfig, ready, syncProject } from "../plugins/mflow/scripts/bots.mjs";
+import { apply, cleanup, dispatch, due, jobReady, mergeDecision, mergeReady, plan, loadConfig, ready, syncProject } from "../plugins/mflow/scripts/bots.mjs";
 import { git, hasGit, project, run } from "./helpers.mjs";
 
 const needsGit = { skip: !hasGit && "git not installed" };
@@ -92,6 +92,7 @@ else if (a[0] === "automations" && a[1] === "run") out({ run: { id: "run-" + a[2
 else if (a[0] === "automations" && a[1] === "runs") out({ runs: s.runs[opt("--id")] || [] });
 else if (a[0] === "automations" && a[1] === "create") { const id = "new-" + s.automations.length; s.automations.push({ id, name: opt("--name"), enabled: false }); out({ automation: { id } }); }
 else if (a[0] === "terminal" && a[1] === "list") out({ terminals: s.terminals });
+else if (a[0] === "bot" && a[1] === "list") out({ bots: s.bots || [] });
 else if (a[0] === "terminal" && a[1] === "close") out({ closed: opt("--terminal") });
 else { process.stdout.write(JSON.stringify({ ok: false, error: { message: "unknown " + a.join(" ") } })); process.exit(1); }
 `);
@@ -135,10 +136,14 @@ test("cleanup closes the terminals of finished mflow runs only; a running one an
 
 test("apply creates only the automations Orca lacks, disabled, with no shell in between", needsGit, () => {
   repo();
-  const o = fakeOrca({ calls: [], automations: [{ id: "a-sync", name: "mflow sync P claude", enabled: false }], runs: {}, terminals: [] });
+  const o = fakeOrca({ calls: [], automations: [{ id: "a-sync", name: "mflow sync P claude", enabled: false }], runs: {}, terminals: [], bots: [{ name: "mflow-sync" }] });
   try {
     const r = apply(home);
-    assert.deepEqual(r.created.map((c) => c.name), ["mflow test P codex"]);
+    assert.deepEqual(r.created.map((c) => c.name), ["mflow test P codex", "mflow-sync round"], "a bot's round once the user made the bot");
+    assert.deepEqual(r.missingBots, ["mflow-test"], "a bot not made yet is named, not made");
+    const round = o.calls().find((c) => c[1] === "create" && c.includes("--bot"));
+    assert.equal(round[round.indexOf("--bot") + 1], "mflow-sync");
+    assert.ok(!round.includes("--disabled"), "a bot's round runs on its schedule");
     const create = o.calls().find((c) => c[1] === "create");
     assert.equal(create[create.indexOf("--name") + 1], "mflow test P codex");
     assert.ok(create.includes("--disabled"));
@@ -162,4 +167,56 @@ test("a bot per kind in use, woken by due: no job anywhere, no run", needsGit, (
   assert.match(s.argv[s.argv.indexOf("--precheck") + 1], /bots\.mjs due --home \S+ --kind sync$/);
   assert.match(s.argv[s.argv.indexOf("--prompt") + 1], /dispatch --home \S+ --kind sync .*cleanup/);
   assert.notEqual(bots[0].argv[bots[0].argv.indexOf("--trigger") + 1], bots[1].argv[bots[1].argv.indexOf("--trigger") + 1], "the bots wake in different minutes");
+});
+
+// The user's answer 4 a (2026-11-28): a bot merges a batch only when every job passed and only results changed.
+test("mergeDecision: all done and passed with only docs/reviews changed merges; anything else waits for the user", () => {
+  const b = (jobs, extra = {}) => ({ name: "x", pr: "https://example.invalid/pr/3", heldBy: null, jobs, ...extra });
+  const pass = [{ id: "T1", state: "done", result: "docs/reviews/tests/a.md pass" }, { id: "R1", state: "done", result: "docs/reviews/code/a.md approve" }];
+  const results = ["docs/reviews/checks/x.md", "docs/reviews/tests/a.md", "docs/reviews/code/a.md", "docs/reviews/pending.md"];
+  assert.equal(mergeDecision(b(pass), results).ok, true);
+  assert.match(mergeDecision(b(pass), [...results, "src/fix.cs"]).reason, /changes more than results \(src\/fix\.cs\)/, "a fix an agent wrote");
+  assert.match(mergeDecision(b(pass), [...results, "e2e/login.spec.ts"]).reason, /the user merges it/, "an E2E test an agent wrote");
+  assert.match(mergeDecision(b([...pass, { id: "R2", state: "open", result: null }]), results).reason, /1 job\(s\) not done: R2 open/);
+  assert.match(mergeDecision(b([{ id: "R1", state: "done", result: "docs/reviews/code/a.md changes-requested" }]), results).reason, /not all passed/);
+  assert.match(mergeDecision(b([{ id: "T1", state: "blocked", result: null }]), results).reason, /not done: T1 blocked/);
+  assert.match(mergeDecision(b(pass, { pr: null }), results).reason, /no pull request/);
+  assert.match(mergeDecision(b(pass, { heldBy: "older" }), results).reason, /waits for older/);
+});
+
+test("the sync bot merges a finished batch through gh, and leaves one with a code change", needsGit, () => {
+  repo();
+  merge("add-a");
+  const s = syncProject(home, { project: "P" });
+  // finish the batch by hand: T1 passed, R1 approved, both recorded on its branch
+  const dir = path.join(p.root, ".claude", "worktrees", `checks-${s.batch}`);
+  const file = path.join(dir, "docs", "reviews", "checks", `${s.batch}.md`);
+  let doc = fs.readFileSync(file, "utf8").replace(/\| open \| — \|/g, "| done | docs/reviews/x.md pass |").replace(/^PR: .*$/m, "PR: https://example.invalid/pr/9");
+  fs.writeFileSync(file, doc);
+  git({ ...p, root: dir }, "add", "-A");
+  git({ ...p, root: dir }, "commit", "-qm", "checks: done");
+  const sha = git({ ...p, root: dir }, "rev-parse", "HEAD").trim();
+  const ghLog = path.join(home, "gh.log");
+  const ghScript = path.join(home, "gh.mjs");
+  const ghAs = (view) => fs.writeFileSync(ghScript, `import fs from "node:fs"; const a = process.argv.slice(2); fs.appendFileSync(${JSON.stringify(ghLog)}, a.join(" ") + String.fromCharCode(10)); if (a[0] === "pr" && a[1] === "view") process.stdout.write(${JSON.stringify(JSON.stringify(view))});`);
+  saved.MFLOW_GH_SCRIPT = process.env.MFLOW_GH_SCRIPT;
+  process.env.MFLOW_GH_SCRIPT = ghScript;
+  assert.deepEqual(mergeReady(p.root, { dryRun: true }).map((m) => m.ready), [true]);
+  // the checklist's PR line is free text an agent can edit: it is never what gets merged
+  ghAs({ number: 9, headRefName: "checks/other", baseRefName: "main", headRefOid: sha, state: "OPEN" });
+  assert.match(mergeReady(p.root)[0].reason, /head is checks\/other/);
+  ghAs({ number: 9, headRefName: s.branch, baseRefName: "main", headRefOid: "0".repeat(40), state: "OPEN" });
+  assert.match(mergeReady(p.root)[0].reason, /not the checked commit/, "a push after the check is not merged unseen");
+  ghAs({ number: 9, headRefName: s.branch, baseRefName: "release", headRefOid: sha, state: "OPEN" });
+  assert.match(mergeReady(p.root)[0].reason, /goes into release/);
+  assert.ok(!/pr merge/.test(fs.readFileSync(ghLog, "utf8")), "nothing merged so far");
+  ghAs({ number: 9, headRefName: s.branch, baseRefName: "main", headRefOid: sha, state: "OPEN" });
+  const r = mergeReady(p.root);
+  assert.equal(r[0].merged, true, JSON.stringify(r));
+  assert.match(fs.readFileSync(ghLog, "utf8"), new RegExp(`^pr view ${s.branch} --json [^\\n]+\\npr ready -- 9\\npr merge --merge --match-head-commit ${sha} --subject [^\\n]+ -- 9$`, "m"));
+  // now a fix an agent wrote: the same batch would wait
+  fs.writeFileSync(path.join(dir, "src-fix.cs"), "x\n");
+  git({ ...p, root: dir }, "add", "-A");
+  git({ ...p, root: dir }, "commit", "-qm", "fix(checks): x");
+  assert.match(mergeReady(p.root, { dryRun: true })[0].reason, /changes more than results/);
 });

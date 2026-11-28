@@ -98,7 +98,7 @@ mflow-fix    ตื่น :08 :18 …  ──►  mflow fix    ThawSi claude   �
 2. `D:\orca\bots.json` → `"fix": { "agent": "codex", "effort": "high" }`
 3. รัน `apply`
 
-ข้อจำกัด: E2E ให้ได้แค่ claude หรือ codex (มีตัวกัน browser) และ antigravity รับ review แบบอ่านอย่างเดียว
+ข้อจำกัด: E2E ให้ได้ claude, codex หรือ antigravity (0.63.0) claude กับ codex มี hook กัน browser เกิน ส่วน antigravity ไม่มี hook งานของมันจึงบอกให้ใส่ `--workers` ไม่เกิน `e2eMaxWorkers` เอง ให้ตั้ง `workers: 2` ใน `playwright.config` ของโปรเจกต์ไว้ด้วย; OpenCode รับแค่ review ชื่อ model ของ antigravity ใช้ตามที่ `agy models` แสดง เช่น `gemini-4-neon-medium`
 
 **review หลัง fix (`reviewAfterFix`):** review ที่ reviewer เป็นคนเขียนโค้ดเอง (Reviewer = Author) ไม่นับเป็นเงื่อนไข merge ถ้า fix กับ review เป็น agent เดียวกัน ให้ตั้ง `"reviewAfterFix": "claude"` ใน route (review รอบสั้นหลัง fix ไปที่ claude) และเพิ่ม review bot ของ claude ใน `bots.json` (`"review": [{ "agent": "codex", … }, { "agent": "claude", … }]`) แล้ว `apply` ThawSi ตั้งไว้แบบนี้แล้ว
 

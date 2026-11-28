@@ -167,9 +167,12 @@ test("assign moves a job to a tool, which alone takes it; E2E goes only to a too
   assert.equal(ok(checks(["assign", "T2", "antigravity"])).tool, "antigravity", "Antigravity takes a test");
   ok(checks(["assign", "T2", "any"]));
   assert.equal(ok(checks(["assign", "R1", "antigravity"])).tool, "antigravity", "a review is fine");
-  const e2e = checks(["assign", "EW1", "antigravity"]);
+  // Antigravity takes E2E since 0.63.0 (no hook: its how names the --workers cap); OpenCode still does not.
+  const e2e = checks(["assign", "EW1", "opencode"]);
   assert.notEqual(e2e.status, 0);
-  assert.match(e2e.stderr, /E2E: only claude and codex/);
+  assert.match(e2e.stderr, /E2E: only claude, codex, antigravity take E2E jobs/);
+  assert.equal(ok(checks(["assign", "EW1", "antigravity"])).tool, "antigravity", "Antigravity takes an E2E job");
+  ok(checks(["assign", "EW1", "claude"]));
 });
 
 test("the parts combine into one whole-suite record at the pinned commit that ticks pending.md; then reviews and E2E are ready", needsGit, () => {
@@ -333,10 +336,12 @@ test("enable opts the project in once; a route that sends E2E to a tool without 
   assert.equal(ok(checks(["enable"])).changed, true);
   assert.deepEqual(JSON.parse(p.read(".mflow/config.json")).checks, {});
   assert.equal(ok(checks(["enable"])).changed, false);
-  p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { e2e: "antigravity" } } }));
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { e2e: "opencode" } } }));
   const r = checks(["status"]);
   assert.notEqual(r.status, 0);
-  assert.match(r.stderr, /checks\.route\.e2e must be claude or codex/);
+  assert.match(r.stderr, /checks\.route\.e2e must be claude or codex or antigravity: opencode takes reviews only/);
+  p.write(".mflow/config.json", JSON.stringify({ version: 1, checks: { route: { e2e: "antigravity" } } }));
+  ok(checks(["status"]));
 });
 
 test("two open batches: done, release and assign find the batch by the job taken or still open, and publish pushes both", needsGit, () => {
@@ -473,8 +478,16 @@ test("E2E: a failed screen gets a fix, and a fix of tests only goes straight to 
   const e = passTest("claude", { result: "fail", scope: "e2e Approvals", name: "e2e", job: "E1" });
   assert.deepEqual(e.d.added, ["F1"]);
   assert.equal(jobsOf().F1.target, "E1 round 1");
-  assert.match(checks(["assign", "F1", "antigravity"]).stderr, /E2E: only claude and codex/);
+  assert.match(checks(["assign", "F1", "opencode"]).stderr, /E2E: only claude, codex, antigravity take E2E jobs/);
+  // Antigravity has no Playwright hook: the fix of an E2E failure it takes names the --workers cap in its how.
+  ok(checks(["assign", "F1", "antigravity"]));
+  const ag = ok(checks(["next", "--as", "antigravity", "--job", "F1"]));
+  assert.equal(ag.job.id, "F1");
+  assert.match(ag.how, /antigravity has no mflow hook on Playwright.*--workers=2 \(at most 2, e2eMaxWorkers\)/);
+  ok(checks(["release", "F1"]));
+  ok(checks(["assign", "F1", "claude"]));
   const f = ok(checks(["next", "--as", "claude", "--job", "F1"]));
+  assert.doesNotMatch(f.how, /no mflow hook/, "Claude Code carries the hook");
   fixCommit(f.dir, "tests/e2e/approvals.spec.ts", "test('x', () => {});\n");
   assert.deepEqual(ok(checks(["done", "F1"])).added, ["E1.2"], "only E2E test files changed: no since run");
   const e2t = ok(checks(["next", "--as", "claude", "--job", "E1.2"]));

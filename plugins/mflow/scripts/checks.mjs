@@ -29,8 +29,9 @@
 //   node checks.mjs publish [--batch <b>]                    push the branches, open or update their draft pull requests
 //   node checks.mjs close <batch> --note <text>              give up an open batch (its rows join the next one)
 //
-// Tools: claude, codex, antigravity, opencode, or any. E2E goes only to claude and codex, the tools with mflow's
-// guard on the browsers a Playwright run opens. Nothing here merges into main or pushes main.
+// Tools: claude, codex, antigravity, opencode, or any. E2E goes to claude, codex and antigravity; the first two carry
+// mflow's guard on the browsers a Playwright run opens, antigravity gets the cap in its job's how. Nothing here
+// merges into main or pushes main.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -44,7 +45,11 @@ export const PREFIX = "checks/";
 export const KINDS = ["test", "test-since", "review", "review-merge", "fix", "e2e-write", "e2e"];
 export const HEAVY = new Set(["test", "test-since", "fix", "e2e-write", "e2e"]);
 export const TOOLS = ["claude", "codex", "antigravity", "opencode"];
-const E2E_TOOLS = ["claude", "codex"];
+// E2E goes to the tools that write. Claude Code and Codex carry mflow's hook on Playwright's browsers (e2e-guard);
+// Antigravity has no such hook (the user's answer a, 2026-11-28), so its E2E job's how names the --workers cap itself,
+// and the project's Playwright config should set workers too (doctor warns when it does not).
+const E2E_TOOLS = ["claude", "codex", "antigravity"];
+const GUARDED_E2E_TOOLS = ["claude", "codex"];
 const E2E_KINDS = new Set(["e2e-write", "e2e"]);
 // Who writes. The user's answer b (2026-11-26) gave jobs that write files (a test record, E2E tests, a fix) to Claude
 // Code and Codex only; the same day the user asked for Antigravity to do tests, reviews and E2E as they do, in the
@@ -100,7 +105,7 @@ export function checksConfig(root) {
     // Several reviewers only for a review; every other kind has one tool.
     route[kind] = kind === "review" ? [...new Set(list)] : list[0];
   }
-  if (!E2E_TOOLS.includes(route.e2e)) throw new Error(`${MARKER}: checks.route.e2e must be ${E2E_TOOLS.join(" or ")}: no other tool has mflow's guard on Playwright's browsers`);
+  if (!E2E_TOOLS.includes(route.e2e)) throw new Error(`${MARKER}: checks.route.e2e must be ${E2E_TOOLS.join(" or ")}: opencode takes reviews only`);
   for (const kind of ["test", "fix"]) {
     if (READ_ONLY_TOOLS.includes(route[kind])) throw new Error(`${MARKER}: checks.route.${kind} must be any, ${WRITE_TOOLS.join(" or ")}: ${READ_ONLY_TOOLS.join(" and ")} takes reviews only`);
   }
@@ -400,6 +405,8 @@ const isSubReview = (j) => j.kind === "review" && /^R\d+[a-z]$/.test(j.id);
 /** A review whose verdict is the change's: one reviewer's, the merged one, or a later round. */
 const isVerdictJob = (j) => (j.kind === "review" && !isSubReview(j)) || j.kind === "review-merge";
 const originOf = (j) => (j.kind === "fix" ? /^(\S+) round \d+$/.exec(j.target)?.[1] : j.id.split(".")[0]);
+/** An E2E job, or the fix of one (it runs the E2E tests again). */
+const isE2E = (j) => E2E_KINDS.has(j.kind) || (j.kind === "fix" && !!originOf(j)?.startsWith("E"));
 const verdictOf = (j) => /\b(approve|changes-requested|none)\s*(\(|$)/.exec(j.result || "")?.[1] || null;
 const recordOf = (j) => /^(\S+\.md)\b/.exec(j.result || "")?.[1] || null;
 const rangeOf = (j) => /\bfixed ([0-9a-f]{7,40})\.\.([0-9a-f]{7,40})\b/.exec(j.result || "");
@@ -512,7 +519,7 @@ export function next(root, { as, batch, job: only, kind } = {}) {
         if (only && j.id !== only) continue;
         if (kinds && !kinds.has(j.kind)) continue;
         if (j.agent !== "any" && j.agent !== as) continue;
-        if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !E2E_TOOLS.includes(as)) continue;
+        if (isE2E(j) && !E2E_TOOLS.includes(as)) continue;
         if (!canTake(as, j)) continue;
         if (!waitsMet(j, b.jobs)) continue;
         if (HEAVY.has(j.kind) && heavyBusy) {
@@ -536,7 +543,12 @@ export function next(root, { as, batch, job: only, kind } = {}) {
         }
         live[`${b.name}/${j.id}`] = { tool: as, at: new Date().toISOString(), heavy: HEAVY.has(j.kind), job: `${b.name}/${j.id}` };
         writeClaims(file, live);
-        return { batch: b.name, branch: b.branch, dir, file: b.file, pinned: b.pinned, job: j, how: howOf(j, dir, b), reclaimed: stale.some((s) => s.key === `${b.name}/${j.id}`) };
+        let how = howOf(j, dir, b);
+        if (how && isE2E(j) && !GUARDED_E2E_TOOLS.includes(as)) {
+          const cap = loadConfig(main).e2eMaxWorkers;
+          how += `. ${as} has no mflow hook on Playwright, so this is on you: every Playwright run you start passes --workers=${Math.min(2, cap)} (at most ${cap}, e2eMaxWorkers), names only the spec files of this job, and is never a whole-suite run or a package script that wraps Playwright; more browsers at once have crashed this machine`;
+        }
+        return { batch: b.name, branch: b.branch, dir, file: b.file, pinned: b.pinned, job: j, how, reclaimed: stale.some((s) => s.key === `${b.name}/${j.id}`) };
       }
     }
     return { job: null, busy, reason: skipped.length ? skipped.join("; ") : !open.length ? "no checks batch is open" : `no open ${kind ? `${kind} ` : ""}job for ${as} is ready`, batches: open.map((b) => b.name) };
@@ -840,7 +852,7 @@ export function assign(root, ids, tool, { batch } = {}) {
   for (const id of list) {
     const j = b.jobs.find((x) => x.id === id);
     if (!j) throw new Error(`${b.name} has no job ${id}`);
-    if ((E2E_KINDS.has(j.kind) || (j.kind === "fix" && originOf(j)?.startsWith("E"))) && !tools.every((t) => E2E_TOOLS.includes(t))) throw new Error(`${id} is E2E: only ${E2E_TOOLS.join(" and ")} have mflow's guard on Playwright's browsers`);
+    if (isE2E(j) && !tools.every((t) => E2E_TOOLS.includes(t))) throw new Error(`${id} is E2E: only ${E2E_TOOLS.join(", ")} take E2E jobs`);
     const refused = tools.find((t) => !canTake(t, j));
     if (refused) throw new Error(`${id} is a ${j.kind} job: ${refused} takes reviews only; give it to ${WRITE_TOOLS.join(" or ")}`);
     if (tools.length === 1) {

@@ -40,7 +40,6 @@ export const BOT_KINDS = ["sync", "test", "review", "e2e", "fix"];
 // The checks.route keys each bot kind takes jobs of (checks.mjs): a review bot also takes the review-merge job. sync has
 // no route: it makes the jobs.
 const ROUTE_KEYS = { sync: [], test: ["test"], review: ["review", "reviewMerge", "reviewAfterFix"], e2e: ["e2e"], fix: ["fix"] };
-const E2E_AGENTS = ["claude", "codex"]; // the ones with an E2E browser guard (checks.mjs)
 const WINDOW_MIN = 300; // the short usage window of Claude and Codex
 const SNAPSHOT_FRESH_MIN = 30;
 const SELF = fileURLToPath(import.meta.url);
@@ -93,7 +92,6 @@ export function loadConfig(home, opts = {}) {
       if (!BOT_KINDS.includes(kind)) throw new Error(`bots.json: ${name}.kinds.${kind}: use ${BOT_KINDS.join(", ")}`);
       kinds[kind] = (Array.isArray(spec) ? spec : [spec]).map((s) => {
         if (!AGENTS.includes(s?.agent)) throw new Error(`bots.json: ${name}.${kind}: agent must be ${AGENTS.join(", ")}`);
-        if (kind === "e2e" && !E2E_AGENTS.includes(s.agent)) throw new Error(`bots.json: ${name}.e2e: ${s.agent} has no browser guard; use ${E2E_AGENTS.join(" or ")}`);
         const m = s.model ? resolveModel(s.agent, String(s.model), opts) : {};
         if (m.warning) modelWarnings.push(`${name}.${kind}: ${m.warning}`);
         return { agent: s.agent, ...(m.model ? { model: m.model } : {}), ...(s.effort ? { effort: String(s.effort) } : {}) };
@@ -813,7 +811,6 @@ export function jobReady(root, kind, tool) {
     const j = b.jobs.find((x) => x.ready && kinds.has(x.kind) && (x.agent === "any" || x.agent === tool));
     if (!j) continue;
     if (HEAVY.has(j.kind) && heavyRunning) continue;
-    if (/^e2e/.test(j.kind) && !E2E_AGENTS.includes(tool)) continue;
     return { ok: true, batch: b.name, job: j.id, kind: j.kind };
   }
   return { ok: false, reason: `no ready ${kind} job for ${tool}` };

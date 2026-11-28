@@ -112,7 +112,7 @@ test("ready says why a job cannot start, and refuses an agent the project does n
 
 test("bots.json is checked", () => {
   fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { A: { path: base, kinds: { e2e: { agent: "antigravity" } } } } }));
-  assert.throws(() => loadConfig(home), /no browser guard/);
+  assert.equal(loadConfig(home).projects.A.kinds.e2e[0].agent, "antigravity", "Antigravity takes E2E since 0.63.0");
   fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ projects: { A: { path: "rel", kinds: {} } } }));
   assert.throws(() => loadConfig(home), /absolute/);
   fs.writeFileSync(path.join(home, "bots.json"), JSON.stringify({ maxHeavy: 0, projects: {} }));
